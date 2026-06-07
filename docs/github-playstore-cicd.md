@@ -38,6 +38,9 @@ Deploy Backend To Cloudflare
 
 Unity Android Internal Build
   Builds an Android App Bundle and can upload it to Google Play internal testing.
+
+Upload Play Store Metadata
+  Uploads Play listing text, changelog, icon, feature graphic, and screenshots after the Play Console app exists.
 ```
 
 ## Play Store Notes
