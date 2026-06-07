@@ -5,22 +5,13 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.RadialGradient;
-import android.graphics.RectF;
 import android.graphics.Shader;
-import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.view.Gravity;
 import android.view.View;
-import android.widget.Button;
 import android.widget.FrameLayout;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -35,12 +26,11 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.concurrent.TimeUnit;
 
-public final class MainActivity extends Activity {
+public final class MainActivity extends Activity implements BaseScreen.ScreenCallback {
     private static final String BACKEND_URL = "https://ludo-rush-backend.ibsam588.workers.dev";
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
 
@@ -48,1002 +38,423 @@ public final class MainActivity extends Activity {
     private final OkHttpClient http = new OkHttpClient.Builder()
             .readTimeout(0, TimeUnit.MILLISECONDS)
             .build();
+    private final Deque<String> screenStack = new ArrayDeque<>();
 
-    private TextView statusText;
-    private TextView matchTitle;
-    private TextView matchMeta;
-    private TextView diceText;
-    private TextView turnText;
-    private TextView movesText;
-    private TextView roomText;
-    private LinearLayout playerStrip;
-    private BoardView board;
-    private Button playButton;
-    private Button rollButton;
-    private Button moveButton;
-    private Button healthButton;
+    private FrameLayout container;
+    private View currentScreenView;
+    private GameScreen gameScreen;
+    private View gameScreenView;
 
     private WebSocket socket;
     private String playerId;
     private String displayName = "Rush Tester";
-    private JSONObject snapshot;
+    private int coins = 500;
+    private int rating = 1000;
+    private int gamesPlayed = 0;
+    private int wins = 0;
     private boolean backendOnline;
     private boolean connecting;
+    private JSONObject lastSnapshot;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(createUi());
-        updateUi();
-        health();
+
+        FrameLayout shell = new FrameLayout(this);
+        shell.setBackgroundColor(Color.rgb(8, 11, 19));
+
+        BackgroundView bg = new BackgroundView(this);
+        shell.addView(bg, new FrameLayout.LayoutParams(-1, -1));
+
+        container = new FrameLayout(this);
+        shell.addView(container, new FrameLayout.LayoutParams(-1, -1));
+
+        setContentView(shell);
+        healthCheck();
+        navigateTo("home");
     }
 
     @Override
     protected void onDestroy() {
-        if (socket != null) {
-            socket.close(1000, "activity_destroyed");
-        }
+        if (socket != null) socket.close(1000, "activity_destroyed");
         super.onDestroy();
     }
 
-    private View createUi() {
-        FrameLayout shell = new FrameLayout(this);
-        shell.setBackgroundColor(Color.rgb(8, 11, 19));
-
-        BackgroundView background = new BackgroundView(this);
-        shell.addView(background, new FrameLayout.LayoutParams(-1, -1));
-
-        ScrollView scroll = new ScrollView(this);
-        scroll.setFillViewport(true);
-        scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        shell.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
-
-        LinearLayout root = new LinearLayout(this);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(18), dp(20), dp(18), dp(18));
-        scroll.addView(root, new ScrollView.LayoutParams(-1, -2));
-
-        LinearLayout hero = new LinearLayout(this);
-        hero.setOrientation(LinearLayout.VERTICAL);
-        hero.setPadding(dp(20), dp(18), dp(20), dp(18));
-        hero.setBackground(cardGradient(0xff192133, 0xff101827, dp(22)));
-        root.addView(hero, lp(-1, -2, 0, 0, 0, dp(14)));
-
-        LinearLayout top = new LinearLayout(this);
-        top.setGravity(Gravity.CENTER_VERTICAL);
-        top.setOrientation(LinearLayout.HORIZONTAL);
-        hero.addView(top, lp(-1, -2));
-
-        LinearLayout titleColumn = new LinearLayout(this);
-        titleColumn.setOrientation(LinearLayout.VERTICAL);
-        top.addView(titleColumn, new LinearLayout.LayoutParams(0, -2, 1));
-
-        TextView brand = text("Ludo Rush", 32, Color.WHITE, Typeface.BOLD);
-        titleColumn.addView(brand);
-
-        matchTitle = text("Online board sprint", 15, 0xffAAB7CF, Typeface.BOLD);
-        matchTitle.setPadding(0, dp(4), 0, 0);
-        titleColumn.addView(matchTitle);
-
-        TextView live = chip("LIVE BACKEND", 0xff37E6A5, 0x2237E6A5);
-        top.addView(live);
-
-        roomText = text("No room yet", 12, 0xff91A0BA, Typeface.NORMAL);
-        roomText.setPadding(0, dp(14), 0, 0);
-        hero.addView(roomText);
-
-        LinearLayout stats = new LinearLayout(this);
-        stats.setOrientation(LinearLayout.HORIZONTAL);
-        stats.setGravity(Gravity.CENTER);
-        hero.addView(stats, lp(-1, -2, 0, dp(16), 0, 0));
-
-        diceText = metric("Dice", "-");
-        turnText = metric("Turn", "Waiting");
-        movesText = metric("Moves", "0");
-        stats.addView(diceText, new LinearLayout.LayoutParams(0, dp(74), 1));
-        stats.addView(turnText, new LinearLayout.LayoutParams(0, dp(74), 1));
-        stats.addView(movesText, new LinearLayout.LayoutParams(0, dp(74), 1));
-
-        playerStrip = new LinearLayout(this);
-        playerStrip.setOrientation(LinearLayout.HORIZONTAL);
-        playerStrip.setGravity(Gravity.CENTER);
-        root.addView(playerStrip, lp(-1, -2, 0, 0, 0, dp(12)));
-
-        board = new BoardView(this);
-        root.addView(board, lp(-1, dp(420), 0, 0, 0, dp(14)));
-
-        LinearLayout commandPanel = new LinearLayout(this);
-        commandPanel.setOrientation(LinearLayout.VERTICAL);
-        commandPanel.setPadding(dp(16), dp(16), dp(16), dp(16));
-        commandPanel.setBackground(card(0xee111A2A, dp(20), 0x2237E6A5));
-        root.addView(commandPanel, lp(-1, -2));
-
-        statusText = text("Checking Cloudflare room server...", 15, 0xffE6ECF8, Typeface.BOLD);
-        commandPanel.addView(statusText, lp(-1, -2, 0, 0, 0, dp(12)));
-
-        matchMeta = text("Bot match is ready for internal gameplay testing.", 13, 0xff94A3B8, Typeface.NORMAL);
-        commandPanel.addView(matchMeta, lp(-1, -2, 0, 0, 0, dp(14)));
-
-        playButton = actionButton("Start Bot Match", 0xffFF4D6D, 0xffFFB14A);
-        commandPanel.addView(playButton, lp(-1, dp(56), 0, 0, 0, dp(10)));
-        playButton.setOnClickListener(v -> startBotMatch());
-
-        LinearLayout actions = new LinearLayout(this);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        commandPanel.addView(actions, lp(-1, dp(54)));
-
-        rollButton = secondaryButton("Roll Dice");
-        moveButton = secondaryButton("Move Best Piece");
-        healthButton = secondaryButton("Check Server");
-        actions.addView(rollButton, new LinearLayout.LayoutParams(0, -1, 1));
-        actions.addView(moveButton, new LinearLayout.LayoutParams(0, -1, 1));
-        actions.addView(healthButton, new LinearLayout.LayoutParams(0, -1, 1));
-
-        rollButton.setOnClickListener(v -> roll());
-        moveButton.setOnClickListener(v -> moveFirstAvailable());
-        healthButton.setOnClickListener(v -> health());
-
-        return shell;
+    @Override
+    public void onBackPressed() {
+        if (screenStack.size() > 1) {
+            goBack();
+        } else {
+            super.onBackPressed();
+        }
     }
 
-    private TextView metric(String label, String value) {
-        TextView view = new TextView(this);
-        view.setGravity(Gravity.CENTER);
-        view.setTextColor(Color.WHITE);
-        view.setTextSize(16);
-        view.setTypeface(Typeface.DEFAULT_BOLD);
-        view.setText(label.toUpperCase(Locale.US) + "\n" + value);
-        view.setBackground(card(0x331C2A3F, dp(16), 0x226C7A96));
-        view.setPadding(dp(4), dp(8), dp(4), dp(8));
-        return view;
+    @Override
+    public void navigateTo(String screen) {
+        navigateTo(screen, null);
     }
 
-    private TextView chip(String text, int color, int fill) {
-        TextView view = text(text, 11, color, Typeface.BOLD);
-        view.setGravity(Gravity.CENTER);
-        view.setPadding(dp(12), dp(8), dp(12), dp(8));
-        view.setBackground(card(fill, dp(18), color));
-        return view;
+    @Override
+    public void navigateTo(String screen, String data) {
+        main.post(() -> showScreen(screen, data));
     }
 
-    private Button actionButton(String label, int start, int end) {
-        Button button = new Button(this);
-        button.setAllCaps(false);
-        button.setText(label);
-        button.setTextColor(Color.WHITE);
-        button.setTextSize(16);
-        button.setTypeface(Typeface.DEFAULT_BOLD);
-        button.setBackground(buttonGradient(start, end, dp(18)));
-        return button;
-    }
-
-    private Button secondaryButton(String label) {
-        Button button = new Button(this);
-        button.setAllCaps(false);
-        button.setText(label);
-        button.setTextColor(Color.WHITE);
-        button.setTextSize(13);
-        button.setTypeface(Typeface.DEFAULT_BOLD);
-        button.setBackground(card(0xff1A2638, dp(16), 0x335D6D86));
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -1, 1);
-        params.setMargins(dp(4), 0, dp(4), 0);
-        button.setLayoutParams(params);
-        return button;
-    }
-
-    private void health() {
-        setStatus("Checking room server...");
-        Request request = new Request.Builder().url(BACKEND_URL + "/health").build();
-        http.newCall(request).enqueue(new Callback() {
-            @Override public void onFailure(Call call, IOException e) {
-                backendOnline = false;
-                setStatus("Server offline: " + e.getMessage());
-                main.post(MainActivity.this::updateUi);
-            }
-
-            @Override public void onResponse(Call call, Response response) {
-                backendOnline = response.isSuccessful();
-                setStatus(backendOnline ? "Server online. Start a bot match." : "Server error " + response.code());
-                response.close();
-                main.post(MainActivity.this::updateUi);
-            }
+    @Override
+    public void goBack() {
+        main.post(() -> {
+            if (screenStack.size() <= 1) return;
+            screenStack.pop();
+            String prev = screenStack.peek();
+            if (prev != null) showScreen(prev, null);
         });
     }
 
-    private void startBotMatch() {
-        if (connecting) {
-            return;
-        }
+    @Override public String getPlayerId() { return playerId; }
+    @Override public String getDisplayName() { return displayName; }
+    @Override public int getCoins() { return coins; }
+    @Override public int getRating() { return rating; }
+    @Override public int getGamesPlayed() { return gamesPlayed; }
+    @Override public int getWins() { return wins; }
+    @Override public boolean isOnline() { return backendOnline; }
+
+    @Override
+    public void startBotMatch(String mode) {
+        if (connecting) return;
         connecting = true;
-        setStatus("Creating guest profile...");
-        updateUi();
-        post("/api/v1/auth/guest", json(
-                "displayName", displayName,
-                "region", "us-east"), body -> {
+        navigateTo("game");
+        updateGameStatus("Creating guest profile...");
+
+        post("/api/v1/auth/guest", json("displayName", displayName, "region", "us-east"), body -> {
             JSONObject player = body.getJSONObject("player");
             playerId = player.getString("id");
             displayName = player.getString("displayName");
-            setStatus("Creating bot match...");
+            rating = player.optInt("rating", 1000);
+            coins = player.optInt("coins", 500);
+
+            updateGameStatus("Creating bot match...");
             post("/api/v1/matchmaking/bots", json(
                     "playerId", playerId,
                     "displayName", displayName,
-                    "mode", "classic_2p",
+                    "mode", mode,
                     "region", "us-east",
-                    "rating", player.optInt("rating", 1000)), match -> connect(match.getString("socketUrl")));
+                    "rating", rating), match -> connect(match.getString("socketUrl")));
         });
+    }
+
+    @Override
+    public void startQuickMatch(String mode) {
+        if (connecting) return;
+        connecting = true;
+        navigateTo("game");
+        updateGameStatus("Creating guest profile...");
+
+        post("/api/v1/auth/guest", json("displayName", displayName, "region", "us-east"), body -> {
+            JSONObject player = body.getJSONObject("player");
+            playerId = player.getString("id");
+            displayName = player.getString("displayName");
+            rating = player.optInt("rating", 1000);
+            coins = player.optInt("coins", 500);
+
+            updateGameStatus("Searching for match...");
+            post("/api/v1/matchmaking/quick", json(
+                    "playerId", playerId,
+                    "displayName", displayName,
+                    "mode", mode,
+                    "region", "us-east",
+                    "rating", rating), ticket -> {
+                String ticketId = ticket.optString("ticketId", "");
+                if (ticketId.isEmpty()) {
+                    updateGameStatus("Matchmaking failed.");
+                    connecting = false;
+                    return;
+                }
+                pollTicket(ticketId, 0);
+            });
+        });
+    }
+
+    @Override
+    public void rollDice() {
+        if (socket == null || playerId == null) return;
+        send(json("type", "roll_dice", "playerId", playerId));
+    }
+
+    @Override
+    public void moveBestPiece() {
+        if (socket == null || lastSnapshot == null) return;
+        JSONArray moves = lastSnapshot.optJSONArray("availableMoves");
+        if (moves == null || moves.length() == 0) return;
+        String best = chooseBest(moves);
+        send(json("type", "move_piece", "playerId", playerId, "pieceId", best));
+    }
+
+    @Override
+    public void resign() {
+        if (socket != null && playerId != null) {
+            send(json("type", "resign", "playerId", playerId));
+        }
+    }
+
+    private void showScreen(String name, String data) {
+        if (currentScreenView != null && !(name.equals("game") && currentScreenView == gameScreenView)) {
+            container.removeView(currentScreenView);
+        }
+        if (currentScreenView == gameScreenView && !"game".equals(name)) {
+            gameScreenView.setVisibility(View.GONE);
+        }
+
+        View view;
+        if ("game".equals(name) && gameScreenView != null) {
+            gameScreenView.setVisibility(View.VISIBLE);
+            view = gameScreenView;
+        } else {
+            BaseScreen screen = createScreen(name, data);
+            view = screen.createView();
+            container.addView(view, new FrameLayout.LayoutParams(-1, -1));
+            if ("game".equals(name)) {
+                gameScreen = (GameScreen) screen;
+                gameScreenView = view;
+            }
+        }
+
+        currentScreenView = view;
+        if (screenStack.isEmpty() || !name.equals(screenStack.peek())) {
+            screenStack.push(name);
+        }
+    }
+
+    private BaseScreen createScreen(String name, String data) {
+        switch (name) {
+            case "lobby": return new LobbyScreen(this, this);
+            case "game": return new GameScreen(this, this);
+            case "results": return new ResultsScreen(this, this, lastSnapshot);
+            case "profile": return new ProfileScreen(this, this);
+            case "history": return new MatchHistoryScreen(this, this);
+            case "leaderboard": return new LeaderboardScreen(this, this);
+            case "settings": return new SettingsScreen(this, this);
+            case "shop": return new ShopScreen(this, this);
+            default: return new HomeScreen(this, this);
+        }
     }
 
     private void connect(String socketPath) {
-        String encodedName = encodeQuery(displayName);
+        String encoded = encodeQuery(displayName);
         String wsUrl = BACKEND_URL.replace("https://", "wss://") + socketPath
-                + "?playerId=" + playerId
-                + "&displayName=" + encodedName;
-        Request request = new Request.Builder().url(wsUrl).build();
-        socket = http.newWebSocket(request, new WebSocketListener() {
-            @Override public void onOpen(WebSocket webSocket, Response response) {
+                + "?playerId=" + playerId + "&displayName=" + encoded;
+        Request req = new Request.Builder().url(wsUrl).build();
+        socket = http.newWebSocket(req, new WebSocketListener() {
+            @Override public void onOpen(WebSocket ws, Response r) {
                 connecting = false;
                 send(json("type", "join", "playerId", playerId, "displayName", displayName));
                 send(json("type", "fill_bots", "playerId", playerId));
-                setStatus("Match connected. Bots are seated.");
-                main.post(MainActivity.this::updateUi);
+                updateGameStatus("Match connected. Bots are seated.");
             }
 
-            @Override public void onMessage(WebSocket webSocket, String text) {
-                handleRoomMessage(text);
+            @Override public void onMessage(WebSocket ws, String text) {
+                handleMessage(text);
             }
 
-            @Override public void onFailure(WebSocket webSocket, Throwable t, Response response) {
+            @Override public void onFailure(WebSocket ws, Throwable t, Response r) {
                 connecting = false;
-                setStatus("Socket error: " + t.getMessage());
-                main.post(MainActivity.this::updateUi);
+                updateGameStatus("Connection error: " + t.getMessage());
             }
         });
     }
 
-    private String encodeQuery(String value) {
+    private void handleMessage(String text) {
         try {
-            return URLEncoder.encode(value, "UTF-8");
-        } catch (UnsupportedEncodingException ignored) {
-            return value.replace(" ", "%20");
+            JSONObject envelope = new JSONObject(text);
+            if ("error".equals(envelope.optString("type"))) {
+                updateGameStatus(envelope.optString("message", "Room error"));
+                return;
+            }
+
+            JSONObject snap = envelope.optJSONObject("snapshot");
+            if (snap != null) {
+                lastSnapshot = snap;
+                main.post(() -> {
+                    if (gameScreen != null) {
+                        gameScreen.updateSnapshot(snap, playerId);
+                    }
+                    if ("finished".equals(snap.optString("status"))) {
+                        trackMatchResult(snap);
+                        main.postDelayed(() -> navigateTo("results"), 1500);
+                    }
+                });
+            }
+        } catch (Exception e) {
+            updateGameStatus("Parse error: " + e.getMessage());
         }
     }
 
-    private void roll() {
-        if (socket == null || playerId == null) {
-            setStatus("Start a bot match first.");
-            return;
+    private void trackMatchResult(JSONObject snap) {
+        gamesPlayed++;
+        String winnerId = snap.optString("winnerPlayerId", "");
+        if (playerId != null && playerId.equals(winnerId)) {
+            wins++;
+            rating += 12;
+            coins += 100;
+        } else {
+            rating = Math.max(0, rating - 6);
+            coins += 15;
         }
-        if (!isMyTurn()) {
-            setStatus("Wait for your turn.");
-            return;
+        if (socket != null) {
+            socket.close(1000, "match_finished");
+            socket = null;
         }
-        send(json("type", "roll_dice", "playerId", playerId));
-        setStatus("Rolling server-controlled dice...");
+        gameScreen = null;
+        gameScreenView = null;
     }
 
-    private void moveFirstAvailable() {
-        if (socket == null || snapshot == null) {
-            setStatus("No active room.");
+    private void pollTicket(String ticketId, int attempt) {
+        if (attempt > 15) {
+            updateGameStatus("Matchmaking timed out.");
+            connecting = false;
             return;
         }
-        JSONArray moves = snapshot.optJSONArray("availableMoves");
-        if (moves == null || moves.length() == 0) {
-            setStatus("No legal move is available.");
-            return;
-        }
-        String bestPiece = chooseBestMove(moves);
-        send(json("type", "move_piece", "playerId", playerId, "pieceId", bestPiece));
-        setStatus("Moving " + bestPiece + "...");
+        main.postDelayed(() -> {
+            Request req = new Request.Builder()
+                    .url(BACKEND_URL + "/api/v1/matchmaking/tickets/" + ticketId)
+                    .build();
+            http.newCall(req).enqueue(new Callback() {
+                @Override public void onFailure(Call call, IOException e) {
+                    connecting = false;
+                    updateGameStatus("Ticket check failed.");
+                }
+
+                @Override public void onResponse(Call call, Response response) throws IOException {
+                    String body = response.body() == null ? "{}" : response.body().string();
+                    response.close();
+                    try {
+                        JSONObject ticket = new JSONObject(body);
+                        String status = ticket.optString("status", "waiting");
+                        if ("matched".equals(status)) {
+                            String socketUrl = ticket.optString("socketUrl", "");
+                            if (!socketUrl.isEmpty()) {
+                                connect(socketUrl);
+                                return;
+                            }
+                        }
+                        if ("waiting".equals(status)) {
+                            updateGameStatus("Searching... (" + (attempt + 1) + ")");
+                            pollTicket(ticketId, attempt + 1);
+                        } else {
+                            connecting = false;
+                            updateGameStatus("Matchmaking: " + status);
+                        }
+                    } catch (Exception e) {
+                        connecting = false;
+                        updateGameStatus("Ticket parse error.");
+                    }
+                }
+            });
+        }, 2000);
     }
 
-    private String chooseBestMove(JSONArray moves) {
+    private String chooseBest(JSONArray moves) {
         String best = moves.optString(0);
         int bestScore = Integer.MIN_VALUE;
-        JSONArray pieces = snapshot == null ? null : snapshot.optJSONArray("pieces");
-        for (int i = 0; i < moves.length(); i += 1) {
+        JSONArray pieces = lastSnapshot == null ? null : lastSnapshot.optJSONArray("pieces");
+        for (int i = 0; i < moves.length(); i++) {
             String id = moves.optString(i);
             int score = 0;
             if (pieces != null) {
-                for (int j = 0; j < pieces.length(); j += 1) {
-                    JSONObject piece = pieces.optJSONObject(j);
-                    if (piece != null && id.equals(piece.optString("pieceId"))) {
-                        score = piece.optInt("progress", -1);
-                    }
+                for (int j = 0; j < pieces.length(); j++) {
+                    JSONObject p = pieces.optJSONObject(j);
+                    if (p != null && id.equals(p.optString("pieceId")))
+                        score = p.optInt("progress", -1);
                 }
             }
-            if (score > bestScore) {
-                bestScore = score;
-                best = id;
-            }
+            if (score > bestScore) { bestScore = score; best = id; }
         }
         return best;
     }
 
-    private void handleRoomMessage(String text) {
-        try {
-            JSONObject envelope = new JSONObject(text);
-            if ("error".equals(envelope.optString("type"))) {
-                setStatus(envelope.optString("message", "Room error"));
-                return;
+    private void updateGameStatus(String text) {
+        main.post(() -> {
+            if (gameScreen != null) gameScreen.setStatus(text);
+        });
+    }
+
+    private void healthCheck() {
+        Request req = new Request.Builder().url(BACKEND_URL + "/health").build();
+        http.newCall(req).enqueue(new Callback() {
+            @Override public void onFailure(Call call, IOException e) { backendOnline = false; }
+            @Override public void onResponse(Call call, Response r) {
+                backendOnline = r.isSuccessful();
+                r.close();
             }
-
-            JSONObject next = envelope.optJSONObject("snapshot");
-            if (next != null) {
-                snapshot = next;
-                main.post(() -> {
-                    board.setSnapshot(snapshot, playerId);
-                    updateUi();
-                });
-            }
-        } catch (Exception e) {
-            setStatus("Message parse error: " + e.getMessage());
-        }
-    }
-
-    private void updateUi() {
-        RoomUi room = readRoom();
-        diceText.setText("DICE\n" + room.dice);
-        turnText.setText("TURN\n" + room.turn);
-        movesText.setText("MOVES\n" + room.moves);
-        roomText.setText(room.room);
-        matchTitle.setText(room.title);
-        matchMeta.setText(room.meta);
-
-        if (room.status.length() > 0) {
-            statusText.setText(room.status);
-        }
-
-        playButton.setEnabled(!connecting);
-        playButton.setText(socket == null ? "Start Bot Match" : "New Bot Match");
-        rollButton.setEnabled(room.canRoll);
-        moveButton.setEnabled(room.canMove);
-        healthButton.setEnabled(!connecting);
-        setButtonAlpha(rollButton, room.canRoll);
-        setButtonAlpha(moveButton, room.canMove);
-        setButtonAlpha(playButton, !connecting);
-
-        renderPlayers(room.seats);
-    }
-
-    private RoomUi readRoom() {
-        RoomUi ui = new RoomUi();
-        ui.title = backendOnline ? "Cloudflare realtime room" : "Waiting for server";
-        ui.room = "Region us-east | Guest login | Server-authoritative dice";
-        ui.meta = "Tap Start Bot Match to play against a server bot.";
-        ui.status = "";
-        ui.dice = "-";
-        ui.turn = "Lobby";
-        ui.moves = "0";
-        ui.canRoll = false;
-        ui.canMove = false;
-
-        if (connecting) {
-            ui.status = "Setting up a live match...";
-            ui.turn = "Joining";
-            return ui;
-        }
-
-        if (snapshot == null) {
-            ui.status = backendOnline ? "Server online. Ready for a bot match." : "Checking Cloudflare backend...";
-            return ui;
-        }
-
-        String mode = snapshot.optString("mode", "classic_2p").replace("_", " ").toUpperCase(Locale.US);
-        String status = snapshot.optString("status", "waiting");
-        int dice = snapshot.optInt("diceValue", 0);
-        JSONArray moves = snapshot.optJSONArray("availableMoves");
-        ui.dice = dice == 0 ? "-" : String.valueOf(dice);
-        ui.moves = String.valueOf(moves == null ? 0 : moves.length());
-        ui.room = "Room " + shortRoom(snapshot.optString("roomId")) + " | " + mode + " | " + snapshot.optString("region", "global");
-        ui.title = "Live " + mode;
-
-        int mySeat = mySeat();
-        int turnSeat = snapshot.optInt("currentTurnSeat", -1);
-        boolean myTurn = mySeat >= 0 && mySeat == turnSeat && "playing".equals(status);
-        ui.turn = myTurn ? "You" : seatName(turnSeat);
-        ui.canRoll = myTurn && dice == 0;
-        ui.canMove = myTurn && dice > 0 && moves != null && moves.length() > 0;
-
-        if ("finished".equals(status)) {
-            ui.status = winnerText();
-            ui.turn = "Done";
-        } else if (ui.canRoll) {
-            ui.status = "Your turn. Roll the dice.";
-        } else if (ui.canMove) {
-            ui.status = "Dice " + dice + ". Choose Move Best Piece.";
-        } else if (myTurn) {
-            ui.status = "No legal move. Waiting for server turn advance.";
-        } else {
-            ui.status = "Waiting for " + seatName(turnSeat) + ".";
-        }
-
-        JSONArray seats = snapshot.optJSONArray("seats");
-        if (seats != null) {
-            for (int i = 0; i < seats.length(); i += 1) {
-                JSONObject seat = seats.optJSONObject(i);
-                if (seat != null) {
-                    ui.seats.add(seat);
-                }
-            }
-        }
-
-        return ui;
-    }
-
-    private void renderPlayers(List<JSONObject> seats) {
-        playerStrip.removeAllViews();
-        if (seats.isEmpty()) {
-            playerStrip.addView(playerCard("You", "Start a match", 0, false, false), new LinearLayout.LayoutParams(0, dp(72), 1));
-            playerStrip.addView(playerCard("Rush Bot", "Waiting", 1, false, true), new LinearLayout.LayoutParams(0, dp(72), 1));
-            return;
-        }
-
-        for (JSONObject seat : seats) {
-            int index = seat.optInt("seat", 0);
-            boolean isMe = playerId != null && playerId.equals(seat.optString("playerId"));
-            boolean active = snapshot != null && snapshot.optInt("currentTurnSeat", -1) == index;
-            String name = isMe ? "You" : seat.optString("displayName", "Player");
-            String label = seat.optBoolean("isBot") ? "Bot" : (seat.optBoolean("connected", true) ? "Online" : "Offline");
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(72), 1);
-            params.setMargins(dp(4), 0, dp(4), 0);
-            playerStrip.addView(playerCard(name, label, index, active, seat.optBoolean("isBot")), params);
-        }
-    }
-
-    private View playerCard(String name, String label, int seat, boolean active, boolean bot) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.HORIZONTAL);
-        card.setGravity(Gravity.CENTER_VERTICAL);
-        card.setPadding(dp(10), dp(8), dp(10), dp(8));
-        card.setBackground(card(active ? 0xee20324A : 0xcc111A2A, dp(18), active ? seatColor(seat) : 0x225D6D86));
-
-        ColorDot dot = new ColorDot(this, seatColor(seat));
-        card.addView(dot, new LinearLayout.LayoutParams(dp(34), dp(34)));
-
-        LinearLayout textColumn = new LinearLayout(this);
-        textColumn.setOrientation(LinearLayout.VERTICAL);
-        textColumn.setPadding(dp(9), 0, 0, 0);
-        card.addView(textColumn, new LinearLayout.LayoutParams(0, -2, 1));
-
-        TextView nameView = text(name, 13, Color.WHITE, Typeface.BOLD);
-        nameView.setSingleLine(true);
-        textColumn.addView(nameView);
-        TextView sub = text((active ? "Turn" : label) + (bot ? " AI" : ""), 11, 0xff9AA8C2, Typeface.NORMAL);
-        sub.setSingleLine(true);
-        textColumn.addView(sub);
-
-        return card;
-    }
-
-    private boolean isMyTurn() {
-        return snapshot != null && mySeat() == snapshot.optInt("currentTurnSeat", -1) && "playing".equals(snapshot.optString("status"));
-    }
-
-    private int mySeat() {
-        if (snapshot == null || playerId == null) {
-            return -1;
-        }
-        JSONArray seats = snapshot.optJSONArray("seats");
-        if (seats == null) {
-            return -1;
-        }
-        for (int i = 0; i < seats.length(); i += 1) {
-            JSONObject seat = seats.optJSONObject(i);
-            if (seat != null && playerId.equals(seat.optString("playerId"))) {
-                return seat.optInt("seat", -1);
-            }
-        }
-        return -1;
-    }
-
-    private String seatName(int seatIndex) {
-        if (snapshot == null) {
-            return "Player";
-        }
-        JSONArray seats = snapshot.optJSONArray("seats");
-        if (seats == null) {
-            return "Seat " + (seatIndex + 1);
-        }
-        for (int i = 0; i < seats.length(); i += 1) {
-            JSONObject seat = seats.optJSONObject(i);
-            if (seat != null && seat.optInt("seat", -1) == seatIndex) {
-                if (playerId != null && playerId.equals(seat.optString("playerId"))) {
-                    return "You";
-                }
-                return seat.optString("displayName", "Seat " + (seatIndex + 1));
-            }
-        }
-        return "Seat " + (seatIndex + 1);
-    }
-
-    private String winnerText() {
-        String winner = snapshot == null ? "" : snapshot.optString("winnerPlayerId", "");
-        if (playerId != null && playerId.equals(winner)) {
-            return "You won the match.";
-        }
-        JSONArray seats = snapshot == null ? null : snapshot.optJSONArray("seats");
-        if (seats != null) {
-            for (int i = 0; i < seats.length(); i += 1) {
-                JSONObject seat = seats.optJSONObject(i);
-                if (seat != null && winner.equals(seat.optString("playerId"))) {
-                    return seat.optString("displayName", "Opponent") + " won.";
-                }
-            }
-        }
-        return "Match finished.";
+        });
     }
 
     private void post(String path, JSONObject payload, JsonHandler handler) {
-        Request request = new Request.Builder()
+        Request req = new Request.Builder()
                 .url(BACKEND_URL + path)
                 .post(RequestBody.create(payload.toString(), JSON))
                 .build();
-        http.newCall(request).enqueue(new Callback() {
+        http.newCall(req).enqueue(new Callback() {
             @Override public void onFailure(Call call, IOException e) {
                 connecting = false;
-                setStatus("Request failed: " + e.getMessage());
-                main.post(MainActivity.this::updateUi);
+                updateGameStatus("Request failed: " + e.getMessage());
             }
 
-            @Override public void onResponse(Call call, Response response) throws IOException {
-                String text = response.body() == null ? "{}" : response.body().string();
-                response.close();
+            @Override public void onResponse(Call call, Response r) throws IOException {
+                String text = r.body() == null ? "{}" : r.body().string();
+                r.close();
                 try {
-                    if (!response.isSuccessful()) {
+                    if (!r.isSuccessful()) {
                         connecting = false;
-                        setStatus("HTTP " + response.code() + ": " + text);
-                        main.post(MainActivity.this::updateUi);
+                        updateGameStatus("HTTP " + r.code() + ": " + text);
                         return;
                     }
                     handler.handle(new JSONObject(text));
                 } catch (Exception e) {
                     connecting = false;
-                    setStatus("Response error: " + e.getMessage());
-                    main.post(MainActivity.this::updateUi);
+                    updateGameStatus("Response error: " + e.getMessage());
                 }
             }
         });
     }
 
-    private void send(JSONObject message) {
-        if (socket != null) {
-            socket.send(message.toString());
-        }
+    private void send(JSONObject msg) {
+        if (socket != null) socket.send(msg.toString());
     }
 
     private JSONObject json(Object... values) {
-        JSONObject object = new JSONObject();
+        JSONObject obj = new JSONObject();
         for (int i = 0; i + 1 < values.length; i += 2) {
-            try {
-                object.put(String.valueOf(values[i]), values[i + 1]);
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Invalid JSON payload", e);
-            }
+            try { obj.put(String.valueOf(values[i]), values[i + 1]); }
+            catch (Exception e) { throw new IllegalArgumentException("Invalid JSON", e); }
         }
-        return object;
+        return obj;
     }
 
-    private void setStatus(String text) {
-        main.post(() -> {
-            if (statusText != null) {
-                statusText.setText(text);
-            }
-        });
-    }
-
-    private String shortRoom(String roomId) {
-        if (roomId == null || roomId.length() <= 8) {
-            return roomId == null ? "-" : roomId;
-        }
-        return roomId.substring(0, 4) + "-" + roomId.substring(roomId.length() - 4);
-    }
-
-    private void setButtonAlpha(Button button, boolean enabled) {
-        button.setAlpha(enabled ? 1f : 0.42f);
-    }
-
-    private TextView text(String text, int sp, int color, int style) {
-        TextView view = new TextView(this);
-        view.setText(text);
-        view.setTextSize(sp);
-        view.setTextColor(color);
-        view.setTypeface(Typeface.DEFAULT, style);
-        view.setIncludeFontPadding(true);
-        return view;
-    }
-
-    private LinearLayout.LayoutParams lp(int width, int height) {
-        return new LinearLayout.LayoutParams(width, height);
-    }
-
-    private LinearLayout.LayoutParams lp(int width, int height, int left, int top, int right, int bottom) {
-        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width, height);
-        params.setMargins(left, top, right, bottom);
-        return params;
-    }
-
-    private int dp(int value) {
-        return (int) (value * getResources().getDisplayMetrics().density + 0.5f);
-    }
-
-    private GradientDrawable card(int color, int radius, int strokeColor) {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(color);
-        drawable.setCornerRadius(radius);
-        drawable.setStroke(dp(1), strokeColor);
-        return drawable;
-    }
-
-    private GradientDrawable cardGradient(int start, int end, int radius) {
-        GradientDrawable drawable = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{start, end});
-        drawable.setCornerRadius(radius);
-        drawable.setStroke(dp(1), 0x334B5D78);
-        return drawable;
-    }
-
-    private GradientDrawable buttonGradient(int start, int end, int radius) {
-        GradientDrawable drawable = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{start, end});
-        drawable.setCornerRadius(radius);
-        return drawable;
-    }
-
-    private int seatColor(int seat) {
-        int[] colors = {0xffFF4D6D, 0xff22C7E8, 0xffFFC947, 0xff3DDB88};
-        return colors[Math.max(0, Math.min(colors.length - 1, seat))];
+    private String encodeQuery(String value) {
+        try { return URLEncoder.encode(value, "UTF-8"); }
+        catch (UnsupportedEncodingException e) { return value.replace(" ", "%20"); }
     }
 
     private interface JsonHandler {
         void handle(JSONObject body) throws Exception;
     }
 
-    private static final class RoomUi {
-        String title;
-        String room;
-        String meta;
-        String status;
-        String dice;
-        String turn;
-        String moves;
-        boolean canRoll;
-        boolean canMove;
-        final List<JSONObject> seats = new ArrayList<>();
-    }
-
-    public static final class BackgroundView extends View {
+    static final class BackgroundView extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
 
-        public BackgroundView(Activity activity) {
-            super(activity);
-        }
+        BackgroundView(Activity activity) { super(activity); }
 
         @Override protected void onDraw(Canvas canvas) {
-            int width = getWidth();
-            int height = getHeight();
-            paint.setShader(new LinearGradient(0, 0, width, height,
-                    new int[]{0xff07111F, 0xff111827, 0xff0A0F1B},
-                    null, Shader.TileMode.CLAMP));
-            canvas.drawRect(0, 0, width, height, paint);
-
-            paint.setShader(new RadialGradient(width * 0.15f, height * 0.08f, width * 0.55f,
+            int w = getWidth(), h = getHeight();
+            paint.setShader(new LinearGradient(0, 0, w, h,
+                    new int[]{0xff07111F, 0xff111827, 0xff0A0F1B}, null, Shader.TileMode.CLAMP));
+            canvas.drawRect(0, 0, w, h, paint);
+            paint.setShader(new RadialGradient(w * 0.15f, h * 0.08f, w * 0.55f,
                     0x5522C7E8, 0x00111827, Shader.TileMode.CLAMP));
-            canvas.drawCircle(width * 0.15f, height * 0.08f, width * 0.55f, paint);
-            paint.setShader(new RadialGradient(width * 0.9f, height * 0.22f, width * 0.45f,
+            canvas.drawCircle(w * 0.15f, h * 0.08f, w * 0.55f, paint);
+            paint.setShader(new RadialGradient(w * 0.9f, h * 0.22f, w * 0.45f,
                     0x44FFB14A, 0x000A0F1B, Shader.TileMode.CLAMP));
-            canvas.drawCircle(width * 0.9f, height * 0.22f, width * 0.45f, paint);
+            canvas.drawCircle(w * 0.9f, h * 0.22f, w * 0.45f, paint);
             paint.setShader(null);
-        }
-    }
-
-    public static final class ColorDot extends View {
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final int color;
-
-        public ColorDot(Activity activity, int color) {
-            super(activity);
-            this.color = color;
-        }
-
-        @Override protected void onDraw(Canvas canvas) {
-            int size = Math.min(getWidth(), getHeight());
-            float cx = getWidth() / 2f;
-            float cy = getHeight() / 2f;
-            paint.setColor(0xff0B1020);
-            canvas.drawCircle(cx, cy, size * 0.48f, paint);
-            paint.setColor(color);
-            canvas.drawCircle(cx, cy, size * 0.34f, paint);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(Math.max(2f, size * 0.08f));
-            paint.setColor(0x66FFFFFF);
-            canvas.drawCircle(cx, cy, size * 0.34f, paint);
-            paint.setStyle(Paint.Style.FILL);
-        }
-    }
-
-    public static final class BoardView extends View {
-        private static final int[][] PATH = {
-                {6,14},{6,13},{6,12},{6,11},{6,10},{6,9},{5,8},{4,8},{3,8},{2,8},{1,8},{0,8},{0,7},
-                {0,6},{1,6},{2,6},{3,6},{4,6},{5,6},{6,5},{6,4},{6,3},{6,2},{6,1},{6,0},{7,0},
-                {8,0},{8,1},{8,2},{8,3},{8,4},{8,5},{9,6},{10,6},{11,6},{12,6},{13,6},{14,6},{14,7},
-                {14,8},{13,8},{12,8},{11,8},{10,8},{9,8},{8,9},{8,10},{8,11},{8,12},{8,13},{8,14},{7,14}
-        };
-        private static final int[][] SAFE = {{6,14},{3,8},{0,6},{6,3},{8,0},{11,6},{14,8},{8,11}};
-        private static final int[][][] HOME_LANES = {
-                {{7,13},{7,12},{7,11},{7,10}},
-                {{1,7},{2,7},{3,7},{4,7}},
-                {{7,1},{7,2},{7,3},{7,4}},
-                {{13,7},{12,7},{11,7},{10,7}}
-        };
-
-        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final RectF rect = new RectF();
-        private JSONObject snapshot;
-        private String playerId;
-
-        public BoardView(Activity activity) {
-            super(activity);
-            setMinimumHeight(720);
-        }
-
-        public void setSnapshot(JSONObject snapshot, String playerId) {
-            this.snapshot = snapshot;
-            this.playerId = playerId;
-            invalidate();
-        }
-
-        @Override protected void onDraw(Canvas canvas) {
-            super.onDraw(canvas);
-            int width = getWidth();
-            int height = getHeight();
-            int size = Math.min(width - 8, height - 8);
-            int left = (width - size) / 2;
-            int top = (height - size) / 2;
-            float cell = size / 15f;
-
-            drawBoardShell(canvas, left, top, size);
-            drawBases(canvas, left, top, cell);
-            drawTrack(canvas, left, top, cell);
-            drawHomeLanes(canvas, left, top, cell);
-            drawCenter(canvas, left, top, cell);
-            drawPieces(canvas, left, top, cell);
-            drawEmptyState(canvas, left, top, size);
-        }
-
-        private void drawBoardShell(Canvas canvas, int left, int top, int size) {
-            rect.set(left, top, left + size, top + size);
-            paint.setShader(new LinearGradient(left, top, left + size, top + size,
-                    new int[]{0xffDCE8F7, 0xffF9FBFF, 0xffD7E3F5}, null, Shader.TileMode.CLAMP));
-            canvas.drawRoundRect(rect, size * 0.045f, size * 0.045f, paint);
-            paint.setShader(null);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(Math.max(4, size * 0.012f));
-            paint.setColor(0x6618273E);
-            canvas.drawRoundRect(rect, size * 0.045f, size * 0.045f, paint);
-            paint.setStyle(Paint.Style.FILL);
-        }
-
-        private void drawBases(Canvas canvas, int left, int top, float cell) {
-            drawBase(canvas, left, top, cell, 0, 9, 0xffFF4D6D);
-            drawBase(canvas, left, top, cell, 0, 0, 0xff22C7E8);
-            drawBase(canvas, left, top, cell, 9, 0, 0xffFFC947);
-            drawBase(canvas, left, top, cell, 9, 9, 0xff3DDB88);
-        }
-
-        private void drawBase(Canvas canvas, int left, int top, float cell, int gx, int gy, int color) {
-            rect.set(left + gx * cell, top + gy * cell, left + (gx + 6) * cell, top + (gy + 6) * cell);
-            paint.setColor(color);
-            canvas.drawRoundRect(rect, cell * 0.35f, cell * 0.35f, paint);
-            rect.inset(cell * 0.65f, cell * 0.65f);
-            paint.setColor(0xeeFFFFFF);
-            canvas.drawRoundRect(rect, cell * 0.32f, cell * 0.32f, paint);
-        }
-
-        private void drawTrack(Canvas canvas, int left, int top, float cell) {
-            for (int[] point : PATH) {
-                drawCell(canvas, left, top, cell, point[0], point[1], 0xffF9FBFF, 0x3318273E);
-            }
-            for (int[] point : SAFE) {
-                drawCell(canvas, left, top, cell, point[0], point[1], 0xffE9F9F4, 0xff38B987);
-                drawStar(canvas, left + (point[0] + 0.5f) * cell, top + (point[1] + 0.5f) * cell, cell * 0.22f, 0xff38B987);
-            }
-        }
-
-        private void drawHomeLanes(Canvas canvas, int left, int top, float cell) {
-            int[] colors = {0x44FF4D6D, 0x4422C7E8, 0x55FFC947, 0x443DDB88};
-            for (int seat = 0; seat < HOME_LANES.length; seat += 1) {
-                for (int[] point : HOME_LANES[seat]) {
-                    drawCell(canvas, left, top, cell, point[0], point[1], colors[seat], seatColor(seat));
-                }
-            }
-        }
-
-        private void drawCenter(Canvas canvas, int left, int top, float cell) {
-            Path path = new Path();
-            float cx = left + 7.5f * cell;
-            float cy = top + 7.5f * cell;
-            path.moveTo(cx, cy - 1.45f * cell);
-            path.lineTo(cx + 1.45f * cell, cy);
-            path.lineTo(cx, cy + 1.45f * cell);
-            path.lineTo(cx - 1.45f * cell, cy);
-            path.close();
-            paint.setColor(0xff101827);
-            canvas.drawPath(path, paint);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(cell * 0.08f);
-            paint.setColor(0x77FFFFFF);
-            canvas.drawPath(path, paint);
-            paint.setStyle(Paint.Style.FILL);
-
-            paint.setColor(Color.WHITE);
-            paint.setTypeface(Typeface.DEFAULT_BOLD);
-            paint.setTextSize(cell * 0.5f);
-            paint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("RUSH", cx, cy + cell * 0.17f, paint);
-            paint.setTextAlign(Paint.Align.LEFT);
-        }
-
-        private void drawCell(Canvas canvas, int left, int top, float cell, int gx, int gy, int fill, int stroke) {
-            rect.set(left + gx * cell + 1, top + gy * cell + 1, left + (gx + 1) * cell - 1, top + (gy + 1) * cell - 1);
-            paint.setColor(fill);
-            canvas.drawRoundRect(rect, cell * 0.15f, cell * 0.15f, paint);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(Math.max(1f, cell * 0.025f));
-            paint.setColor(stroke);
-            canvas.drawRoundRect(rect, cell * 0.15f, cell * 0.15f, paint);
-            paint.setStyle(Paint.Style.FILL);
-        }
-
-        private void drawPieces(Canvas canvas, int left, int top, float cell) {
-            if (snapshot == null) {
-                return;
-            }
-            JSONArray pieces = snapshot.optJSONArray("pieces");
-            if (pieces == null) {
-                return;
-            }
-            JSONArray available = snapshot.optJSONArray("availableMoves");
-            int activeSeat = snapshot.optInt("currentTurnSeat", -1);
-
-            for (int i = 0; i < pieces.length(); i += 1) {
-                JSONObject piece = pieces.optJSONObject(i);
-                if (piece == null) {
-                    continue;
-                }
-                float[] pos = piecePosition(piece, left, top, cell);
-                int seat = piece.optInt("seat");
-                boolean legal = contains(available, piece.optString("pieceId"));
-                boolean active = activeSeat == seat;
-                drawPiece(canvas, pos[0], pos[1], cell * 0.38f, seatColor(seat), legal, active);
-            }
-        }
-
-        private void drawPiece(Canvas canvas, float cx, float cy, float radius, int color, boolean legal, boolean active) {
-            if (legal || active) {
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(legal ? radius * 0.28f : radius * 0.16f);
-                paint.setColor(legal ? 0xffFFFFFF : 0x88FFFFFF);
-                canvas.drawCircle(cx, cy, radius * (legal ? 1.45f : 1.28f), paint);
-                paint.setStyle(Paint.Style.FILL);
-            }
-            paint.setColor(0x33000000);
-            canvas.drawCircle(cx + radius * 0.18f, cy + radius * 0.22f, radius, paint);
-            paint.setColor(color);
-            canvas.drawCircle(cx, cy, radius, paint);
-            paint.setShader(new RadialGradient(cx - radius * 0.25f, cy - radius * 0.3f, radius * 1.2f,
-                    0xAAFFFFFF, 0x00000000, Shader.TileMode.CLAMP));
-            canvas.drawCircle(cx, cy, radius, paint);
-            paint.setShader(null);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(radius * 0.16f);
-            paint.setColor(0xeeFFFFFF);
-            canvas.drawCircle(cx, cy, radius, paint);
-            paint.setStyle(Paint.Style.FILL);
-        }
-
-        private float[] piecePosition(JSONObject piece, int left, int top, float cell) {
-            int seat = piece.optInt("seat");
-            int pieceIndex = pieceIndex(piece.optString("pieceId"));
-            String state = piece.optString("state");
-            int progress = piece.optInt("progress", -1);
-            if ("yard".equals(state) || progress < 0) {
-                return yardPosition(seat, pieceIndex, left, top, cell);
-            }
-            if ("finished".equals(state) || progress >= 56) {
-                return offset(left + 7.5f * cell, top + 7.5f * cell, pieceIndex, cell);
-            }
-            if ("home".equals(state) || progress > 51) {
-                int laneIndex = Math.max(0, Math.min(3, progress - 52));
-                int[] point = HOME_LANES[Math.max(0, Math.min(3, seat))][laneIndex];
-                return offset(left + (point[0] + 0.5f) * cell, top + (point[1] + 0.5f) * cell, pieceIndex, cell * 0.4f);
-            }
-            int trackIndex = piece.optInt("trackIndex", -1);
-            if (trackIndex < 0 || trackIndex >= PATH.length) {
-                trackIndex = (seatStart(seat) + progress) % PATH.length;
-            }
-            int[] point = PATH[trackIndex];
-            return offset(left + (point[0] + 0.5f) * cell, top + (point[1] + 0.5f) * cell, pieceIndex, cell * 0.34f);
-        }
-
-        private float[] yardPosition(int seat, int index, int left, int top, float cell) {
-            int[][] bases = {{0, 9}, {0, 0}, {9, 0}, {9, 9}};
-            int safeSeat = Math.max(0, Math.min(3, seat));
-            int gx = bases[safeSeat][0];
-            int gy = bases[safeSeat][1];
-            float[][] slots = {{2.1f, 2.1f}, {3.9f, 2.1f}, {2.1f, 3.9f}, {3.9f, 3.9f}};
-            return new float[]{
-                    left + (gx + slots[index % 4][0]) * cell,
-                    top + (gy + slots[index % 4][1]) * cell
-            };
-        }
-
-        private float[] offset(float x, float y, int index, float amount) {
-            float d = Math.max(3f, amount * 0.16f);
-            return new float[]{x + (index % 2 == 0 ? -d : d), y + (index < 2 ? -d : d)};
-        }
-
-        private int pieceIndex(String pieceId) {
-            if (pieceId == null || pieceId.length() == 0) {
-                return 0;
-            }
-            char last = pieceId.charAt(pieceId.length() - 1);
-            return last >= '0' && last <= '3' ? last - '0' : 0;
-        }
-
-        private int seatStart(int seat) {
-            int[] starts = {0, 13, 26, 39};
-            return starts[Math.max(0, Math.min(3, seat))];
-        }
-
-        private boolean contains(JSONArray array, String value) {
-            if (array == null || value == null) {
-                return false;
-            }
-            for (int i = 0; i < array.length(); i += 1) {
-                if (value.equals(array.optString(i))) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private void drawEmptyState(Canvas canvas, int left, int top, int size) {
-            if (snapshot != null) {
-                return;
-            }
-            paint.setColor(0xAA0B1020);
-            rect.set(left + size * 0.18f, top + size * 0.39f, left + size * 0.82f, top + size * 0.61f);
-            canvas.drawRoundRect(rect, size * 0.05f, size * 0.05f, paint);
-            paint.setColor(Color.WHITE);
-            paint.setTypeface(Typeface.DEFAULT_BOLD);
-            paint.setTextSize(size * 0.047f);
-            paint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("Start a match", left + size / 2f, top + size * 0.49f, paint);
-            paint.setTextSize(size * 0.032f);
-            paint.setColor(0xffB8C4D8);
-            canvas.drawText("Server bots join instantly", left + size / 2f, top + size * 0.55f, paint);
-            paint.setTextAlign(Paint.Align.LEFT);
-        }
-
-        private void drawStar(Canvas canvas, float cx, float cy, float radius, int color) {
-            Path star = new Path();
-            for (int i = 0; i < 10; i += 1) {
-                double angle = -Math.PI / 2 + i * Math.PI / 5;
-                float r = i % 2 == 0 ? radius : radius * 0.45f;
-                float x = cx + (float) Math.cos(angle) * r;
-                float y = cy + (float) Math.sin(angle) * r;
-                if (i == 0) {
-                    star.moveTo(x, y);
-                } else {
-                    star.lineTo(x, y);
-                }
-            }
-            star.close();
-            paint.setColor(color);
-            canvas.drawPath(star, paint);
-        }
-
-        private int seatColor(int seat) {
-            int[] colors = {0xffFF4D6D, 0xff22C7E8, 0xffFFC947, 0xff3DDB88};
-            return colors[Math.max(0, Math.min(colors.length - 1, seat))];
         }
     }
 }
