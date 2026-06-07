@@ -1,0 +1,80 @@
+name: Native Android Internal Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_name:
+        description: "Android package name"
+        required: true
+        default: "com.ludorush.game"
+      upload_to_play:
+        description: "Upload AAB to Google Play internal track"
+        required: true
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build signed native Android AAB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android packages
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+
+      - name: Decode upload keystore
+        shell: bash
+        run: |
+          echo "${{ secrets.UNITY_ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > client-android/upload.keystore
+
+      - name: Build app bundle
+        run: gradle -p client-android :app:bundleRelease
+        env:
+          ANDROID_PACKAGE_NAME: ${{ inputs.package_name }}
+          ANDROID_KEYSTORE_FILE: ${{ github.workspace }}/client-android/upload.keystore
+          ANDROID_KEYSTORE_PASS: ${{ secrets.UNITY_ANDROID_KEYSTORE_PASS }}
+          ANDROID_KEYALIAS_NAME: ${{ secrets.UNITY_ANDROID_KEYALIAS_NAME }}
+          ANDROID_KEYALIAS_PASS: ${{ secrets.UNITY_ANDROID_KEYALIAS_PASS }}
+
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LudoRush-Native-Android-AAB
+          path: client-android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Setup Ruby
+        if: inputs.upload_to_play == 'true'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Upload to Google Play internal track
+        if: inputs.upload_to_play == 'true'
+        run: bundle exec fastlane android internal aab_path:"client-android/app/build/outputs/bundle/release/app-release.aab"
+        env:
+          ANDROID_PACKAGE_NAME: ${{ inputs.package_name }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}

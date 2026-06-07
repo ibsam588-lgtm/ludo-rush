@@ -7,6 +7,7 @@ Ludo Rush is a mobile-first multiplayer Ludo game built around fast matches, glo
 ```text
 backend-cloudflare/  Cloudflare Workers, Durable Objects, D1, Queues
 client-unity/        Unity project scaffold and C# client/game scripts
+client-android/      Native Android internal-test client that can build without Unity licensing
 docs/                Product, architecture, and launch notes
 ```
 

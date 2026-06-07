@@ -1,0 +1,40 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "com.ludorush.game"
+    compileSdk 36
+
+    defaultConfig {
+        applicationId System.getenv("ANDROID_PACKAGE_NAME") ?: "com.ludorush.game"
+        minSdk 24
+        targetSdk 36
+        versionCode Integer.parseInt(System.getenv("ANDROID_VERSION_CODE") ?: "1")
+        versionName System.getenv("APP_VERSION") ?: "0.1.0"
+    }
+
+    signingConfigs {
+        release {
+            storeFile file(System.getenv("ANDROID_KEYSTORE_FILE") ?: "upload.keystore")
+            storePassword System.getenv("ANDROID_KEYSTORE_PASS") ?: ""
+            keyAlias System.getenv("ANDROID_KEYALIAS_NAME") ?: "ludo_rush_upload"
+            keyPassword System.getenv("ANDROID_KEYALIAS_PASS") ?: ""
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+            shrinkResources false
+        }
+        debug {
+            applicationIdSuffix ".debug"
+        }
+    }
+}
+
+dependencies {
+    implementation "com.squareup.okhttp3:okhttp:4.12.0"
+}
