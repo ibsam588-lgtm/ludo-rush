@@ -52,7 +52,7 @@ Change this to `Yes` only after real AdMob ad units are integrated.
 ## Privacy Policy
 
 ```text
-https://ibsam588-lgtm.github.io/ludo-rush/privacy.html
+https://corsairlabs.com/ludo-rush-privacy
 ```
 
 ## Target Audience
@@ -77,17 +77,22 @@ Current internal test build:
 
 ```text
 Data collected:
-- App activity: gameplay interactions, match history, in-game progress
-- App info and performance: diagnostics/debug logs if enabled
+- Personal info: User IDs
+- App activity: App interactions
+- App info and performance: Diagnostics
 
 Purpose:
 - App functionality
-- Analytics/debugging during internal testing
+- Analytics
+- Fraud prevention, security, and compliance
 
 Data shared:
 - Not sold.
-- Processed by service providers used for infrastructure and app distribution.
+- Not shared with third parties in the Play Console declaration.
 
 Security:
 - Data is transmitted over secure connections in production.
+
+Data deletion request URL:
+https://corsairlabs.com/data-deletion
 ```

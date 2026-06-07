@@ -1,0 +1,43 @@
+name: Update Play Store App Details
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_name:
+        description: "Android package name"
+        required: true
+        default: "com.ludorush.game"
+      contact_email:
+        description: "Public support email"
+        required: true
+        default: "labscorsair@gmail.com"
+      contact_website:
+        description: "Public support website"
+        required: true
+        default: "https://corsairlabs.com"
+
+permissions:
+  contents: read
+
+jobs:
+  update-app-details:
+    name: Update Play Store app details
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Update Play Store app details
+        run: bundle exec fastlane android app_details
+        env:
+          ANDROID_PACKAGE_NAME: ${{ inputs.package_name }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          PLAY_CONTACT_EMAIL: ${{ inputs.contact_email }}
+          PLAY_CONTACT_WEBSITE: ${{ inputs.contact_website }}
