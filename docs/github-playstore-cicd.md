@@ -17,6 +17,7 @@ Add these in GitHub:
 ```text
 CLOUDFLARE_API_TOKEN
 CLOUDFLARE_ACCOUNT_ID
+CLOUDFLARE_D1_DATABASE_ID
 UNITY_LICENSE
 UNITY_EMAIL
 UNITY_PASSWORD
@@ -33,6 +34,9 @@ GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
 Backend CI
   Runs backend install, typecheck, tests, and audit.
 
+Bootstrap Cloudflare Resources
+  Creates the D1 database and queue after Cloudflare secrets are configured.
+
 Deploy Backend To Cloudflare
   Applies D1 migrations and deploys the Worker.
 
@@ -41,7 +45,19 @@ Unity Android Internal Build
 
 Upload Play Store Metadata
   Uploads Play listing text, changelog, icon, feature graphic, and screenshots after the Play Console app exists.
+
+Unity Request Activation
+  Produces a Unity activation request file if a Unity license secret has not been created yet.
 ```
+
+## Unity License Path
+
+If `UNITY_LICENSE` is not available yet:
+
+1. Run the `Unity Request Activation` workflow.
+2. Download the `.alf` artifact.
+3. Activate it in Unity's manual license portal.
+4. Save the returned `.ulf` contents as the `UNITY_LICENSE` GitHub secret.
 
 ## Play Store Notes
 
