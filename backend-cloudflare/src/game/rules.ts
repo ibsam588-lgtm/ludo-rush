@@ -15,7 +15,7 @@ export const TURN_DURATION_MS: Record<GameMode, number> = {
 };
 
 export const TRACK_LENGTH = 52;
-export const FINISH_PROGRESS = 56;
+export const FINISH_PROGRESS = 57;
 export const YARD_PROGRESS = -1;
 
 const PIECES_PER_PLAYER = 4;
@@ -255,14 +255,18 @@ export function resignPlayer(snapshot: RoomSnapshot, playerId: string, now = Dat
   const seat = getSeatForPlayer(snapshot, playerId);
   const remainingHumanSeats = snapshot.seats.filter((roomSeat) => roomSeat.playerId !== playerId && !roomSeat.isBot);
 
-  if (remainingHumanSeats.length === 1) {
+  if (remainingHumanSeats.length <= 1) {
+    const winner = remainingHumanSeats.length === 1
+      ? remainingHumanSeats[0]
+      : snapshot.seats.find((roomSeat) => roomSeat.playerId !== playerId);
+
     return {
       ...snapshot,
       status: "finished",
-      winnerPlayerId: remainingHumanSeats[0].playerId,
-      finishOrder: [remainingHumanSeats[0].playerId],
+      winnerPlayerId: winner?.playerId,
+      finishOrder: winner ? [winner.playerId] : [],
       seats: snapshot.seats.map((roomSeat) =>
-        roomSeat.playerId === remainingHumanSeats[0].playerId
+        roomSeat.playerId === winner?.playerId
           ? { ...roomSeat, finishRank: 1 }
           : roomSeat.seat === seat.seat
             ? { ...roomSeat, connected: false, finishRank: snapshot.seats.length }

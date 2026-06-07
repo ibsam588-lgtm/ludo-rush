@@ -688,7 +688,7 @@ public final class MainActivity extends Activity {
     }
 
     private int seatColor(int seat) {
-        int[] colors = {0xffFF4D6D, 0xff22C7E8, 0xffFFC947, 0xff3DDB88};
+        int[] colors = {0xffE8293E, 0xff1E88E5, 0xffF9A825, 0xff43A047};
         return colors[Math.max(0, Math.min(colors.length - 1, seat))];
     }
 
@@ -768,10 +768,10 @@ public final class MainActivity extends Activity {
         };
         private static final int[][] SAFE = {{6,14},{3,8},{0,6},{6,3},{8,0},{11,6},{14,8},{8,11}};
         private static final int[][][] HOME_LANES = {
-                {{7,13},{7,12},{7,11},{7,10}},
-                {{1,7},{2,7},{3,7},{4,7}},
-                {{7,1},{7,2},{7,3},{7,4}},
-                {{13,7},{12,7},{11,7},{10,7}}
+                {{7,13},{7,12},{7,11},{7,10},{7,9}},
+                {{1,7},{2,7},{3,7},{4,7},{5,7}},
+                {{7,1},{7,2},{7,3},{7,4},{7,5}},
+                {{13,7},{12,7},{11,7},{10,7},{9,7}}
         };
 
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -810,85 +810,139 @@ public final class MainActivity extends Activity {
 
         private void drawBoardShell(Canvas canvas, int left, int top, int size) {
             rect.set(left, top, left + size, top + size);
-            paint.setShader(new LinearGradient(left, top, left + size, top + size,
-                    new int[]{0xffDCE8F7, 0xffF9FBFF, 0xffD7E3F5}, null, Shader.TileMode.CLAMP));
-            canvas.drawRoundRect(rect, size * 0.045f, size * 0.045f, paint);
-            paint.setShader(null);
+            paint.setColor(0xffF5E6C8);
+            canvas.drawRect(rect, paint);
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(Math.max(4, size * 0.012f));
-            paint.setColor(0x6618273E);
-            canvas.drawRoundRect(rect, size * 0.045f, size * 0.045f, paint);
+            paint.setStrokeWidth(Math.max(4, size * 0.018f));
+            paint.setColor(0xff5C3D2E);
+            canvas.drawRect(rect, paint);
             paint.setStyle(Paint.Style.FILL);
         }
 
         private void drawBases(Canvas canvas, int left, int top, float cell) {
-            drawBase(canvas, left, top, cell, 0, 9, 0xffFF4D6D);
-            drawBase(canvas, left, top, cell, 0, 0, 0xff22C7E8);
-            drawBase(canvas, left, top, cell, 9, 0, 0xffFFC947);
-            drawBase(canvas, left, top, cell, 9, 9, 0xff3DDB88);
+            drawBase(canvas, left, top, cell, 0, 9, 0xffE8293E);
+            drawBase(canvas, left, top, cell, 0, 0, 0xff1E88E5);
+            drawBase(canvas, left, top, cell, 9, 0, 0xffF9A825);
+            drawBase(canvas, left, top, cell, 9, 9, 0xff43A047);
         }
 
         private void drawBase(Canvas canvas, int left, int top, float cell, int gx, int gy, int color) {
-            rect.set(left + gx * cell, top + gy * cell, left + (gx + 6) * cell, top + (gy + 6) * cell);
+            float x1 = left + gx * cell;
+            float y1 = top + gy * cell;
+            float x2 = left + (gx + 6) * cell;
+            float y2 = top + (gy + 6) * cell;
+            rect.set(x1, y1, x2, y2);
             paint.setColor(color);
-            canvas.drawRoundRect(rect, cell * 0.35f, cell * 0.35f, paint);
-            rect.inset(cell * 0.65f, cell * 0.65f);
-            paint.setColor(0xeeFFFFFF);
-            canvas.drawRoundRect(rect, cell * 0.32f, cell * 0.32f, paint);
+            canvas.drawRect(rect, paint);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(cell * 0.08f);
+            paint.setColor(0x33000000);
+            canvas.drawRect(rect, paint);
+            paint.setStyle(Paint.Style.FILL);
+            float inset = cell * 0.85f;
+            rect.set(x1 + inset, y1 + inset, x2 - inset, y2 - inset);
+            paint.setColor(0xffFFF8EE);
+            canvas.drawRect(rect, paint);
+            float cx = (x1 + x2) / 2f;
+            float cy = (y1 + y2) / 2f;
+            float off = cell * 0.9f;
+            float r = cell * 0.45f;
+            for (int i = 0; i < 4; i++) {
+                float px = cx + (i % 2 == 0 ? -off : off);
+                float py = cy + (i < 2 ? -off : off);
+                paint.setColor(0xffFFFFFF);
+                canvas.drawCircle(px, py, r, paint);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(cell * 0.07f);
+                paint.setColor(color);
+                canvas.drawCircle(px, py, r, paint);
+                paint.setStyle(Paint.Style.FILL);
+            }
         }
 
         private void drawTrack(Canvas canvas, int left, int top, float cell) {
-            for (int[] point : PATH) {
-                drawCell(canvas, left, top, cell, point[0], point[1], 0xffF9FBFF, 0x3318273E);
+            int[] startIdx = {0, 13, 26, 39};
+            int[] startClr = {0xffE8293E, 0xff1E88E5, 0xffF9A825, 0xff43A047};
+            for (int i = 0; i < PATH.length; i++) {
+                int[] point = PATH[i];
+                int fill = 0xffFFFFFF;
+                int stroke = 0x22000000;
+                for (int s = 0; s < startIdx.length; s++) {
+                    if (i == startIdx[s]) {
+                        fill = startClr[s];
+                        stroke = 0x44000000;
+                        break;
+                    }
+                }
+                drawCell(canvas, left, top, cell, point[0], point[1], fill, stroke);
             }
             for (int[] point : SAFE) {
-                drawCell(canvas, left, top, cell, point[0], point[1], 0xffE9F9F4, 0xff38B987);
-                drawStar(canvas, left + (point[0] + 0.5f) * cell, top + (point[1] + 0.5f) * cell, cell * 0.22f, 0xff38B987);
+                boolean isStart = false;
+                for (int si : startIdx) {
+                    if (PATH[si][0] == point[0] && PATH[si][1] == point[1]) {
+                        isStart = true;
+                        break;
+                    }
+                }
+                int starColor = isStart ? 0xccFFFFFF : 0xff888888;
+                drawStar(canvas, left + (point[0] + 0.5f) * cell, top + (point[1] + 0.5f) * cell, cell * 0.25f, starColor);
             }
         }
 
         private void drawHomeLanes(Canvas canvas, int left, int top, float cell) {
-            int[] colors = {0x44FF4D6D, 0x4422C7E8, 0x55FFC947, 0x443DDB88};
+            int[] fills = {0xffF8B4BF, 0xffA8D8EA, 0xffFFF0A0, 0xffA8E6CF};
+            int[] strokes = {0xffE8293E, 0xff1E88E5, 0xffF9A825, 0xff43A047};
             for (int seat = 0; seat < HOME_LANES.length; seat += 1) {
                 for (int[] point : HOME_LANES[seat]) {
-                    drawCell(canvas, left, top, cell, point[0], point[1], colors[seat], seatColor(seat));
+                    drawCell(canvas, left, top, cell, point[0], point[1], fills[seat], strokes[seat]);
                 }
             }
         }
 
         private void drawCenter(Canvas canvas, int left, int top, float cell) {
-            Path path = new Path();
+            int[] colors = {0xffE8293E, 0xff1E88E5, 0xffF9A825, 0xff43A047};
             float cx = left + 7.5f * cell;
             float cy = top + 7.5f * cell;
-            path.moveTo(cx, cy - 1.45f * cell);
-            path.lineTo(cx + 1.45f * cell, cy);
-            path.lineTo(cx, cy + 1.45f * cell);
-            path.lineTo(cx - 1.45f * cell, cy);
-            path.close();
-            paint.setColor(0xff101827);
-            canvas.drawPath(path, paint);
+            float x6 = left + 6 * cell;
+            float x9 = left + 9 * cell;
+            float y6 = top + 6 * cell;
+            float y9 = top + 9 * cell;
+            Path tri = new Path();
+            tri.moveTo(x6, y9); tri.lineTo(x9, y9); tri.lineTo(cx, cy); tri.close();
+            paint.setColor(colors[0]);
+            canvas.drawPath(tri, paint);
+            tri.reset();
+            tri.moveTo(x6, y6); tri.lineTo(x6, y9); tri.lineTo(cx, cy); tri.close();
+            paint.setColor(colors[1]);
+            canvas.drawPath(tri, paint);
+            tri.reset();
+            tri.moveTo(x6, y6); tri.lineTo(x9, y6); tri.lineTo(cx, cy); tri.close();
+            paint.setColor(colors[2]);
+            canvas.drawPath(tri, paint);
+            tri.reset();
+            tri.moveTo(x9, y6); tri.lineTo(x9, y9); tri.lineTo(cx, cy); tri.close();
+            paint.setColor(colors[3]);
+            canvas.drawPath(tri, paint);
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(cell * 0.08f);
-            paint.setColor(0x77FFFFFF);
-            canvas.drawPath(path, paint);
+            paint.setStrokeWidth(cell * 0.06f);
+            paint.setColor(0x44000000);
+            canvas.drawLine(x6, y6, x9, y9, paint);
+            canvas.drawLine(x6, y9, x9, y6, paint);
+            tri.reset();
+            tri.moveTo(x6, y6); tri.lineTo(x9, y6); tri.lineTo(x9, y9); tri.lineTo(x6, y9); tri.close();
+            canvas.drawPath(tri, paint);
             paint.setStyle(Paint.Style.FILL);
-
-            paint.setColor(Color.WHITE);
-            paint.setTypeface(Typeface.DEFAULT_BOLD);
-            paint.setTextSize(cell * 0.5f);
-            paint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("RUSH", cx, cy + cell * 0.17f, paint);
-            paint.setTextAlign(Paint.Align.LEFT);
         }
 
         private void drawCell(Canvas canvas, int left, int top, float cell, int gx, int gy, int fill, int stroke) {
-            rect.set(left + gx * cell + 1, top + gy * cell + 1, left + (gx + 1) * cell - 1, top + (gy + 1) * cell - 1);
+            float pad = cell * 0.03f;
+            rect.set(left + gx * cell + pad, top + gy * cell + pad, left + (gx + 1) * cell - pad, top + (gy + 1) * cell - pad);
             paint.setColor(fill);
-            canvas.drawRoundRect(rect, cell * 0.15f, cell * 0.15f, paint);
+            canvas.drawRect(rect, paint);
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(Math.max(1f, cell * 0.025f));
+            paint.setStrokeWidth(Math.max(1f, cell * 0.04f));
             paint.setColor(stroke);
-            canvas.drawRoundRect(rect, cell * 0.15f, cell * 0.15f, paint);
+            canvas.drawRect(rect, paint);
             paint.setStyle(Paint.Style.FILL);
         }
 
@@ -947,11 +1001,11 @@ public final class MainActivity extends Activity {
             if ("yard".equals(state) || progress < 0) {
                 return yardPosition(seat, pieceIndex, left, top, cell);
             }
-            if ("finished".equals(state) || progress >= 56) {
+            if ("finished".equals(state) || progress >= 57) {
                 return offset(left + 7.5f * cell, top + 7.5f * cell, pieceIndex, cell);
             }
             if ("home".equals(state) || progress > 51) {
-                int laneIndex = Math.max(0, Math.min(3, progress - 52));
+                int laneIndex = Math.max(0, Math.min(4, progress - 52));
                 int[] point = HOME_LANES[Math.max(0, Math.min(3, seat))][laneIndex];
                 return offset(left + (point[0] + 0.5f) * cell, top + (point[1] + 0.5f) * cell, pieceIndex, cell * 0.4f);
             }
@@ -1042,7 +1096,7 @@ public final class MainActivity extends Activity {
         }
 
         private int seatColor(int seat) {
-            int[] colors = {0xffFF4D6D, 0xff22C7E8, 0xffFFC947, 0xff3DDB88};
+            int[] colors = {0xffE8293E, 0xff1E88E5, 0xffF9A825, 0xff43A047};
             return colors[Math.max(0, Math.min(colors.length - 1, seat))];
         }
     }
