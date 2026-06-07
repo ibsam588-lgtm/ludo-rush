@@ -1,0 +1,36 @@
+default_platform(:android)
+
+platform :android do
+  desc "Upload the Android App Bundle to the Google Play internal testing track"
+  lane :internal do |options|
+    aab_path = options[:aab_path] || ENV["AAB_PATH"]
+
+    UI.user_error!("aab_path is required") if aab_path.to_s.empty?
+    UI.user_error!("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is required") if ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"].to_s.empty?
+
+    upload_to_play_store(
+      package_name: ENV.fetch("ANDROID_PACKAGE_NAME", "com.ludorush.game"),
+      json_key_data: ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"],
+      aab: aab_path,
+      track: "internal",
+      release_status: "completed",
+      skip_upload_apk: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc "Upload the Android App Bundle to Google Play Internal App Sharing"
+  lane :internal_app_sharing do |options|
+    aab_path = options[:aab_path] || ENV["AAB_PATH"]
+
+    UI.user_error!("aab_path is required") if aab_path.to_s.empty?
+    UI.user_error!("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is required") if ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"].to_s.empty?
+
+    upload_to_play_store_internal_app_sharing(
+      package_name: ENV.fetch("ANDROID_PACKAGE_NAME", "com.ludorush.game"),
+      json_key_data: ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"],
+      aab: aab_path
+    )
+  end
+end

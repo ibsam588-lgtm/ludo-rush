@@ -1,0 +1,12 @@
+Ludo Rush is a fast online Ludo game built for quick matches with friends or global players.
+
+Internal testing features:
+
+- Quick match
+- Private room codes
+- Bot matches
+- Server-authoritative dice and moves
+- Captures, safe tiles, home path, and win detection
+- Reconnect-ready room state
+
+This internal test build is for gameplay, networking, and stability feedback before the final art, ads, purchases, and public launch polish are added.
