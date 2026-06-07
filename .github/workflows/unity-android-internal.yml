@@ -6,7 +6,7 @@ on:
       backend_url:
         description: "Deployed Cloudflare Worker URL"
         required: true
-        default: "https://example.workers.dev"
+        default: "https://ludo-rush-backend.ibsam588.workers.dev"
       package_name:
         description: "Android package name"
         required: true
@@ -52,7 +52,6 @@ jobs:
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           LUDO_RUSH_BACKEND_URL: ${{ inputs.backend_url }}
           ANDROID_PACKAGE_NAME: ${{ inputs.package_name }}
           UNITY_ANDROID_KEYSTORE_BASE64: ${{ secrets.UNITY_ANDROID_KEYSTORE_BASE64 }}

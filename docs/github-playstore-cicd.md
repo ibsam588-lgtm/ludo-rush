@@ -20,7 +20,6 @@ CLOUDFLARE_ACCOUNT_ID
 CLOUDFLARE_D1_DATABASE_ID
 UNITY_LICENSE
 UNITY_EMAIL
-UNITY_PASSWORD
 UNITY_ANDROID_KEYSTORE_BASE64
 UNITY_ANDROID_KEYSTORE_PASS
 UNITY_ANDROID_KEYALIAS_NAME
@@ -57,7 +56,9 @@ If `UNITY_LICENSE` is not available yet:
 3. Click `Add` and activate a Unity Personal license or your paid license.
 4. Copy the `.ulf` file from `C:\ProgramData\Unity\Unity_lic.ulf`.
 5. Save the `.ulf` contents as the `UNITY_LICENSE` GitHub secret.
-6. Save your Unity account email and password as `UNITY_EMAIL` and `UNITY_PASSWORD`.
+6. Save your Unity account email as `UNITY_EMAIL`.
+
+For SSO accounts, do not create or store a password secret. Use the activated `.ulf` license file as `UNITY_LICENSE`.
 
 ## Play Store Notes
 
