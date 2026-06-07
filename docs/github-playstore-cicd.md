@@ -46,18 +46,18 @@ Unity Android Internal Build
 Upload Play Store Metadata
   Uploads Play listing text, changelog, icon, feature graphic, and screenshots after the Play Console app exists.
 
-Unity Request Activation
-  Produces a Unity activation request file if a Unity license secret has not been created yet.
 ```
 
 ## Unity License Path
 
 If `UNITY_LICENSE` is not available yet:
 
-1. Run the `Unity Request Activation` workflow.
-2. Download the `.alf` artifact.
-3. Activate it in Unity's manual license portal.
-4. Save the returned `.ulf` contents as the `UNITY_LICENSE` GitHub secret.
+1. Open Unity Hub locally.
+2. Go to `Preferences -> Licenses`.
+3. Click `Add` and activate a Unity Personal license or your paid license.
+4. Copy the `.ulf` file from `C:\ProgramData\Unity\Unity_lic.ulf`.
+5. Save the `.ulf` contents as the `UNITY_LICENSE` GitHub secret.
+6. Save your Unity account email and password as `UNITY_EMAIL` and `UNITY_PASSWORD`.
 
 ## Play Store Notes
 
