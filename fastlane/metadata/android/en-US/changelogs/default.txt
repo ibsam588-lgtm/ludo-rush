@@ -1,1 +1,1 @@
-Initial internal test build with online rooms, quick match, private rooms, bot match flow, and server-authoritative Ludo rules.
+Refreshed internal test build with a redesigned Ludo Rush game UI, playable bot match controls, live room status, player panels, and a clearer board experience.
