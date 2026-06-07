@@ -11,7 +11,7 @@ App or game: Game
 Free or paid: Free
 Package name: com.ludorush.game
 Category: Board
-Tags: Board, Casual, Multiplayer
+Tags: Board, Casual, Dice
 ```
 
 ## Store Listing
@@ -32,6 +32,14 @@ Features:
 - Reconnect-ready room state
 
 This internal test build is for gameplay, networking, and stability feedback before the final art, ads, purchases, and public launch polish are added.
+```
+
+## Store Listing Contact
+
+```text
+Email address: labscorsair@gmail.com
+Website: https://corsairlabs.com
+Phone number: left blank
 ```
 
 ## App Access
