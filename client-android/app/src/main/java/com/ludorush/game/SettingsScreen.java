@@ -58,7 +58,7 @@ public final class SettingsScreen extends BaseScreen {
 
         addSectionLabel(content, "ABOUT");
 
-        addInfoRow(content, "Version", "0.1.0");
+        addInfoRow(content, "Version", "0.2.0");
         addInfoRow(content, "Build", "Internal Test");
         addInfoRow(content, "Server", "Cloudflare Workers");
 

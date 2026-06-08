@@ -9,6 +9,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public final class LobbyScreen extends BaseScreen {
     private String selectedMode = "classic_2p";
@@ -71,7 +72,7 @@ public final class LobbyScreen extends BaseScreen {
 
         Button create = secondaryButton("Create Private Room");
         create.setTextSize(15);
-        create.setOnClickListener(v -> callback.navigateTo("game", "create:" + selectedMode));
+        create.setOnClickListener(v -> Toast.makeText(activity, "Private rooms are coming soon", Toast.LENGTH_SHORT).show());
         content.addView(create, lp(-1, dp(54), 0, 0, 0, dp(4)));
 
         addSectionLabel(content, "JOIN PRIVATE ROOM");
@@ -95,7 +96,11 @@ public final class LobbyScreen extends BaseScreen {
         join.setTextColor(0xffF9A825);
         join.setOnClickListener(v -> {
             String code = codeInput.getText().toString().trim();
-            if (!code.isEmpty()) callback.navigateTo("game", "join:" + code);
+            if (code.isEmpty()) {
+                Toast.makeText(activity, "Enter a room code first", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(activity, "Private rooms are coming soon", Toast.LENGTH_SHORT).show();
+            }
         });
         LinearLayout.LayoutParams jp = new LinearLayout.LayoutParams(dp(80), -1);
         jp.setMargins(dp(8), 0, 0, 0);
