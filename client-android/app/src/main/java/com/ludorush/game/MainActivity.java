@@ -43,7 +43,6 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     private FrameLayout container;
     private View currentScreenView;
     private GameScreen gameScreen;
-    private View gameScreenView;
 
     private WebSocket socket;
     private String playerId;
@@ -196,24 +195,17 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     }
 
     private void showScreen(String name, String data) {
-        if (currentScreenView != null && !(name.equals("game") && currentScreenView == gameScreenView)) {
+        if (currentScreenView != null) {
             container.removeView(currentScreenView);
         }
-        if (currentScreenView == gameScreenView && !"game".equals(name)) {
-            gameScreenView.setVisibility(View.GONE);
-        }
 
-        View view;
-        if ("game".equals(name) && gameScreenView != null) {
-            gameScreenView.setVisibility(View.VISIBLE);
-            view = gameScreenView;
-        } else {
-            BaseScreen screen = createScreen(name, data);
-            view = screen.createView();
-            container.addView(view, new FrameLayout.LayoutParams(-1, -1));
-            if ("game".equals(name)) {
-                gameScreen = (GameScreen) screen;
-                gameScreenView = view;
+        BaseScreen screen = createScreen(name, data);
+        View view = screen.createView();
+        container.addView(view, new FrameLayout.LayoutParams(-1, -1));
+        if ("game".equals(name)) {
+            gameScreen = (GameScreen) screen;
+            if (lastSnapshot != null) {
+                gameScreen.updateSnapshot(lastSnapshot, playerId);
             }
         }
 
@@ -303,7 +295,6 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
             socket = null;
         }
         gameScreen = null;
-        gameScreenView = null;
     }
 
     private void pollTicket(String ticketId, int attempt) {
