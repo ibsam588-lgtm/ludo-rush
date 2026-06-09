@@ -1,8 +1,10 @@
 import { DurableObject } from "cloudflare:workers";
 import {
+  advanceTurn,
   applyMove,
   applyRoll,
   chooseBotMove,
+  convertSeatToBot,
   createInitialSnapshot,
   fillBotSeats,
   getCurrentSeat,
@@ -31,6 +33,7 @@ const SNAPSHOT_KEY = "snapshot";
 const MATCH_STARTED_KEY = "match_started";
 const MATCH_FINISHED_KEY = "match_finished";
 const MAX_BOT_ACTIONS_PER_TICK = 24;
+const BOT_CONTINUATION_DELAY_MS = 1_000;
 
 export class LudoRoom extends DurableObject<Env> {
   private snapshot?: RoomSnapshot;
@@ -72,19 +75,28 @@ export class LudoRoom extends DurableObject<Env> {
       return;
     }
 
+    // Never trust the playerId inside the message body — use the identity
+    // that was authenticated when the socket was accepted.
+    const attachment = ws.deserializeAttachment() as ConnectionAttachment | undefined;
+    const playerId = attachment?.playerId;
+    if (!playerId) {
+      this.send(ws, { type: "error", code: "not_authenticated", message: "Connection is not authenticated." });
+      return;
+    }
+
     try {
       if (parsed.type === "join") {
-        await this.handleJoin(ws, parsed.playerId, parsed.displayName);
+        await this.handleJoin(ws, playerId, attachment?.displayName ?? parsed.displayName);
         return;
       }
 
       if (parsed.type === "roll_dice") {
-        await this.handleRoll(ws, parsed.playerId);
+        await this.handleRoll(ws, playerId);
         return;
       }
 
       if (parsed.type === "move_piece") {
-        await this.handleMove(ws, parsed.playerId, parsed.pieceId);
+        await this.handleMove(ws, playerId, parsed.pieceId);
         return;
       }
 
@@ -94,7 +106,7 @@ export class LudoRoom extends DurableObject<Env> {
       }
 
       if (parsed.type === "resign") {
-        await this.handleResign(parsed.playerId);
+        await this.handleResign(playerId);
         return;
       }
 
@@ -116,10 +128,53 @@ export class LudoRoom extends DurableObject<Env> {
       return;
     }
 
-    const snapshot = await this.getSnapshot();
-    const updated = markDisconnected(snapshot, attachment.playerId);
+    const snapshot = await this.getSnapshot().catch(() => undefined);
+    if (!snapshot || snapshot.status === "finished") {
+      return;
+    }
+
+    let updated = markDisconnected(snapshot, attachment.playerId);
+
+    if (updated.status === "playing") {
+      // Hand the seat to the bot AI so the remaining players are not stalled.
+      updated = convertSeatToBot(updated, attachment.playerId);
+
+      const humansRemain = updated.seats.some((seat) => !seat.isBot && seat.connected);
+      if (!humansRemain) {
+        updated = { ...updated, status: "finished", updatedAt: Date.now() };
+        await this.saveSnapshot(updated);
+        await this.env.DB.prepare("UPDATE matches SET status = ?, ended_at = ? WHERE id = ? AND status = ?")
+          .bind("abandoned", Date.now(), updated.roomId, "playing")
+          .run();
+        return;
+      }
+    }
+
     await this.saveSnapshot(updated);
     this.broadcast({ type: "snapshot", snapshot: updated });
+    await this.playBotsIfNeeded();
+  }
+
+  async alarm(): Promise<void> {
+    const snapshot = await this.getSnapshot().catch(() => undefined);
+    if (!snapshot || snapshot.status !== "playing") {
+      return;
+    }
+
+    const now = Date.now();
+    if (snapshot.turnDeadlineAt !== undefined && snapshot.turnDeadlineAt <= now) {
+      const timedOutSeat = getCurrentSeat(snapshot);
+      const skipped = advanceTurn(snapshot, now);
+      await this.saveSnapshot(skipped);
+      this.broadcast({
+        type: "turn_skipped",
+        playerId: timedOutSeat?.playerId ?? "",
+        reason: "turn_timeout",
+        snapshot: skipped
+      });
+    }
+
+    await this.playBotsIfNeeded();
   }
 
   private async createRoom(request: Request): Promise<Response> {
@@ -143,12 +198,17 @@ export class LudoRoom extends DurableObject<Env> {
   }
 
   private async acceptClient(request: Request): Promise<Response> {
-    const pair = new WebSocketPair();
-    const [client, server] = Object.values(pair);
-
     const url = new URL(request.url);
     const playerId = url.searchParams.get("playerId") ?? undefined;
     const displayName = url.searchParams.get("displayName") ?? undefined;
+    const token = url.searchParams.get("token") ?? undefined;
+
+    if (!playerId || !token || !(await this.isValidToken(playerId, token))) {
+      return Response.json({ error: "Invalid player credentials." }, { status: 401 });
+    }
+
+    const pair = new WebSocketPair();
+    const [client, server] = Object.values(pair);
 
     this.ctx.acceptWebSocket(server);
     server.serializeAttachment({
@@ -165,15 +225,16 @@ export class LudoRoom extends DurableObject<Env> {
     });
   }
 
-  private async handleJoin(ws: WebSocket, playerId: string, displayName: string): Promise<void> {
-    const before = await this.getSnapshot();
-    const updated = upsertSeat(before, { playerId, displayName });
+  private async isValidToken(playerId: string, token: string): Promise<boolean> {
+    const row = await this.env.DB.prepare("SELECT auth_token FROM users WHERE id = ?")
+      .bind(playerId)
+      .first<{ auth_token: string | null }>();
+    return row?.auth_token != null && row.auth_token === token;
+  }
 
-    ws.serializeAttachment({
-      playerId,
-      displayName,
-      joinedAt: Date.now()
-    } satisfies ConnectionAttachment);
+  private async handleJoin(ws: WebSocket, playerId: string, displayName?: string): Promise<void> {
+    const before = await this.getSnapshot();
+    const updated = upsertSeat(before, { playerId, displayName: displayName ?? "Player" });
 
     await this.saveSnapshot(updated);
     await this.persistMatchStartIfNeeded(before, updated);
@@ -223,6 +284,10 @@ export class LudoRoom extends DurableObject<Env> {
 
   private async handleResign(playerId: string): Promise<void> {
     const snapshot = await this.getSnapshot();
+    if (snapshot.status !== "playing") {
+      return;
+    }
+
     const updated = resignPlayer(snapshot, playerId);
 
     await this.saveSnapshot(updated);
@@ -281,6 +346,13 @@ export class LudoRoom extends DurableObject<Env> {
       snapshot = moveResult.snapshot;
       actions += 1;
     }
+
+    // If we hit the per-tick action cap with a bot still to move (e.g. an
+    // all-bot room after every human disconnected), schedule a continuation
+    // so the match always progresses to completion.
+    if (isBotTurn(snapshot) && snapshot.status === "playing") {
+      await this.ctx.storage.setAlarm(Date.now() + BOT_CONTINUATION_DELAY_MS);
+    }
   }
 
   private async persistMatchStartIfNeeded(before: RoomSnapshot, after: RoomSnapshot): Promise<void> {
@@ -330,7 +402,7 @@ export class LudoRoom extends DurableObject<Env> {
         this.env.DB.prepare(
           "INSERT INTO wallets (user_id, coins, updated_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET coins = coins + ?, updated_at = ?"
         ).bind(seat.playerId, coinsDelta, snapshot.updatedAt, coinsDelta, snapshot.updatedAt),
-        this.env.DB.prepare("UPDATE users SET rating = rating + ?, last_seen_at = ? WHERE id = ?")
+        this.env.DB.prepare("UPDATE users SET rating = MAX(0, rating + ?), last_seen_at = ? WHERE id = ?")
           .bind(ratingDelta, snapshot.updatedAt, seat.playerId)
       );
     }
@@ -357,6 +429,14 @@ export class LudoRoom extends DurableObject<Env> {
   private async saveSnapshot(snapshot: RoomSnapshot): Promise<void> {
     this.snapshot = snapshot;
     await this.ctx.storage.put(SNAPSHOT_KEY, snapshot);
+
+    // Keep an alarm armed for the turn deadline so AFK or disconnected
+    // players can never stall a live match.
+    if (snapshot.status === "playing" && snapshot.turnDeadlineAt !== undefined) {
+      await this.ctx.storage.setAlarm(snapshot.turnDeadlineAt);
+    } else if (snapshot.status === "finished") {
+      await this.ctx.storage.deleteAlarm();
+    }
   }
 
   private broadcast(message: ServerRoomMessage): void {

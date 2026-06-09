@@ -44,9 +44,21 @@ public abstract class BaseScreen {
         boolean isOnline();
         void startBotMatch(String mode);
         void startQuickMatch(String mode);
+        void startPrivateRoom(String mode);
+        void joinPrivateRoom(String code);
         void rollDice();
         void moveBestPiece();
         void resign();
+        boolean isMatchActive();
+        void addCoins(int amount);
+        void resetAccount();
+        String getAppVersion();
+        void fetchJson(String path, JsonResult handler);
+
+        interface JsonResult {
+            void onSuccess(org.json.JSONObject body);
+            void onError(String message);
+        }
     }
 
     public BaseScreen(Activity activity, ScreenCallback callback) {
