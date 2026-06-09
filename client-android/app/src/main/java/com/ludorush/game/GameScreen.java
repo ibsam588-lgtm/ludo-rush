@@ -45,30 +45,58 @@ public final class GameScreen extends BaseScreen {
 
     @Override
     public View createView() {
-        LinearLayout root = new LinearLayout(activity);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xff080B13);
-        root.setPadding(dp(14), dp(14), dp(14), dp(14));
+        LinearLayout shell = new LinearLayout(activity);
+        shell.setOrientation(LinearLayout.VERTICAL);
+        shell.setBackgroundColor(0xff080B13);
+        shell.setPadding(dp(14), dp(14), dp(14), dp(14));
 
         LinearLayout header = new LinearLayout(activity);
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(Gravity.CENTER_VERTICAL);
         header.setPadding(dp(4), dp(4), dp(8), dp(8));
-        root.addView(header, lp(-1, -2, 0, 0, 0, dp(8)));
+        shell.addView(header, lp(-1, -2, 0, 0, 0, dp(8)));
 
         Button back = new Button(activity);
         back.setAllCaps(false);
-        back.setText("<");
+        back.setText("‹");
         back.setTextColor(Color.WHITE);
-        back.setTextSize(18);
+        back.setTextSize(22);
         back.setTypeface(Typeface.DEFAULT_BOLD);
-        back.setBackground(null);
+        back.setBackground(pressable(card(0xff18233A, dp(12), 0x447A8CAB)));
         back.setOnClickListener(v -> callback.goBack());
-        header.addView(back, lp(dp(40), dp(40)));
+        header.addView(back, lp(dp(40), dp(40), 0, 0, dp(10), 0));
 
         TextView title = text("Live Match", 18, Color.WHITE, Typeface.BOLD);
         LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, -2, 1);
         header.addView(title, tp);
+
+        Button resignBtn = new Button(activity);
+        resignBtn.setAllCaps(false);
+        resignBtn.setText("🏳 Resign");
+        resignBtn.setTextColor(0xffFF6B81);
+        resignBtn.setTextSize(13);
+        resignBtn.setTypeface(Typeface.DEFAULT_BOLD);
+        resignBtn.setBackground(pressable(card(0xff241A26, dp(12), 0x44FF3D5A)));
+        resignBtn.setOnClickListener(v -> {
+            if (snapshot == null || !"playing".equals(snapshot.optString("status"))) return;
+            Dialogs.confirm(activity, "🏳️", "Resign match?",
+                    "Your opponent will win this game.", "Resign",
+                    callback::resign);
+        });
+        header.addView(resignBtn, lp(dp(96), dp(36)));
+
+        // Scrollable body so action buttons stay reachable on short screens.
+        android.widget.ScrollView scroll = new android.widget.ScrollView(activity);
+        scroll.setFillViewport(true);
+        scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        scroll.setVerticalScrollBarEnabled(false);
+        LinearLayout.LayoutParams scrollLp = new LinearLayout.LayoutParams(-1, 0);
+        scrollLp.weight = 1;
+        shell.addView(scroll, scrollLp);
+
+        LinearLayout root = new LinearLayout(activity);
+        root.setOrientation(LinearLayout.VERTICAL);
+        scroll.addView(root, new android.widget.ScrollView.LayoutParams(-1, -2));
 
         LinearLayout statsRow = new LinearLayout(activity);
         statsRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -112,7 +140,7 @@ public final class GameScreen extends BaseScreen {
         mp.setMargins(dp(5), 0, 0, 0);
         actions.addView(moveButton, mp);
 
-        return root;
+        return shell;
     }
 
     private void refreshUi() {
@@ -137,6 +165,8 @@ public final class GameScreen extends BaseScreen {
 
         if ("finished".equals(status)) {
             statusText.setText(winnerText());
+        } else if ("waiting".equals(status)) {
+            statusText.setText("Waiting for players to join...");
         } else if (canRoll) {
             statusText.setText("Your turn — Roll the dice!");
         } else if (canMove) {
@@ -255,7 +285,7 @@ public final class GameScreen extends BaseScreen {
 
         public BoardView(Activity activity) {
             super(activity);
-            setMinimumHeight(680);
+            setMinimumHeight((int) (340 * activity.getResources().getDisplayMetrics().density));
         }
 
         public void setSnapshot(JSONObject snapshot, String playerId) {

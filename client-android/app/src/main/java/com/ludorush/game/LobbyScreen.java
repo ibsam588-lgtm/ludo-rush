@@ -73,7 +73,7 @@ public final class LobbyScreen extends BaseScreen {
 
         Button create = secondaryButton("Create Private Room");
         create.setTextSize(15);
-        create.setOnClickListener(v -> Toast.makeText(activity, "Private rooms are coming soon", Toast.LENGTH_SHORT).show());
+        create.setOnClickListener(v -> callback.startPrivateRoom(selectedMode));
         content.addView(create, lp(-1, dp(54), 0, 0, 0, dp(4)));
 
         addSectionLabel(content, "JOIN PRIVATE ROOM");
@@ -100,7 +100,7 @@ public final class LobbyScreen extends BaseScreen {
             if (code.isEmpty()) {
                 Toast.makeText(activity, "Enter a room code first", Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(activity, "Private rooms are coming soon", Toast.LENGTH_SHORT).show();
+                callback.joinPrivateRoom(code);
             }
         });
         LinearLayout.LayoutParams jp = new LinearLayout.LayoutParams(dp(80), -1);

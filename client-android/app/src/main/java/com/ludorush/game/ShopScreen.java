@@ -1,5 +1,6 @@
 package com.ludorush.game;
 
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.view.Gravity;
@@ -7,8 +8,11 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public final class ShopScreen extends BaseScreen {
+
+    private TextView coinsView;
 
     public ShopScreen(android.app.Activity activity, ScreenCallback callback) {
         super(activity, callback);
@@ -28,10 +32,10 @@ public final class ShopScreen extends BaseScreen {
         content.addView(balanceCard, lp(-1, -2, 0, 0, 0, dp(8)));
 
         balanceCard.addView(text("YOUR BALANCE", 12, TEXT_DIM, Typeface.BOLD));
-        TextView coins = text("🪙 " + callback.getCoins(), 34, ACCENT_GOLD, Typeface.BOLD);
-        coins.setGravity(Gravity.CENTER);
-        coins.setShadowLayer(dp(8), 0, dp(2), 0x66FFB300);
-        balanceCard.addView(coins, lp(-1, -2, 0, dp(4), 0, dp(2)));
+        coinsView = text("🪙 " + callback.getCoins(), 34, ACCENT_GOLD, Typeface.BOLD);
+        coinsView.setGravity(Gravity.CENTER);
+        coinsView.setShadowLayer(dp(8), 0, dp(2), 0x66FFB300);
+        balanceCard.addView(coinsView, lp(-1, -2, 0, dp(4), 0, dp(2)));
         balanceCard.addView(text("Coins", 14, 0xff94A3B8, Typeface.NORMAL));
 
         addSectionLabel(content, "COIN PACKS");
@@ -54,10 +58,15 @@ public final class ShopScreen extends BaseScreen {
         LinearLayout.LayoutParams fip = new LinearLayout.LayoutParams(0, -2, 1);
         freeCard.addView(freeInfo, fip);
         freeInfo.addView(text("Watch an Ad", 15, Color.WHITE, Typeface.BOLD));
-        freeInfo.addView(text("Earn 50 coins per video", 12, 0xff6B7A90, Typeface.NORMAL));
+        freeInfo.addView(text("Earn 50 coins per video (simulated in test build)", 12, 0xff6B7A90, Typeface.NORMAL));
 
         Button watchBtn = actionButton("+50", 0xff43A047, 0xff66BB6A);
         watchBtn.setTextSize(14);
+        watchBtn.setOnClickListener(v -> {
+            callback.addCoins(50);
+            refreshBalance();
+            Toast.makeText(activity, "+50 coins added", Toast.LENGTH_SHORT).show();
+        });
         freeCard.addView(watchBtn, lp(dp(80), dp(42)));
 
         LinearLayout dailyCard = new LinearLayout(activity);
@@ -72,13 +81,34 @@ public final class ShopScreen extends BaseScreen {
         LinearLayout.LayoutParams dip = new LinearLayout.LayoutParams(0, -2, 1);
         dailyCard.addView(dailyInfo, dip);
         dailyInfo.addView(text("Daily Bonus", 15, Color.WHITE, Typeface.BOLD));
-        dailyInfo.addView(text("Come back daily for coins", 12, 0xff6B7A90, Typeface.NORMAL));
+        dailyInfo.addView(text("Claim 100 free coins once a day", 12, 0xff6B7A90, Typeface.NORMAL));
 
-        Button claimBtn = actionButton("Claim", 0xffF9A825, 0xffFFB14A);
+        SharedPreferences prefs = activity.getSharedPreferences("ludo_settings", 0);
+        long today = System.currentTimeMillis() / 86_400_000L;
+        boolean claimed = prefs.getLong("daily_claim_day", -1) == today;
+
+        Button claimBtn = actionButton(claimed ? "Claimed" : "Claim", 0xffF9A825, 0xffFFB14A);
         claimBtn.setTextSize(14);
-        dailyCard.addView(claimBtn, lp(dp(80), dp(42)));
+        claimBtn.setEnabled(!claimed);
+        claimBtn.setAlpha(claimed ? 0.5f : 1f);
+        claimBtn.setOnClickListener(v -> {
+            long day = System.currentTimeMillis() / 86_400_000L;
+            if (prefs.getLong("daily_claim_day", -1) == day) return;
+            prefs.edit().putLong("daily_claim_day", day).apply();
+            callback.addCoins(100);
+            refreshBalance();
+            claimBtn.setText("Claimed");
+            claimBtn.setEnabled(false);
+            claimBtn.setAlpha(0.5f);
+            Toast.makeText(activity, "+100 coins — see you tomorrow!", Toast.LENGTH_SHORT).show();
+        });
+        dailyCard.addView(claimBtn, lp(dp(90), dp(42)));
 
         return createScreenShell("Shop", content);
+    }
+
+    private void refreshBalance() {
+        if (coinsView != null) coinsView.setText("🪙 " + callback.getCoins());
     }
 
     private void addPack(LinearLayout parent, String emoji, String name, String amount, String price, int accent) {
@@ -104,6 +134,8 @@ public final class ShopScreen extends BaseScreen {
 
         Button buy = actionButton(price, accent, accent);
         buy.setTextSize(13);
+        buy.setOnClickListener(v ->
+                Toast.makeText(activity, "In-app purchases are coming soon", Toast.LENGTH_SHORT).show());
         card.addView(buy, lp(dp(90), dp(40)));
     }
 }

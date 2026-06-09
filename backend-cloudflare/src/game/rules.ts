@@ -136,6 +136,31 @@ export function markDisconnected(snapshot: RoomSnapshot, playerId: string, now =
   };
 }
 
+/**
+ * Hands a disconnected player's seat to the bot AI so the match cannot stall.
+ * The client has no reconnect flow today, so this is safe to do immediately.
+ */
+export function convertSeatToBot(snapshot: RoomSnapshot, playerId: string, now = Date.now()): RoomSnapshot {
+  if (snapshot.status !== "playing") {
+    return snapshot;
+  }
+
+  const seat = snapshot.seats.find((roomSeat) => roomSeat.playerId === playerId);
+  if (!seat || seat.isBot) {
+    return snapshot;
+  }
+
+  return {
+    ...snapshot,
+    seats: snapshot.seats.map((roomSeat) =>
+      roomSeat.playerId === playerId
+        ? { ...roomSeat, connected: false, isBot: true, disconnectedAt: now }
+        : roomSeat
+    ),
+    updatedAt: now
+  };
+}
+
 export function canAct(snapshot: RoomSnapshot, playerId: string): boolean {
   const playerSeat = snapshot.seats.find((seat) => seat.playerId === playerId);
   return snapshot.status === "playing" && playerSeat?.seat === snapshot.currentTurnSeat;
@@ -252,6 +277,10 @@ export function applyMove(snapshot: RoomSnapshot, playerId: string, pieceId: str
 }
 
 export function resignPlayer(snapshot: RoomSnapshot, playerId: string, now = Date.now()): RoomSnapshot {
+  if (snapshot.status !== "playing") {
+    return snapshot;
+  }
+
   const seat = getSeatForPlayer(snapshot, playerId);
   const remainingHumanSeats = snapshot.seats.filter((roomSeat) => roomSeat.playerId !== playerId && !roomSeat.isBot);
 

@@ -58,7 +58,7 @@ public final class SettingsScreen extends BaseScreen {
 
         addSectionLabel(content, "ABOUT");
 
-        addInfoRow(content, "Version", "0.2.0");
+        addInfoRow(content, "Version", callback.getAppVersion());
         addInfoRow(content, "Build", "Internal Test");
         addInfoRow(content, "Server", "Cloudflare Workers");
 
@@ -66,10 +66,12 @@ public final class SettingsScreen extends BaseScreen {
 
         Button privacy = secondaryButton("Privacy Policy");
         privacy.setTextSize(14);
+        privacy.setOnClickListener(v -> openUrl("https://ibsam588-lgtm.github.io/ludo-rush/privacy.html"));
         content.addView(privacy, lp(-1, dp(48), 0, 0, 0, dp(8)));
 
         Button terms = secondaryButton("Terms of Service");
         terms.setTextSize(14);
+        terms.setOnClickListener(v -> openUrl("https://ibsam588-lgtm.github.io/ludo-rush/terms.html"));
         content.addView(terms, lp(-1, dp(48), 0, 0, 0, dp(16)));
 
         Button deleteBtn = new Button(activity);
@@ -78,10 +80,22 @@ public final class SettingsScreen extends BaseScreen {
         deleteBtn.setTextColor(0xffE8293E);
         deleteBtn.setTextSize(14);
         deleteBtn.setTypeface(Typeface.DEFAULT_BOLD);
-        deleteBtn.setBackground(card(0xff1A1A1A, dp(14), 0x44E8293E));
+        deleteBtn.setBackground(pressable(card(0xff1A1A1A, dp(14), 0x44E8293E)));
+        deleteBtn.setOnClickListener(v -> Dialogs.confirm(activity, "🗑️", "Delete account?",
+                "Your guest profile, coins, rating, and match history will be permanently deleted.",
+                "Delete", callback::resetAccount));
         content.addView(deleteBtn, lp(-1, dp(48)));
 
         return createScreenShell("Settings", content);
+    }
+
+    private void openUrl(String url) {
+        try {
+            activity.startActivity(new android.content.Intent(
+                    android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url)));
+        } catch (Exception e) {
+            android.widget.Toast.makeText(activity, "No browser available", android.widget.Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void addToggle(LinearLayout parent, String label, SharedPreferences prefs, String key, boolean defVal) {

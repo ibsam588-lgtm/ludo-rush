@@ -83,7 +83,7 @@ public final class HomeScreen extends BaseScreen {
         sp.weight = 1;
         root.addView(spacer, sp);
 
-        TextView ver = text("v0.2.0 — Internal Test Build", 11, 0xff3A4556, Typeface.NORMAL);
+        TextView ver = text("v" + callback.getAppVersion() + " — Internal Test Build", 11, 0xff3A4556, Typeface.NORMAL);
         ver.setGravity(Gravity.CENTER);
         root.addView(ver, lp(-1, -2, 0, dp(16), 0, 0));
 

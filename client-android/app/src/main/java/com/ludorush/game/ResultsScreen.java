@@ -121,7 +121,8 @@ public final class ResultsScreen extends BaseScreen {
         root.addView(btnRow, lp(-1, dp(54), 0, dp(16), 0, 0));
 
         Button again = actionButton("Play Again", 0xff1E88E5, 0xff42A5F5);
-        again.setOnClickListener(v -> callback.startBotMatch("classic_2p"));
+        String playedMode = snapshot != null ? snapshot.optString("mode", "classic_2p") : "classic_2p";
+        again.setOnClickListener(v -> callback.startBotMatch(playedMode));
         LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(0, -1, 1);
         ap.setMargins(0, 0, dp(6), 0);
         btnRow.addView(again, ap);

@@ -1,6 +1,7 @@
 package com.ludorush.game;
 
 import android.app.Activity;
+import android.content.SharedPreferences;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
@@ -12,6 +13,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.Toast;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -33,6 +35,10 @@ import java.util.concurrent.TimeUnit;
 public final class MainActivity extends Activity implements BaseScreen.ScreenCallback {
     private static final String BACKEND_URL = "https://ludo-rush-backend.ibsam588.workers.dev";
     private static final MediaType JSON = MediaType.get("application/json; charset=utf-8");
+    private static final String REGION = "us-east";
+    private static final String PROFILE_PREFS = "ludo_profile";
+    private static final String HISTORY_PREFS = "ludo_history";
+    private static final int MAX_TICKET_POLLS = 20;
 
     private final Handler main = new Handler(Looper.getMainLooper());
     private final OkHttpClient http = new OkHttpClient.Builder()
@@ -46,6 +52,7 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
 
     private WebSocket socket;
     private String playerId;
+    private String authToken;
     private String displayName = "Rush Tester";
     private int coins = 500;
     private int rating = 1000;
@@ -53,11 +60,16 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     private int wins = 0;
     private boolean backendOnline;
     private boolean connecting;
+    private boolean matchCounted;
+    private String pendingTicketId;
+    private String currentMode = "classic_2p";
     private JSONObject lastSnapshot;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        loadProfile();
 
         FrameLayout shell = new FrameLayout(this);
         shell.setBackgroundColor(Color.rgb(8, 11, 19));
@@ -70,12 +82,18 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
 
         setContentView(shell);
         healthCheck();
+        syncProfile();
         navigateTo("home");
     }
 
     @Override
     protected void onDestroy() {
-        if (socket != null) socket.close(1000, "activity_destroyed");
+        if (socket != null) {
+            if (isMatchPlaying()) {
+                send(json("type", "resign", "playerId", playerId));
+            }
+            socket.close(1000, "activity_destroyed");
+        }
         super.onDestroy();
     }
 
@@ -84,99 +102,9 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
         if (screenStack.size() > 1) {
             goBack();
         } else {
-            showExitDialog();
+            Dialogs.confirm(this, "👋", "Quit Ludo Rush?", "Do you want to quit the app?",
+                    "Quit", this::finish);
         }
-    }
-
-    private void showExitDialog() {
-        android.app.Dialog dialog = new android.app.Dialog(this);
-        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
-
-        float density = getResources().getDisplayMetrics().density;
-        int d20 = (int) (20 * density), d12 = (int) (12 * density), d8 = (int) (8 * density);
-
-        android.widget.LinearLayout panel = new android.widget.LinearLayout(this);
-        panel.setOrientation(android.widget.LinearLayout.VERTICAL);
-        panel.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
-        panel.setPadding(d20, (int) (24 * density), d20, d20);
-        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-                new int[]{0xff1A2440, 0xff0F1626});
-        bg.setCornerRadius(24 * density);
-        bg.setStroke((int) density, 0x55809BC8);
-        panel.setBackground(bg);
-
-        android.widget.TextView icon = new android.widget.TextView(this);
-        icon.setText("👋");
-        icon.setTextSize(34);
-        icon.setGravity(android.view.Gravity.CENTER);
-        panel.addView(icon);
-
-        android.widget.TextView title = new android.widget.TextView(this);
-        title.setText("Quit Ludo Rush?");
-        title.setTextSize(20);
-        title.setTextColor(Color.WHITE);
-        title.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        title.setGravity(android.view.Gravity.CENTER);
-        title.setPadding(0, d8, 0, 0);
-        panel.addView(title);
-
-        android.widget.TextView msg = new android.widget.TextView(this);
-        msg.setText("Do you want to quit the app?");
-        msg.setTextSize(14);
-        msg.setTextColor(0xff8B9BB4);
-        msg.setGravity(android.view.Gravity.CENTER);
-        msg.setPadding(0, (int) (4 * density), 0, (int) (18 * density));
-        panel.addView(msg);
-
-        android.widget.LinearLayout buttons = new android.widget.LinearLayout(this);
-        buttons.setOrientation(android.widget.LinearLayout.HORIZONTAL);
-        panel.addView(buttons, new android.widget.LinearLayout.LayoutParams(-1, -2));
-
-        android.widget.Button stay = new android.widget.Button(this);
-        stay.setAllCaps(false);
-        stay.setText("Stay");
-        stay.setTextColor(Color.WHITE);
-        stay.setTextSize(15);
-        stay.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        android.graphics.drawable.GradientDrawable stayBg = new android.graphics.drawable.GradientDrawable();
-        stayBg.setColor(0xff1B2740);
-        stayBg.setCornerRadius(16 * density);
-        stayBg.setStroke((int) density, 0x446F84A8);
-        stay.setBackground(stayBg);
-        stay.setOnClickListener(v -> dialog.dismiss());
-        android.widget.LinearLayout.LayoutParams sp =
-                new android.widget.LinearLayout.LayoutParams(0, (int) (48 * density), 1);
-        sp.setMargins(0, 0, d8, 0);
-        buttons.addView(stay, sp);
-
-        android.widget.Button quit = new android.widget.Button(this);
-        quit.setAllCaps(false);
-        quit.setText("Quit");
-        quit.setTextColor(Color.WHITE);
-        quit.setTextSize(15);
-        quit.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
-        android.graphics.drawable.GradientDrawable quitBg = new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
-                new int[]{0xffFF3D5A, 0xffFF9F1C});
-        quitBg.setCornerRadius(16 * density);
-        quit.setBackground(quitBg);
-        quit.setOnClickListener(v -> {
-            dialog.dismiss();
-            finish();
-        });
-        android.widget.LinearLayout.LayoutParams qp =
-                new android.widget.LinearLayout.LayoutParams(0, (int) (48 * density), 1);
-        qp.setMargins(d8, 0, 0, 0);
-        buttons.addView(quit, qp);
-
-        dialog.setContentView(panel);
-        android.view.Window w = dialog.getWindow();
-        if (w != null) {
-            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
-            w.setLayout((int) (getResources().getDisplayMetrics().widthPixels * 0.82f), -2);
-        }
-        dialog.show();
     }
 
     @Override
@@ -192,11 +120,24 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     @Override
     public void goBack() {
         main.post(() -> {
-            if (screenStack.size() <= 1) return;
-            screenStack.pop();
-            String prev = screenStack.peek();
-            if (prev != null) showScreen(prev, null);
+            if ("game".equals(screenStack.peek()) && isMatchActive()) {
+                Dialogs.confirm(this, "🏳️", "Leave match?",
+                        "You'll forfeit this game and lose rating.", "Leave",
+                        () -> {
+                            leaveMatch();
+                            popBack();
+                        });
+                return;
+            }
+            popBack();
         });
+    }
+
+    private void popBack() {
+        if (screenStack.size() <= 1) return;
+        screenStack.pop();
+        String prev = screenStack.peek();
+        if (prev != null) showScreen(prev, null);
     }
 
     @Override public String getPlayerId() { return playerId; }
@@ -208,59 +149,94 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     @Override public boolean isOnline() { return backendOnline; }
 
     @Override
+    public boolean isMatchActive() {
+        return socket != null || connecting || pendingTicketId != null;
+    }
+
+    private boolean isMatchPlaying() {
+        return socket != null && !matchCounted && lastSnapshot != null
+                && "playing".equals(lastSnapshot.optString("status"));
+    }
+
+    @Override
     public void startBotMatch(String mode) {
         if (connecting) return;
-        connecting = true;
-        navigateTo("game");
-        updateGameStatus("Creating guest profile...");
+        beginMatch(mode);
+        updateGameStatus("Preparing match...");
 
-        post("/api/v1/auth/guest", json("displayName", displayName, "region", "us-east"), body -> {
-            JSONObject player = body.getJSONObject("player");
-            playerId = player.getString("id");
-            displayName = player.getString("displayName");
-            rating = player.optInt("rating", 1000);
-            coins = player.optInt("coins", 500);
-
+        ensurePlayer(() -> {
             updateGameStatus("Creating bot match...");
             post("/api/v1/matchmaking/bots", json(
                     "playerId", playerId,
                     "displayName", displayName,
                     "mode", mode,
-                    "region", "us-east",
-                    "rating", rating), match -> connect(match.getString("socketUrl")));
+                    "region", REGION,
+                    "rating", rating), match -> connect(match.getString("socketUrl"), true));
         });
     }
 
     @Override
     public void startQuickMatch(String mode) {
         if (connecting) return;
-        connecting = true;
-        navigateTo("game");
-        updateGameStatus("Creating guest profile...");
+        beginMatch(mode);
+        updateGameStatus("Preparing match...");
 
-        post("/api/v1/auth/guest", json("displayName", displayName, "region", "us-east"), body -> {
-            JSONObject player = body.getJSONObject("player");
-            playerId = player.getString("id");
-            displayName = player.getString("displayName");
-            rating = player.optInt("rating", 1000);
-            coins = player.optInt("coins", 500);
-
+        ensurePlayer(() -> {
             updateGameStatus("Searching for match...");
             post("/api/v1/matchmaking/quick", json(
                     "playerId", playerId,
                     "displayName", displayName,
                     "mode", mode,
-                    "region", "us-east",
+                    "region", REGION,
                     "rating", rating), ticket -> {
+                String status = ticket.optString("status", "waiting");
+                if ("matched".equals(status)) {
+                    String socketUrl = ticket.optString("socketUrl", "");
+                    if (!socketUrl.isEmpty()) {
+                        connect(socketUrl, false);
+                        return;
+                    }
+                }
                 String ticketId = ticket.optString("ticketId", "");
                 if (ticketId.isEmpty()) {
                     updateGameStatus("Matchmaking failed.");
                     connecting = false;
                     return;
                 }
+                pendingTicketId = ticketId;
                 pollTicket(ticketId, 0);
             });
         });
+    }
+
+    @Override
+    public void startPrivateRoom(String mode) {
+        if (connecting) return;
+        beginMatch(mode);
+        updateGameStatus("Creating private room...");
+
+        ensurePlayer(() -> post("/api/v1/rooms/private", json(
+                "playerId", playerId,
+                "displayName", displayName,
+                "mode", mode,
+                "region", REGION), room -> {
+            String code = room.optString("code", "------");
+            connect(room.getString("socketUrl"), false);
+            main.postDelayed(() ->
+                    updateGameStatus("Room code: " + code + " — share it with a friend!"), 600);
+        }));
+    }
+
+    @Override
+    public void joinPrivateRoom(String code) {
+        if (connecting) return;
+        beginMatch("classic_2p");
+        updateGameStatus("Joining private room...");
+
+        ensurePlayer(() -> post("/api/v1/rooms/private/join", json(
+                "playerId", playerId,
+                "displayName", displayName,
+                "code", code), room -> connect(room.getString("socketUrl"), false)));
     }
 
     @Override
@@ -280,12 +256,130 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
 
     @Override
     public void resign() {
-        if (socket != null && playerId != null) {
+        if (socket != null && playerId != null && isMatchPlaying()) {
             send(json("type", "resign", "playerId", playerId));
         }
     }
 
+    @Override
+    public void addCoins(int amount) {
+        coins = Math.max(0, coins + amount);
+        saveProfile();
+    }
+
+    @Override
+    public void resetAccount() {
+        if (playerId != null && authToken != null) {
+            Request req = new Request.Builder()
+                    .url(BACKEND_URL + "/api/v1/players/" + playerId + "?token=" + encodeQuery(authToken))
+                    .delete()
+                    .build();
+            http.newCall(req).enqueue(new Callback() {
+                @Override public void onFailure(Call call, IOException e) { }
+                @Override public void onResponse(Call call, Response r) { r.close(); }
+            });
+        }
+        leaveMatch();
+        playerId = null;
+        authToken = null;
+        displayName = "Rush Tester";
+        coins = 500;
+        rating = 1000;
+        gamesPlayed = 0;
+        wins = 0;
+        getSharedPreferences(PROFILE_PREFS, 0).edit().clear().apply();
+        getSharedPreferences(HISTORY_PREFS, 0).edit().clear().apply();
+        main.post(() -> {
+            Toast.makeText(this, "Account deleted", Toast.LENGTH_SHORT).show();
+            navigateTo("home");
+        });
+    }
+
+    @Override
+    public String getAppVersion() {
+        try {
+            return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception e) {
+            return "0.2.0";
+        }
+    }
+
+    @Override
+    public void fetchJson(String path, BaseScreen.ScreenCallback.JsonResult handler) {
+        Request req = new Request.Builder().url(BACKEND_URL + path).build();
+        http.newCall(req).enqueue(new Callback() {
+            @Override public void onFailure(Call call, IOException e) {
+                main.post(() -> handler.onError(e.getMessage() == null ? "Network error" : e.getMessage()));
+            }
+
+            @Override public void onResponse(Call call, Response r) throws IOException {
+                String text = r.body() == null ? "{}" : r.body().string();
+                r.close();
+                if (!r.isSuccessful()) {
+                    main.post(() -> handler.onError("HTTP " + r.code()));
+                    return;
+                }
+                try {
+                    JSONObject body = new JSONObject(text);
+                    main.post(() -> handler.onSuccess(body));
+                } catch (Exception e) {
+                    main.post(() -> handler.onError("Invalid response"));
+                }
+            }
+        });
+    }
+
+    /** Resets per-match state and tears down any previous match before starting a new one. */
+    private void beginMatch(String mode) {
+        leaveMatch();
+        connecting = true;
+        matchCounted = false;
+        currentMode = mode;
+        navigateTo("game");
+    }
+
+    /**
+     * Leaves the current match (if any): cancels a waiting matchmaking ticket,
+     * resigns an in-progress game, and closes the socket. A forfeited game is
+     * counted as a loss locally so stats stay honest.
+     */
+    private void leaveMatch() {
+        if (pendingTicketId != null) {
+            String ticket = pendingTicketId;
+            pendingTicketId = null;
+            post("/api/v1/matchmaking/tickets/" + ticket + "/cancel", new JSONObject(), body -> { });
+        }
+        if (socket != null) {
+            if (isMatchPlaying()) {
+                send(json("type", "resign", "playerId", playerId));
+                matchCounted = true;
+                countForfeit();
+            }
+            socket.close(1000, "left_match");
+            socket = null;
+        }
+        connecting = false;
+        gameScreen = null;
+        lastSnapshot = null;
+    }
+
+    private void countForfeit() {
+        gamesPlayed++;
+        rating = Math.max(0, rating - 6);
+        saveProfile();
+        appendHistory(false, currentMode, "Forfeit", -6, 0);
+    }
+
     private void showScreen(String name, String data) {
+        if ("home".equals(name)) {
+            screenStack.clear();
+            healthCheck();
+        }
+        if ("results".equals(name) && "game".equals(screenStack.peek())) {
+            // Replace the finished game screen so back from results skips it.
+            screenStack.pop();
+        }
+
         if (currentScreenView != null) {
             container.removeView(currentScreenView);
         }
@@ -298,6 +392,8 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
             if (lastSnapshot != null) {
                 gameScreen.updateSnapshot(lastSnapshot, playerId);
             }
+        } else {
+            gameScreen = null;
         }
 
         currentScreenView = view;
@@ -320,26 +416,68 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
         }
     }
 
-    private void connect(String socketPath) {
-        String encoded = encodeQuery(displayName);
+    /** Runs the continuation once a guest account exists, creating one only if needed. */
+    private void ensurePlayer(Runnable next) {
+        if (playerId != null && authToken != null) {
+            next.run();
+            return;
+        }
+        post("/api/v1/auth/guest", json("displayName", displayName, "region", REGION), body -> {
+            JSONObject player = body.getJSONObject("player");
+            playerId = player.getString("id");
+            authToken = body.optString("token", "");
+            displayName = player.getString("displayName");
+            rating = player.optInt("rating", 1000);
+            coins = player.optInt("coins", 500);
+            saveProfile();
+            next.run();
+        });
+    }
+
+    private void connect(String socketPath, boolean fillBots) {
+        pendingTicketId = null;
+        if (socket != null) {
+            socket.close(1000, "starting_new_match");
+            socket = null;
+        }
+
         String wsUrl = BACKEND_URL.replace("https://", "wss://") + socketPath
-                + "?playerId=" + playerId + "&displayName=" + encoded;
+                + "?playerId=" + playerId
+                + "&displayName=" + encodeQuery(displayName)
+                + "&token=" + encodeQuery(authToken == null ? "" : authToken);
         Request req = new Request.Builder().url(wsUrl).build();
         socket = http.newWebSocket(req, new WebSocketListener() {
             @Override public void onOpen(WebSocket ws, Response r) {
+                if (ws != socket) return;
                 connecting = false;
                 send(json("type", "join", "playerId", playerId, "displayName", displayName));
-                send(json("type", "fill_bots", "playerId", playerId));
-                updateGameStatus("Match connected. Bots are seated.");
+                if (fillBots) {
+                    send(json("type", "fill_bots", "playerId", playerId));
+                    updateGameStatus("Match connected. Bots are seated.");
+                } else {
+                    updateGameStatus("Connected. Waiting for players...");
+                }
             }
 
             @Override public void onMessage(WebSocket ws, String text) {
+                if (ws != socket) return;
                 handleMessage(text);
             }
 
             @Override public void onFailure(WebSocket ws, Throwable t, Response r) {
+                if (ws != socket) return;
                 connecting = false;
-                updateGameStatus("Connection error: " + t.getMessage());
+                if (!matchCounted) {
+                    updateGameStatus("Connection error: " + t.getMessage());
+                }
+            }
+
+            @Override public void onClosed(WebSocket ws, int code, String reason) {
+                if (ws != socket) return;
+                connecting = false;
+                if (!matchCounted) {
+                    updateGameStatus("Connection closed.");
+                }
             }
         });
     }
@@ -359,9 +497,12 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
                     if (gameScreen != null) {
                         gameScreen.updateSnapshot(snap, playerId);
                     }
-                    if ("finished".equals(snap.optString("status"))) {
+                    if ("finished".equals(snap.optString("status")) && !matchCounted) {
+                        matchCounted = true;
                         trackMatchResult(snap);
-                        main.postDelayed(() -> navigateTo("results"), 1500);
+                        if ("game".equals(screenStack.peek())) {
+                            main.postDelayed(() -> navigateTo("results"), 1500);
+                        }
                     }
                 });
             }
@@ -373,33 +514,54 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     private void trackMatchResult(JSONObject snap) {
         gamesPlayed++;
         String winnerId = snap.optString("winnerPlayerId", "");
-        if (playerId != null && playerId.equals(winnerId)) {
-            wins++;
-            rating += 12;
-            coins += 100;
-        } else {
-            rating = Math.max(0, rating - 6);
-            coins += 15;
-        }
+        boolean won = playerId != null && playerId.equals(winnerId);
+        int ratingDelta = won ? 12 : -6;
+        int coinsDelta = won ? 100 : 15;
+        if (won) wins++;
+        rating = Math.max(0, rating + ratingDelta);
+        coins += coinsDelta;
+        saveProfile();
+        appendHistory(won, snap.optString("mode", currentMode), opponentNames(snap), ratingDelta, coinsDelta);
+
         if (socket != null) {
             socket.close(1000, "match_finished");
             socket = null;
         }
         gameScreen = null;
+        connecting = false;
+    }
+
+    private String opponentNames(JSONObject snap) {
+        JSONArray seats = snap.optJSONArray("seats");
+        if (seats == null) return "Unknown";
+        StringBuilder names = new StringBuilder();
+        for (int i = 0; i < seats.length(); i++) {
+            JSONObject s = seats.optJSONObject(i);
+            if (s == null || (playerId != null && playerId.equals(s.optString("playerId")))) continue;
+            if (names.length() > 0) names.append(", ");
+            names.append(s.optString("displayName", "Player"));
+        }
+        return names.length() == 0 ? "Unknown" : names.toString();
     }
 
     private void pollTicket(String ticketId, int attempt) {
-        if (attempt > 15) {
-            updateGameStatus("Matchmaking timed out.");
+        if (!ticketId.equals(pendingTicketId)) return;
+        if (attempt > MAX_TICKET_POLLS) {
+            pendingTicketId = null;
+            post("/api/v1/matchmaking/tickets/" + ticketId + "/cancel", new JSONObject(), body -> { });
+            updateGameStatus("Matchmaking timed out. Go back and try again.");
             connecting = false;
             return;
         }
         main.postDelayed(() -> {
+            if (!ticketId.equals(pendingTicketId)) return;
             Request req = new Request.Builder()
                     .url(BACKEND_URL + "/api/v1/matchmaking/tickets/" + ticketId)
                     .build();
             http.newCall(req).enqueue(new Callback() {
                 @Override public void onFailure(Call call, IOException e) {
+                    if (!ticketId.equals(pendingTicketId)) return;
+                    pendingTicketId = null;
                     connecting = false;
                     updateGameStatus("Ticket check failed.");
                 }
@@ -407,24 +569,27 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
                 @Override public void onResponse(Call call, Response response) throws IOException {
                     String body = response.body() == null ? "{}" : response.body().string();
                     response.close();
+                    if (!ticketId.equals(pendingTicketId)) return;
                     try {
                         JSONObject ticket = new JSONObject(body);
                         String status = ticket.optString("status", "waiting");
                         if ("matched".equals(status)) {
                             String socketUrl = ticket.optString("socketUrl", "");
                             if (!socketUrl.isEmpty()) {
-                                connect(socketUrl);
+                                connect(socketUrl, false);
                                 return;
                             }
                         }
                         if ("waiting".equals(status)) {
-                            updateGameStatus("Searching... (" + (attempt + 1) + ")");
+                            updateGameStatus("Searching for an opponent... (" + (attempt + 1) + ")");
                             pollTicket(ticketId, attempt + 1);
                         } else {
+                            pendingTicketId = null;
                             connecting = false;
                             updateGameStatus("Matchmaking: " + status);
                         }
                     } catch (Exception e) {
+                        pendingTicketId = null;
                         connecting = false;
                         updateGameStatus("Ticket parse error.");
                     }
@@ -469,6 +634,83 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
         });
     }
 
+    private void loadProfile() {
+        SharedPreferences prefs = getSharedPreferences(PROFILE_PREFS, 0);
+        playerId = prefs.getString("player_id", null);
+        authToken = prefs.getString("auth_token", null);
+        displayName = prefs.getString("display_name", "Rush Tester");
+        coins = prefs.getInt("coins", 500);
+        rating = prefs.getInt("rating", 1000);
+        gamesPlayed = prefs.getInt("games_played", 0);
+        wins = prefs.getInt("wins", 0);
+    }
+
+    private void saveProfile() {
+        getSharedPreferences(PROFILE_PREFS, 0).edit()
+                .putString("player_id", playerId)
+                .putString("auth_token", authToken)
+                .putString("display_name", displayName)
+                .putInt("coins", coins)
+                .putInt("rating", rating)
+                .putInt("games_played", gamesPlayed)
+                .putInt("wins", wins)
+                .apply();
+    }
+
+    /** Pulls server-side rating/coins for a persisted guest at startup. */
+    private void syncProfile() {
+        if (playerId == null || authToken == null) return;
+        Request req = new Request.Builder()
+                .url(BACKEND_URL + "/api/v1/players/" + playerId + "?token=" + encodeQuery(authToken))
+                .build();
+        http.newCall(req).enqueue(new Callback() {
+            @Override public void onFailure(Call call, IOException e) { }
+
+            @Override public void onResponse(Call call, Response r) throws IOException {
+                String text = r.body() == null ? "{}" : r.body().string();
+                int code = r.code();
+                r.close();
+                if (code == 404 || code == 401) {
+                    // Account no longer exists server-side; re-register on next match.
+                    playerId = null;
+                    authToken = null;
+                    saveProfile();
+                    return;
+                }
+                if (code != 200) return;
+                try {
+                    JSONObject player = new JSONObject(text).getJSONObject("player");
+                    rating = player.optInt("rating", rating);
+                    // Local coins can be ahead of the server (ad/daily bonuses are
+                    // client-side for now), so never lower the local balance.
+                    coins = Math.max(coins, player.optInt("coins", coins));
+                    saveProfile();
+                } catch (Exception ignored) { }
+            }
+        });
+    }
+
+    private void appendHistory(boolean won, String mode, String opponents, int ratingDelta, int coinsDelta) {
+        try {
+            SharedPreferences prefs = getSharedPreferences(HISTORY_PREFS, 0);
+            JSONArray existing = new JSONArray(prefs.getString("entries", "[]"));
+            JSONObject entry = new JSONObject();
+            entry.put("won", won);
+            entry.put("mode", mode);
+            entry.put("opponents", opponents);
+            entry.put("ratingDelta", ratingDelta);
+            entry.put("coinsDelta", coinsDelta);
+            entry.put("at", System.currentTimeMillis());
+
+            JSONArray next = new JSONArray();
+            next.put(entry);
+            for (int i = 0; i < Math.min(existing.length(), 19); i++) {
+                next.put(existing.get(i));
+            }
+            prefs.edit().putString("entries", next.toString()).apply();
+        } catch (Exception ignored) { }
+    }
+
     private void post(String path, JSONObject payload, JsonHandler handler) {
         Request req = new Request.Builder()
                 .url(BACKEND_URL + path)
@@ -486,7 +728,11 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
                 try {
                     if (!r.isSuccessful()) {
                         connecting = false;
-                        updateGameStatus("HTTP " + r.code() + ": " + text);
+                        if (r.code() == 404) {
+                            updateGameStatus("Not found. The room code may be wrong or expired.");
+                        } else {
+                            updateGameStatus("HTTP " + r.code() + ": " + text);
+                        }
                         return;
                     }
                     handler.handle(new JSONObject(text));
