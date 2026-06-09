@@ -18,51 +18,59 @@ public final class ProfileScreen extends BaseScreen {
         LinearLayout content = new LinearLayout(activity);
         content.setOrientation(LinearLayout.VERTICAL);
 
-        LinearLayout profileCard = new LinearLayout(activity);
-        profileCard.setOrientation(LinearLayout.HORIZONTAL);
-        profileCard.setGravity(Gravity.CENTER_VERTICAL);
-        profileCard.setPadding(dp(20), dp(20), dp(20), dp(20));
-        profileCard.setBackground(cardGradient(0xff192133, 0xff101827, dp(20)));
-        content.addView(profileCard, lp(-1, -2, 0, 0, 0, dp(16)));
+        // ── Profile hero card ─────────────────────────────────────────────────
+        LinearLayout heroCard = new LinearLayout(activity);
+        heroCard.setOrientation(LinearLayout.HORIZONTAL);
+        heroCard.setGravity(Gravity.CENTER_VERTICAL);
+        heroCard.setPadding(dp(20), dp(22), dp(20), dp(22));
+        heroCard.setBackground(cardGradient(theme.bgGradStart(), theme.bgGradEnd(), dp(20)));
+        content.addView(heroCard, lp(-1, -2, 0, 0, 0, dp(16)));
 
         View avatar = new View(activity);
-        avatar.setBackground(card(0xffE8293E, dp(30), 0x44FFFFFF));
-        profileCard.addView(avatar, lp(dp(60), dp(60), 0, 0, dp(16), 0));
+        avatar.setBackground(circleOutline(ThemeManager.RED, 0x55FFFFFF));
+        heroCard.addView(avatar, lp(dp(64), dp(64), 0, 0, dp(16), 0));
 
         LinearLayout nameCol = new LinearLayout(activity);
         nameCol.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams ncp = new LinearLayout.LayoutParams(0, -2, 1);
-        profileCard.addView(nameCol, ncp);
+        heroCard.addView(nameCol, new LinearLayout.LayoutParams(0, -2, 1));
 
-        nameCol.addView(text(callback.getDisplayName(), 20, Color.WHITE, Typeface.BOLD));
-        nameCol.addView(text("Guest Player", 13, 0xff6B7A90, Typeface.NORMAL));
+        nameCol.addView(text(callback.getDisplayName(), 20, theme.txtPrimary(), Typeface.BOLD));
+        nameCol.addView(text("Guest Player  ·  us-east", 13, theme.txtMuted(), Typeface.NORMAL),
+                lp(-1, -2, 0, dp(2), 0, 0));
 
+        int winRate = callback.getGamesPlayed() > 0
+            ? callback.getWins() * 100 / callback.getGamesPlayed() : 0;
+        nameCol.addView(text(winRate + "% win rate", 12, ThemeManager.GREEN, Typeface.BOLD),
+                lp(-1, -2, 0, dp(4), 0, 0));
+
+        // ── Statistics ────────────────────────────────────────────────────────
         addSectionLabel(content, "STATISTICS");
 
         LinearLayout statsRow = new LinearLayout(activity);
         statsRow.setOrientation(LinearLayout.HORIZONTAL);
         content.addView(statsRow, lp(-1, -2, 0, 0, 0, dp(8)));
 
-        addStatCard(statsRow, "RATING", String.valueOf(callback.getRating()), 0xffF9A825);
-        addStatCard(statsRow, "WINS", String.valueOf(callback.getWins()), 0xff43A047);
-        addStatCard(statsRow, "GAMES", String.valueOf(callback.getGamesPlayed()), 0xff1E88E5);
+        addStatCard(statsRow, "RATING", String.valueOf(callback.getRating()), ThemeManager.YELLOW);
+        addStatCard(statsRow, "WINS",   String.valueOf(callback.getWins()),   ThemeManager.GREEN);
+        addStatCard(statsRow, "GAMES",  String.valueOf(callback.getGamesPlayed()), ThemeManager.BLUE);
 
+        // ── Details ───────────────────────────────────────────────────────────
         addSectionLabel(content, "DETAILS");
 
-        addDetail(content, "Win Rate", callback.getGamesPlayed() > 0
-                ? (callback.getWins() * 100 / callback.getGamesPlayed()) + "%"
-                : "No games yet");
-        addDetail(content, "Coins", String.valueOf(callback.getCoins()));
-        addDetail(content, "Region", "us-east");
-        addDetail(content, "Account Type", "Guest");
-        addDetail(content, "Player ID", shortId(callback.getPlayerId()));
+        addDetailRow(content, "Coins",        String.valueOf(callback.getCoins()));
+        addDetailRow(content, "Win Rate",     callback.getGamesPlayed() > 0
+            ? (callback.getWins() * 100 / callback.getGamesPlayed()) + "%" : "No games yet");
+        addDetailRow(content, "Region",       "us-east");
+        addDetailRow(content, "Account Type", "Guest");
+        addDetailRow(content, "Player ID",    shortId(callback.getPlayerId()));
 
+        // ── Achievements ──────────────────────────────────────────────────────
         addSectionLabel(content, "ACHIEVEMENTS");
 
-        addAchievement(content, "First Win", "Win your first match", callback.getWins() > 0);
-        addAchievement(content, "Veteran", "Play 10 matches", callback.getGamesPlayed() >= 10);
-        addAchievement(content, "Champion", "Reach 1200 rating", callback.getRating() >= 1200);
-        addAchievement(content, "Rich", "Collect 5000 coins", callback.getCoins() >= 5000);
+        addAchievement(content, "First Win",  "Win your first match",    callback.getWins() > 0);
+        addAchievement(content, "Veteran",    "Play 10 matches",         callback.getGamesPlayed() >= 10);
+        addAchievement(content, "Champion",   "Reach 1200 rating",       callback.getRating() >= 1200);
+        addAchievement(content, "Rich",       "Collect 5000 coins",      callback.getCoins() >= 5000);
 
         return createScreenShell("Profile", content);
     }
@@ -71,15 +79,16 @@ public final class ProfileScreen extends BaseScreen {
         LinearLayout card = new LinearLayout(activity);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(Gravity.CENTER);
-        card.setPadding(dp(12), dp(16), dp(12), dp(16));
-        card.setBackground(card(0xff111A2A, dp(16), 0x335D6D86));
+        card.setPadding(dp(12), dp(18), dp(12), dp(18));
+        card.setBackground(card(theme.bgCard(), dp(16), theme.strokeCard()));
 
-        TextView val = text(value, 24, accent, Typeface.BOLD);
+        TextView val = text(value, 26, accent, Typeface.BOLD);
         val.setGravity(Gravity.CENTER);
         card.addView(val);
 
-        TextView lbl = text(label, 11, 0xff6B7A90, Typeface.BOLD);
+        TextView lbl = text(label, 11, theme.txtMuted(), Typeface.BOLD);
         lbl.setGravity(Gravity.CENTER);
+        lbl.setLetterSpacing(0.1f);
         card.addView(lbl);
 
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1);
@@ -87,17 +96,16 @@ public final class ProfileScreen extends BaseScreen {
         parent.addView(card, p);
     }
 
-    private void addDetail(LinearLayout parent, String label, String value) {
+    private void addDetailRow(LinearLayout parent, String label, String value) {
         LinearLayout row = new LinearLayout(activity);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(dp(16), dp(13), dp(16), dp(13));
-        row.setBackground(card(0xff111A2A, dp(14), 0x225D6D86));
+        row.setBackground(card(theme.bgCard(), dp(14), theme.strokeCard()));
         parent.addView(row, lp(-1, -2, 0, 0, 0, dp(6)));
 
-        TextView l = text(label, 14, 0xff94A3B8, Typeface.NORMAL);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
-        row.addView(l, lp);
-        row.addView(text(value, 14, Color.WHITE, Typeface.BOLD));
+        row.addView(text(label, 14, theme.txtSecondary(), Typeface.NORMAL),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        row.addView(text(value, 14, theme.txtPrimary(), Typeface.BOLD));
     }
 
     private void addAchievement(LinearLayout parent, String title, String desc, boolean unlocked) {
@@ -105,18 +113,23 @@ public final class ProfileScreen extends BaseScreen {
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setPadding(dp(14), dp(12), dp(14), dp(12));
-        row.setBackground(card(unlocked ? 0xff152030 : 0xff0E1420, dp(14), unlocked ? 0x44F9A825 : 0x22333D50));
+        row.setBackground(card(
+            unlocked ? theme.bgSel() : theme.bgCard(),
+            dp(14),
+            unlocked ? 0x44F9A825 : theme.strokeCard()));
         parent.addView(row, lp(-1, -2, 0, 0, 0, dp(6)));
 
-        TextView icon = text(unlocked ? "★" : "☆", 20, unlocked ? 0xffF9A825 : 0xff3A4556, Typeface.BOLD);
+        TextView icon = text(unlocked ? "★" : "☆", 22,
+                unlocked ? ThemeManager.YELLOW : theme.txtDim(), Typeface.BOLD);
         row.addView(icon, lp(dp(32), -2, 0, 0, dp(8), 0));
 
         LinearLayout info = new LinearLayout(activity);
         info.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(0, -2, 1);
-        row.addView(info, ip);
-        info.addView(text(title, 14, unlocked ? Color.WHITE : 0xff6B7A90, Typeface.BOLD));
-        info.addView(text(desc, 12, unlocked ? 0xff94A3B8 : 0xff3A4556, Typeface.NORMAL));
+        row.addView(info, new LinearLayout.LayoutParams(0, -2, 1));
+        info.addView(text(title, 14,
+                unlocked ? theme.txtPrimary() : theme.txtMuted(), Typeface.BOLD));
+        info.addView(text(desc, 12,
+                unlocked ? theme.txtSecondary() : theme.txtDim(), Typeface.NORMAL));
     }
 
     private String shortId(String id) {

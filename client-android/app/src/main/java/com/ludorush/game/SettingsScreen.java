@@ -6,9 +6,11 @@ import android.graphics.Typeface;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public final class SettingsScreen extends BaseScreen {
 
@@ -23,78 +25,96 @@ public final class SettingsScreen extends BaseScreen {
 
         SharedPreferences prefs = activity.getSharedPreferences("ludo_settings", 0);
 
+        // ── Appearance ────────────────────────────────────────────────────────
+        addSectionLabel(content, "APPEARANCE");
+
+        LinearLayout themeRow = new LinearLayout(activity);
+        themeRow.setOrientation(LinearLayout.HORIZONTAL);
+        themeRow.setGravity(Gravity.CENTER_VERTICAL);
+        themeRow.setPadding(dp(16), dp(14), dp(14), dp(14));
+        themeRow.setBackground(card(theme.bgCard(), dp(14), theme.strokeCard()));
+        content.addView(themeRow, lp(-1, -2, 0, 0, 0, dp(8)));
+
+        LinearLayout themeInfo = new LinearLayout(activity);
+        themeInfo.setOrientation(LinearLayout.VERTICAL);
+        themeRow.addView(themeInfo, new LinearLayout.LayoutParams(0, -2, 1));
+        themeInfo.addView(text("Dark Mode", 14, theme.txtPrimary(), Typeface.BOLD));
+        themeInfo.addView(text(theme.isDark() ? "Switch to light theme" : "Switch to dark theme",
+                12, theme.txtMuted(), Typeface.NORMAL));
+
+        Switch themeSwitch = new Switch(activity);
+        themeSwitch.setChecked(theme.isDark());
+        themeSwitch.setOnCheckedChangeListener((v, checked) -> {
+            theme.setDark(checked);
+            // Recreate the activity so every screen gets the new palette
+            activity.recreate();
+        });
+        themeRow.addView(themeSwitch, lp(-2, -2));
+
+        // ── Audio ─────────────────────────────────────────────────────────────
         addSectionLabel(content, "AUDIO");
-        addToggle(content, "Sound Effects", prefs, "sound_on", true);
-        addToggle(content, "Music", prefs, "music_on", true);
+        addToggleRow(content, "Sound Effects", prefs, "sound_on", true);
+        addToggleRow(content, "Music",          prefs, "music_on", true);
 
+        // ── Notifications ─────────────────────────────────────────────────────
         addSectionLabel(content, "NOTIFICATIONS");
-        addToggle(content, "Push Notifications", prefs, "notifs_on", true);
-        addToggle(content, "Match Reminders", prefs, "reminders_on", false);
+        addToggleRow(content, "Push Notifications", prefs, "notifs_on",    true);
+        addToggleRow(content, "Match Reminders",    prefs, "reminders_on", false);
 
+        // ── Account ───────────────────────────────────────────────────────────
         addSectionLabel(content, "ACCOUNT");
 
-        LinearLayout nameRow = new LinearLayout(activity);
-        nameRow.setOrientation(LinearLayout.HORIZONTAL);
-        nameRow.setGravity(Gravity.CENTER_VERTICAL);
-        nameRow.setPadding(dp(16), dp(14), dp(16), dp(14));
-        nameRow.setBackground(card(0xff111A2A, dp(14), 0x225D6D86));
-        content.addView(nameRow, lp(-1, -2, 0, 0, 0, dp(8)));
+        addInfoCard(content, "Display Name", callback.getDisplayName());
+        addInfoCard(content, "Player ID",
+                callback.getPlayerId() != null ? callback.getPlayerId() : "Not signed in");
 
-        LinearLayout nameCol = new LinearLayout(activity);
-        nameCol.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams ncp = new LinearLayout.LayoutParams(0, -2, 1);
-        nameRow.addView(nameCol, ncp);
-        nameCol.addView(text("Display Name", 14, Color.WHITE, Typeface.BOLD));
-        nameCol.addView(text(callback.getDisplayName(), 12, 0xff6B7A90, Typeface.NORMAL));
-
-        LinearLayout idRow = new LinearLayout(activity);
-        idRow.setOrientation(LinearLayout.VERTICAL);
-        idRow.setPadding(dp(16), dp(14), dp(16), dp(14));
-        idRow.setBackground(card(0xff111A2A, dp(14), 0x225D6D86));
-        content.addView(idRow, lp(-1, -2, 0, 0, 0, dp(8)));
-        idRow.addView(text("Player ID", 14, Color.WHITE, Typeface.BOLD));
-        String pid = callback.getPlayerId();
-        idRow.addView(text(pid != null ? pid : "Not signed in", 12, 0xff6B7A90, Typeface.NORMAL));
-
+        // ── About ─────────────────────────────────────────────────────────────
         addSectionLabel(content, "ABOUT");
+        addInfoRow(content, "Version", "0.3.0");
+        addInfoRow(content, "Build",   "Internal Test");
+        addInfoRow(content, "Server",  "Cloudflare Workers");
 
-        addInfoRow(content, "Version", "0.2.0");
-        addInfoRow(content, "Build", "Internal Test");
-        addInfoRow(content, "Server", "Cloudflare Workers");
-
+        // ── Legal ─────────────────────────────────────────────────────────────
         addSectionLabel(content, "LEGAL");
 
         Button privacy = secondaryButton("Privacy Policy");
         privacy.setTextSize(14);
-        content.addView(privacy, lp(-1, dp(48), 0, 0, 0, dp(8)));
+        privacy.setOnClickListener(v ->
+            Toast.makeText(activity, "Privacy Policy — coming soon", Toast.LENGTH_SHORT).show());
+        content.addView(privacy, lp(-1, dp(50), 0, 0, 0, dp(8)));
 
         Button terms = secondaryButton("Terms of Service");
         terms.setTextSize(14);
-        content.addView(terms, lp(-1, dp(48), 0, 0, 0, dp(16)));
+        terms.setOnClickListener(v ->
+            Toast.makeText(activity, "Terms of Service — coming soon", Toast.LENGTH_SHORT).show());
+        content.addView(terms, lp(-1, dp(50), 0, 0, 0, dp(16)));
 
+        // Delete account (danger action)
         Button deleteBtn = new Button(activity);
         deleteBtn.setAllCaps(false);
         deleteBtn.setText("Delete Account");
-        deleteBtn.setTextColor(0xffE8293E);
+        deleteBtn.setTextColor(ThemeManager.RED);
         deleteBtn.setTextSize(14);
         deleteBtn.setTypeface(Typeface.DEFAULT_BOLD);
-        deleteBtn.setBackground(card(0xff1A1A1A, dp(14), 0x44E8293E));
-        content.addView(deleteBtn, lp(-1, dp(48)));
+        deleteBtn.setBackground(card(theme.bgDanger(), dp(14), theme.strokeDanger()));
+        deleteBtn.setOnClickListener(v ->
+            Toast.makeText(activity, "Account deletion — coming soon", Toast.LENGTH_SHORT).show());
+        content.addView(deleteBtn, lp(-1, dp(50)));
 
         return createScreenShell("Settings", content);
     }
 
-    private void addToggle(LinearLayout parent, String label, SharedPreferences prefs, String key, boolean defVal) {
+    private void addToggleRow(LinearLayout parent, String label, SharedPreferences prefs,
+                              String key, boolean defVal) {
         LinearLayout row = new LinearLayout(activity);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(16), dp(12), dp(12), dp(12));
-        row.setBackground(card(0xff111A2A, dp(14), 0x225D6D86));
+        row.setPadding(dp(16), dp(13), dp(13), dp(13));
+        row.setBackground(card(theme.bgCard(), dp(14), theme.strokeCard()));
         parent.addView(row, lp(-1, -2, 0, 0, 0, dp(8)));
 
-        TextView t = text(label, 14, Color.WHITE, Typeface.NORMAL);
-        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, -2, 1);
-        row.addView(t, tp);
+        TextView t = text(label, 14, theme.txtPrimary(), Typeface.NORMAL);
+        row.addView(t, new LinearLayout.LayoutParams(0, -2, 1));
 
         Switch sw = new Switch(activity);
         sw.setChecked(prefs.getBoolean(key, defVal));
@@ -102,17 +122,25 @@ public final class SettingsScreen extends BaseScreen {
         row.addView(sw, lp(-2, -2));
     }
 
+    private void addInfoCard(LinearLayout parent, String label, String value) {
+        LinearLayout card = new LinearLayout(activity);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(16), dp(14), dp(16), dp(14));
+        card.setBackground(card(theme.bgCard(), dp(14), theme.strokeCard()));
+        parent.addView(card, lp(-1, -2, 0, 0, 0, dp(8)));
+        card.addView(text(label, 12, theme.txtMuted(), Typeface.BOLD));
+        card.addView(text(value, 14, theme.txtPrimary(), Typeface.NORMAL), lp(-1, -2, 0, dp(2), 0, 0));
+    }
+
     private void addInfoRow(LinearLayout parent, String label, String value) {
         LinearLayout row = new LinearLayout(activity);
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setPadding(dp(16), dp(12), dp(16), dp(12));
-        row.setBackground(card(0xff111A2A, dp(14), 0x225D6D86));
+        row.setPadding(dp(16), dp(13), dp(16), dp(13));
+        row.setBackground(card(theme.bgCard(), dp(14), theme.strokeCard()));
         parent.addView(row, lp(-1, -2, 0, 0, 0, dp(8)));
 
-        TextView l = text(label, 14, Color.WHITE, Typeface.NORMAL);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1);
-        row.addView(l, lp);
-
-        row.addView(text(value, 14, 0xff6B7A90, Typeface.NORMAL));
+        row.addView(text(label, 14, theme.txtSecondary(), Typeface.NORMAL),
+                new LinearLayout.LayoutParams(0, -2, 1));
+        row.addView(text(value, 14, theme.txtPrimary(), Typeface.BOLD));
     }
 }

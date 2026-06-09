@@ -10,8 +10,33 @@ android {
         applicationId System.getenv("ANDROID_PACKAGE_NAME") ?: "com.ludorush.game"
         minSdk 24
         targetSdk 36
-        versionCode Integer.parseInt(System.getenv("ANDROID_VERSION_CODE") ?: "4")
-        versionName System.getenv("APP_VERSION") ?: "0.2.0"
+        versionCode Integer.parseInt(System.getenv("ANDROID_VERSION_CODE") ?: "5")
+        versionName System.getenv("APP_VERSION") ?: "0.3.0"
+
+        // Load ad unit IDs from local.properties (never hardcode in source).
+        // Add these keys to local.properties for production:
+        //   ADMOB_APP_ID=ca-app-pub-XXXXXXXXXXXXXXXX~XXXXXXXXXX
+        //   ADMOB_BANNER_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
+        //   ADMOB_REWARDED_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
+        //   ADMOB_INTERSTITIAL_ID=ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX
+        // Defaults below are Google's official test ad unit IDs.
+        def localProps = new Properties()
+        def localPropsFile = rootProject.file("local.properties")
+        if (localPropsFile.exists()) localPropsFile.withInputStream { localProps.load(it) }
+
+        manifestPlaceholders = [
+            admobAppId: localProps.getProperty("ADMOB_APP_ID", "ca-app-pub-3940256099942544~3347511713")
+        ]
+        buildConfigField "String", "ADMOB_BANNER_ID",
+            "\"${localProps.getProperty("ADMOB_BANNER_ID", "ca-app-pub-3940256099942544/6300978111")}\""
+        buildConfigField "String", "ADMOB_REWARDED_ID",
+            "\"${localProps.getProperty("ADMOB_REWARDED_ID", "ca-app-pub-3940256099942544/5224354917")}\""
+        buildConfigField "String", "ADMOB_INTERSTITIAL_ID",
+            "\"${localProps.getProperty("ADMOB_INTERSTITIAL_ID", "ca-app-pub-3940256099942544/1033173712")}\""
+    }
+
+    buildFeatures {
+        buildConfig true
     }
 
     signingConfigs {
@@ -37,4 +62,5 @@ android {
 
 dependencies {
     implementation "com.squareup.okhttp3:okhttp:4.12.0"
+    implementation "com.google.android.gms:play-services-ads:23.3.0"
 }

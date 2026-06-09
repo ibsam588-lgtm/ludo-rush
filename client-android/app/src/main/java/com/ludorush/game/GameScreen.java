@@ -1,6 +1,7 @@
 package com.ludorush.game;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -16,7 +17,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import java.util.Locale;
 
 public final class GameScreen extends BaseScreen {
     private TextView statusText;
@@ -47,65 +47,88 @@ public final class GameScreen extends BaseScreen {
     public View createView() {
         LinearLayout root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(0xff080B13);
-        root.setPadding(dp(14), dp(14), dp(14), dp(14));
+        root.setBackgroundColor(theme.bgPage());
+        root.setPadding(dp(14), dp(14), dp(14), dp(10));
 
+        // ── Header ────────────────────────────────────────────────────────────
         LinearLayout header = new LinearLayout(activity);
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(Gravity.CENTER_VERTICAL);
-        header.setPadding(dp(4), dp(4), dp(8), dp(8));
+        header.setPadding(dp(2), dp(4), dp(8), dp(8));
         root.addView(header, lp(-1, -2, 0, 0, 0, dp(8)));
 
         Button back = new Button(activity);
         back.setAllCaps(false);
-        back.setText("<");
-        back.setTextColor(Color.WHITE);
-        back.setTextSize(18);
+        back.setText("‹");
+        back.setTextColor(theme.txtPrimary());
+        back.setTextSize(26);
         back.setTypeface(Typeface.DEFAULT_BOLD);
         back.setBackground(null);
-        back.setOnClickListener(v -> callback.goBack());
-        header.addView(back, lp(dp(40), dp(40)));
+        back.setOnClickListener(v -> showLeaveConfirmation());
+        header.addView(back, lp(dp(48), dp(48)));
 
-        TextView title = text("Live Match", 18, Color.WHITE, Typeface.BOLD);
-        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, -2, 1);
-        header.addView(title, tp);
+        TextView title = text("Live Match", 18, theme.txtPrimary(), Typeface.BOLD);
+        header.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
 
+        // Resign button (right side)
+        Button resignBtn = new Button(activity);
+        resignBtn.setAllCaps(false);
+        resignBtn.setText("Resign");
+        resignBtn.setTextColor(ThemeManager.RED);
+        resignBtn.setTextSize(12);
+        resignBtn.setTypeface(Typeface.DEFAULT_BOLD);
+        resignBtn.setBackground(card(theme.bgDanger(), dp(12), theme.strokeDanger()));
+        resignBtn.setPadding(dp(10), dp(4), dp(10), dp(4));
+        resignBtn.setOnClickListener(v -> showResignConfirmation());
+        header.addView(resignBtn);
+
+        // ── Stats row ─────────────────────────────────────────────────────────
         LinearLayout statsRow = new LinearLayout(activity);
         statsRow.setOrientation(LinearLayout.HORIZONTAL);
         root.addView(statsRow, lp(-1, -2, 0, 0, 0, dp(8)));
 
-        diceText = metric("DICE", "-");
-        turnText = metric("TURN", "Waiting");
+        diceText  = metric("DICE",  "—");
+        turnText  = metric("TURN",  "Wait");
         movesText = metric("MOVES", "0");
-        statsRow.addView(diceText, new LinearLayout.LayoutParams(0, dp(64), 1));
-        statsRow.addView(turnText, new LinearLayout.LayoutParams(0, dp(64), 1));
+
+        LinearLayout.LayoutParams mLp = new LinearLayout.LayoutParams(0, dp(64), 1);
+        mLp.setMargins(dp(2), 0, dp(2), 0);
+        statsRow.addView(diceText,  mLp);
+        statsRow.addView(turnText,  new LinearLayout.LayoutParams(0, dp(64), 1));
         statsRow.addView(movesText, new LinearLayout.LayoutParams(0, dp(64), 1));
 
+        // ── Player strip ──────────────────────────────────────────────────────
         playerStrip = new LinearLayout(activity);
         playerStrip.setOrientation(LinearLayout.HORIZONTAL);
         playerStrip.setGravity(Gravity.CENTER);
         root.addView(playerStrip, lp(-1, -2, 0, 0, 0, dp(8)));
 
+        // ── Board ─────────────────────────────────────────────────────────────
         board = new BoardView(activity);
-        root.addView(board, lp(-1, dp(380), 0, 0, 0, dp(10)));
+        LinearLayout.LayoutParams boardLp = new LinearLayout.LayoutParams(-1, 0);
+        boardLp.weight = 1;
+        boardLp.setMargins(0, 0, 0, dp(10));
+        root.addView(board, boardLp);
 
-        statusText = text("Waiting for match...", 14, 0xffE6ECF8, Typeface.BOLD);
-        statusText.setPadding(dp(12), dp(10), dp(12), dp(10));
-        statusText.setBackground(card(0xff111A2A, dp(14), 0x225D6D86));
+        // ── Status bar ────────────────────────────────────────────────────────
+        statusText = text("Waiting for match...", 14, theme.txtSecondary(), Typeface.BOLD);
+        statusText.setPadding(dp(14), dp(12), dp(14), dp(12));
+        statusText.setBackground(card(theme.bgCard(), dp(14), theme.strokeCard()));
         root.addView(statusText, lp(-1, -2, 0, 0, 0, dp(10)));
 
+        // ── Action buttons ────────────────────────────────────────────────────
         LinearLayout actions = new LinearLayout(activity);
         actions.setOrientation(LinearLayout.HORIZONTAL);
-        root.addView(actions, lp(-1, dp(52)));
+        root.addView(actions, lp(-1, dp(56)));
 
-        rollButton = actionButton("Roll Dice", 0xffE8293E, 0xffF9A825);
+        rollButton = actionButton("🎲  Roll Dice", ThemeManager.RED, 0xffF9502E);
         rollButton.setTextSize(15);
         rollButton.setOnClickListener(v -> callback.rollDice());
         LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, -1, 1);
         rp.setMargins(0, 0, dp(5), 0);
         actions.addView(rollButton, rp);
 
-        moveButton = actionButton("Move Best", 0xff1E88E5, 0xff42A5F5);
+        moveButton = actionButton("⚡  Move Best", ThemeManager.BLUE, ThemeManager.BLUE_LIGHT);
         moveButton.setTextSize(15);
         moveButton.setOnClickListener(v -> callback.moveBestPiece());
         LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(0, -1, 1);
@@ -115,25 +138,54 @@ public final class GameScreen extends BaseScreen {
         return root;
     }
 
+    // ── Dialogs ───────────────────────────────────────────────────────────────
+
+    private void showLeaveConfirmation() {
+        new AlertDialog.Builder(activity)
+                .setTitle("Leave Match?")
+                .setMessage("Leaving during a match counts as a resignation. Are you sure?")
+                .setPositiveButton("Leave & Resign", (d, w) -> {
+                    callback.resign();
+                    callback.goBack();
+                })
+                .setNegativeButton("Stay", null)
+                .show();
+    }
+
+    private void showResignConfirmation() {
+        new AlertDialog.Builder(activity)
+                .setTitle("Resign Match?")
+                .setMessage("This will end the current match and count as a loss.")
+                .setPositiveButton("Resign", (d, w) -> {
+                    callback.resign();
+                    callback.navigateTo("home");
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    // ── UI refresh ────────────────────────────────────────────────────────────
+
     private void refreshUi() {
         if (snapshot == null) return;
-        String status = snapshot.optString("status", "waiting");
-        int dice = snapshot.optInt("diceValue", 0);
+        String status  = snapshot.optString("status", "waiting");
+        int dice       = snapshot.optInt("diceValue", 0);
         JSONArray moves = snapshot.optJSONArray("availableMoves");
-        int turnSeat = snapshot.optInt("currentTurnSeat", -1);
-        int mySeat = mySeat();
+        int turnSeat   = snapshot.optInt("currentTurnSeat", -1);
+        int mySeat     = mySeat();
         boolean myTurn = mySeat >= 0 && mySeat == turnSeat && "playing".equals(status);
 
-        diceText.setText("DICE\n" + (dice == 0 ? "-" : dice));
-        turnText.setText("TURN\n" + (myTurn ? "You" : seatName(turnSeat)));
+        diceText.setText("DICE\n"  + (dice == 0 ? "—" : dice));
+        turnText.setText("TURN\n"  + (myTurn ? "You" : seatName(turnSeat)));
         movesText.setText("MOVES\n" + (moves == null ? 0 : moves.length()));
 
         boolean canRoll = myTurn && dice == 0;
         boolean canMove = myTurn && dice > 0 && moves != null && moves.length() > 0;
+
         rollButton.setEnabled(canRoll);
         moveButton.setEnabled(canMove);
-        rollButton.setAlpha(canRoll ? 1f : 0.4f);
-        moveButton.setAlpha(canMove ? 1f : 0.4f);
+        rollButton.setAlpha(canRoll ? 1f : 0.38f);
+        moveButton.setAlpha(canMove ? 1f : 0.38f);
 
         if ("finished".equals(status)) {
             statusText.setText(winnerText());
@@ -156,31 +208,35 @@ public final class GameScreen extends BaseScreen {
         if (seats == null) return;
         int activeSeat = snapshot.optInt("currentTurnSeat", -1);
         String myId = callback.getPlayerId();
+
         for (int i = 0; i < seats.length(); i++) {
             JSONObject s = seats.optJSONObject(i);
             if (s == null) continue;
-            int seat = s.optInt("seat", 0);
-            boolean isMe = myId != null && myId.equals(s.optString("playerId"));
+            int seat    = s.optInt("seat", 0);
+            boolean isMe   = myId != null && myId.equals(s.optString("playerId"));
             boolean active = activeSeat == seat;
-            String name = isMe ? "You" : s.optString("displayName", "Player");
+            String name  = isMe ? "You" : s.optString("displayName", "Player");
             String label = s.optBoolean("isBot") ? "Bot" : "Online";
 
             LinearLayout card = new LinearLayout(activity);
             card.setOrientation(LinearLayout.VERTICAL);
             card.setGravity(Gravity.CENTER);
             card.setPadding(dp(8), dp(6), dp(8), dp(6));
-            card.setBackground(card(active ? 0xff1A3050 : 0xff111A2A, dp(14), active ? seatColor(seat) : 0x225D6D86));
+            card.setBackground(card(
+                active ? theme.bgSel() : theme.bgCard(),
+                dp(14),
+                active ? seatColor(seat) : theme.strokeCardAlt()));
 
             View dot = new View(activity);
-            dot.setBackground(card(seatColor(seat), dp(10), seatColor(seat)));
+            dot.setBackground(circle(seatColor(seat)));
             card.addView(dot, lp(dp(20), dp(20), 0, 0, 0, dp(3)));
 
-            TextView nameV = text(name, 11, Color.WHITE, Typeface.BOLD);
+            TextView nameV = text(name, 11, theme.txtPrimary(), Typeface.BOLD);
             nameV.setSingleLine(true);
             nameV.setGravity(Gravity.CENTER);
             card.addView(nameV);
 
-            TextView sub = text(active ? "Turn" : label, 10, 0xff6B7A90, Typeface.NORMAL);
+            TextView sub = text(active ? "Turn" : label, 10, theme.txtMuted(), Typeface.NORMAL);
             sub.setGravity(Gravity.CENTER);
             card.addView(sub);
 
@@ -189,6 +245,8 @@ public final class GameScreen extends BaseScreen {
             playerStrip.addView(card, cp);
         }
     }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
 
     private int mySeat() {
         if (snapshot == null || callback.getPlayerId() == null) return -1;
@@ -209,8 +267,8 @@ public final class GameScreen extends BaseScreen {
         for (int i = 0; i < seats.length(); i++) {
             JSONObject s = seats.optJSONObject(i);
             if (s != null && s.optInt("seat", -1) == seatIndex) {
-                if (callback.getPlayerId() != null && callback.getPlayerId().equals(s.optString("playerId")))
-                    return "You";
+                if (callback.getPlayerId() != null &&
+                    callback.getPlayerId().equals(s.optString("playerId"))) return "You";
                 return s.optString("displayName", "Seat " + (seatIndex + 1));
             }
         }
@@ -219,7 +277,8 @@ public final class GameScreen extends BaseScreen {
 
     private String winnerText() {
         String winner = snapshot.optString("winnerPlayerId", "");
-        if (callback.getPlayerId() != null && callback.getPlayerId().equals(winner)) return "You won!";
+        if (callback.getPlayerId() != null && callback.getPlayerId().equals(winner))
+            return "🏆 You won!";
         JSONArray seats = snapshot.optJSONArray("seats");
         if (seats != null) {
             for (int i = 0; i < seats.length(); i++) {
@@ -233,6 +292,10 @@ public final class GameScreen extends BaseScreen {
 
     public JSONObject getSnapshot() { return snapshot; }
 
+    // ══════════════════════════════════════════════════════════════════════════
+    // Board canvas
+    // ══════════════════════════════════════════════════════════════════════════
+
     public static final class BoardView extends View {
         private static final int[][] PATH = {
                 {6,14},{6,13},{6,12},{6,11},{6,10},{6,9},{5,8},{4,8},{3,8},{2,8},{1,8},{0,8},{0,7},
@@ -240,7 +303,9 @@ public final class GameScreen extends BaseScreen {
                 {8,0},{8,1},{8,2},{8,3},{8,4},{8,5},{9,6},{10,6},{11,6},{12,6},{13,6},{14,6},{14,7},
                 {14,8},{13,8},{12,8},{11,8},{10,8},{9,8},{8,9},{8,10},{8,11},{8,12},{8,13},{8,14},{7,14}
         };
-        private static final int[][] SAFE = {{6,14},{3,8},{0,6},{6,3},{8,0},{11,6},{14,8},{8,11}};
+        private static final int[][] SAFE = {
+                {6,14},{3,8},{0,6},{6,3},{8,0},{11,6},{14,8},{8,11}
+        };
         private static final int[][][] HOME_LANES = {
                 {{7,13},{7,12},{7,11},{7,10},{7,9}},
                 {{1,7},{2,7},{3,7},{4,7},{5,7}},
@@ -249,13 +314,13 @@ public final class GameScreen extends BaseScreen {
         };
 
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final RectF rect = new RectF();
+        private final RectF  rect  = new RectF();
         private JSONObject snapshot;
         private String playerId;
 
         public BoardView(Activity activity) {
             super(activity);
-            setMinimumHeight(680);
+            setMinimumHeight(600);
         }
 
         public void setSnapshot(JSONObject snapshot, String playerId) {
@@ -298,7 +363,8 @@ public final class GameScreen extends BaseScreen {
             drawBase(canvas, left, top, cell, 9, 9, 0xff43A047);
         }
 
-        private void drawBase(Canvas canvas, int left, int top, float cell, int gx, int gy, int color) {
+        private void drawBase(Canvas canvas, int left, int top, float cell,
+                              int gx, int gy, int color) {
             float x1 = left + gx * cell, y1 = top + gy * cell;
             float x2 = left + (gx + 6) * cell, y2 = top + (gy + 6) * cell;
             rect.set(x1, y1, x2, y2);
@@ -341,8 +407,14 @@ public final class GameScreen extends BaseScreen {
             }
             for (int[] p : SAFE) {
                 boolean isStart = false;
-                for (int s : si) if (PATH[s][0] == p[0] && PATH[s][1] == p[1]) { isStart = true; break; }
-                drawStar(canvas, left + (p[0] + 0.5f) * cell, top + (p[1] + 0.5f) * cell, cell * 0.25f, isStart ? 0xccFFFFFF : 0xff888888);
+                for (int s : si) {
+                    if (PATH[s][0] == p[0] && PATH[s][1] == p[1]) { isStart = true; break; }
+                }
+                drawStar(canvas,
+                    left + (p[0] + 0.5f) * cell,
+                    top  + (p[1] + 0.5f) * cell,
+                    cell * 0.25f,
+                    isStart ? 0xccFFFFFF : 0xff888888);
             }
         }
 
@@ -358,7 +430,7 @@ public final class GameScreen extends BaseScreen {
             int[] c = {0xffE8293E, 0xff1E88E5, 0xffF9A825, 0xff43A047};
             float cx = left + 7.5f * cell, cy = top + 7.5f * cell;
             float x6 = left + 6 * cell, x9 = left + 9 * cell;
-            float y6 = top + 6 * cell, y9 = top + 9 * cell;
+            float y6 = top + 6 * cell,  y9 = top + 9 * cell;
             Path t = new Path();
             t.moveTo(x6, y9); t.lineTo(x9, y9); t.lineTo(cx, cy); t.close();
             paint.setColor(c[0]); canvas.drawPath(t, paint);
@@ -373,14 +445,17 @@ public final class GameScreen extends BaseScreen {
             paint.setColor(0x44000000);
             canvas.drawLine(x6, y6, x9, y9, paint);
             canvas.drawLine(x6, y9, x9, y6, paint);
-            t.reset(); t.moveTo(x6, y6); t.lineTo(x9, y6); t.lineTo(x9, y9); t.lineTo(x6, y9); t.close();
+            t.reset();
+            t.moveTo(x6, y6); t.lineTo(x9, y6); t.lineTo(x9, y9); t.lineTo(x6, y9); t.close();
             canvas.drawPath(t, paint);
             paint.setStyle(Paint.Style.FILL);
         }
 
-        private void drawCell(Canvas canvas, int left, int top, float cell, int gx, int gy, int fill, int stroke) {
+        private void drawCell(Canvas canvas, int left, int top, float cell,
+                              int gx, int gy, int fill, int stroke) {
             float pad = cell * 0.03f;
-            rect.set(left + gx * cell + pad, top + gy * cell + pad, left + (gx + 1) * cell - pad, top + (gy + 1) * cell - pad);
+            rect.set(left + gx * cell + pad,       top + gy * cell + pad,
+                     left + (gx + 1) * cell - pad, top + (gy + 1) * cell - pad);
             paint.setColor(fill);
             canvas.drawRect(rect, paint);
             paint.setStyle(Paint.Style.STROKE);
@@ -394,19 +469,21 @@ public final class GameScreen extends BaseScreen {
             if (snapshot == null) return;
             JSONArray pieces = snapshot.optJSONArray("pieces");
             if (pieces == null) return;
-            JSONArray avail = snapshot.optJSONArray("availableMoves");
-            int activeSeat = snapshot.optInt("currentTurnSeat", -1);
+            JSONArray avail  = snapshot.optJSONArray("availableMoves");
+            int activeSeat   = snapshot.optInt("currentTurnSeat", -1);
             for (int i = 0; i < pieces.length(); i++) {
                 JSONObject p = pieces.optJSONObject(i);
                 if (p == null) continue;
                 float[] pos = piecePos(p, left, top, cell);
-                int seat = p.optInt("seat");
-                boolean legal = contains(avail, p.optString("pieceId"));
-                drawPiece(canvas, pos[0], pos[1], cell * 0.38f, seatColor(seat), legal, activeSeat == seat);
+                int seat    = p.optInt("seat");
+                boolean legal  = contains(avail, p.optString("pieceId"));
+                drawPiece(canvas, pos[0], pos[1], cell * 0.38f,
+                    seatColor(seat), legal, activeSeat == seat);
             }
         }
 
-        private void drawPiece(Canvas canvas, float cx, float cy, float r, int color, boolean legal, boolean active) {
+        private void drawPiece(Canvas canvas, float cx, float cy, float r,
+                               int color, boolean legal, boolean active) {
             if (legal || active) {
                 paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeWidth(legal ? r * 0.28f : r * 0.16f);
@@ -418,7 +495,8 @@ public final class GameScreen extends BaseScreen {
             canvas.drawCircle(cx + r * 0.18f, cy + r * 0.22f, r, paint);
             paint.setColor(color);
             canvas.drawCircle(cx, cy, r, paint);
-            paint.setShader(new RadialGradient(cx - r * 0.25f, cy - r * 0.3f, r * 1.2f, 0xAAFFFFFF, 0x00000000, Shader.TileMode.CLAMP));
+            paint.setShader(new RadialGradient(cx - r * 0.25f, cy - r * 0.3f, r * 1.2f,
+                0xAAFFFFFF, 0x00000000, Shader.TileMode.CLAMP));
             canvas.drawCircle(cx, cy, r, paint);
             paint.setShader(null);
             paint.setStyle(Paint.Style.STROKE);
@@ -429,8 +507,8 @@ public final class GameScreen extends BaseScreen {
         }
 
         private float[] piecePos(JSONObject piece, int left, int top, float cell) {
-            int seat = piece.optInt("seat");
-            int pi = pieceIdx(piece.optString("pieceId"));
+            int seat    = piece.optInt("seat");
+            int pi      = pieceIdx(piece.optString("pieceId"));
             String state = piece.optString("state");
             int progress = piece.optInt("progress", -1);
             if ("yard".equals(state) || progress < 0)
@@ -452,7 +530,10 @@ public final class GameScreen extends BaseScreen {
             int[][] bases = {{0,9},{0,0},{9,0},{9,9}};
             int s = Math.max(0, Math.min(3, seat));
             float[][] slots = {{2.1f,2.1f},{3.9f,2.1f},{2.1f,3.9f},{3.9f,3.9f}};
-            return new float[]{left + (bases[s][0] + slots[idx % 4][0]) * cell, top + (bases[s][1] + slots[idx % 4][1]) * cell};
+            return new float[]{
+                left + (bases[s][0] + slots[idx % 4][0]) * cell,
+                top  + (bases[s][1] + slots[idx % 4][1]) * cell
+            };
         }
 
         private float[] offset(float x, float y, int idx, float amt) {
@@ -485,7 +566,8 @@ public final class GameScreen extends BaseScreen {
         private void drawEmpty(Canvas canvas, int left, int top, int size) {
             if (snapshot != null) return;
             paint.setColor(0xAA0B1020);
-            rect.set(left + size * 0.18f, top + size * 0.39f, left + size * 0.82f, top + size * 0.61f);
+            rect.set(left + size * 0.18f, top + size * 0.39f,
+                     left + size * 0.82f, top + size * 0.61f);
             canvas.drawRoundRect(rect, size * 0.05f, size * 0.05f, paint);
             paint.setColor(Color.WHITE);
             paint.setTypeface(Typeface.DEFAULT_BOLD);

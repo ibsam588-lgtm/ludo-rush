@@ -1,12 +1,14 @@
 package com.ludorush.game;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
 import android.graphics.Shader;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -59,8 +61,14 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Apply system bar colors to match the active theme
+        applyThemeSystemBars();
+
+        // Initialise AdMob — attach() handles SDK init + preloads ads
+        AdManager.get().attach(this);
+
         FrameLayout shell = new FrameLayout(this);
-        shell.setBackgroundColor(Color.rgb(8, 11, 19));
+        shell.setBackgroundColor(ThemeManager.get(this).bgPage());
 
         BackgroundView bg = new BackgroundView(this);
         shell.addView(bg, new FrameLayout.LayoutParams(-1, -1));
@@ -74,19 +82,40 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        // Re-attach in case the activity was recreated (theme change)
+        AdManager.get().attach(this);
+    }
+
+    @Override
     protected void onDestroy() {
         if (socket != null) socket.close(1000, "activity_destroyed");
         super.onDestroy();
     }
 
+    // ── Back press — show "Do you want to quit?" when on home screen ──────────
+
     @Override
     public void onBackPressed() {
-        if (screenStack.size() > 1) {
-            goBack();
+        if (screenStack.size() <= 1) {
+            showQuitDialog();
         } else {
-            super.onBackPressed();
+            goBack();
         }
     }
+
+    private void showQuitDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Quit Ludo Rush?")
+                .setMessage("Are you sure you want to exit the game?")
+                .setPositiveButton("Quit", (d, w) -> finish())
+                .setNegativeButton("Stay", null)
+                .setCancelable(true)
+                .show();
+    }
+
+    // ── Navigation ────────────────────────────────────────────────────────────
 
     @Override
     public void navigateTo(String screen) {
@@ -108,13 +137,15 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
         });
     }
 
-    @Override public String getPlayerId() { return playerId; }
+    // ── ScreenCallback ────────────────────────────────────────────────────────
+
+    @Override public String getPlayerId()    { return playerId; }
     @Override public String getDisplayName() { return displayName; }
-    @Override public int getCoins() { return coins; }
-    @Override public int getRating() { return rating; }
-    @Override public int getGamesPlayed() { return gamesPlayed; }
-    @Override public int getWins() { return wins; }
-    @Override public boolean isOnline() { return backendOnline; }
+    @Override public int getCoins()          { return coins; }
+    @Override public int getRating()         { return rating; }
+    @Override public int getGamesPlayed()    { return gamesPlayed; }
+    @Override public int getWins()           { return wins; }
+    @Override public boolean isOnline()      { return backendOnline; }
 
     @Override
     public void startBotMatch(String mode) {
@@ -194,6 +225,8 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
         }
     }
 
+    // ── Screen management ─────────────────────────────────────────────────────
+
     private void showScreen(String name, String data) {
         if (currentScreenView != null) {
             container.removeView(currentScreenView);
@@ -217,17 +250,19 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
 
     private BaseScreen createScreen(String name, String data) {
         switch (name) {
-            case "lobby": return new LobbyScreen(this, this);
-            case "game": return new GameScreen(this, this);
-            case "results": return new ResultsScreen(this, this, lastSnapshot);
-            case "profile": return new ProfileScreen(this, this);
-            case "history": return new MatchHistoryScreen(this, this);
+            case "lobby":       return new LobbyScreen(this, this);
+            case "game":        return new GameScreen(this, this);
+            case "results":     return new ResultsScreen(this, this, lastSnapshot);
+            case "profile":     return new ProfileScreen(this, this);
+            case "history":     return new MatchHistoryScreen(this, this);
             case "leaderboard": return new LeaderboardScreen(this, this);
-            case "settings": return new SettingsScreen(this, this);
-            case "shop": return new ShopScreen(this, this);
-            default: return new HomeScreen(this, this);
+            case "settings":    return new SettingsScreen(this, this);
+            case "shop":        return new ShopScreen(this, this);
+            default:            return new HomeScreen(this, this);
         }
     }
+
+    // ── Networking ────────────────────────────────────────────────────────────
 
     private void connect(String socketPath) {
         String encoded = encodeQuery(displayName);
@@ -321,10 +356,7 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
                         String status = ticket.optString("status", "waiting");
                         if ("matched".equals(status)) {
                             String socketUrl = ticket.optString("socketUrl", "");
-                            if (!socketUrl.isEmpty()) {
-                                connect(socketUrl);
-                                return;
-                            }
+                            if (!socketUrl.isEmpty()) { connect(socketUrl); return; }
                         }
                         if ("waiting".equals(status)) {
                             updateGameStatus("Searching... (" + (attempt + 1) + ")");
@@ -341,6 +373,8 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
             });
         }, 2000);
     }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private String chooseBest(JSONArray moves) {
         String best = moves.optString(0);
@@ -362,9 +396,7 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     }
 
     private void updateGameStatus(String text) {
-        main.post(() -> {
-            if (gameScreen != null) gameScreen.setStatus(text);
-        });
+        main.post(() -> { if (gameScreen != null) gameScreen.setStatus(text); });
     }
 
     private void healthCheck() {
@@ -425,26 +457,62 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
         catch (UnsupportedEncodingException e) { return value.replace(" ", "%20"); }
     }
 
+    /** Apply status-bar and nav-bar colors from the active theme. */
+    private void applyThemeSystemBars() {
+        ThemeManager t = ThemeManager.get(this);
+        int barColor = t.sysBarColor();
+        getWindow().setStatusBarColor(barColor);
+        getWindow().setNavigationBarColor(barColor);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            View decor = getWindow().getDecorView();
+            int flags = decor.getSystemUiVisibility();
+            if (t.isDark()) {
+                flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            } else {
+                flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+            }
+            decor.setSystemUiVisibility(flags);
+        }
+    }
+
     private interface JsonHandler {
         void handle(JSONObject body) throws Exception;
     }
 
+    // ── Animated background canvas ────────────────────────────────────────────
+
     static final class BackgroundView extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final ThemeManager theme;
 
-        BackgroundView(Activity activity) { super(activity); }
+        BackgroundView(Activity activity) {
+            super(activity);
+            theme = ThemeManager.get(activity);
+        }
 
         @Override protected void onDraw(Canvas canvas) {
             int w = getWidth(), h = getHeight();
-            paint.setShader(new LinearGradient(0, 0, w, h,
-                    new int[]{0xff07111F, 0xff111827, 0xff0A0F1B}, null, Shader.TileMode.CLAMP));
-            canvas.drawRect(0, 0, w, h, paint);
-            paint.setShader(new RadialGradient(w * 0.15f, h * 0.08f, w * 0.55f,
-                    0x5522C7E8, 0x00111827, Shader.TileMode.CLAMP));
-            canvas.drawCircle(w * 0.15f, h * 0.08f, w * 0.55f, paint);
-            paint.setShader(new RadialGradient(w * 0.9f, h * 0.22f, w * 0.45f,
-                    0x44FFB14A, 0x000A0F1B, Shader.TileMode.CLAMP));
-            canvas.drawCircle(w * 0.9f, h * 0.22f, w * 0.45f, paint);
+            if (theme.isDark()) {
+                paint.setShader(new LinearGradient(0, 0, w, h,
+                        new int[]{0xff07111F, 0xff111827, 0xff0A0F1B}, null, Shader.TileMode.CLAMP));
+                canvas.drawRect(0, 0, w, h, paint);
+                paint.setShader(new RadialGradient(w * 0.15f, h * 0.08f, w * 0.55f,
+                        0x4422C7E8, 0x00111827, Shader.TileMode.CLAMP));
+                canvas.drawCircle(w * 0.15f, h * 0.08f, w * 0.55f, paint);
+                paint.setShader(new RadialGradient(w * 0.9f, h * 0.22f, w * 0.45f,
+                        0x33FFB14A, 0x000A0F1B, Shader.TileMode.CLAMP));
+                canvas.drawCircle(w * 0.9f, h * 0.22f, w * 0.45f, paint);
+            } else {
+                paint.setShader(new LinearGradient(0, 0, w, h,
+                        new int[]{0xffE8EFFF, 0xffF2F6FF, 0xffEDF1FF}, null, Shader.TileMode.CLAMP));
+                canvas.drawRect(0, 0, w, h, paint);
+                paint.setShader(new RadialGradient(w * 0.15f, h * 0.08f, w * 0.5f,
+                        0x221E88E5, 0x00E8EFFF, Shader.TileMode.CLAMP));
+                canvas.drawCircle(w * 0.15f, h * 0.08f, w * 0.5f, paint);
+                paint.setShader(new RadialGradient(w * 0.9f, h * 0.25f, w * 0.4f,
+                        0x1EE8293E, 0x00F2F6FF, Shader.TileMode.CLAMP));
+                canvas.drawCircle(w * 0.9f, h * 0.25f, w * 0.4f, paint);
+            }
             paint.setShader(null);
         }
     }
