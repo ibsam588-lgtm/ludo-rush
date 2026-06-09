@@ -34,7 +34,7 @@ public final class LobbyScreen extends BaseScreen {
         content.addView(r2, lp(-1, -2, 0, 0, 0, dp(16)));
 
         String[] modes = {"classic_2p", "classic_4p", "rush_2p", "rush_4p"};
-        String[] labels = {"Classic 2P", "Classic 4P", "Rush 2P", "Rush 4P"};
+        String[] labels = {"🎲 Classic 2P", "🎲 Classic 4P", "⚡ Rush 2P", "⚡ Rush 4P"};
         String[] descs = {"30s turns", "30s turns", "15s turns", "15s turns"};
         Button[] btns = new Button[4];
 
@@ -51,14 +51,15 @@ public final class LobbyScreen extends BaseScreen {
             b.setOnClickListener(v -> {
                 selectedMode = modes[idx];
                 for (int j = 0; j < 4; j++)
-                    btns[j].setBackground(card(j == idx ? 0xff1A3A5C : 0xff1A2638, dp(14), j == idx ? 0xff1E88E5 : 0x335D6D86));
+                    btns[j].setBackground(pressable(card(j == idx ? 0xff17386B : 0xff141E34, dp(16), j == idx ? ACCENT_BLUE : STROKE_SOFT)));
+                btns[idx].setElevation(dp(6));
             });
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1);
             p.setMargins(dp(4), 0, dp(4), 0);
             (i < 2 ? r1 : r2).addView(b, p);
         }
-        btns[0].setBackground(card(0xff1A3A5C, dp(14), 0xff1E88E5));
-        for (int i = 1; i < 4; i++) btns[i].setBackground(card(0xff1A2638, dp(14), 0x335D6D86));
+        btns[0].setBackground(pressable(card(0xff17386B, dp(16), ACCENT_BLUE)));
+        for (int i = 1; i < 4; i++) btns[i].setBackground(pressable(card(0xff141E34, dp(16), STROKE_SOFT)));
 
         addSectionLabel(content, "PLAY OPTIONS");
 
