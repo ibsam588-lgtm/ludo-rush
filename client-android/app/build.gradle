@@ -10,7 +10,7 @@ android {
         applicationId System.getenv("ANDROID_PACKAGE_NAME") ?: "com.ludorush.game"
         minSdk 24
         targetSdk 36
-        versionCode Integer.parseInt(System.getenv("ANDROID_VERSION_CODE") ?: "3")
+        versionCode Integer.parseInt(System.getenv("ANDROID_VERSION_CODE") ?: "4")
         versionName System.getenv("APP_VERSION") ?: "0.2.0"
     }
 
