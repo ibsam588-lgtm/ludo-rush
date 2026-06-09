@@ -300,7 +300,7 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
         try {
             return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
         } catch (Exception e) {
-            return "0.2.0";
+            return "0.3.0";
         }
     }
 
