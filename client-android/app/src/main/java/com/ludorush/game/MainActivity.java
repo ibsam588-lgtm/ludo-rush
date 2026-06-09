@@ -84,8 +84,99 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
         if (screenStack.size() > 1) {
             goBack();
         } else {
-            super.onBackPressed();
+            showExitDialog();
         }
+    }
+
+    private void showExitDialog() {
+        android.app.Dialog dialog = new android.app.Dialog(this);
+        dialog.requestWindowFeature(android.view.Window.FEATURE_NO_TITLE);
+
+        float density = getResources().getDisplayMetrics().density;
+        int d20 = (int) (20 * density), d12 = (int) (12 * density), d8 = (int) (8 * density);
+
+        android.widget.LinearLayout panel = new android.widget.LinearLayout(this);
+        panel.setOrientation(android.widget.LinearLayout.VERTICAL);
+        panel.setGravity(android.view.Gravity.CENTER_HORIZONTAL);
+        panel.setPadding(d20, (int) (24 * density), d20, d20);
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                new int[]{0xff1A2440, 0xff0F1626});
+        bg.setCornerRadius(24 * density);
+        bg.setStroke((int) density, 0x55809BC8);
+        panel.setBackground(bg);
+
+        android.widget.TextView icon = new android.widget.TextView(this);
+        icon.setText("👋");
+        icon.setTextSize(34);
+        icon.setGravity(android.view.Gravity.CENTER);
+        panel.addView(icon);
+
+        android.widget.TextView title = new android.widget.TextView(this);
+        title.setText("Quit Ludo Rush?");
+        title.setTextSize(20);
+        title.setTextColor(Color.WHITE);
+        title.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        title.setGravity(android.view.Gravity.CENTER);
+        title.setPadding(0, d8, 0, 0);
+        panel.addView(title);
+
+        android.widget.TextView msg = new android.widget.TextView(this);
+        msg.setText("Do you want to quit the app?");
+        msg.setTextSize(14);
+        msg.setTextColor(0xff8B9BB4);
+        msg.setGravity(android.view.Gravity.CENTER);
+        msg.setPadding(0, (int) (4 * density), 0, (int) (18 * density));
+        panel.addView(msg);
+
+        android.widget.LinearLayout buttons = new android.widget.LinearLayout(this);
+        buttons.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        panel.addView(buttons, new android.widget.LinearLayout.LayoutParams(-1, -2));
+
+        android.widget.Button stay = new android.widget.Button(this);
+        stay.setAllCaps(false);
+        stay.setText("Stay");
+        stay.setTextColor(Color.WHITE);
+        stay.setTextSize(15);
+        stay.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        android.graphics.drawable.GradientDrawable stayBg = new android.graphics.drawable.GradientDrawable();
+        stayBg.setColor(0xff1B2740);
+        stayBg.setCornerRadius(16 * density);
+        stayBg.setStroke((int) density, 0x446F84A8);
+        stay.setBackground(stayBg);
+        stay.setOnClickListener(v -> dialog.dismiss());
+        android.widget.LinearLayout.LayoutParams sp =
+                new android.widget.LinearLayout.LayoutParams(0, (int) (48 * density), 1);
+        sp.setMargins(0, 0, d8, 0);
+        buttons.addView(stay, sp);
+
+        android.widget.Button quit = new android.widget.Button(this);
+        quit.setAllCaps(false);
+        quit.setText("Quit");
+        quit.setTextColor(Color.WHITE);
+        quit.setTextSize(15);
+        quit.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        android.graphics.drawable.GradientDrawable quitBg = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
+                new int[]{0xffFF3D5A, 0xffFF9F1C});
+        quitBg.setCornerRadius(16 * density);
+        quit.setBackground(quitBg);
+        quit.setOnClickListener(v -> {
+            dialog.dismiss();
+            finish();
+        });
+        android.widget.LinearLayout.LayoutParams qp =
+                new android.widget.LinearLayout.LayoutParams(0, (int) (48 * density), 1);
+        qp.setMargins(d8, 0, 0, 0);
+        buttons.addView(quit, qp);
+
+        dialog.setContentView(panel);
+        android.view.Window w = dialog.getWindow();
+        if (w != null) {
+            w.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(Color.TRANSPARENT));
+            w.setLayout((int) (getResources().getDisplayMetrics().widthPixels * 0.82f), -2);
+        }
+        dialog.show();
     }
 
     @Override
@@ -437,15 +528,30 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
         @Override protected void onDraw(Canvas canvas) {
             int w = getWidth(), h = getHeight();
             paint.setShader(new LinearGradient(0, 0, w, h,
-                    new int[]{0xff07111F, 0xff111827, 0xff0A0F1B}, null, Shader.TileMode.CLAMP));
+                    new int[]{0xff0A1228, 0xff101A33, 0xff070B14}, null, Shader.TileMode.CLAMP));
             canvas.drawRect(0, 0, w, h, paint);
-            paint.setShader(new RadialGradient(w * 0.15f, h * 0.08f, w * 0.55f,
-                    0x5522C7E8, 0x00111827, Shader.TileMode.CLAMP));
-            canvas.drawCircle(w * 0.15f, h * 0.08f, w * 0.55f, paint);
-            paint.setShader(new RadialGradient(w * 0.9f, h * 0.22f, w * 0.45f,
-                    0x44FFB14A, 0x000A0F1B, Shader.TileMode.CLAMP));
-            canvas.drawCircle(w * 0.9f, h * 0.22f, w * 0.45f, paint);
+            paint.setShader(new RadialGradient(w * 0.12f, h * 0.06f, w * 0.6f,
+                    0x55226BE8, 0x00101A33, Shader.TileMode.CLAMP));
+            canvas.drawCircle(w * 0.12f, h * 0.06f, w * 0.6f, paint);
+            paint.setShader(new RadialGradient(w * 0.92f, h * 0.18f, w * 0.5f,
+                    0x44FF3D5A, 0x00070B14, Shader.TileMode.CLAMP));
+            canvas.drawCircle(w * 0.92f, h * 0.18f, w * 0.5f, paint);
+            paint.setShader(new RadialGradient(w * 0.5f, h * 0.95f, w * 0.7f,
+                    0x339C6BFF, 0x00070B14, Shader.TileMode.CLAMP));
+            canvas.drawCircle(w * 0.5f, h * 0.95f, w * 0.7f, paint);
             paint.setShader(null);
+
+            // Faint scattered "dice dot" pattern for texture
+            paint.setColor(0x10FFFFFF);
+            float[][] dots = {
+                    {0.08f, 0.32f, 3f}, {0.22f, 0.55f, 2f}, {0.14f, 0.78f, 4f},
+                    {0.86f, 0.42f, 3f}, {0.92f, 0.66f, 2f}, {0.78f, 0.88f, 4f},
+                    {0.46f, 0.24f, 2f}, {0.62f, 0.72f, 3f}, {0.34f, 0.92f, 2f},
+            };
+            float d = getResources().getDisplayMetrics().density;
+            for (float[] dot : dots) {
+                canvas.drawCircle(w * dot[0], h * dot[1], dot[2] * d, paint);
+            }
         }
     }
 }

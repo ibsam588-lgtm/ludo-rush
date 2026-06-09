@@ -22,12 +22,11 @@ public final class ProfileScreen extends BaseScreen {
         profileCard.setOrientation(LinearLayout.HORIZONTAL);
         profileCard.setGravity(Gravity.CENTER_VERTICAL);
         profileCard.setPadding(dp(20), dp(20), dp(20), dp(20));
-        profileCard.setBackground(cardGradient(0xff192133, 0xff101827, dp(20)));
-        content.addView(profileCard, lp(-1, -2, 0, 0, 0, dp(16)));
+        profileCard.setBackground(cardGradient(0xff1C2A48, 0xff121A30, dp(22)));
+        profileCard.setElevation(dp(6));
+        content.addView(profileCard, lp(-1, -2, 0, 0, 0, dp(8)));
 
-        View avatar = new View(activity);
-        avatar.setBackground(card(0xffE8293E, dp(30), 0x44FFFFFF));
-        profileCard.addView(avatar, lp(dp(60), dp(60), 0, 0, dp(16), 0));
+        profileCard.addView(avatarView(callback.getDisplayName(), 60), lp(dp(60), dp(60), 0, 0, dp(16), 0));
 
         LinearLayout nameCol = new LinearLayout(activity);
         nameCol.setOrientation(LinearLayout.VERTICAL);
@@ -108,7 +107,7 @@ public final class ProfileScreen extends BaseScreen {
         row.setBackground(card(unlocked ? 0xff152030 : 0xff0E1420, dp(14), unlocked ? 0x44F9A825 : 0x22333D50));
         parent.addView(row, lp(-1, -2, 0, 0, 0, dp(6)));
 
-        TextView icon = text(unlocked ? "★" : "☆", 20, unlocked ? 0xffF9A825 : 0xff3A4556, Typeface.BOLD);
+        TextView icon = text(unlocked ? "🏅" : "🔒", 18, unlocked ? 0xffF9A825 : 0xff3A4556, Typeface.BOLD);
         row.addView(icon, lp(dp(32), -2, 0, 0, dp(8), 0));
 
         LinearLayout info = new LinearLayout(activity);
