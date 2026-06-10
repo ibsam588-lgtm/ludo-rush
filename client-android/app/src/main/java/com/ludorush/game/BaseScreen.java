@@ -28,6 +28,7 @@ public abstract class BaseScreen {
         int getGamesPlayed();
         int getWins();
         boolean isOnline();
+        void addCoins(int amount);
         void startBotMatch(String mode);
         void startQuickMatch(String mode);
         void rollDice();

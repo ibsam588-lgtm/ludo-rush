@@ -2,8 +2,6 @@ package com.ludorush.game;
 
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -38,14 +36,6 @@ public final class ResultsScreen extends BaseScreen {
                     }
                 }
             }
-        }
-
-        final boolean didWin = won;
-
-        // Show interstitial after defeat with a short delay
-        if (!won) {
-            new Handler(Looper.getMainLooper()).postDelayed(
-                () -> AdManager.get().showInterstitial(null), 1800);
         }
 
         LinearLayout root = new LinearLayout(activity);
@@ -149,7 +139,9 @@ public final class ResultsScreen extends BaseScreen {
         root.addView(btnRow, lp(-1, dp(56), 0, dp(16), 0, 0));
 
         Button again = actionButton("🎲  Play Again", ThemeManager.BLUE, ThemeManager.BLUE_LIGHT);
-        again.setOnClickListener(v -> callback.startBotMatch("classic_2p"));
+        // Interstitial at the natural break between rounds, then start the next match.
+        again.setOnClickListener(v ->
+            AdManager.get().showInterstitial(() -> callback.startBotMatch("classic_2p")));
         LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(0, -1, 1);
         ap.setMargins(0, 0, dp(6), 0);
         btnRow.addView(again, ap);

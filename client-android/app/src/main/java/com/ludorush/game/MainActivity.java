@@ -100,6 +100,8 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     public void onBackPressed() {
         if (screenStack.size() <= 1) {
             showQuitDialog();
+        } else if ("game".equals(screenStack.peek())) {
+            showLeaveMatchDialog();
         } else {
             goBack();
         }
@@ -110,6 +112,16 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
                 .setTitle("Quit Ludo Rush?")
                 .setMessage("Are you sure you want to exit the game?")
                 .setPositiveButton("Quit", (d, w) -> finish())
+                .setNegativeButton("Stay", null)
+                .setCancelable(true)
+                .show();
+    }
+
+    private void showLeaveMatchDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Leave Match?")
+                .setMessage("Leaving during a match counts as a resignation. Are you sure?")
+                .setPositiveButton("Leave & Resign", (d, w) -> { resign(); goBack(); })
                 .setNegativeButton("Stay", null)
                 .setCancelable(true)
                 .show();
@@ -146,6 +158,7 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     @Override public int getGamesPlayed()    { return gamesPlayed; }
     @Override public int getWins()           { return wins; }
     @Override public boolean isOnline()      { return backendOnline; }
+    @Override public void addCoins(int amount) { coins = Math.max(0, coins + amount); }
 
     @Override
     public void startBotMatch(String mode) {

@@ -33,7 +33,7 @@ public final class ShopScreen extends BaseScreen {
         balLabel.setLetterSpacing(0.12f);
         balanceCard.addView(balLabel);
 
-        TextView coinsVal = text(String.valueOf(callback.getCoins()), 40, ThemeManager.YELLOW, Typeface.BOLD);
+        final TextView coinsVal = text(String.valueOf(callback.getCoins()), 40, ThemeManager.YELLOW, Typeface.BOLD);
         coinsVal.setGravity(Gravity.CENTER);
         balanceCard.addView(coinsVal, lp(-1, -2, 0, dp(4), 0, dp(2)));
 
@@ -60,6 +60,8 @@ public final class ShopScreen extends BaseScreen {
             if (AdManager.get().isRewardedReady()) {
                 AdManager.get().showRewarded(new AdManager.RewardCallback() {
                     @Override public void onRewarded(int coins) {
+                        callback.addCoins(50);
+                        coinsVal.setText(String.valueOf(callback.getCoins()));
                         Toast.makeText(activity, "You earned 50 coins!", Toast.LENGTH_SHORT).show();
                     }
                     @Override public void onUnavailable() {

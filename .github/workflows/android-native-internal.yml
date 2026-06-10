@@ -58,6 +58,13 @@ jobs:
           ANDROID_KEYSTORE_PASS: ${{ secrets.UNITY_ANDROID_KEYSTORE_PASS }}
           ANDROID_KEYALIAS_NAME: ${{ secrets.UNITY_ANDROID_KEYALIAS_NAME }}
           ANDROID_KEYALIAS_PASS: ${{ secrets.UNITY_ANDROID_KEYALIAS_PASS }}
+          # Production AdMob unit IDs (public identifiers — they ship inside every APK).
+          # Injected at build time so build.gradle bakes them into BuildConfig/manifest
+          # instead of the Google test fallbacks. Define repo Variables to override.
+          ADMOB_APP_ID: ${{ vars.ADMOB_APP_ID || 'ca-app-pub-8127360916614638~5922842296' }}
+          ADMOB_BANNER_ID: ${{ vars.ADMOB_BANNER_ID || 'ca-app-pub-8127360916614638/2493360027' }}
+          ADMOB_INTERSTITIAL_ID: ${{ vars.ADMOB_INTERSTITIAL_ID || 'ca-app-pub-8127360916614638/7299839850' }}
+          ADMOB_REWARDED_ID: ${{ vars.ADMOB_REWARDED_ID || 'ca-app-pub-8127360916614638/2267005028' }}
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
