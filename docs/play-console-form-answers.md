@@ -60,7 +60,7 @@ Change this to `Yes` only after real AdMob ad units are integrated.
 ## Privacy Policy
 
 ```text
-https://corsairlabs.com/ludo-rush-privacy
+https://corsairlabs.com/ludo-rush-privacy-policy
 ```
 
 ## Target Audience
