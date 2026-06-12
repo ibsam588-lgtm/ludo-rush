@@ -468,17 +468,19 @@ public final class GameScreen extends BaseScreen {
             rect.set(left, top, left + size, top + size);
             paint.setColor(NAVY);
             canvas.drawRect(rect, paint);
-            // gold double border — outer thick
+            // double gold border — outer ~4px, gap ~2px, inner ~2px (both gold)
             paint.setStyle(Paint.Style.STROKE);
-            float outer = Math.max(5f, size * 0.022f);
-            paint.setStrokeWidth(outer);
+            float outerW = Math.max(4f, size * 0.018f);
+            float innerW = Math.max(2f, size * 0.009f);
+            float gap    = Math.max(2f, size * 0.009f);
+            paint.setStrokeWidth(outerW);
             paint.setColor(GOLD);
             canvas.drawRect(rect, paint);
-            // inner thin gold line
-            float inset = outer * 1.5f;
+            // inner gold line, offset by half-strokes + gap so the two never touch
+            float inset = outerW / 2f + gap + innerW / 2f;
             rect.set(left + inset, top + inset, left + size - inset, top + size - inset);
-            paint.setStrokeWidth(Math.max(1.5f, size * 0.0035f));
-            paint.setColor(GOLD_DK);
+            paint.setStrokeWidth(innerW);
+            paint.setColor(GOLD);
             canvas.drawRect(rect, paint);
             paint.setStyle(Paint.Style.FILL);
         }
@@ -517,10 +519,10 @@ public final class GameScreen extends BaseScreen {
             paint.setColor(GOLD);
             canvas.drawRect(rect, paint);
             paint.setStyle(Paint.Style.FILL);
-            // dark inner panel + thin gold frame
+            // near-black inner panel + thin gold frame
             float ins = cell * 0.85f;
             rect.set(x1 + ins, y1 + ins, x2 - ins, y2 - ins);
-            paint.setColor(blend(color, 0xff000814, 0.62f));
+            paint.setColor(blend(color, 0xff04080F, 0.82f));
             canvas.drawRect(rect, paint);
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(cell * 0.05f);
@@ -548,6 +550,9 @@ public final class GameScreen extends BaseScreen {
                 paint.setColor(GOLD);
                 canvas.drawCircle(px, py, r, paint);
                 paint.setStyle(Paint.Style.FILL);
+                // white highlight dot (top-left) for a polished sheen
+                paint.setColor(0xccFFFFFF);
+                canvas.drawCircle(px - r * 0.34f, py - r * 0.36f, r * 0.2f, paint);
             }
         }
 
@@ -563,25 +568,22 @@ public final class GameScreen extends BaseScreen {
                 drawCell(canvas, left, top, cell, p[0], p[1], fill, stroke);
             }
             for (int[] p : SAFE) {
-                boolean isStart = false;
-                for (int s : si) {
-                    if (PATH[s][0] == p[0] && PATH[s][1] == p[1]) { isStart = true; break; }
-                }
+                // gold 5-point star marks every safe cell
                 drawStar(canvas,
                     left + (p[0] + 0.5f) * cell,
                     top  + (p[1] + 0.5f) * cell,
                     cell * 0.27f,
-                    isStart ? 0xffFFFFFF : GOLD);
+                    GOLD);
             }
         }
 
         private void drawHomeLanes(Canvas canvas, int left, int top, float cell) {
-            // soft lane tints derived from each player's jewel tone
-            int[] base = {ThemeManager.RED, ThemeManager.BLUE, ThemeManager.YELLOW, ThemeManager.GREEN};
+            // colored safe lane per player, drawn in that jewel's soft companion tint
+            int[] soft = {ThemeManager.RED_SOFT, ThemeManager.BLUE_SOFT,
+                          ThemeManager.YELLOW_SOFT, ThemeManager.GREEN_SOFT};
             for (int seat = 0; seat < HOME_LANES.length; seat++) {
-                int tint = blend(base[seat], 0xffFFFFFF, 0.5f);
                 for (int[] p : HOME_LANES[seat])
-                    drawCell(canvas, left, top, cell, p[0], p[1], tint, 0x66E9B949);
+                    drawCell(canvas, left, top, cell, p[0], p[1], soft[seat], 0x66D4AF37);
             }
         }
 
@@ -607,7 +609,7 @@ public final class GameScreen extends BaseScreen {
             // thin gold separators
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(cell * 0.05f);
-            paint.setColor(0x88E9B949);
+            paint.setColor(0x88D4AF37);
             canvas.drawLine(x6, y6, x9, y9, paint);
             canvas.drawLine(x6, y9, x9, y6, paint);
             // thick gold halo ring around the medallion
@@ -681,7 +683,7 @@ public final class GameScreen extends BaseScreen {
             if (legal || active) {
                 paint.setStyle(Paint.Style.STROKE);
                 paint.setStrokeWidth(legal ? r * 0.3f : r * 0.16f);
-                paint.setColor(legal ? GOLD : 0x88E9B949);
+                paint.setColor(legal ? GOLD : 0x88D4AF37);
                 canvas.drawCircle(cx, cy, r * (legal ? 1.5f : 1.3f), paint);
                 paint.setStyle(Paint.Style.FILL);
             }
@@ -766,7 +768,7 @@ public final class GameScreen extends BaseScreen {
             if (snapshot != null) return;
             rect.set(left + size * 0.16f, top + size * 0.39f,
                      left + size * 0.84f, top + size * 0.61f);
-            paint.setColor(0xE60B1330);
+            paint.setColor(0xE6091428);
             canvas.drawRoundRect(rect, size * 0.05f, size * 0.05f, paint);
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(Math.max(2f, size * 0.006f));
