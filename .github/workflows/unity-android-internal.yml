@@ -51,7 +51,9 @@ jobs:
         uses: game-ci/unity-builder@v4
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           LUDO_RUSH_BACKEND_URL: ${{ inputs.backend_url }}
           ANDROID_PACKAGE_NAME: ${{ inputs.package_name }}
           UNITY_ANDROID_KEYSTORE_BASE64: ${{ secrets.UNITY_ANDROID_KEYSTORE_BASE64 }}
