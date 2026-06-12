@@ -79,8 +79,10 @@ public abstract class BaseScreen {
     }
 
     protected GradientDrawable buttonGradient(int start, int end, int radius) {
-        GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{start, end});
+        GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{start, end});
         d.setCornerRadius(radius);
+        // Faint gold rim gives every primary action a minted, premium edge.
+        d.setStroke(dp(1), 0x55FFDD8A);
         return d;
     }
 
@@ -109,7 +111,8 @@ public abstract class BaseScreen {
         b.setTextSize(16);
         b.setTypeface(Typeface.DEFAULT_BOLD);
         b.setBackground(buttonGradient(start, end, dp(16)));
-        b.setElevation(dp(2));
+        b.setLetterSpacing(0.02f);
+        b.setElevation(dp(3));
         return b;
     }
 
@@ -146,16 +149,21 @@ public abstract class BaseScreen {
     // ── Common composites ─────────────────────────────────────────────────────
 
     protected LinearLayout createHeader(String title) {
+        // Vertical wrapper: title row + a thin gold rule that frames every page.
+        LinearLayout wrap = new LinearLayout(activity);
+        wrap.setOrientation(LinearLayout.VERTICAL);
+        wrap.setBackgroundColor(theme.bgHeader());
+
         LinearLayout h = new LinearLayout(activity);
         h.setOrientation(LinearLayout.HORIZONTAL);
         h.setGravity(Gravity.CENTER_VERTICAL);
-        h.setPadding(dp(4), dp(12), dp(16), dp(12));
-        h.setBackground(card(theme.bgHeader(), 0, theme.strokeCard()));
+        h.setPadding(dp(4), dp(12), dp(4), dp(12));
+        wrap.addView(h, lp(-1, -2));
 
         Button back = new Button(activity);
         back.setAllCaps(false);
         back.setText("‹");
-        back.setTextColor(theme.txtPrimary());
+        back.setTextColor(ThemeManager.GOLD);
         back.setTextSize(26);
         back.setTypeface(Typeface.DEFAULT_BOLD);
         back.setBackground(null);
@@ -163,10 +171,29 @@ public abstract class BaseScreen {
         h.addView(back, lp(dp(52), dp(52)));
 
         TextView t = text(title, 20, theme.txtPrimary(), Typeface.BOLD);
-        t.setLetterSpacing(0.02f);
+        t.setLetterSpacing(0.04f);
         LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, -2, 1);
         h.addView(t, tp);
-        return h;
+
+        // Quick theme toggle — ☀️ in dark mode, 🌙 in light mode
+        Button themeToggle = new Button(activity);
+        themeToggle.setAllCaps(false);
+        themeToggle.setText(theme.isDark() ? "☀️" : "🌙");
+        themeToggle.setTextSize(20);
+        themeToggle.setBackground(null);
+        themeToggle.setPadding(0, 0, 0, 0);
+        themeToggle.setOnClickListener(v -> {
+            theme.setDark(!theme.isDark());
+            activity.recreate();
+        });
+        h.addView(themeToggle, lp(dp(48), dp(48)));
+
+        View rule = new View(activity);
+        rule.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
+            new int[]{0x00E9B949, ThemeManager.GOLD, 0x00E9B949}));
+        wrap.addView(rule, lp(-1, dp(2)));
+
+        return wrap;
     }
 
     protected View createScreenShell(String title, View content) {
@@ -222,9 +249,9 @@ public abstract class BaseScreen {
     }
 
     protected void addSectionLabel(LinearLayout parent, String label) {
-        TextView t = text(label, 11, theme.txtMuted(), Typeface.BOLD);
+        TextView t = text(label, 11, ThemeManager.GOLD_DARK, Typeface.BOLD);
         t.setPadding(dp(2), 0, 0, 0);
-        t.setLetterSpacing(0.12f);
+        t.setLetterSpacing(0.16f);
         parent.addView(t, lp(-1, -2, 0, dp(16), 0, dp(8)));
     }
 

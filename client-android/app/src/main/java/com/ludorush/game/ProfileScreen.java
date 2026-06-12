@@ -72,7 +72,7 @@ public final class ProfileScreen extends BaseScreen {
         addAchievement(content, "Champion",   "Reach 1200 rating",       callback.getRating() >= 1200);
         addAchievement(content, "Rich",       "Collect 5000 coins",      callback.getCoins() >= 5000);
 
-        return createScreenShell("Profile", content);
+        return createScreenShell("Profile", content, true);
     }
 
     private void addStatCard(LinearLayout parent, String label, String value, int accent) {

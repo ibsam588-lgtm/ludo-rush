@@ -87,7 +87,7 @@ public final class ShopScreen extends BaseScreen {
         dailyCard.addView(claimBtn, lp(dp(80), dp(44)));
         content.addView(dailyCard, lp(-1, -2));
 
-        return createScreenShell("Shop", content);
+        return createScreenShell("Shop", content, true);
     }
 
     private LinearLayout buildFreeCard(String title, String desc, int accent) {

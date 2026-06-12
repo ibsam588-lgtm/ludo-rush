@@ -1,19 +1,28 @@
 package com.ludorush.game;
 
 import android.app.Activity;
-import android.app.AlertDialog;
+import android.app.Dialog;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
 import android.graphics.Shader;
+import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.MediaType;
@@ -108,23 +117,124 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     }
 
     private void showQuitDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Quit Ludo Rush?")
-                .setMessage("Are you sure you want to exit the game?")
-                .setPositiveButton("Quit", (d, w) -> finish())
-                .setNegativeButton("Stay", null)
-                .setCancelable(true)
-                .show();
+        showFableDialog(
+            "👑 Leave the Realm?",
+            "Your progress will be lost.",
+            "Stay", "Quit",
+            ThemeManager.GOLD_DARK, ThemeManager.GOLD,
+            () -> finish()
+        );
     }
 
     private void showLeaveMatchDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Leave Match?")
-                .setMessage("Leaving during a match counts as a resignation. Are you sure?")
-                .setPositiveButton("Leave & Resign", (d, w) -> { resign(); goBack(); })
-                .setNegativeButton("Stay", null)
-                .setCancelable(true)
-                .show();
+        showFableDialog(
+            "🚩 Leave Match?",
+            "You'll forfeit this game.",
+            "Stay", "Leave & Resign",
+            ThemeManager.RED, 0xffB71C1C,
+            () -> { resign(); goBack(); }
+        );
+    }
+
+    /**
+     * Shows a custom-styled "fable mode" confirmation dialog that matches the app's
+     * dark/light theme instead of using the stock Android AlertDialog.
+     */
+    private void showFableDialog(String title, String subtitle,
+                                  String cancelLabel, String confirmLabel,
+                                  int gradStart, int gradEnd,
+                                  Runnable onConfirm) {
+        ThemeManager tm = ThemeManager.get(this);
+        float density = getResources().getDisplayMetrics().density;
+
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setCancelable(true);
+
+        // ── Outer card ────────────────────────────────────────────────────────
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        int pad = (int) (28 * density);
+        card.setPadding(pad, pad, pad, pad);
+
+        GradientDrawable cardBg = new GradientDrawable();
+        cardBg.setColor(tm.bgCard());
+        cardBg.setCornerRadius(24 * density);
+        cardBg.setStroke((int)(2 * density), tm.strokeCard());
+        card.setBackground(cardBg);
+
+        // Title
+        TextView titleView = new TextView(this);
+        titleView.setText(title);
+        titleView.setTextSize(22);
+        titleView.setTextColor(tm.txtPrimary());
+        titleView.setTypeface(Typeface.DEFAULT_BOLD);
+        titleView.setGravity(Gravity.CENTER);
+        card.addView(titleView);
+
+        // Subtitle
+        TextView subView = new TextView(this);
+        subView.setText(subtitle);
+        subView.setTextSize(13);
+        subView.setTextColor(tm.txtMuted());
+        subView.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(-1, -2);
+        subLp.setMargins(0, (int)(6 * density), 0, (int)(20 * density));
+        card.addView(subView, subLp);
+
+        // ── Button row ────────────────────────────────────────────────────────
+        LinearLayout btnRow = new LinearLayout(this);
+        btnRow.setOrientation(LinearLayout.HORIZONTAL);
+
+        // Stay / cancel button
+        Button stayBtn = new Button(this);
+        stayBtn.setAllCaps(false);
+        stayBtn.setText(cancelLabel);
+        stayBtn.setTextColor(tm.txtPrimary());
+        stayBtn.setTextSize(14);
+        stayBtn.setTypeface(Typeface.DEFAULT_BOLD);
+        GradientDrawable stayBg = new GradientDrawable();
+        stayBg.setColor(tm.bgCard());
+        stayBg.setCornerRadius(14 * density);
+        stayBg.setStroke((int)(density), tm.strokeCard());
+        stayBtn.setBackground(stayBg);
+        stayBtn.setOnClickListener(v -> dialog.dismiss());
+        LinearLayout.LayoutParams stayLp = new LinearLayout.LayoutParams(0, (int)(50 * density), 1);
+        stayLp.setMargins(0, 0, (int)(6 * density), 0);
+        btnRow.addView(stayBtn, stayLp);
+
+        // Confirm / action button
+        Button confirmBtn = new Button(this);
+        confirmBtn.setAllCaps(false);
+        confirmBtn.setText(confirmLabel);
+        confirmBtn.setTextColor(Color.WHITE);
+        confirmBtn.setTextSize(14);
+        confirmBtn.setTypeface(Typeface.DEFAULT_BOLD);
+        GradientDrawable confirmBg = new GradientDrawable(
+            GradientDrawable.Orientation.LEFT_RIGHT, new int[]{gradStart, gradEnd});
+        confirmBg.setCornerRadius(14 * density);
+        confirmBtn.setBackground(confirmBg);
+        confirmBtn.setOnClickListener(v -> {
+            dialog.dismiss();
+            onConfirm.run();
+        });
+        LinearLayout.LayoutParams confirmLp = new LinearLayout.LayoutParams(0, (int)(50 * density), 1);
+        confirmLp.setMargins((int)(6 * density), 0, 0, 0);
+        btnRow.addView(confirmBtn, confirmLp);
+
+        card.addView(btnRow, new LinearLayout.LayoutParams(-1, -2));
+
+        // ── Dialog window setup ───────────────────────────────────────────────
+        dialog.setContentView(card);
+        Window w = dialog.getWindow();
+        if (w != null) {
+            w.setBackgroundDrawable(new ColorDrawable(0x99000000));
+            int maxWidth = (int)(320 * density);
+            w.setLayout(Math.min(maxWidth,
+                (int)(getResources().getDisplayMetrics().widthPixels * 0.88f)),
+                WindowManager.LayoutParams.WRAP_CONTENT);
+        }
+        dialog.show();
     }
 
     // ── Navigation ────────────────────────────────────────────────────────────
@@ -506,25 +616,30 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
         @Override protected void onDraw(Canvas canvas) {
             int w = getWidth(), h = getHeight();
             if (theme.isDark()) {
+                // Royal Night — deep navy field with warm gold + sapphire glow pools
                 paint.setShader(new LinearGradient(0, 0, w, h,
-                        new int[]{0xff07111F, 0xff111827, 0xff0A0F1B}, null, Shader.TileMode.CLAMP));
+                        new int[]{0xff0A1330, 0xff070B1C, 0xff05080F}, null, Shader.TileMode.CLAMP));
                 canvas.drawRect(0, 0, w, h, paint);
-                paint.setShader(new RadialGradient(w * 0.15f, h * 0.08f, w * 0.55f,
-                        0x4422C7E8, 0x00111827, Shader.TileMode.CLAMP));
-                canvas.drawCircle(w * 0.15f, h * 0.08f, w * 0.55f, paint);
-                paint.setShader(new RadialGradient(w * 0.9f, h * 0.22f, w * 0.45f,
-                        0x33FFB14A, 0x000A0F1B, Shader.TileMode.CLAMP));
-                canvas.drawCircle(w * 0.9f, h * 0.22f, w * 0.45f, paint);
+                paint.setShader(new RadialGradient(w * 0.82f, h * 0.06f, w * 0.7f,
+                        0x33E9B949, 0x00070B18, Shader.TileMode.CLAMP));
+                canvas.drawCircle(w * 0.82f, h * 0.06f, w * 0.7f, paint);
+                paint.setShader(new RadialGradient(w * 0.10f, h * 0.30f, w * 0.55f,
+                        0x282E6BE6, 0x00070B18, Shader.TileMode.CLAMP));
+                canvas.drawCircle(w * 0.10f, h * 0.30f, w * 0.55f, paint);
+                paint.setShader(new RadialGradient(w * 0.5f, h * 1.02f, w * 0.7f,
+                        0x1FE0314B, 0x00070B18, Shader.TileMode.CLAMP));
+                canvas.drawCircle(w * 0.5f, h * 1.02f, w * 0.7f, paint);
             } else {
+                // Royal Ivory — warm parchment field with soft gold light
                 paint.setShader(new LinearGradient(0, 0, w, h,
-                        new int[]{0xffE8EFFF, 0xffF2F6FF, 0xffEDF1FF}, null, Shader.TileMode.CLAMP));
+                        new int[]{0xffFCF6E8, 0xffF6EEDA, 0xffF2E9D2}, null, Shader.TileMode.CLAMP));
                 canvas.drawRect(0, 0, w, h, paint);
-                paint.setShader(new RadialGradient(w * 0.15f, h * 0.08f, w * 0.5f,
-                        0x221E88E5, 0x00E8EFFF, Shader.TileMode.CLAMP));
-                canvas.drawCircle(w * 0.15f, h * 0.08f, w * 0.5f, paint);
-                paint.setShader(new RadialGradient(w * 0.9f, h * 0.25f, w * 0.4f,
-                        0x1EE8293E, 0x00F2F6FF, Shader.TileMode.CLAMP));
-                canvas.drawCircle(w * 0.9f, h * 0.25f, w * 0.4f, paint);
+                paint.setShader(new RadialGradient(w * 0.85f, h * 0.05f, w * 0.65f,
+                        0x44E9B949, 0x00F7F1E3, Shader.TileMode.CLAMP));
+                canvas.drawCircle(w * 0.85f, h * 0.05f, w * 0.65f, paint);
+                paint.setShader(new RadialGradient(w * 0.10f, h * 0.32f, w * 0.5f,
+                        0x182E6BE6, 0x00F7F1E3, Shader.TileMode.CLAMP));
+                canvas.drawCircle(w * 0.10f, h * 0.32f, w * 0.5f, paint);
             }
             paint.setShader(null);
         }

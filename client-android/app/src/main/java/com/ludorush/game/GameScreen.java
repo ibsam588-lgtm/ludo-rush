@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RadialGradient;
@@ -313,6 +314,12 @@ public final class GameScreen extends BaseScreen {
                 {{13,7},{12,7},{11,7},{10,7},{9,7}}
         };
 
+        // Royal Gold board surfaces
+        private static final int NAVY  = ThemeManager.NAVY_DEEP;  // deep navy board fill
+        private static final int IVORY = 0xffF5F0DC;              // warm cream cross path
+        private static final int GOLD  = ThemeManager.GOLD;
+        private static final int GOLD_DK = ThemeManager.GOLD_DARK;
+
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final RectF  rect  = new RectF();
         private JSONObject snapshot;
@@ -340,55 +347,105 @@ public final class GameScreen extends BaseScreen {
             drawBases(canvas, left, top, cell);
             drawTrack(canvas, left, top, cell);
             drawHomeLanes(canvas, left, top, cell);
+            drawGridLines(canvas, left, top, cell);
             drawCenter(canvas, left, top, cell);
             drawPieces(canvas, left, top, cell);
             drawEmpty(canvas, left, top, size);
         }
 
+        /** Soft channel-blend of two ARGB colors (t=0 → a, t=1 → b). Private to BoardView. */
+        private int blend(int a, int b, float t) {
+            float ia = 1f - t;
+            int aa = (int) (((a >>> 24) & 0xff) * ia + ((b >>> 24) & 0xff) * t);
+            int rr = (int) (((a >> 16) & 0xff) * ia + ((b >> 16) & 0xff) * t);
+            int gg = (int) (((a >> 8)  & 0xff) * ia + ((b >> 8)  & 0xff) * t);
+            int bb = (int) ((a & 0xff) * ia + (b & 0xff) * t);
+            return (aa << 24) | (rr << 16) | (gg << 8) | bb;
+        }
+
         private void drawShell(Canvas canvas, int left, int top, int size) {
+            // deep navy board fill
             rect.set(left, top, left + size, top + size);
-            paint.setColor(0xffF5E6C8);
+            paint.setColor(NAVY);
             canvas.drawRect(rect, paint);
+            // gold double border — outer thick
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(Math.max(4, size * 0.018f));
-            paint.setColor(0xff5C3D2E);
+            float outer = Math.max(5f, size * 0.022f);
+            paint.setStrokeWidth(outer);
+            paint.setColor(GOLD);
+            canvas.drawRect(rect, paint);
+            // inner thin gold line
+            float inset = outer * 1.5f;
+            rect.set(left + inset, top + inset, left + size - inset, top + size - inset);
+            paint.setStrokeWidth(Math.max(1.5f, size * 0.0035f));
+            paint.setColor(GOLD_DK);
             canvas.drawRect(rect, paint);
             paint.setStyle(Paint.Style.FILL);
         }
 
+        /** Very subtle grid for cell definition (mostly visible over the cream cross). */
+        private void drawGridLines(Canvas canvas, int left, int top, float cell) {
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(1f, cell * 0.02f));
+            paint.setColor(0x18000000);
+            for (int i = 0; i <= 15; i++) {
+                float p = i * cell;
+                canvas.drawLine(left + p, top, left + p, top + 15 * cell, paint);
+                canvas.drawLine(left, top + p, left + 15 * cell, top + p, paint);
+            }
+            paint.setStyle(Paint.Style.FILL);
+        }
+
         private void drawBases(Canvas canvas, int left, int top, float cell) {
-            drawBase(canvas, left, top, cell, 0, 9, 0xffE8293E);
-            drawBase(canvas, left, top, cell, 0, 0, 0xff1E88E5);
-            drawBase(canvas, left, top, cell, 9, 0, 0xffF9A825);
-            drawBase(canvas, left, top, cell, 9, 9, 0xff43A047);
+            drawBase(canvas, left, top, cell, 0, 9, ThemeManager.RED);     // Ruby
+            drawBase(canvas, left, top, cell, 0, 0, ThemeManager.BLUE);    // Sapphire
+            drawBase(canvas, left, top, cell, 9, 0, ThemeManager.YELLOW);  // Amber
+            drawBase(canvas, left, top, cell, 9, 9, ThemeManager.GREEN);   // Emerald
         }
 
         private void drawBase(Canvas canvas, int left, int top, float cell,
                               int gx, int gy, int color) {
             float x1 = left + gx * cell, y1 = top + gy * cell;
             float x2 = left + (gx + 6) * cell, y2 = top + (gy + 6) * cell;
+            // rich saturated fill
             rect.set(x1, y1, x2, y2);
             paint.setColor(color);
             canvas.drawRect(rect, paint);
+            // gold border
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(cell * 0.08f);
-            paint.setColor(0x33000000);
+            paint.setStrokeWidth(cell * 0.1f);
+            paint.setColor(GOLD);
             canvas.drawRect(rect, paint);
             paint.setStyle(Paint.Style.FILL);
+            // dark inner panel + thin gold frame
             float ins = cell * 0.85f;
             rect.set(x1 + ins, y1 + ins, x2 - ins, y2 - ins);
-            paint.setColor(0xffFFF8EE);
+            paint.setColor(blend(color, 0xff000814, 0.62f));
             canvas.drawRect(rect, paint);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(cell * 0.05f);
+            paint.setColor(0x99D4AF37);
+            canvas.drawRect(rect, paint);
+            paint.setStyle(Paint.Style.FILL);
+            // 4 polished piece spots — gradient (lighter top, darker bottom) + gold ring
             float cx = (x1 + x2) / 2f, cy = (y1 + y2) / 2f;
             float off = cell * 0.9f, r = cell * 0.45f;
             for (int i = 0; i < 4; i++) {
                 float px = cx + (i % 2 == 0 ? -off : off);
                 float py = cy + (i < 2 ? -off : off);
-                paint.setColor(0xffFFFFFF);
+                // soft drop shadow
+                paint.setColor(0x55000000);
+                canvas.drawCircle(px, py + r * 0.12f, r, paint);
+                // gradient body
+                paint.setShader(new LinearGradient(px, py - r, px, py + r,
+                    blend(color, 0xffFFFFFF, 0.55f), blend(color, 0xff000000, 0.3f),
+                    Shader.TileMode.CLAMP));
                 canvas.drawCircle(px, py, r, paint);
+                paint.setShader(null);
+                // gold ring
                 paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(cell * 0.07f);
-                paint.setColor(color);
+                paint.setStrokeWidth(cell * 0.06f);
+                paint.setColor(GOLD);
                 canvas.drawCircle(px, py, r, paint);
                 paint.setStyle(Paint.Style.FILL);
             }
@@ -396,12 +453,12 @@ public final class GameScreen extends BaseScreen {
 
         private void drawTrack(Canvas canvas, int left, int top, float cell) {
             int[] si = {0, 13, 26, 39};
-            int[] sc = {0xffE8293E, 0xff1E88E5, 0xffF9A825, 0xff43A047};
+            int[] sc = {ThemeManager.RED, ThemeManager.BLUE, ThemeManager.YELLOW, ThemeManager.GREEN};
             for (int i = 0; i < PATH.length; i++) {
                 int[] p = PATH[i];
-                int fill = 0xffFFFFFF, stroke = 0x22000000;
+                int fill = IVORY, stroke = 0x33B8941F;
                 for (int s = 0; s < si.length; s++) {
-                    if (i == si[s]) { fill = sc[s]; stroke = 0x44000000; break; }
+                    if (i == si[s]) { fill = sc[s]; stroke = GOLD; break; }
                 }
                 drawCell(canvas, left, top, cell, p[0], p[1], fill, stroke);
             }
@@ -413,24 +470,31 @@ public final class GameScreen extends BaseScreen {
                 drawStar(canvas,
                     left + (p[0] + 0.5f) * cell,
                     top  + (p[1] + 0.5f) * cell,
-                    cell * 0.25f,
-                    isStart ? 0xccFFFFFF : 0xff888888);
+                    cell * 0.27f,
+                    isStart ? 0xffFFFFFF : GOLD);
             }
         }
 
         private void drawHomeLanes(Canvas canvas, int left, int top, float cell) {
-            int[] f = {0xffF8B4BF, 0xffA8D8EA, 0xffFFF0A0, 0xffA8E6CF};
-            int[] s = {0xffE8293E, 0xff1E88E5, 0xffF9A825, 0xff43A047};
-            for (int seat = 0; seat < HOME_LANES.length; seat++)
+            // soft lane tints derived from each player's jewel tone
+            int[] base = {ThemeManager.RED, ThemeManager.BLUE, ThemeManager.YELLOW, ThemeManager.GREEN};
+            for (int seat = 0; seat < HOME_LANES.length; seat++) {
+                int tint = blend(base[seat], 0xffFFFFFF, 0.5f);
                 for (int[] p : HOME_LANES[seat])
-                    drawCell(canvas, left, top, cell, p[0], p[1], f[seat], s[seat]);
+                    drawCell(canvas, left, top, cell, p[0], p[1], tint, 0x66E9B949);
+            }
         }
 
         private void drawCenter(Canvas canvas, int left, int top, float cell) {
-            int[] c = {0xffE8293E, 0xff1E88E5, 0xffF9A825, 0xff43A047};
+            int[] c = {ThemeManager.RED, ThemeManager.BLUE, ThemeManager.YELLOW, ThemeManager.GREEN};
             float cx = left + 7.5f * cell, cy = top + 7.5f * cell;
             float x6 = left + 6 * cell, x9 = left + 9 * cell;
             float y6 = top + 6 * cell,  y9 = top + 9 * cell;
+            // white base
+            rect.set(x6, y6, x9, y9);
+            paint.setColor(0xffFFF8E8);
+            canvas.drawRect(rect, paint);
+            // 4 jewel-tone triangles meeting at center
             Path t = new Path();
             t.moveTo(x6, y9); t.lineTo(x9, y9); t.lineTo(cx, cy); t.close();
             paint.setColor(c[0]); canvas.drawPath(t, paint);
@@ -440,14 +504,43 @@ public final class GameScreen extends BaseScreen {
             paint.setColor(c[2]); canvas.drawPath(t, paint);
             t.reset(); t.moveTo(x9, y6); t.lineTo(x9, y9); t.lineTo(cx, cy); t.close();
             paint.setColor(c[3]); canvas.drawPath(t, paint);
+            // thin gold separators
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(cell * 0.06f);
-            paint.setColor(0x44000000);
+            paint.setStrokeWidth(cell * 0.05f);
+            paint.setColor(0x88E9B949);
             canvas.drawLine(x6, y6, x9, y9, paint);
             canvas.drawLine(x6, y9, x9, y6, paint);
-            t.reset();
-            t.moveTo(x6, y6); t.lineTo(x9, y6); t.lineTo(x9, y9); t.lineTo(x6, y9); t.close();
-            canvas.drawPath(t, paint);
+            // thick gold halo ring around the medallion
+            paint.setStrokeWidth(cell * 0.22f);
+            paint.setColor(GOLD);
+            canvas.drawCircle(cx, cy, cell * 0.98f, paint);
+            paint.setStrokeWidth(cell * 0.04f);
+            paint.setColor(GOLD_DK);
+            canvas.drawCircle(cx, cy, cell * 1.12f, paint);
+            // white inner disc + gold 6-point star
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(0xffFFF8E8);
+            canvas.drawCircle(cx, cy, cell * 0.66f, paint);
+            drawGoldStar6(canvas, cx, cy, cell * 0.6f);
+        }
+
+        /** Six-point royal star (12 alternating vertices), gold fill with darker outline. */
+        private void drawGoldStar6(Canvas canvas, float cx, float cy, float r) {
+            Path s = new Path();
+            for (int i = 0; i < 12; i++) {
+                double angle = -Math.PI / 2 + i * Math.PI / 6;
+                float rr = i % 2 == 0 ? r : r * 0.5f;
+                float x = cx + (float) Math.cos(angle) * rr;
+                float y = cy + (float) Math.sin(angle) * rr;
+                if (i == 0) s.moveTo(x, y); else s.lineTo(x, y);
+            }
+            s.close();
+            paint.setColor(GOLD);
+            canvas.drawPath(s, paint);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(r * 0.08f);
+            paint.setColor(GOLD_DK);
+            canvas.drawPath(s, paint);
             paint.setStyle(Paint.Style.FILL);
         }
 
@@ -484,26 +577,32 @@ public final class GameScreen extends BaseScreen {
 
         private void drawPiece(Canvas canvas, float cx, float cy, float r,
                                int color, boolean legal, boolean active) {
+            // legal/active highlight halo (gold)
             if (legal || active) {
                 paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(legal ? r * 0.28f : r * 0.16f);
-                paint.setColor(legal ? 0xffFFFFFF : 0x88FFFFFF);
-                canvas.drawCircle(cx, cy, r * (legal ? 1.45f : 1.28f), paint);
+                paint.setStrokeWidth(legal ? r * 0.3f : r * 0.16f);
+                paint.setColor(legal ? GOLD : 0x88E9B949);
+                canvas.drawCircle(cx, cy, r * (legal ? 1.5f : 1.3f), paint);
                 paint.setStyle(Paint.Style.FILL);
             }
-            paint.setColor(0x33000000);
-            canvas.drawCircle(cx + r * 0.18f, cy + r * 0.22f, r, paint);
-            paint.setColor(color);
-            canvas.drawCircle(cx, cy, r, paint);
-            paint.setShader(new RadialGradient(cx - r * 0.25f, cy - r * 0.3f, r * 1.2f,
-                0xAAFFFFFF, 0x00000000, Shader.TileMode.CLAMP));
+            // drop shadow
+            paint.setColor(0x44000000);
+            canvas.drawCircle(cx + r * 0.16f, cy + r * 0.2f, r, paint);
+            // gradient body — lighter top, darker bottom for a 3D bead look
+            paint.setShader(new LinearGradient(cx, cy - r, cx, cy + r,
+                blend(color, 0xffFFFFFF, 0.38f), blend(color, 0xff000000, 0.28f),
+                Shader.TileMode.CLAMP));
             canvas.drawCircle(cx, cy, r, paint);
             paint.setShader(null);
+            // gold outer ring
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(r * 0.16f);
-            paint.setColor(0xeeFFFFFF);
+            paint.setStrokeWidth(r * 0.22f);
+            paint.setColor(GOLD);
             canvas.drawCircle(cx, cy, r, paint);
             paint.setStyle(Paint.Style.FILL);
+            // white highlight dot (top-left) for a polished sheen
+            paint.setColor(0xccFFFFFF);
+            canvas.drawCircle(cx - r * 0.32f, cy - r * 0.34f, r * 0.22f, paint);
         }
 
         private float[] piecePos(JSONObject piece, int left, int top, float cell) {
@@ -553,7 +652,7 @@ public final class GameScreen extends BaseScreen {
         }
 
         private int seatColor(int s) {
-            int[] c = {0xffE8293E, 0xff1E88E5, 0xffF9A825, 0xff43A047};
+            int[] c = {ThemeManager.RED, ThemeManager.BLUE, ThemeManager.YELLOW, ThemeManager.GREEN};
             return c[Math.max(0, Math.min(3, s))];
         }
 
@@ -565,17 +664,22 @@ public final class GameScreen extends BaseScreen {
 
         private void drawEmpty(Canvas canvas, int left, int top, int size) {
             if (snapshot != null) return;
-            paint.setColor(0xAA0B1020);
-            rect.set(left + size * 0.18f, top + size * 0.39f,
-                     left + size * 0.82f, top + size * 0.61f);
+            rect.set(left + size * 0.16f, top + size * 0.39f,
+                     left + size * 0.84f, top + size * 0.61f);
+            paint.setColor(0xE60B1330);
             canvas.drawRoundRect(rect, size * 0.05f, size * 0.05f, paint);
-            paint.setColor(Color.WHITE);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(2f, size * 0.006f));
+            paint.setColor(GOLD);
+            canvas.drawRoundRect(rect, size * 0.05f, size * 0.05f, paint);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(GOLD);
             paint.setTypeface(Typeface.DEFAULT_BOLD);
             paint.setTextSize(size * 0.047f);
             paint.setTextAlign(Paint.Align.CENTER);
             canvas.drawText("Waiting for match", left + size / 2f, top + size * 0.49f, paint);
             paint.setTextSize(size * 0.032f);
-            paint.setColor(0xffB8C4D8);
+            paint.setColor(0xffC0C7D2);
             canvas.drawText("Setting up your game...", left + size / 2f, top + size * 0.55f, paint);
             paint.setTextAlign(Paint.Align.LEFT);
         }

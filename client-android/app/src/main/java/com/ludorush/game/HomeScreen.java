@@ -1,6 +1,10 @@
 package com.ludorush.game;
 
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
+import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
@@ -73,8 +77,36 @@ public final class HomeScreen extends BaseScreen {
         badge.setBackground(badgeBg);
         banner.addView(badge);
 
-        // ── App title ─────────────────────────────────────────────────────────
-        TextView titleText = text("LUDO RUSH", 38, theme.txtPrimary(), Typeface.BOLD);
+        // Quick theme toggle button in the banner header
+        Button bannerTheme = new Button(activity);
+        bannerTheme.setAllCaps(false);
+        bannerTheme.setText(theme.isDark() ? "☀️" : "🌙");
+        bannerTheme.setTextSize(18);
+        bannerTheme.setBackground(null);
+        bannerTheme.setOnClickListener(v -> {
+            theme.setDark(!theme.isDark());
+            activity.recreate();
+        });
+        banner.addView(bannerTheme, lp(dp(42), dp(42), dp(4), 0, 0, 0));
+
+        // ── App title — gradient shader RED→YELLOW→BLUE ───────────────────────
+        TextView titleText = new TextView(activity) {
+            @Override
+            protected void onDraw(android.graphics.Canvas canvas) {
+                android.graphics.Paint p = getPaint();
+                if (getMeasuredWidth() > 0) {
+                    p.setShader(new LinearGradient(
+                        0, 0, getMeasuredWidth(), 0,
+                        new int[]{ThemeManager.GOLD_LIGHT, ThemeManager.GOLD, ThemeManager.GOLD_LIGHT},
+                        null, Shader.TileMode.CLAMP));
+                }
+                super.onDraw(canvas);
+            }
+        };
+        titleText.setText("LUDO RUSH");
+        titleText.setTextSize(38);
+        titleText.setTextColor(ThemeManager.GOLD);
+        titleText.setTypeface(Typeface.DEFAULT_BOLD);
         titleText.setGravity(Gravity.CENTER);
         titleText.setLetterSpacing(0.06f);
         inner.addView(titleText, lp(-1, -2, 0, dp(4), 0, dp(2)));
@@ -83,11 +115,18 @@ public final class HomeScreen extends BaseScreen {
         subText.setGravity(Gravity.CENTER);
         inner.addView(subText, lp(-1, -2, 0, 0, 0, dp(24)));
 
-        // ── Primary play button ───────────────────────────────────────────────
+        // ── Primary play button (with pulse animation) ────────────────────────
         Button playBtn = actionButton("⚡  PLAY NOW", ThemeManager.RED, ThemeManager.YELLOW);
         playBtn.setTextSize(20);
         playBtn.setOnClickListener(v -> callback.navigateTo("lobby"));
         inner.addView(playBtn, lp(-1, dp(64), dp(6), 0, dp(6), dp(14)));
+
+        // Subtle alpha pulse: 0.75 → 1.0, repeating forever
+        ObjectAnimator pulse = ObjectAnimator.ofFloat(playBtn, "alpha", 0.78f, 1f);
+        pulse.setDuration(900);
+        pulse.setRepeatMode(ValueAnimator.REVERSE);
+        pulse.setRepeatCount(ValueAnimator.INFINITE);
+        pulse.start();
 
         // ── Quick-action row (Bot / Quick match) ──────────────────────────────
         LinearLayout quickRow = new LinearLayout(activity);
@@ -103,19 +142,19 @@ public final class HomeScreen extends BaseScreen {
         LinearLayout row1 = new LinearLayout(activity);
         row1.setOrientation(LinearLayout.HORIZONTAL);
         inner.addView(row1, lp(-1, -2, 0, 0, 0, dp(10)));
-        addNavCard(row1, "Profile",     "Stats & history", ThemeManager.BLUE,   "profile");
-        addNavCard(row1, "Leaderboard", "Top players",     ThemeManager.YELLOW, "leaderboard");
+        addNavCard(row1, "Profile",     "Stats & history", ThemeManager.BLUE,   "profile",     "👤");
+        addNavCard(row1, "Leaderboard", "Top players",     ThemeManager.YELLOW, "leaderboard", "🏆");
 
         LinearLayout row2 = new LinearLayout(activity);
         row2.setOrientation(LinearLayout.HORIZONTAL);
         inner.addView(row2, lp(-1, -2, 0, 0, 0, dp(10)));
-        addNavCard(row2, "Shop",     "Get coins",    ThemeManager.GREEN, "shop");
-        addNavCard(row2, "Settings", "Preferences",  0xff94A3B8,         "settings");
+        addNavCard(row2, "Shop",     "Get coins",    ThemeManager.GREEN, "shop",     "🛒");
+        addNavCard(row2, "Settings", "Preferences",  0xff94A3B8,         "settings", "⚙️");
 
         LinearLayout row3 = new LinearLayout(activity);
         row3.setOrientation(LinearLayout.HORIZONTAL);
         inner.addView(row3, lp(-1, -2, 0, 0, 0, dp(12)));
-        addNavCard(row3, "Match History", "Past games", ThemeManager.RED, "history");
+        addNavCard(row3, "Match History", "Past games", ThemeManager.RED, "history", "📜");
 
         // Version tag
         TextView ver = text("v0.3.0 — Ludo Rush", 11, theme.txtVer(), Typeface.NORMAL);
@@ -154,20 +193,33 @@ public final class HomeScreen extends BaseScreen {
         parent.addView(b, p);
     }
 
-    private void addNavCard(LinearLayout parent, String title, String sub, int accent, String screen) {
+    private void addNavCard(LinearLayout parent, String title, String sub, int accent, String screen, String emoji) {
         LinearLayout c = new LinearLayout(activity);
         c.setOrientation(LinearLayout.VERTICAL);
-        c.setPadding(dp(14), dp(14), dp(14), dp(14));
         c.setBackground(card(theme.bgCard(), dp(18), theme.strokeCard()));
         c.setOnClickListener(v -> callback.navigateTo(screen));
+        c.setClipToOutline(true);
 
-        // Accent dot (circle)
-        View dot = new View(activity);
-        dot.setBackground(circle(accent));
-        c.addView(dot, lp(dp(10), dp(10), 0, 0, 0, dp(10)));
+        // Colored gradient top bar
+        View topBar = new View(activity);
+        GradientDrawable barBg = new GradientDrawable(
+            GradientDrawable.Orientation.LEFT_RIGHT, new int[]{accent, 0x00000000});
+        topBar.setBackground(barBg);
+        c.addView(topBar, lp(-1, dp(4)));
 
-        c.addView(text(title, 14, theme.txtPrimary(), Typeface.BOLD));
-        c.addView(text(sub, 11, theme.txtMuted(), Typeface.NORMAL));
+        // Card body with padding
+        LinearLayout body = new LinearLayout(activity);
+        body.setOrientation(LinearLayout.VERTICAL);
+        body.setPadding(dp(14), dp(10), dp(14), dp(14));
+        c.addView(body, lp(-1, -2));
+
+        // Emoji header
+        body.addView(text(emoji, 24, Color.WHITE, Typeface.NORMAL),
+            lp(-2, -2, 0, 0, 0, dp(6)));
+
+        body.addView(text(title, 14, theme.txtPrimary(), Typeface.BOLD));
+        body.addView(text(sub, 11, theme.txtMuted(), Typeface.NORMAL),
+            lp(-1, -2, 0, dp(2), 0, 0));
 
         LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1);
         p.setMargins(dp(4), 0, dp(4), 0);

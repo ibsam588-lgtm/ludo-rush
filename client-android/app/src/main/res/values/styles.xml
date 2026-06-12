@@ -2,19 +2,19 @@
     <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans-serif</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="android:statusBarColor">#080B13</item>
-        <item name="android:navigationBarColor">#080B13</item>
-        <item name="android:colorAccent">#1E88E5</item>
+        <item name="android:statusBarColor">#070B18</item>
+        <item name="android:navigationBarColor">#070B18</item>
+        <item name="android:colorAccent">#E9B949</item>
     </style>
 
     <!-- Applied at runtime via getWindow() when light theme is active -->
     <style name="AppTheme.Light" parent="AppTheme">
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:statusBarColor">#F2F4FF</item>
-        <item name="android:navigationBarColor">#F2F4FF</item>
+        <item name="android:statusBarColor">#F7F1E3</item>
+        <item name="android:navigationBarColor">#F7F1E3</item>
     </style>
 
     <style name="DialogTheme" parent="android:style/Theme.Material.Light.Dialog.Alert">
-        <item name="android:colorAccent">#E8293E</item>
+        <item name="android:colorAccent">#E9B949</item>
     </style>
 </resources>

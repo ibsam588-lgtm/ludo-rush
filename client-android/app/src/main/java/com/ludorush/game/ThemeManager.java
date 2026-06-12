@@ -4,9 +4,14 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 /**
- * Singleton theme registry.  Call get(ctx) anywhere; toggle() flips dark↔light and
- * persists the preference.  All color methods return int ARGB values safe for
- * View.setBackgroundColor / TextView.setTextColor.
+ * Singleton theme registry — the heart of the "Royal Gold" visual identity.
+ *
+ * Two skins share one luxury language: deep-navy + gold ("Royal Night", dark) and
+ * warm-ivory + gold ("Royal Ivory", light).  Player pieces are jewel tones — ruby,
+ * sapphire, royal gold and emerald — and stay constant across both skins.
+ *
+ * Call get(ctx) anywhere; setDark() flips skins and persists.  All color methods
+ * return int ARGB values safe for View.setBackgroundColor / TextView.setTextColor.
  */
 public final class ThemeManager {
 
@@ -32,37 +37,44 @@ public final class ThemeManager {
     }
 
     // ── Page / structural backgrounds ─────────────────────────────────────────
-    public int bgPage()        { return dark ? 0xff080B13 : 0xffF2F4FF; }
-    public int bgHeader()      { return dark ? 0xff0D1320 : 0xffFFFFFF; }
-    public int bgCard()        { return dark ? 0xff111A2A : 0xffFFFFFF; }
-    public int bgMetric()      { return dark ? 0x221C2A3F : 0xffEEF4FF; }
-    public int bgSel()         { return dark ? 0xff1A3A5C : 0xffDCEBFF; }
-    public int bgDanger()      { return dark ? 0xff1A1010 : 0xffFFF0F0; }
-    public int bgGradStart()   { return dark ? 0xff192133 : 0xffEEF2FF; }
-    public int bgGradEnd()     { return dark ? 0xff101827 : 0xffE4EEFF; }
+    public int bgPage()        { return dark ? 0xff070B18 : 0xffF7F1E3; }
+    public int bgHeader()      { return dark ? 0xff0B1124 : 0xffFFFDF6; }
+    public int bgCard()        { return dark ? 0xff111A30 : 0xffFFFDF8; }
+    public int bgMetric()      { return dark ? 0x22C79A3A : 0xffF3EAD4; }
+    public int bgSel()         { return dark ? 0xff23304F : 0xffFAEFCD; }
+    public int bgDanger()      { return dark ? 0xff241016 : 0xffFCECEC; }
+    public int bgGradStart()   { return dark ? 0xff1C2745 : 0xffFFF7E4; }
+    public int bgGradEnd()     { return dark ? 0xff0F1830 : 0xffF5EBD3; }
 
     // ── Text ─────────────────────────────────────────────────────────────────
-    public int txtPrimary()    { return dark ? 0xffFFFFFF : 0xff0D1425; }
-    public int txtSecondary()  { return dark ? 0xff94A3B8 : 0xff475569; }
-    public int txtMuted()      { return dark ? 0xff6B7A90 : 0xff64748B; }
-    public int txtDim()        { return dark ? 0xff3A4556 : 0xffCBD5E1; }
-    public int txtVer()        { return dark ? 0xff3A4556 : 0xffA0AFCC; }
+    public int txtPrimary()    { return dark ? 0xffF6F1E4 : 0xff14203B; }
+    public int txtSecondary()  { return dark ? 0xffB7BECE : 0xff52607B; }
+    public int txtMuted()      { return dark ? 0xff7E8AA0 : 0xff7A86A0; }
+    public int txtDim()        { return dark ? 0xff404B62 : 0xffC9BD9C; }
+    public int txtVer()        { return dark ? 0xff3C465B : 0xffB8AC8A; }
 
     // ── Borders ───────────────────────────────────────────────────────────────
-    public int strokeCard()    { return dark ? 0x335D6D86 : 0xffC5D8F0; }
-    public int strokeCardAlt() { return dark ? 0x225D6D86 : 0xffD8E8FA; }
-    public int strokeGrad()    { return dark ? 0x334B5D78 : 0xffCDD8EE; }
-    public int strokeSel()     { return ThemeManager.BLUE; }  // selected-mode border, same in both themes
-    public int strokeDanger()  { return dark ? 0x44E8293E : 0xffFFCDD2; }
+    public int strokeCard()    { return dark ? 0x2EC79A3A : 0xffE6D8B6; }
+    public int strokeCardAlt() { return dark ? 0x1FC79A3A : 0xffEFE6CC; }
+    public int strokeGrad()    { return dark ? 0x44C79A3A : 0xffE2D2A6; }
+    public int strokeSel()     { return GOLD; }  // selected-mode border, gold in both skins
+    public int strokeDanger()  { return dark ? 0x44E0314B : 0xffF2C9C9; }
 
     // ── System bar colors (read by MainActivity) ──────────────────────────────
-    public int sysBarColor()   { return dark ? 0xff080B13 : 0xffF2F4FF; }
+    public int sysBarColor()   { return dark ? 0xff070B18 : 0xffF7F1E3; }
 
-    // ── Brand palette (unchanged in both themes) ──────────────────────────────
-    public static final int RED         = 0xffE8293E;
-    public static final int BLUE        = 0xff1E88E5;
-    public static final int YELLOW      = 0xffF9A825;
-    public static final int GREEN       = 0xff43A047;
-    public static final int BLUE_LIGHT  = 0xff42A5F5;
-    public static final int GREEN_LIGHT = 0xff66BB6A;
+    // ── Jewel player palette (constant across both skins) ──────────────────────
+    public static final int RED         = 0xffE0314B; // ruby
+    public static final int BLUE        = 0xff2E6BE6; // sapphire
+    public static final int YELLOW      = 0xffE9B949; // royal gold (doubles as accent)
+    public static final int GREEN       = 0xff1FA873; // emerald
+    public static final int BLUE_LIGHT  = 0xff5B95F5;
+    public static final int GREEN_LIGHT = 0xff3FC894;
+
+    // ── Royal accents ──────────────────────────────────────────────────────────
+    public static final int GOLD        = 0xffE9B949;
+    public static final int GOLD_LIGHT  = 0xffFFDD8A;
+    public static final int GOLD_DARK   = 0xffB8862B;
+    public static final int NAVY        = 0xff0B1330;
+    public static final int NAVY_DEEP   = 0xff060A1C;
 }

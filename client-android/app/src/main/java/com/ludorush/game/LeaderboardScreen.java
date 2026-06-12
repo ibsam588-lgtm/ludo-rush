@@ -66,7 +66,7 @@ public final class LeaderboardScreen extends BaseScreen {
         note.setGravity(Gravity.CENTER);
         content.addView(note);
 
-        return createScreenShell("Leaderboard", content);
+        return createScreenShell("Leaderboard", content, true);
     }
 
     private void addPlayerRow(LinearLayout parent, int rank, String name, int rating) {

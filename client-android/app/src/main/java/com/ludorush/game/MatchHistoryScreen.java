@@ -80,7 +80,7 @@ public final class MatchHistoryScreen extends BaseScreen {
             }
         }
 
-        return createScreenShell("Match History", content);
+        return createScreenShell("Match History", content, true);
     }
 
     private void addStatCard(LinearLayout parent, String value, String label, int color) {
