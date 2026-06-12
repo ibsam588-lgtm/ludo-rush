@@ -1,149 +1,153 @@
 package com.ludorush.game;
 
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.content.Intent;
 import android.net.Uri;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.Toast;
 
+/**
+ * Royal Rush Settings Screen.
+ *
+ * Sections:
+ *   • Appearance (dark mode, board style)
+ *   • Sound (SFX, music toggles)
+ *   • Notifications
+ *   • Game preferences (auto-move timer, dice animation)
+ *   • Account (log out, delete account danger zone)
+ */
 public final class SettingsScreen extends BaseScreen {
+
+    private SharedPreferences prefs;
 
     public SettingsScreen(android.app.Activity activity, ScreenCallback callback) {
         super(activity, callback);
+        prefs = activity.getSharedPreferences("ludo_settings", 0);
     }
 
     @Override
     public View createView() {
-        LinearLayout content = new LinearLayout(activity);
-        content.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout body = new LinearLayout(activity);
+        body.setOrientation(LinearLayout.VERTICAL);
 
-        SharedPreferences prefs = activity.getSharedPreferences("ludo_settings", 0);
+        addSectionLabel(body, "APPEARANCE");
+        body.addView(buildToggleRow("Dark Mode", "dark_mode",
+                true, ThemeManager.VIOLET));
+        body.addView(buildToggleRow("Board Glow Effects", "board_glow",
+                true, ThemeManager.TEAL), lp(-1, -2, 0, dp(8), 0, 0));
 
-        // ── Appearance ────────────────────────────────────────────────────────
-        addSectionLabel(content, "APPEARANCE");
+        addSectionLabel(body, "SOUND");
+        body.addView(buildToggleRow("Sound Effects", "sfx_enabled",
+                true, ThemeManager.GREEN));
+        body.addView(buildToggleRow("Background Music", "music_enabled",
+                false, ThemeManager.GREEN), lp(-1, -2, 0, dp(8), 0, 0));
 
-        LinearLayout themeRow = new LinearLayout(activity);
-        themeRow.setOrientation(LinearLayout.HORIZONTAL);
-        themeRow.setGravity(Gravity.CENTER_VERTICAL);
-        themeRow.setPadding(dp(16), dp(14), dp(14), dp(14));
-        themeRow.setBackground(card(theme.bgCard(), dp(14), theme.strokeCard()));
-        content.addView(themeRow, lp(-1, -2, 0, 0, 0, dp(8)));
+        addSectionLabel(body, "NOTIFICATIONS");
+        body.addView(buildToggleRow("Game Invites", "notif_invites",
+                true, ThemeManager.GOLD));
+        body.addView(buildToggleRow("Friend Challenges", "notif_challenges",
+                true, ThemeManager.GOLD), lp(-1, -2, 0, dp(8), 0, 0));
 
-        LinearLayout themeInfo = new LinearLayout(activity);
-        themeInfo.setOrientation(LinearLayout.VERTICAL);
-        themeRow.addView(themeInfo, new LinearLayout.LayoutParams(0, -2, 1));
-        themeInfo.addView(text("Dark Mode", 14, theme.txtPrimary(), Typeface.BOLD));
-        themeInfo.addView(text(theme.isDark() ? "Switch to light theme" : "Switch to dark theme",
-                12, theme.txtMuted(), Typeface.NORMAL));
+        addSectionLabel(body, "GAMEPLAY");
+        body.addView(buildToggleRow("Dice Roll Animation", "dice_anim",
+                true, ThemeManager.INDIGO));
+        body.addView(buildToggleRow("Auto-move Highlight", "auto_highlight",
+                true, ThemeManager.INDIGO), lp(-1, -2, 0, dp(8), 0, 0));
 
-        Switch themeSwitch = new Switch(activity);
-        themeSwitch.setChecked(theme.isDark());
-        themeSwitch.setOnCheckedChangeListener((v, checked) -> {
-            theme.setDark(checked);
-            // Recreate the activity so every screen gets the new palette
-            activity.recreate();
-        });
-        themeRow.addView(themeSwitch, lp(-2, -2));
+        addSectionLabel(body, "ACCOUNT");
+        body.addView(buildAccountSection(), lp(-1, -2));
 
-        // ── Audio ─────────────────────────────────────────────────────────────
-        addSectionLabel(content, "AUDIO");
-        addToggleRow(content, "Sound Effects", prefs, "sound_on", true);
-        addToggleRow(content, "Music",          prefs, "music_on", true);
-
-        // ── Notifications ─────────────────────────────────────────────────────
-        addSectionLabel(content, "NOTIFICATIONS");
-        addToggleRow(content, "Push Notifications", prefs, "notifs_on",    true);
-        addToggleRow(content, "Match Reminders",    prefs, "reminders_on", false);
-
-        // ── Account ───────────────────────────────────────────────────────────
-        addSectionLabel(content, "ACCOUNT");
-
-        addInfoCard(content, "Display Name", callback.getDisplayName());
-        addInfoCard(content, "Player ID",
-                callback.getPlayerId() != null ? callback.getPlayerId() : "Not signed in");
-
-        // ── About ─────────────────────────────────────────────────────────────
-        addSectionLabel(content, "ABOUT");
-        addInfoRow(content, "Version", "0.4.0 — Royal Gold");
-        addInfoRow(content, "Build",   "Internal Test");
-        addInfoRow(content, "Server",  "Cloudflare Workers");
-
-        // ── Legal ─────────────────────────────────────────────────────────────
-        addSectionLabel(content, "LEGAL");
-
-        Button privacy = secondaryButton("Privacy Policy");
-        privacy.setTextSize(14);
-        privacy.setOnClickListener(v ->
-            openUrl("https://corsairlabs.com/ludo-rush-privacy-policy"));
-        content.addView(privacy, lp(-1, dp(50), 0, 0, 0, dp(8)));
-
-        Button terms = secondaryButton("Terms of Service");
-        terms.setTextSize(14);
-        terms.setOnClickListener(v ->
-            Toast.makeText(activity, "Terms of Service — coming soon", Toast.LENGTH_SHORT).show());
-        content.addView(terms, lp(-1, dp(50), 0, 0, 0, dp(16)));
-
-        // Delete account (danger action)
-        Button deleteBtn = new Button(activity);
-        deleteBtn.setAllCaps(false);
-        deleteBtn.setText("Delete Account");
-        deleteBtn.setTextColor(ThemeManager.RED);
-        deleteBtn.setTextSize(14);
-        deleteBtn.setTypeface(Typeface.DEFAULT_BOLD);
-        deleteBtn.setBackground(card(theme.bgDanger(), dp(14), theme.strokeDanger()));
-        deleteBtn.setOnClickListener(v ->
-            Toast.makeText(activity, "Account deletion — coming soon", Toast.LENGTH_SHORT).show());
-        content.addView(deleteBtn, lp(-1, dp(50)));
-
-        return createScreenShell("Settings", content);
+        return createScreenShell("Settings", body);
     }
 
-    private void addToggleRow(LinearLayout parent, String label, SharedPreferences prefs,
-                              String key, boolean defVal) {
+    // ── Toggle row ────────────────────────────────────────────────────────────
+
+    private View buildToggleRow(String label, String key, boolean defaultVal, int accentColor) {
         LinearLayout row = new LinearLayout(activity);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setPadding(dp(16), dp(13), dp(13), dp(13));
-        row.setBackground(card(theme.bgCard(), dp(14), theme.strokeCard()));
-        parent.addView(row, lp(-1, -2, 0, 0, 0, dp(8)));
+        row.setBackground(glowCard(theme.bgCard(), dp(14), theme.strokeCard()));
+        row.setPadding(dp(16), dp(14), dp(12), dp(14));
 
-        TextView t = text(label, 14, theme.txtPrimary(), Typeface.NORMAL);
-        row.addView(t, new LinearLayout.LayoutParams(0, -2, 1));
+        // Accent dot
+        View dot = new View(activity);
+        dot.setBackground(circle(accentColor));
+        row.addView(dot, lp(dp(8), dp(8), 0, 0, dp(12), 0));
 
+        // Label
+        TextView labelTv = text(label, 14, theme.txtPrimary(), Typeface.NORMAL);
+        row.addView(labelTv, new LinearLayout.LayoutParams(0, -2, 1));
+
+        // Switch
         Switch sw = new Switch(activity);
-        sw.setChecked(prefs.getBoolean(key, defVal));
-        sw.setOnCheckedChangeListener((v, checked) -> prefs.edit().putBoolean(key, checked).apply());
-        row.addView(sw, lp(-2, -2));
+        boolean current = prefs.getBoolean(key, defaultVal);
+        sw.setChecked(current);
+        sw.setOnCheckedChangeListener((btn, checked) -> {
+            prefs.edit().putBoolean(key, checked).apply();
+            if ("dark_mode".equals(key)) {
+                theme.setDark(checked);
+                activity.recreate();
+            }
+        });
+        row.addView(sw);
+
+        return row;
     }
 
-    private void addInfoCard(LinearLayout parent, String label, String value) {
-        LinearLayout card = new LinearLayout(activity);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(16), dp(14), dp(16), dp(14));
-        card.setBackground(card(theme.bgCard(), dp(14), theme.strokeCard()));
-        parent.addView(card, lp(-1, -2, 0, 0, 0, dp(8)));
-        card.addView(text(label, 12, theme.txtMuted(), Typeface.BOLD));
-        card.addView(text(value, 14, theme.txtPrimary(), Typeface.NORMAL), lp(-1, -2, 0, dp(2), 0, 0));
+    // ── Account section ───────────────────────────────────────────────────────
+
+    private View buildAccountSection() {
+        LinearLayout col = new LinearLayout(activity);
+        col.setOrientation(LinearLayout.VERTICAL);
+
+        // Edit profile
+        View editRow = buildLinkRow("Edit Profile", theme.txtPrimary(), "editProfile");
+        col.addView(editRow, lp(-1, -2, 0, 0, 0, dp(8)));
+
+        // Restore purchases
+        View restoreRow = buildLinkRow("Restore Purchases", ThemeManager.TEAL, null);
+        col.addView(restoreRow, lp(-1, -2, 0, 0, 0, dp(8)));
+
+        // Privacy policy
+        View privacyRow = buildLinkRow("Privacy Policy", theme.txtMuted(), null);
+        privacyRow.setOnClickListener(v -> openUrl("https://corsairlabs.com/ludo-rush-privacy-policy"));
+        col.addView(privacyRow, lp(-1, -2, 0, 0, 0, dp(16)));
+
+        // Log out
+        Button logout = ghostButton("Log Out", ThemeManager.RED);
+        logout.setTextSize(14);
+        logout.setPadding(0, dp(14), 0, dp(14));
+        col.addView(logout, lp(-1, dp(50)));
+
+        return col;
     }
 
-    private void addInfoRow(LinearLayout parent, String label, String value) {
+    private View buildLinkRow(String label, int color, String screen) {
         LinearLayout row = new LinearLayout(activity);
         row.setOrientation(LinearLayout.HORIZONTAL);
-        row.setPadding(dp(16), dp(13), dp(16), dp(13));
-        row.setBackground(card(theme.bgCard(), dp(14), theme.strokeCard()));
-        parent.addView(row, lp(-1, -2, 0, 0, 0, dp(8)));
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setBackground(glowCard(theme.bgCard(), dp(14), theme.strokeCard()));
+        row.setPadding(dp(16), dp(14), dp(16), dp(14));
+        row.setClickable(true);
+        row.setFocusable(true);
+        if (screen != null) {
+            row.setOnClickListener(v -> callback.navigateTo(screen));
+        }
 
-        row.addView(text(label, 14, theme.txtSecondary(), Typeface.NORMAL),
-                new LinearLayout.LayoutParams(0, -2, 1));
-        row.addView(text(value, 14, theme.txtPrimary(), Typeface.BOLD));
+        TextView lbl = text(label, 14, color, Typeface.NORMAL);
+        row.addView(lbl, new LinearLayout.LayoutParams(0, -2, 1));
+
+        if (screen != null) {
+            TextView arrow = text(">", 20, theme.txtMuted(), Typeface.BOLD);
+            row.addView(arrow);
+        }
+        return row;
     }
 
     private void openUrl(String url) {

@@ -1,17 +1,17 @@
 package com.ludorush.game;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
-import android.graphics.RadialGradient;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -20,28 +20,37 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public final class GameScreen extends BaseScreen {
-    private TextView statusText;
-    private DiceView diceView;
-    private TextView turnText;
-    private TextView movesText;
-    private LinearLayout playerStrip;
-    private BoardView board;
-    private Button rollButton;
-    private Button moveButton;
-    private JSONObject snapshot;
 
-    public GameScreen(Activity activity, ScreenCallback callback) {
+    private BoardView boardView;
+    private DiceView diceView;
+    private TextView statusText;
+    private JSONObject snapshot;
+    private String myPlayerId;
+    private int lastRollValue;
+    private boolean lastRollMine;
+    private long lastRollAt;
+
+    public GameScreen(android.app.Activity activity, ScreenCallback callback) {
         super(activity, callback);
     }
 
     public void updateSnapshot(JSONObject snap, String playerId) {
-        this.snapshot = snap;
-        if (board != null) board.setSnapshot(snap, playerId);
-        if (statusText != null) refreshUi();
+        snapshot = snap;
+        myPlayerId = playerId;
+        if (boardView != null) boardView.setSnapshot(snap, playerId);
+        if (diceView != null) diceView.setValue(displayDiceValue(), lastRollMine);
+        if (statusText != null) refreshStatus();
     }
 
     public void setStatus(String text) {
         if (statusText != null) statusText.setText(text);
+    }
+
+    public void setLastRoll(int value, boolean mine) {
+        lastRollValue = Math.max(0, Math.min(6, value));
+        lastRollMine = mine;
+        lastRollAt = System.currentTimeMillis();
+        if (diceView != null) diceView.setValue(lastRollValue, mine);
     }
 
     @Override
@@ -49,363 +58,316 @@ public final class GameScreen extends BaseScreen {
         LinearLayout root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(theme.bgPage());
-        root.setPadding(dp(14), dp(14), dp(14), dp(10));
 
-        // ── Header ────────────────────────────────────────────────────────────
-        LinearLayout header = new LinearLayout(activity);
-        header.setOrientation(LinearLayout.HORIZONTAL);
-        header.setGravity(Gravity.CENTER_VERTICAL);
-        header.setPadding(dp(2), dp(4), dp(8), dp(8));
-        root.addView(header, lp(-1, -2, 0, 0, 0, dp(8)));
+        root.addView(buildPlayerStrip(1, 2), lp(-1, -2));
 
-        Button back = new Button(activity);
-        back.setAllCaps(false);
-        back.setText("‹");
-        back.setTextColor(ThemeManager.GOLD);
-        back.setTextSize(26);
-        back.setTypeface(Typeface.DEFAULT_BOLD);
-        back.setBackground(null);
-        back.setOnClickListener(v -> showLeaveConfirmation());
-        header.addView(back, lp(dp(48), dp(48)));
+        statusText = text("Connecting to match...", 13, Color.WHITE, Typeface.BOLD);
+        statusText.setGravity(Gravity.CENTER);
+        statusText.setPadding(dp(14), dp(9), dp(14), dp(9));
+        GradientDrawable statusBg = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                theme.isDark()
+                        ? new int[]{0xff7A1B87, 0xffD92784, 0xff7A1B87}
+                        : new int[]{0xffFF4FA3, 0xff7C4DFF, 0xff18BFF5});
+        statusBg.setCornerRadius(dp(18));
+        statusBg.setStroke(dp(2), ThemeManager.GOLD);
+        statusText.setBackground(statusBg);
+        root.addView(statusText, lp(-1, -2, dp(14), dp(8), dp(14), 0));
 
-        TextView title = text("Live Match", 18, theme.txtPrimary(), Typeface.BOLD);
-        header.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-
-        // Resign button (right side)
-        Button resignBtn = new Button(activity);
-        resignBtn.setAllCaps(false);
-        resignBtn.setText("Resign");
-        resignBtn.setTextColor(ThemeManager.RED);
-        resignBtn.setTextSize(12);
-        resignBtn.setTypeface(Typeface.DEFAULT_BOLD);
-        resignBtn.setBackground(card(theme.bgDanger(), dp(12), theme.strokeDanger()));
-        resignBtn.setPadding(dp(10), dp(4), dp(10), dp(4));
-        resignBtn.setOnClickListener(v -> showResignConfirmation());
-        header.addView(resignBtn);
-
-        // ── Stats row ─────────────────────────────────────────────────────────
-        LinearLayout statsRow = new LinearLayout(activity);
-        statsRow.setOrientation(LinearLayout.HORIZONTAL);
-        root.addView(statsRow, lp(-1, -2, 0, 0, 0, dp(8)));
-
-        LinearLayout diceCell = diceMetric();
-        turnText  = metric("TURN",  "Wait");
-        movesText = metric("MOVES", "0");
-
-        LinearLayout.LayoutParams mLp = new LinearLayout.LayoutParams(0, dp(64), 1);
-        mLp.setMargins(dp(2), 0, dp(2), 0);
-        statsRow.addView(diceCell,  mLp);
-        statsRow.addView(turnText,  new LinearLayout.LayoutParams(0, dp(64), 1));
-        statsRow.addView(movesText, new LinearLayout.LayoutParams(0, dp(64), 1));
-
-        // ── Player strip ──────────────────────────────────────────────────────
-        playerStrip = new LinearLayout(activity);
-        playerStrip.setOrientation(LinearLayout.HORIZONTAL);
-        playerStrip.setGravity(Gravity.CENTER);
-        root.addView(playerStrip, lp(-1, -2, 0, 0, 0, dp(8)));
-
-        // ── Board ─────────────────────────────────────────────────────────────
-        board = new BoardView(activity);
+        boardView = new BoardView(activity, theme, callback);
         LinearLayout.LayoutParams boardLp = new LinearLayout.LayoutParams(-1, 0);
         boardLp.weight = 1;
-        boardLp.setMargins(0, 0, 0, dp(10));
-        root.addView(board, boardLp);
+        boardLp.setMargins(dp(10), dp(8), dp(10), dp(8));
+        root.addView(boardView, boardLp);
 
-        // ── Status bar ────────────────────────────────────────────────────────
-        statusText = text("Waiting for match...", 14, theme.txtSecondary(), Typeface.BOLD);
-        statusText.setPadding(dp(14), dp(12), dp(14), dp(12));
-        statusText.setBackground(card(theme.bgCard(), dp(14), theme.strokeCard()));
-        root.addView(statusText, lp(-1, -2, 0, 0, 0, dp(10)));
+        root.addView(buildPlayerStrip(0, 3), lp(-1, -2));
+        root.addView(buildActionTray(), lp(-1, -2));
 
-        // ── Action buttons ────────────────────────────────────────────────────
-        LinearLayout actions = new LinearLayout(activity);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        root.addView(actions, lp(-1, dp(56)));
-
-        rollButton = actionButton("🎲  Roll Dice", ThemeManager.RED, 0xffF9502E);
-        rollButton.setTextSize(15);
-        rollButton.setOnClickListener(v -> callback.rollDice());
-        LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, -1, 1);
-        rp.setMargins(0, 0, dp(5), 0);
-        actions.addView(rollButton, rp);
-
-        moveButton = actionButton("⚡  Move Best", ThemeManager.BLUE, ThemeManager.BLUE_LIGHT);
-        moveButton.setTextSize(15);
-        moveButton.setOnClickListener(v -> callback.moveBestPiece());
-        LinearLayout.LayoutParams mp = new LinearLayout.LayoutParams(0, -1, 1);
-        mp.setMargins(dp(5), 0, 0, 0);
-        actions.addView(moveButton, mp);
-
+        if (snapshot != null) updateSnapshot(snapshot, myPlayerId);
         return root;
     }
 
-    // ── Dialogs ───────────────────────────────────────────────────────────────
-
-    private void showLeaveConfirmation() {
-        new AlertDialog.Builder(activity)
-                .setTitle("Leave Match?")
-                .setMessage("Leaving during a match counts as a resignation. Are you sure?")
-                .setPositiveButton("Leave & Resign", (d, w) -> {
-                    callback.resign();
-                    callback.goBack();
-                })
-                .setNegativeButton("Stay", null)
-                .show();
-    }
-
-    private void showResignConfirmation() {
-        new AlertDialog.Builder(activity)
-                .setTitle("Resign Match?")
-                .setMessage("This will end the current match and count as a loss.")
-                .setPositiveButton("Resign", (d, w) -> {
-                    callback.resign();
-                    callback.navigateTo("home");
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
-    }
-
-    // ── UI refresh ────────────────────────────────────────────────────────────
-
-    private void refreshUi() {
+    private void refreshStatus() {
         if (snapshot == null) return;
-        String status  = snapshot.optString("status", "waiting");
-        int dice       = snapshot.optInt("diceValue", 0);
+
+        String status = snapshot.optString("status", "waiting");
+        int mySeat = myActiveSeat();
+        int turnSeat = snapshot.optInt("currentTurnSeat", -1);
+        boolean myTurn = mySeat >= 0 && mySeat == turnSeat;
+        boolean hasDice = hasDiceValue(snapshot);
+        int dice = hasDice ? snapshot.optInt("diceValue", 0) : 0;
         JSONArray moves = snapshot.optJSONArray("availableMoves");
-        int turnSeat   = snapshot.optInt("currentTurnSeat", -1);
-        int mySeat     = mySeat();
-        boolean myTurn = mySeat >= 0 && mySeat == turnSeat && "playing".equals(status);
-
-        diceView.setValue(dice);
-        turnText.setText("TURN\n"  + (myTurn ? "You" : seatName(turnSeat)));
-        movesText.setText("MOVES\n" + (moves == null ? 0 : moves.length()));
-
-        boolean canRoll = myTurn && dice == 0;
-        boolean canMove = myTurn && dice > 0 && moves != null && moves.length() > 0;
-
-        rollButton.setEnabled(canRoll);
-        moveButton.setEnabled(canMove);
-        rollButton.setAlpha(canRoll ? 1f : 0.38f);
-        moveButton.setAlpha(canMove ? 1f : 0.38f);
+        boolean hasMoves = moves != null && moves.length() > 0;
 
         if ("finished".equals(status)) {
-            statusText.setText(winnerText());
-        } else if (canRoll) {
-            statusText.setText("Your turn — Roll the dice!");
-        } else if (canMove) {
-            statusText.setText("Rolled " + dice + " — Tap Move Best.");
+            statusText.setText("Match finished.");
+        } else if ("waiting".equals(status)) {
+            statusText.setText("Waiting for players...");
+        } else if (myTurn && !hasDice) {
+            statusText.setText("Your turn. Roll the dice.");
+        } else if (myTurn && hasMoves) {
+            statusText.setText("Rolled " + dice + ". Tap a highlighted piece.");
         } else if (myTurn) {
-            statusText.setText("No legal moves. Waiting for turn advance.");
+            statusText.setText("No legal moves. Passing turn...");
         } else {
-            statusText.setText("Waiting for " + seatName(turnSeat) + "...");
-        }
-
-        renderPlayers();
-    }
-
-    private void renderPlayers() {
-        playerStrip.removeAllViews();
-        JSONArray seats = snapshot != null ? snapshot.optJSONArray("seats") : null;
-        if (seats == null) return;
-        int activeSeat = snapshot.optInt("currentTurnSeat", -1);
-        String myId = callback.getPlayerId();
-
-        for (int i = 0; i < seats.length(); i++) {
-            JSONObject s = seats.optJSONObject(i);
-            if (s == null) continue;
-            int seat    = s.optInt("seat", 0);
-            boolean isMe   = myId != null && myId.equals(s.optString("playerId"));
-            boolean active = activeSeat == seat;
-            String name  = isMe ? "You" : s.optString("displayName", "Player");
-            String label = s.optBoolean("isBot") ? "Bot" : "Online";
-
-            LinearLayout card = new LinearLayout(activity);
-            card.setOrientation(LinearLayout.VERTICAL);
-            card.setGravity(Gravity.CENTER);
-            card.setPadding(dp(8), dp(6), dp(8), dp(6));
-            card.setBackground(card(
-                active ? theme.bgSel() : theme.bgCard(),
-                dp(14),
-                active ? seatColor(seat) : theme.strokeCardAlt()));
-
-            View dot = new View(activity);
-            dot.setBackground(circle(seatColor(seat)));
-            card.addView(dot, lp(dp(20), dp(20), 0, 0, 0, dp(3)));
-
-            TextView nameV = text(name, 11, theme.txtPrimary(), Typeface.BOLD);
-            nameV.setSingleLine(true);
-            nameV.setGravity(Gravity.CENTER);
-            card.addView(nameV);
-
-            TextView sub = text(active ? "Turn" : label, 10, theme.txtMuted(), Typeface.NORMAL);
-            sub.setGravity(Gravity.CENTER);
-            card.addView(sub);
-
-            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(0, -2, 1);
-            cp.setMargins(dp(3), 0, dp(3), 0);
-            playerStrip.addView(card, cp);
+            statusText.setText("Waiting for " + playerNameForSeat(turnSeat) + ".");
         }
     }
 
-    // ── Private helpers ───────────────────────────────────────────────────────
+    private int displayDiceValue() {
+        if (snapshot != null && hasDiceValue(snapshot)) {
+            return Math.max(1, Math.min(6, snapshot.optInt("diceValue", 1)));
+        }
+        long age = System.currentTimeMillis() - lastRollAt;
+        return age < 8000 ? lastRollValue : 0;
+    }
 
-    private int mySeat() {
-        if (snapshot == null || callback.getPlayerId() == null) return -1;
+    private boolean hasDiceValue(JSONObject snap) {
+        return snap != null && snap.has("diceValue") && !snap.isNull("diceValue");
+    }
+
+    private int myActiveSeat() {
+        if (snapshot == null || myPlayerId == null) return -1;
         JSONArray seats = snapshot.optJSONArray("seats");
         if (seats == null) return -1;
         for (int i = 0; i < seats.length(); i++) {
-            JSONObject s = seats.optJSONObject(i);
-            if (s != null && callback.getPlayerId().equals(s.optString("playerId")))
-                return s.optInt("seat", -1);
+            JSONObject seat = seats.optJSONObject(i);
+            if (seat != null && myPlayerId.equals(seat.optString("playerId"))) {
+                return seat.optInt("seat", -1);
+            }
         }
         return -1;
     }
 
-    private String seatName(int seatIndex) {
-        if (snapshot == null) return "Player";
-        JSONArray seats = snapshot.optJSONArray("seats");
-        if (seats == null) return "Seat " + (seatIndex + 1);
-        for (int i = 0; i < seats.length(); i++) {
-            JSONObject s = seats.optJSONObject(i);
-            if (s != null && s.optInt("seat", -1) == seatIndex) {
-                if (callback.getPlayerId() != null &&
-                    callback.getPlayerId().equals(s.optString("playerId"))) return "You";
-                return s.optString("displayName", "Seat " + (seatIndex + 1));
-            }
-        }
-        return "Seat " + (seatIndex + 1);
-    }
-
-    private String winnerText() {
-        String winner = snapshot.optString("winnerPlayerId", "");
-        if (callback.getPlayerId() != null && callback.getPlayerId().equals(winner))
-            return "🏆 You won!";
+    private String playerNameForSeat(int seatNumber) {
+        if (snapshot == null) return "player " + (seatNumber + 1);
         JSONArray seats = snapshot.optJSONArray("seats");
         if (seats != null) {
             for (int i = 0; i < seats.length(); i++) {
-                JSONObject s = seats.optJSONObject(i);
-                if (s != null && winner.equals(s.optString("playerId")))
-                    return s.optString("displayName", "Opponent") + " won.";
+                JSONObject seat = seats.optJSONObject(i);
+                if (seat != null && seat.optInt("seat", -1) == seatNumber) {
+                    String name = seat.optString("displayName", "");
+                    if (!name.isEmpty()) return name;
+                }
             }
         }
-        return "Match finished.";
+        return "player " + (seatNumber + 1);
     }
 
-    public JSONObject getSnapshot() { return snapshot; }
-
-    /** Stat cell housing the premium canvas die, styled to match metric() siblings. */
-    private LinearLayout diceMetric() {
-        LinearLayout cell = new LinearLayout(activity);
-        cell.setOrientation(LinearLayout.VERTICAL);
-        cell.setGravity(Gravity.CENTER);
-        cell.setPadding(dp(4), dp(7), dp(4), dp(6));
-        cell.setBackground(card(theme.bgMetric(), dp(14), theme.strokeCardAlt()));
-
-        TextView lbl = text("DICE", 11, theme.txtMuted(), Typeface.BOLD);
-        lbl.setGravity(Gravity.CENTER);
-        lbl.setLetterSpacing(0.1f);
-        cell.addView(lbl);
-
-        diceView = new DiceView(activity);
-        cell.addView(diceView, lp(dp(36), dp(36), 0, dp(3), 0, 0));
-        return cell;
+    private View buildPlayerStrip(int seatA, int seatB) {
+        LinearLayout strip = new LinearLayout(activity);
+        strip.setOrientation(LinearLayout.HORIZONTAL);
+        strip.setPadding(dp(8), dp(7), dp(8), dp(7));
+        strip.setBackgroundColor(theme.bgHeader());
+        strip.addView(buildSeatChip(seatA), new LinearLayout.LayoutParams(0, -2, 1));
+        strip.addView(new View(activity), lp(dp(10), 1));
+        strip.addView(buildSeatChip(seatB), new LinearLayout.LayoutParams(0, -2, 1));
+        return strip;
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // Premium dice canvas
-    // ══════════════════════════════════════════════════════════════════════════
+    private View buildSeatChip(int seat) {
+        int color = seatColor(seat);
+        LinearLayout card = new LinearLayout(activity);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setPadding(dp(7), dp(5), dp(7), dp(5));
+
+        GradientDrawable bg = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT,
+                theme.isDark()
+                        ? new int[]{darken(color, 0.62f), 0xff1F0E2F}
+                        : new int[]{brighten(color, 1.18f), 0xffffffff});
+        bg.setCornerRadius(dp(9));
+        bg.setStroke(dp(3), ThemeManager.GOLD);
+        card.setBackground(bg);
+        card.setElevation(dp(2));
+
+        card.addView(avatarRing("P" + (seat + 1), color, dp(34)),
+                lp(dp(34), dp(34), 0, 0, dp(8), 0));
+
+        LinearLayout col = new LinearLayout(activity);
+        col.setOrientation(LinearLayout.VERTICAL);
+        TextView name = text(playerNameForSeat(seat), 13, theme.isDark() ? Color.WHITE : theme.txtPrimary(), Typeface.BOLD);
+        name.setSingleLine(true);
+        col.addView(name, lp(-1, -2));
+        TextView meta = text(seat == myActiveSeat() ? "You" : "Seat " + (seat + 1),
+                9, theme.isDark() ? 0xffFFECA8 : 0xff5A245C, Typeface.BOLD);
+        meta.setSingleLine(true);
+        col.addView(meta, lp(-1, -2, 0, dp(2), 0, 0));
+        card.addView(col, new LinearLayout.LayoutParams(0, -2, 1));
+
+        TextView mic = text("MIC", 9, Color.WHITE, Typeface.BOLD);
+        mic.setGravity(Gravity.CENTER);
+        mic.setBackground(circle(0xff24102F));
+        card.addView(mic, lp(dp(34), dp(34), dp(6), 0, 0, 0));
+
+        return card;
+    }
+
+    private View buildActionTray() {
+        LinearLayout tray = new LinearLayout(activity);
+        tray.setOrientation(LinearLayout.VERTICAL);
+        tray.setPadding(dp(14), dp(10), dp(14), dp(14));
+        tray.setBackgroundColor(theme.bgHeader());
+
+        TextView voice = text("REAL TIME VOICE CHAT", 13, ThemeManager.GOLD, Typeface.BOLD);
+        voice.setGravity(Gravity.CENTER);
+        voice.setPadding(dp(8), dp(6), dp(8), dp(6));
+        voice.setBackground(card(theme.isDark() ? 0xff154A9A : 0xff6738E8, dp(8), ThemeManager.GOLD));
+        tray.addView(voice, lp(-1, -2, 0, 0, 0, dp(8)));
+
+        LinearLayout row = new LinearLayout(activity);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+
+        diceView = new DiceView(activity, theme);
+        GradientDrawable diceWrap = new GradientDrawable();
+        diceWrap.setColor(theme.bgCard());
+        diceWrap.setCornerRadius(dp(18));
+        diceWrap.setStroke(dp(1), theme.strokeCard());
+        diceView.setBackground(diceWrap);
+        row.addView(diceView, lp(dp(78), dp(78), 0, 0, dp(12), 0));
+
+        LinearLayout buttons = new LinearLayout(activity);
+        buttons.setOrientation(LinearLayout.VERTICAL);
+
+        Button roll = primaryButton("Roll Dice");
+        roll.setTextSize(17);
+        roll.setOnClickListener(v -> callback.rollDice());
+        buttons.addView(roll, lp(-1, dp(48), 0, 0, 0, dp(8)));
+
+        LinearLayout secondary = new LinearLayout(activity);
+        secondary.setOrientation(LinearLayout.HORIZONTAL);
+        Button best = actionButton("Best Move", ThemeManager.TEAL, 0xff008FA1);
+        best.setTextSize(13);
+        best.setOnClickListener(v -> callback.moveBestPiece());
+        secondary.addView(best, new LinearLayout.LayoutParams(0, dp(42), 1));
+
+        Button resign = ghostButton("Resign", ThemeManager.RED);
+        resign.setTextSize(13);
+        resign.setOnClickListener(v -> confirmResign());
+        LinearLayout.LayoutParams resignLp = new LinearLayout.LayoutParams(0, dp(42), 1);
+        resignLp.setMargins(dp(8), 0, 0, 0);
+        secondary.addView(resign, resignLp);
+        buttons.addView(secondary, lp(-1, -2));
+
+        row.addView(buttons, new LinearLayout.LayoutParams(0, -2, 1));
+        tray.addView(row, lp(-1, -2));
+        return tray;
+    }
+
+    private void confirmResign() {
+        new AlertDialog.Builder(activity)
+                .setTitle("Resign game?")
+                .setMessage("This will forfeit the match.")
+                .setPositiveButton("Resign", (d, w) -> callback.resign())
+                .setNegativeButton("Keep playing", null)
+                .show();
+    }
+
+    private int darken(int color, float factor) {
+        return Color.rgb(
+                Math.max(0, (int) (Color.red(color) * factor)),
+                Math.max(0, (int) (Color.green(color) * factor)),
+                Math.max(0, (int) (Color.blue(color) * factor)));
+    }
+
+    private int brighten(int color, float factor) {
+        return Color.rgb(
+                Math.min(255, (int) (Color.red(color) * factor)),
+                Math.min(255, (int) (Color.green(color) * factor)),
+                Math.min(255, (int) (Color.blue(color) * factor)));
+    }
 
     public static final class DiceView extends View {
+        private final ThemeManager theme;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final RectF r = new RectF();
         private int value;
+        private boolean mine;
 
-        public DiceView(Activity activity) { super(activity); }
+        DiceView(android.app.Activity activity, ThemeManager theme) {
+            super(activity);
+            this.theme = theme;
+            setPadding(8, 8, 8, 8);
+        }
 
-        public void setValue(int v) { value = v; invalidate(); }
+        void setValue(int next, boolean mineRoll) {
+            value = Math.max(0, Math.min(6, next));
+            mine = mineRoll;
+            invalidate();
+        }
 
-        @Override protected void onDraw(Canvas canvas) {
-            int w = getWidth(), h = getHeight();
-            float s = Math.min(w, h);
-            float pad = s * 0.1f;
-            float left = (w - s) / 2f + pad, top = (h - s) / 2f + pad;
-            float right = (w + s) / 2f - pad, bottom = (h + s) / 2f - pad;
-            float cw = right - left, ch = bottom - top;
-            float rad = cw * 0.24f;
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+            float w = getWidth();
+            float h = getHeight();
+            float pad = Math.min(w, h) * 0.12f;
+            RectF die = new RectF(pad, pad, w - pad, h - pad);
 
-            // soft drop shadow
-            r.set(left, top + s * 0.05f, right, bottom + s * 0.05f);
-            paint.setColor(0x40000000);
-            canvas.drawRoundRect(r, rad, rad, paint);
-
-            // ivory face with a subtle top-to-bottom sheen
-            r.set(left, top, right, bottom);
-            paint.setShader(new LinearGradient(left, top, right, bottom,
-                0xffFFFDF4, 0xffEADFC0, Shader.TileMode.CLAMP));
-            canvas.drawRoundRect(r, rad, rad, paint);
+            paint.setShader(new LinearGradient(0, 0, w, h,
+                    mine
+                            ? new int[]{ThemeManager.GOLD, ThemeManager.AMBER}
+                            : new int[]{0xffF8FAFC, 0xffD8E2EF},
+                    null,
+                    Shader.TileMode.CLAMP));
+            paint.setStyle(Paint.Style.FILL);
+            canvas.drawRoundRect(die, pad * 0.7f, pad * 0.7f, paint);
             paint.setShader(null);
 
-            // gold rim
             paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(s * 0.06f);
-            paint.setColor(ThemeManager.GOLD);
-            canvas.drawRoundRect(r, rad, rad, paint);
-            paint.setStyle(Paint.Style.FILL);
+            paint.setStrokeWidth(Math.max(2f, pad * 0.22f));
+            paint.setColor(mine ? 0xffFFF6CA : 0xff91A3B8);
+            canvas.drawRoundRect(die, pad * 0.7f, pad * 0.7f, paint);
 
-            float cx = left + cw / 2f, cy = top + ch / 2f;
-
-            // no active roll yet → a single muted dash
-            if (value < 1 || value > 6) {
-                paint.setColor(0xff9A8A5E);
-                paint.setStrokeWidth(s * 0.05f);
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeCap(Paint.Cap.ROUND);
-                canvas.drawLine(cx - cw * 0.16f, cy, cx + cw * 0.16f, cy, paint);
+            if (value == 0) {
                 paint.setStyle(Paint.Style.FILL);
+                paint.setColor(0xff506070);
+                paint.setTextAlign(Paint.Align.CENTER);
+                paint.setTypeface(Typeface.create("sans-serif-medium", Typeface.BOLD));
+                paint.setTextSize(Math.min(w, h) * 0.18f);
+                canvas.drawText("ROLL", w / 2f, h / 2f + paint.getTextSize() * 0.34f, paint);
                 return;
             }
 
-            // navy pips in the standard face arrangement
-            float pr = cw * 0.1f;
-            float lx = left + cw * 0.29f, rx = right - cw * 0.29f;
-            float ty = top + ch * 0.29f, by = bottom - ch * 0.29f;
-            paint.setColor(ThemeManager.NAVY);
-            boolean diag  = value == 2 || value == 3;
-            boolean four  = value >= 4;
-            boolean mid   = value % 2 == 1;            // 1,3,5 carry a centre pip
-            boolean sixMid = value == 6;               // 6 uses the two mid-row pips
-            if (four) {                                 // four corners
-                canvas.drawCircle(lx, ty, pr, paint);
-                canvas.drawCircle(rx, ty, pr, paint);
-                canvas.drawCircle(lx, by, pr, paint);
-                canvas.drawCircle(rx, by, pr, paint);
-            } else if (diag) {                          // 2 & 3 share a TL–BR diagonal
-                canvas.drawCircle(lx, ty, pr, paint);
-                canvas.drawCircle(rx, by, pr, paint);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(0xff111827);
+            float r = Math.min(w, h) * 0.055f;
+            float left = die.left + die.width() * 0.28f;
+            float midX = die.centerX();
+            float right = die.right - die.width() * 0.28f;
+            float top = die.top + die.height() * 0.28f;
+            float midY = die.centerY();
+            float bottom = die.bottom - die.height() * 0.28f;
+
+            if (value == 1 || value == 3 || value == 5) dot(canvas, midX, midY, r);
+            if (value >= 2) {
+                dot(canvas, left, top, r);
+                dot(canvas, right, bottom, r);
             }
-            if (sixMid) {                               // 6 adds left/right middle pips
-                canvas.drawCircle(lx, cy, pr, paint);
-                canvas.drawCircle(rx, cy, pr, paint);
+            if (value >= 4) {
+                dot(canvas, right, top, r);
+                dot(canvas, left, bottom, r);
             }
-            if (mid) {                                  // centre pip for 1,3,5
-                canvas.drawCircle(cx, cy, pr, paint);
+            if (value == 6) {
+                dot(canvas, left, midY, r);
+                dot(canvas, right, midY, r);
             }
+        }
+
+        private void dot(Canvas canvas, float x, float y, float r) {
+            canvas.drawCircle(x, y, r, paint);
         }
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // Board canvas
-    // ══════════════════════════════════════════════════════════════════════════
-
     public static final class BoardView extends View {
-        private static final int[][] PATH = {
+        private static final int CELLS = 15;
+        private static final int[] START_OFFSETS = {0, 13, 26, 39};
+        private static final int[][] TRACK_CELLS = {
                 {6,14},{6,13},{6,12},{6,11},{6,10},{6,9},{5,8},{4,8},{3,8},{2,8},{1,8},{0,8},{0,7},
                 {0,6},{1,6},{2,6},{3,6},{4,6},{5,6},{6,5},{6,4},{6,3},{6,2},{6,1},{6,0},{7,0},
                 {8,0},{8,1},{8,2},{8,3},{8,4},{8,5},{9,6},{10,6},{11,6},{12,6},{13,6},{14,6},{14,7},
                 {14,8},{13,8},{12,8},{11,8},{10,8},{9,8},{8,9},{8,10},{8,11},{8,12},{8,13},{8,14},{7,14}
-        };
-        private static final int[][] SAFE = {
-                {6,14},{3,8},{0,6},{6,3},{8,0},{11,6},{14,8},{8,11}
         };
         private static final int[][][] HOME_LANES = {
                 {{7,13},{7,12},{7,11},{7,10},{7,9}},
@@ -413,391 +375,450 @@ public final class GameScreen extends BaseScreen {
                 {{7,1},{7,2},{7,3},{7,4},{7,5}},
                 {{13,7},{12,7},{11,7},{10,7},{9,7}}
         };
+        private static final float[][] BASE_CORNERS = {{0,9}, {0,0}, {9,0}, {9,9}};
+        private static final float[][] YARD_SLOTS = {{2.1f,2.1f}, {3.9f,2.1f}, {2.1f,3.9f}, {3.9f,3.9f}};
+        private static final int[] SAFE_TRACK_INDEXES = {0, 8, 13, 21, 26, 34, 39, 47};
 
-        // Royal Gold board surfaces
-        private static final int NAVY  = ThemeManager.NAVY_DEEP;  // deep navy board fill
-        private static final int IVORY = 0xffF5F0DC;              // warm cream cross path
-        private static final int GOLD  = ThemeManager.GOLD;
-        private static final int GOLD_DK = ThemeManager.GOLD_DARK;
-
+        private final ThemeManager theme;
+        private final ScreenCallback callback;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        private final RectF  rect  = new RectF();
         private JSONObject snapshot;
         private String playerId;
+        private float ox;
+        private float oy;
+        private float cell;
+        private float size;
 
-        public BoardView(Activity activity) {
+        public BoardView(android.app.Activity activity, ThemeManager theme, ScreenCallback callback) {
             super(activity);
-            setMinimumHeight(600);
+            this.theme = theme;
+            this.callback = callback;
+            setClickable(true);
         }
 
-        public void setSnapshot(JSONObject snapshot, String playerId) {
-            this.snapshot = snapshot;
-            this.playerId = playerId;
+        public void setSnapshot(JSONObject snap, String pid) {
+            snapshot = snap;
+            playerId = pid;
             invalidate();
         }
 
-        @Override protected void onDraw(Canvas canvas) {
+        @Override
+        protected void onDraw(Canvas canvas) {
             super.onDraw(canvas);
-            int w = getWidth(), h = getHeight();
-            int size = Math.min(w - 8, h - 8);
-            int left = (w - size) / 2, top = (h - size) / 2;
-            float cell = size / 15f;
+            int w = getWidth();
+            int h = getHeight();
+            size = Math.min(w, h);
+            ox = (w - size) / 2f;
+            oy = (h - size) / 2f;
+            cell = size / (float) CELLS;
 
-            drawShell(canvas, left, top, size);
-            drawBases(canvas, left, top, cell);
-            drawTrack(canvas, left, top, cell);
-            drawHomeLanes(canvas, left, top, cell);
-            drawGridLines(canvas, left, top, cell);
-            drawCenter(canvas, left, top, cell);
-            drawPieces(canvas, left, top, cell);
-            drawEmpty(canvas, left, top, size);
+            drawBoardBase(canvas);
+            drawTrackCells(canvas);
+            drawHomeZones(canvas);
+            drawHomeLanes(canvas);
+            drawCenter(canvas);
+            drawGrid(canvas);
+            drawLegalMoveHints(canvas);
+            drawPieces(canvas);
+            drawVoiceChatOverlay(canvas);
         }
 
-        /** Soft channel-blend of two ARGB colors (t=0 → a, t=1 → b). Private to BoardView. */
-        private int blend(int a, int b, float t) {
-            float ia = 1f - t;
-            int aa = (int) (((a >>> 24) & 0xff) * ia + ((b >>> 24) & 0xff) * t);
-            int rr = (int) (((a >> 16) & 0xff) * ia + ((b >> 16) & 0xff) * t);
-            int gg = (int) (((a >> 8)  & 0xff) * ia + ((b >> 8)  & 0xff) * t);
-            int bb = (int) ((a & 0xff) * ia + (b & 0xff) * t);
-            return (aa << 24) | (rr << 16) | (gg << 8) | bb;
-        }
-
-        private void drawShell(Canvas canvas, int left, int top, int size) {
-            // deep navy board fill
-            rect.set(left, top, left + size, top + size);
-            paint.setColor(NAVY);
-            canvas.drawRect(rect, paint);
-            // double gold border — outer ~4px, gap ~2px, inner ~2px (both gold)
-            paint.setStyle(Paint.Style.STROKE);
-            float outerW = Math.max(4f, size * 0.018f);
-            float innerW = Math.max(2f, size * 0.009f);
-            float gap    = Math.max(2f, size * 0.009f);
-            paint.setStrokeWidth(outerW);
-            paint.setColor(GOLD);
-            canvas.drawRect(rect, paint);
-            // inner gold line, offset by half-strokes + gap so the two never touch
-            float inset = outerW / 2f + gap + innerW / 2f;
-            rect.set(left + inset, top + inset, left + size - inset, top + size - inset);
-            paint.setStrokeWidth(innerW);
-            paint.setColor(GOLD);
-            canvas.drawRect(rect, paint);
-            paint.setStyle(Paint.Style.FILL);
-        }
-
-        /** Very subtle grid for cell definition (mostly visible over the cream cross). */
-        private void drawGridLines(Canvas canvas, int left, int top, float cell) {
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(Math.max(1f, cell * 0.02f));
-            paint.setColor(0x18000000);
-            for (int i = 0; i <= 15; i++) {
-                float p = i * cell;
-                canvas.drawLine(left + p, top, left + p, top + 15 * cell, paint);
-                canvas.drawLine(left, top + p, left + 15 * cell, top + p, paint);
+        @Override
+        public boolean onTouchEvent(MotionEvent event) {
+            if (event.getAction() != MotionEvent.ACTION_UP || snapshot == null) {
+                return true;
             }
-            paint.setStyle(Paint.Style.FILL);
-        }
 
-        private void drawBases(Canvas canvas, int left, int top, float cell) {
-            drawBase(canvas, left, top, cell, 0, 9, ThemeManager.RED);     // Ruby
-            drawBase(canvas, left, top, cell, 0, 0, ThemeManager.BLUE);    // Sapphire
-            drawBase(canvas, left, top, cell, 9, 0, ThemeManager.YELLOW);  // Amber
-            drawBase(canvas, left, top, cell, 9, 9, ThemeManager.GREEN);   // Emerald
-        }
-
-        private void drawBase(Canvas canvas, int left, int top, float cell,
-                              int gx, int gy, int color) {
-            float x1 = left + gx * cell, y1 = top + gy * cell;
-            float x2 = left + (gx + 6) * cell, y2 = top + (gy + 6) * cell;
-            // rich saturated fill
-            rect.set(x1, y1, x2, y2);
-            paint.setColor(color);
-            canvas.drawRect(rect, paint);
-            // gold border
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(cell * 0.1f);
-            paint.setColor(GOLD);
-            canvas.drawRect(rect, paint);
-            paint.setStyle(Paint.Style.FILL);
-            // near-black inner panel + thin gold frame
-            float ins = cell * 0.85f;
-            rect.set(x1 + ins, y1 + ins, x2 - ins, y2 - ins);
-            paint.setColor(blend(color, 0xff04080F, 0.82f));
-            canvas.drawRect(rect, paint);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(cell * 0.05f);
-            paint.setColor(0x99D4AF37);
-            canvas.drawRect(rect, paint);
-            paint.setStyle(Paint.Style.FILL);
-            // 4 polished piece spots — gradient (lighter top, darker bottom) + gold ring
-            float cx = (x1 + x2) / 2f, cy = (y1 + y2) / 2f;
-            float off = cell * 0.9f, r = cell * 0.45f;
-            for (int i = 0; i < 4; i++) {
-                float px = cx + (i % 2 == 0 ? -off : off);
-                float py = cy + (i < 2 ? -off : off);
-                // soft drop shadow
-                paint.setColor(0x55000000);
-                canvas.drawCircle(px, py + r * 0.12f, r, paint);
-                // gradient body
-                paint.setShader(new LinearGradient(px, py - r, px, py + r,
-                    blend(color, 0xffFFFFFF, 0.55f), blend(color, 0xff000000, 0.3f),
-                    Shader.TileMode.CLAMP));
-                canvas.drawCircle(px, py, r, paint);
-                paint.setShader(null);
-                // gold ring
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(cell * 0.06f);
-                paint.setColor(GOLD);
-                canvas.drawCircle(px, py, r, paint);
-                paint.setStyle(Paint.Style.FILL);
-                // white highlight dot (top-left) for a polished sheen
-                paint.setColor(0xccFFFFFF);
-                canvas.drawCircle(px - r * 0.34f, py - r * 0.36f, r * 0.2f, paint);
+            JSONArray moves = snapshot.optJSONArray("availableMoves");
+            JSONArray pieces = snapshot.optJSONArray("pieces");
+            if (moves == null || pieces == null || moves.length() == 0) {
+                return true;
             }
-        }
 
-        private void drawTrack(Canvas canvas, int left, int top, float cell) {
-            int[] si = {0, 13, 26, 39};
-            int[] sc = {ThemeManager.RED, ThemeManager.BLUE, ThemeManager.YELLOW, ThemeManager.GREEN};
-            for (int i = 0; i < PATH.length; i++) {
-                int[] p = PATH[i];
-                int fill = IVORY, stroke = 0x33B8941F;
-                for (int s = 0; s < si.length; s++) {
-                    if (i == si[s]) { fill = sc[s]; stroke = GOLD; break; }
+            String bestPiece = "";
+            float bestDistance = Float.MAX_VALUE;
+            float maxDistance = cell * 0.75f;
+            for (int i = 0; i < moves.length(); i++) {
+                String pieceId = moves.optString(i, "");
+                JSONObject piece = pieceById(pieces, pieceId);
+                if (piece == null) continue;
+
+                float[] center = pieceCenter(piece);
+                float x = ox + center[0] * cell;
+                float y = oy + center[1] * cell;
+                float dx = event.getX() - x;
+                float dy = event.getY() - y;
+                float distance = (float) Math.sqrt(dx * dx + dy * dy);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestPiece = pieceId;
                 }
-                drawCell(canvas, left, top, cell, p[0], p[1], fill, stroke);
             }
-            for (int[] p : SAFE) {
-                // gold 5-point star marks every safe cell
-                drawStar(canvas,
-                    left + (p[0] + 0.5f) * cell,
-                    top  + (p[1] + 0.5f) * cell,
-                    cell * 0.27f,
-                    GOLD);
+
+            if (!bestPiece.isEmpty() && bestDistance <= maxDistance) {
+                callback.movePiece(bestPiece);
+            }
+            return true;
+        }
+
+        private void drawBoardBase(Canvas canvas) {
+            RectF outer = new RectF(ox, oy, ox + size, oy + size);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setShader(new LinearGradient(ox, oy, ox + size, oy + size,
+                    new int[]{theme.bgBoard(), theme.isDark() ? 0xff182436 : 0xffffffff, theme.bgBoard()},
+                    null,
+                    Shader.TileMode.CLAMP));
+            canvas.drawRoundRect(outer, cell * 0.55f, cell * 0.55f, paint);
+            paint.setShader(null);
+
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(3f, cell * 0.08f));
+            paint.setColor(theme.strokeCardGlow());
+            canvas.drawRoundRect(outer, cell * 0.55f, cell * 0.55f, paint);
+            paint.setStyle(Paint.Style.FILL);
+        }
+
+        private void drawTrackCells(Canvas canvas) {
+            for (int i = 0; i < TRACK_CELLS.length; i++) {
+                int[] xy = TRACK_CELLS[i];
+                int fill = isStartIndex(i) ? seatColorForStart(i) : (theme.isDark() ? 0xffF7F1E3 : 0xffffffff);
+                drawCell(canvas, xy[0], xy[1], fill, theme.isDark() ? 0xffC9D1DA : 0xffD7C8FF);
+                if (isSafeIndex(i)) drawStar(canvas, xy[0] + 0.5f, xy[1] + 0.5f, cell * 0.24f, ThemeManager.GOLD);
             }
         }
 
-        private void drawHomeLanes(Canvas canvas, int left, int top, float cell) {
-            // colored safe lane per player, drawn in that jewel's soft companion tint
-            int[] soft = {ThemeManager.RED_SOFT, ThemeManager.BLUE_SOFT,
-                          ThemeManager.YELLOW_SOFT, ThemeManager.GREEN_SOFT};
+        private void drawHomeZones(Canvas canvas) {
+            for (int seat = 0; seat < 4; seat++) {
+                float x = BASE_CORNERS[seat][0];
+                float y = BASE_CORNERS[seat][1];
+                int color = seatColor(seat);
+
+                RectF zone = rectForGrid(x, y, 6f, 6f, 1.5f);
+                paint.setStyle(Paint.Style.FILL);
+                paint.setColor(color);
+                canvas.drawRoundRect(zone, cell * 0.42f, cell * 0.42f, paint);
+
+                paint.setColor(0x2EFFFFFF);
+                canvas.drawRoundRect(zone, cell * 0.42f, cell * 0.42f, paint);
+
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(Math.max(2f, cell * 0.05f));
+                paint.setColor(0xE8FFFFFF);
+                canvas.drawRoundRect(zone, cell * 0.42f, cell * 0.42f, paint);
+
+                RectF tray = rectForGrid(x + 1.1f, y + 1.1f, 3.8f, 3.8f, 3f);
+                paint.setStyle(Paint.Style.FILL);
+                paint.setColor(theme.isDark() ? theme.bgBoard() : 0xeeFFFFFF);
+                canvas.drawRoundRect(tray, cell * 0.34f, cell * 0.34f, paint);
+
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(Math.max(1.5f, cell * 0.04f));
+                paint.setColor(theme.isDark() ? 0x66FFFFFF : 0x887C4DFF);
+                canvas.drawRoundRect(tray, cell * 0.34f, cell * 0.34f, paint);
+                paint.setStyle(Paint.Style.FILL);
+            }
+        }
+
+        private void drawHomeLanes(Canvas canvas) {
             for (int seat = 0; seat < HOME_LANES.length; seat++) {
-                for (int[] p : HOME_LANES[seat])
-                    drawCell(canvas, left, top, cell, p[0], p[1], soft[seat], 0x66D4AF37);
+                int fill = seatColorSoft(seat);
+                for (int i = 0; i < HOME_LANES[seat].length; i++) {
+                    int[] xy = HOME_LANES[seat][i];
+                    drawCell(canvas, xy[0], xy[1], fill, theme.isDark() ? 0xffF8FAFC : 0xffffffff);
+                }
             }
         }
 
-        private void drawCenter(Canvas canvas, int left, int top, float cell) {
-            int[] c = {ThemeManager.RED, ThemeManager.BLUE, ThemeManager.YELLOW, ThemeManager.GREEN};
-            float cx = left + 7.5f * cell, cy = top + 7.5f * cell;
-            float x6 = left + 6 * cell, x9 = left + 9 * cell;
-            float y6 = top + 6 * cell,  y9 = top + 9 * cell;
-            // white base
-            rect.set(x6, y6, x9, y9);
-            paint.setColor(0xffFFF8E8);
-            canvas.drawRect(rect, paint);
-            // 4 jewel-tone triangles meeting at center
-            Path t = new Path();
-            t.moveTo(x6, y9); t.lineTo(x9, y9); t.lineTo(cx, cy); t.close();
-            paint.setColor(c[0]); canvas.drawPath(t, paint);
-            t.reset(); t.moveTo(x6, y6); t.lineTo(x6, y9); t.lineTo(cx, cy); t.close();
-            paint.setColor(c[1]); canvas.drawPath(t, paint);
-            t.reset(); t.moveTo(x6, y6); t.lineTo(x9, y6); t.lineTo(cx, cy); t.close();
-            paint.setColor(c[2]); canvas.drawPath(t, paint);
-            t.reset(); t.moveTo(x9, y6); t.lineTo(x9, y9); t.lineTo(cx, cy); t.close();
-            paint.setColor(c[3]); canvas.drawPath(t, paint);
-            // thin gold separators
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(cell * 0.05f);
-            paint.setColor(0x88D4AF37);
-            canvas.drawLine(x6, y6, x9, y9, paint);
-            canvas.drawLine(x6, y9, x9, y6, paint);
-            // thick gold halo ring around the medallion
-            paint.setStrokeWidth(cell * 0.22f);
-            paint.setColor(GOLD);
-            canvas.drawCircle(cx, cy, cell * 0.98f, paint);
-            paint.setStrokeWidth(cell * 0.04f);
-            paint.setColor(GOLD_DK);
-            canvas.drawCircle(cx, cy, cell * 1.12f, paint);
-            // white inner disc + gold 6-point star
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(0xffFFF8E8);
-            canvas.drawCircle(cx, cy, cell * 0.66f, paint);
-            drawGoldStar6(canvas, cx, cy, cell * 0.6f);
+        private void drawCenter(Canvas canvas) {
+            float cx = ox + 7.5f * cell;
+            float cy = oy + 7.5f * cell;
+            int centerFill = theme.isDark() ? 0xffF7F1E3 : 0xffffffff;
+            int centerStroke = theme.isDark() ? 0xffC9D1DA : 0xffD7C8FF;
+            drawCell(canvas, 6, 6, centerFill, centerStroke);
+            drawCell(canvas, 7, 6, centerFill, centerStroke);
+            drawCell(canvas, 8, 6, centerFill, centerStroke);
+            drawCell(canvas, 6, 7, centerFill, centerStroke);
+            drawCell(canvas, 7, 7, centerFill, centerStroke);
+            drawCell(canvas, 8, 7, centerFill, centerStroke);
+            drawCell(canvas, 6, 8, centerFill, centerStroke);
+            drawCell(canvas, 7, 8, centerFill, centerStroke);
+            drawCell(canvas, 8, 8, centerFill, centerStroke);
+
+            drawTriangle(canvas, cx, cy, 7.5f, 9f, 6f, 9f, ThemeManager.RED);
+            drawTriangle(canvas, cx, cy, 6f, 6f, 6f, 9f, ThemeManager.BLUE);
+            drawTriangle(canvas, cx, cy, 6f, 6f, 9f, 6f, ThemeManager.YELLOW);
+            drawTriangle(canvas, cx, cy, 9f, 6f, 9f, 9f, ThemeManager.GREEN);
+            drawStar(canvas, 7.5f, 7.5f, cell * 0.52f, Color.WHITE);
         }
 
-        /** Six-point royal star (12 alternating vertices), gold fill with darker outline. */
-        private void drawGoldStar6(Canvas canvas, float cx, float cy, float r) {
-            Path s = new Path();
-            for (int i = 0; i < 12; i++) {
-                double angle = -Math.PI / 2 + i * Math.PI / 6;
-                float rr = i % 2 == 0 ? r : r * 0.5f;
-                float x = cx + (float) Math.cos(angle) * rr;
-                float y = cy + (float) Math.sin(angle) * rr;
-                if (i == 0) s.moveTo(x, y); else s.lineTo(x, y);
+        private void drawGrid(Canvas canvas) {
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(0.7f, cell * 0.018f));
+            paint.setColor(theme.isDark() ? 0x28000000 : 0x1F5A245C);
+            for (int i = 0; i <= CELLS; i++) {
+                float line = i * cell;
+                canvas.drawLine(ox + line, oy, ox + line, oy + size, paint);
+                canvas.drawLine(ox, oy + line, ox + size, oy + line, paint);
             }
-            s.close();
-            paint.setColor(GOLD);
-            canvas.drawPath(s, paint);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(r * 0.08f);
-            paint.setColor(GOLD_DK);
-            canvas.drawPath(s, paint);
             paint.setStyle(Paint.Style.FILL);
         }
 
-        private void drawCell(Canvas canvas, int left, int top, float cell,
-                              int gx, int gy, int fill, int stroke) {
-            float pad = cell * 0.03f;
-            rect.set(left + gx * cell + pad,       top + gy * cell + pad,
-                     left + (gx + 1) * cell - pad, top + (gy + 1) * cell - pad);
-            paint.setColor(fill);
-            canvas.drawRect(rect, paint);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(Math.max(1f, cell * 0.04f));
-            paint.setColor(stroke);
-            canvas.drawRect(rect, paint);
-            paint.setStyle(Paint.Style.FILL);
+        private void drawLegalMoveHints(Canvas canvas) {
+            if (snapshot == null) return;
+            JSONArray moves = snapshot.optJSONArray("availableMoves");
+            JSONArray pieces = snapshot.optJSONArray("pieces");
+            if (moves == null || pieces == null) return;
+
+            for (int i = 0; i < moves.length(); i++) {
+                JSONObject piece = pieceById(pieces, moves.optString(i, ""));
+                if (piece == null) continue;
+                float[] center = pieceCenter(piece);
+                float x = ox + center[0] * cell;
+                float y = oy + center[1] * cell;
+
+                paint.setStyle(Paint.Style.FILL);
+                paint.setColor(0x33FFD700);
+                canvas.drawCircle(x, y, cell * 0.58f, paint);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeWidth(Math.max(3f, cell * 0.07f));
+                paint.setColor(ThemeManager.GOLD);
+                canvas.drawCircle(x, y, cell * 0.48f, paint);
+                paint.setStyle(Paint.Style.FILL);
+            }
         }
 
-        private void drawPieces(Canvas canvas, int left, int top, float cell) {
+        private void drawPieces(Canvas canvas) {
             if (snapshot == null) return;
             JSONArray pieces = snapshot.optJSONArray("pieces");
             if (pieces == null) return;
-            JSONArray avail  = snapshot.optJSONArray("availableMoves");
-            int activeSeat   = snapshot.optInt("currentTurnSeat", -1);
+
             for (int i = 0; i < pieces.length(); i++) {
-                JSONObject p = pieces.optJSONObject(i);
-                if (p == null) continue;
-                float[] pos = piecePos(p, left, top, cell);
-                int seat    = p.optInt("seat");
-                boolean legal  = contains(avail, p.optString("pieceId"));
-                drawPiece(canvas, pos[0], pos[1], cell * 0.38f,
-                    seatColor(seat), legal, activeSeat == seat);
+                JSONObject piece = pieces.optJSONObject(i);
+                if (piece == null) continue;
+                drawPiece(canvas, piece);
             }
         }
 
-        private void drawPiece(Canvas canvas, float cx, float cy, float r,
-                               int color, boolean legal, boolean active) {
-            // legal/active highlight halo (gold)
-            if (legal || active) {
-                paint.setStyle(Paint.Style.STROKE);
-                paint.setStrokeWidth(legal ? r * 0.3f : r * 0.16f);
-                paint.setColor(legal ? GOLD : 0x88D4AF37);
-                canvas.drawCircle(cx, cy, r * (legal ? 1.5f : 1.3f), paint);
-                paint.setStyle(Paint.Style.FILL);
-            }
-            // drop shadow
-            paint.setColor(0x44000000);
-            canvas.drawCircle(cx + r * 0.16f, cy + r * 0.2f, r, paint);
-            // gradient body — lighter top, darker bottom for a 3D bead look
-            paint.setShader(new LinearGradient(cx, cy - r, cx, cy + r,
-                blend(color, 0xffFFFFFF, 0.38f), blend(color, 0xff000000, 0.28f),
-                Shader.TileMode.CLAMP));
-            canvas.drawCircle(cx, cy, r, paint);
-            paint.setShader(null);
-            // gold outer ring
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(r * 0.22f);
-            paint.setColor(GOLD);
-            canvas.drawCircle(cx, cy, r, paint);
+        private void drawVoiceChatOverlay(Canvas canvas) {
+            float cx = ox + 7.5f * cell;
+            float cy = oy + 7.5f * cell;
+            float width = size * 0.42f;
+            float height = cell * 0.86f;
+            RectF panel = new RectF(cx - width / 2f, cy - height / 2f, cx + width / 2f, cy + height / 2f);
+
             paint.setStyle(Paint.Style.FILL);
-            // white highlight dot (top-left) for a polished sheen
-            paint.setColor(0xccFFFFFF);
-            canvas.drawCircle(cx - r * 0.32f, cy - r * 0.34f, r * 0.22f, paint);
-        }
+            paint.setColor(theme.isDark() ? 0x9935104F : 0xbbFFFFFF);
+            canvas.drawRoundRect(panel, height * 0.45f, height * 0.45f, paint);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(2f, cell * 0.040f));
+            paint.setColor(theme.isDark() ? ThemeManager.GOLD : 0xff7C4DFF);
+            canvas.drawRoundRect(panel, height * 0.45f, height * 0.45f, paint);
 
-        private float[] piecePos(JSONObject piece, int left, int top, float cell) {
-            int seat    = piece.optInt("seat");
-            int pi      = pieceIdx(piece.optString("pieceId"));
-            String state = piece.optString("state");
-            int progress = piece.optInt("progress", -1);
-            if ("yard".equals(state) || progress < 0)
-                return yardPos(seat, pi, left, top, cell);
-            if ("finished".equals(state) || progress >= 57)
-                return offset(left + 7.5f * cell, top + 7.5f * cell, pi, cell);
-            if ("home".equals(state) || progress > 51) {
-                int li = Math.max(0, Math.min(4, progress - 52));
-                int[] p = HOME_LANES[Math.max(0, Math.min(3, seat))][li];
-                return offset(left + (p[0] + 0.5f) * cell, top + (p[1] + 0.5f) * cell, pi, cell * 0.4f);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(0xffFF2E7E);
+            canvas.drawCircle(cx, cy, height * 0.48f, paint);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(3f, cell * 0.060f));
+            paint.setColor(ThemeManager.GOLD);
+            canvas.drawCircle(cx, cy, height * 0.48f, paint);
+
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(Color.WHITE);
+            canvas.drawRoundRect(new RectF(cx - cell * 0.10f, cy - cell * 0.23f, cx + cell * 0.10f, cy + cell * 0.17f),
+                    cell * 0.09f, cell * 0.09f, paint);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(2f, cell * 0.045f));
+            paint.setColor(Color.WHITE);
+            canvas.drawArc(new RectF(cx - cell * 0.24f, cy - cell * 0.03f, cx + cell * 0.24f, cy + cell * 0.34f),
+                    20, 140, false, paint);
+            canvas.drawLine(cx, cy + cell * 0.34f, cx, cy + cell * 0.49f, paint);
+            canvas.drawLine(cx - cell * 0.15f, cy + cell * 0.49f, cx + cell * 0.15f, cy + cell * 0.49f, paint);
+
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(2f, cell * 0.045f));
+            paint.setColor(0xEFFFFFFF);
+            for (int side = -1; side <= 1; side += 2) {
+                for (int i = 0; i < 6; i++) {
+                    float x = cx + side * (cell * 0.58f + i * cell * 0.24f);
+                    float y1 = cy - (i % 3 + 1) * cell * 0.09f;
+                    float y2 = cy + (i % 3 + 1) * cell * 0.09f;
+                    canvas.drawLine(x, y1, x, y2, paint);
+                }
             }
-            int ti = piece.optInt("trackIndex", -1);
-            if (ti < 0 || ti >= PATH.length) ti = (seatStart(seat) + progress) % PATH.length;
-            int[] p = PATH[ti];
-            return offset(left + (p[0] + 0.5f) * cell, top + (p[1] + 0.5f) * cell, pi, cell * 0.34f);
+            paint.setStyle(Paint.Style.FILL);
         }
 
-        private float[] yardPos(int seat, int idx, int left, int top, float cell) {
-            int[][] bases = {{0,9},{0,0},{9,0},{9,9}};
-            int s = Math.max(0, Math.min(3, seat));
-            float[][] slots = {{2.1f,2.1f},{3.9f,2.1f},{2.1f,3.9f},{3.9f,3.9f}};
-            return new float[]{
-                left + (bases[s][0] + slots[idx % 4][0]) * cell,
-                top  + (bases[s][1] + slots[idx % 4][1]) * cell
-            };
+        private void drawPiece(Canvas canvas, JSONObject piece) {
+            int seat = clampSeat(piece.optInt("seat", 0));
+            int color = seatColor(seat);
+            int index = pieceIndex(piece.optString("pieceId", ""));
+            float[] center = pieceCenter(piece);
+            boolean yard = "yard".equals(piece.optString("state", ""));
+            if (!yard) {
+                float offset = cell * 0.13f;
+                if (index == 0) { center[0] -= offset / cell; center[1] -= offset / cell; }
+                if (index == 1) { center[0] += offset / cell; center[1] -= offset / cell; }
+                if (index == 2) { center[0] -= offset / cell; center[1] += offset / cell; }
+                if (index == 3) { center[0] += offset / cell; center[1] += offset / cell; }
+            }
+
+            float x = ox + center[0] * cell;
+            float y = oy + center[1] * cell;
+            float radius = cell * (yard ? 0.39f : 0.37f);
+
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(0x66000000);
+            canvas.drawCircle(x + cell * 0.05f, y + cell * 0.07f, radius, paint);
+
+            paint.setColor(color);
+            canvas.drawCircle(x, y, radius, paint);
+
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(2f, cell * 0.055f));
+            paint.setColor(0xEFFFFFFF);
+            canvas.drawCircle(x, y, radius * 0.9f, paint);
+            paint.setStyle(Paint.Style.FILL);
+
+            paint.setColor(0xCCFFFFFF);
+            canvas.drawCircle(x - radius * 0.28f, y - radius * 0.32f, radius * 0.23f, paint);
         }
 
-        private float[] offset(float x, float y, int idx, float amt) {
-            float d = Math.max(3f, amt * 0.16f);
-            return new float[]{x + (idx % 2 == 0 ? -d : d), y + (idx < 2 ? -d : d)};
+        private float[] pieceCenter(JSONObject piece) {
+            int seat = clampSeat(piece.optInt("seat", 0));
+            int progress = piece.optInt("progress", -1);
+            int index = pieceIndex(piece.optString("pieceId", ""));
+            String state = piece.optString("state", "yard");
+
+            if ("yard".equals(state) || progress < 0) {
+                return new float[]{
+                        BASE_CORNERS[seat][0] + YARD_SLOTS[index % 4][0],
+                        BASE_CORNERS[seat][1] + YARD_SLOTS[index % 4][1]
+                };
+            }
+
+            if ("home".equals(state)) {
+                int lane = Math.max(0, Math.min(4, progress - 52));
+                return new float[]{HOME_LANES[seat][lane][0] + 0.5f, HOME_LANES[seat][lane][1] + 0.5f};
+            }
+
+            if ("finished".equals(state)) {
+                float offset = (index - 1.5f) * 0.18f;
+                return new float[]{7.5f + offset, 7.5f + offset};
+            }
+
+            int track = piece.has("trackIndex")
+                    ? piece.optInt("trackIndex", trackIndex(seat, progress))
+                    : trackIndex(seat, progress);
+            track = Math.max(0, Math.min(TRACK_CELLS.length - 1, track));
+            return new float[]{TRACK_CELLS[track][0] + 0.5f, TRACK_CELLS[track][1] + 0.5f};
         }
 
-        private int pieceIdx(String id) {
-            if (id == null || id.isEmpty()) return 0;
-            char c = id.charAt(id.length() - 1);
-            return c >= '0' && c <= '3' ? c - '0' : 0;
+        private JSONObject pieceById(JSONArray pieces, String id) {
+            for (int i = 0; i < pieces.length(); i++) {
+                JSONObject piece = pieces.optJSONObject(i);
+                if (piece != null && id.equals(piece.optString("pieceId"))) {
+                    return piece;
+                }
+            }
+            return null;
         }
 
-        private int seatStart(int s) {
-            int[] starts = {0, 13, 26, 39};
-            return starts[Math.max(0, Math.min(3, s))];
+        private int trackIndex(int seat, int progress) {
+            if (progress < 0 || progress > 51) return 0;
+            return (START_OFFSETS[clampSeat(seat)] + progress) % TRACK_CELLS.length;
         }
 
-        private int seatColor(int s) {
-            int[] c = {ThemeManager.RED, ThemeManager.BLUE, ThemeManager.YELLOW, ThemeManager.GREEN};
-            return c[Math.max(0, Math.min(3, s))];
+        private int pieceIndex(String id) {
+            int idx = id.lastIndexOf('p');
+            if (idx < 0 || idx == id.length() - 1) return 0;
+            try {
+                return Math.max(0, Math.min(3, Integer.parseInt(id.substring(idx + 1))));
+            } catch (NumberFormatException e) {
+                return 0;
+            }
         }
 
-        private boolean contains(JSONArray a, String v) {
-            if (a == null || v == null) return false;
-            for (int i = 0; i < a.length(); i++) if (v.equals(a.optString(i))) return true;
+        private int clampSeat(int seat) {
+            return Math.max(0, Math.min(3, seat));
+        }
+
+        private void drawCell(Canvas canvas, int x, int y, int fill, int stroke) {
+            RectF rect = rectForGrid(x, y, 1, 1, 1.8f);
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(fill);
+            canvas.drawRoundRect(rect, cell * 0.12f, cell * 0.12f, paint);
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(Math.max(1f, cell * 0.02f));
+            paint.setColor(stroke);
+            canvas.drawRoundRect(rect, cell * 0.12f, cell * 0.12f, paint);
+            paint.setStyle(Paint.Style.FILL);
+        }
+
+        private RectF rectForGrid(float x, float y, float w, float h, float insetPx) {
+            return new RectF(
+                    ox + x * cell + insetPx,
+                    oy + y * cell + insetPx,
+                    ox + (x + w) * cell - insetPx,
+                    oy + (y + h) * cell - insetPx);
+        }
+
+        private void drawTriangle(Canvas canvas, float cx, float cy, float x1, float y1, float x2, float y2, int color) {
+            Path path = new Path();
+            path.moveTo(cx, cy);
+            path.lineTo(ox + x1 * cell, oy + y1 * cell);
+            path.lineTo(ox + x2 * cell, oy + y2 * cell);
+            path.close();
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(color);
+            canvas.drawPath(path, paint);
+        }
+
+        private void drawStar(Canvas canvas, float gridX, float gridY, float radius, int color) {
+            float cx = ox + gridX * cell;
+            float cy = oy + gridY * cell;
+            Path star = new Path();
+            for (int i = 0; i < 5; i++) {
+                double a = -Math.PI / 2 + i * 2 * Math.PI / 5;
+                float x = cx + (float) (Math.cos(a) * radius);
+                float y = cy + (float) (Math.sin(a) * radius);
+                if (i == 0) star.moveTo(x, y); else star.lineTo(x, y);
+                double inner = a + Math.PI / 5;
+                star.lineTo(
+                        cx + (float) (Math.cos(inner) * radius * 0.42f),
+                        cy + (float) (Math.sin(inner) * radius * 0.42f));
+            }
+            star.close();
+            paint.setStyle(Paint.Style.FILL);
+            paint.setColor(color);
+            canvas.drawPath(star, paint);
+        }
+
+        private boolean isStartIndex(int idx) {
+            return idx == 0 || idx == 13 || idx == 26 || idx == 39;
+        }
+
+        private int seatColorForStart(int idx) {
+            if (idx == 0) return ThemeManager.RED_SOFT;
+            if (idx == 13) return ThemeManager.BLUE_SOFT;
+            if (idx == 26) return ThemeManager.YELLOW_SOFT;
+            return ThemeManager.GREEN_SOFT;
+        }
+
+        private boolean isSafeIndex(int idx) {
+            for (int safe : SAFE_TRACK_INDEXES) {
+                if (safe == idx) return true;
+            }
             return false;
         }
 
-        private void drawEmpty(Canvas canvas, int left, int top, int size) {
-            if (snapshot != null) return;
-            rect.set(left + size * 0.16f, top + size * 0.39f,
-                     left + size * 0.84f, top + size * 0.61f);
-            paint.setColor(0xE6091428);
-            canvas.drawRoundRect(rect, size * 0.05f, size * 0.05f, paint);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(Math.max(2f, size * 0.006f));
-            paint.setColor(GOLD);
-            canvas.drawRoundRect(rect, size * 0.05f, size * 0.05f, paint);
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(GOLD);
-            paint.setTypeface(Typeface.DEFAULT_BOLD);
-            paint.setTextSize(size * 0.047f);
-            paint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("Waiting for match", left + size / 2f, top + size * 0.49f, paint);
-            paint.setTextSize(size * 0.032f);
-            paint.setColor(0xffC0C7D2);
-            canvas.drawText("Setting up your game...", left + size / 2f, top + size * 0.55f, paint);
-            paint.setTextAlign(Paint.Align.LEFT);
+        private int seatColor(int seat) {
+            int[] c = {ThemeManager.RED, ThemeManager.BLUE, ThemeManager.YELLOW, ThemeManager.GREEN};
+            return c[clampSeat(seat)];
         }
 
-        private void drawStar(Canvas canvas, float cx, float cy, float radius, int color) {
-            Path star = new Path();
-            for (int i = 0; i < 10; i++) {
-                double angle = -Math.PI / 2 + i * Math.PI / 5;
-                float r = i % 2 == 0 ? radius : radius * 0.45f;
-                float x = cx + (float) Math.cos(angle) * r;
-                float y = cy + (float) Math.sin(angle) * r;
-                if (i == 0) star.moveTo(x, y); else star.lineTo(x, y);
-            }
-            star.close();
-            paint.setColor(color);
-            canvas.drawPath(star, paint);
+        private int seatColorSoft(int seat) {
+            int[] c = {ThemeManager.RED_SOFT, ThemeManager.BLUE_SOFT, ThemeManager.YELLOW_SOFT, ThemeManager.GREEN_SOFT};
+            return c[clampSeat(seat)];
         }
     }
 }

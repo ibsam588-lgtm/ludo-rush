@@ -10,16 +10,28 @@ import android.widget.TextView;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+/**
+ * Royal Rush Results Screen.
+ *
+ * Uses the real game snapshot (JSONObject) from the server to show:
+ *   • Win / Loss headline with trophy/dash icon
+ *   • Rewards card (rating delta + coins)
+ *   • Player ranking list from snapshot seats array
+ *   • Play Again (via interstitial) + Home buttons
+ */
 public final class ResultsScreen extends BaseScreen {
+
     private final JSONObject snapshot;
 
-    public ResultsScreen(android.app.Activity activity, ScreenCallback callback, JSONObject snapshot) {
+    public ResultsScreen(android.app.Activity activity, ScreenCallback callback,
+                         JSONObject snapshot) {
         super(activity, callback);
         this.snapshot = snapshot;
     }
 
     @Override
     public View createView() {
+        // ── Resolve winner from snapshot ────────────────────────────────────────
         boolean won = false;
         String winnerName = "Unknown";
         if (snapshot != null) {
@@ -37,146 +49,191 @@ public final class ResultsScreen extends BaseScreen {
                 }
             }
         }
+        final boolean didWin = won;
 
-        LinearLayout root = new LinearLayout(activity);
-        root.setOrientation(LinearLayout.VERTICAL);
-        root.setBackgroundColor(theme.bgPage());
-        root.setPadding(dp(18), dp(30), dp(18), dp(18));
-        root.setGravity(Gravity.CENTER_HORIZONTAL);
+        LinearLayout body = new LinearLayout(activity);
+        body.setOrientation(LinearLayout.VERTICAL);
+        body.setGravity(Gravity.CENTER_HORIZONTAL);
 
-        // ── Top label ────────────────────────────────────────────────────────
-        TextView headerLabel = text("MATCH COMPLETE", 12, theme.txtMuted(), Typeface.BOLD);
-        headerLabel.setGravity(Gravity.CENTER);
-        headerLabel.setLetterSpacing(0.14f);
-        root.addView(headerLabel, lp(-1, -2, 0, 0, 0, dp(20)));
+        // ── Hero banner ──────────────────────────────────────────────────────
+        body.addView(buildHeroBanner(didWin, winnerName), lp(-1, -2, 0, 0, 0, dp(20)));
 
-        // ── Trophy / dash icon ────────────────────────────────────────────────
-        TextView trophy = text(won ? "🏆" : "😞", 56, won ? ThemeManager.YELLOW : theme.txtDim(), Typeface.BOLD);
-        trophy.setGravity(Gravity.CENTER);
-        root.addView(trophy, lp(-1, -2, 0, 0, 0, dp(8)));
+        // ── Rewards card ─────────────────────────────────────────────────────
+        body.addView(buildRewardsCard(didWin), lp(-1, -2, 0, 0, 0, dp(20)));
 
-        // ── Result heading ────────────────────────────────────────────────────
-        TextView result = text(won ? "VICTORY!" : "DEFEAT", 30,
-                won ? ThemeManager.GREEN : ThemeManager.RED, Typeface.BOLD);
-        result.setGravity(Gravity.CENTER);
-        result.setLetterSpacing(0.05f);
-        root.addView(result, lp(-1, -2, 0, 0, 0, dp(4)));
-
-        if (!won) {
-            TextView winBy = text(winnerName + " won the match", 14, theme.txtMuted(), Typeface.NORMAL);
-            winBy.setGravity(Gravity.CENTER);
-            root.addView(winBy, lp(-1, -2, 0, 0, 0, dp(4)));
-        }
-
-        // ── Rewards card ──────────────────────────────────────────────────────
-        LinearLayout rewardsCard = new LinearLayout(activity);
-        rewardsCard.setOrientation(LinearLayout.HORIZONTAL);
-        rewardsCard.setGravity(Gravity.CENTER);
-        rewardsCard.setPadding(dp(20), dp(18), dp(20), dp(18));
-        rewardsCard.setBackground(cardGradient(theme.bgGradStart(), theme.bgGradEnd(), dp(20)));
-        root.addView(rewardsCard, lp(-1, -2, dp(16), dp(24), dp(16), dp(8)));
-
-        addRewardCol(rewardsCard, "RATING", won ? "+12" : "−6",
-                won ? ThemeManager.GREEN : ThemeManager.RED);
-        addDividerV(rewardsCard);
-        addRewardCol(rewardsCard, "COINS", won ? "+100" : "+15", ThemeManager.YELLOW);
-
-        // Mode tag
+        // ── Mode pill ────────────────────────────────────────────────────────
         String mode = snapshot != null
-            ? snapshot.optString("mode", "classic_2p").replace("_", " ").toUpperCase(java.util.Locale.US)
-            : "—";
-        TextView modeText = text("Mode: " + mode, 13, theme.txtMuted(), Typeface.NORMAL);
-        modeText.setGravity(Gravity.CENTER);
-        root.addView(modeText, lp(-1, -2, 0, dp(12), 0, dp(16)));
+                ? snapshot.optString("mode", "classic_2p").replace("_", " ")
+                          .toUpperCase(java.util.Locale.US)
+                : "CLASSIC";
+        TextView modePill = badge("Mode: " + mode, theme.bgCard(), theme.txtMuted());
+        modePill.setGravity(Gravity.CENTER);
+        body.addView(modePill, lp(-2, -2, 0, 0, 0, dp(20)));
 
-        // ── Players list ──────────────────────────────────────────────────────
-        addSectionLabel(root, "PLAYERS");
+        // ── Player rows ──────────────────────────────────────────────────────
+        addSectionLabel(body, "PLAYERS");
+        body.addView(buildPlayerList(), lp(-1, -2, 0, 0, 0, dp(28)));
 
-        JSONArray seats = snapshot != null ? snapshot.optJSONArray("seats") : null;
-        if (seats != null) {
-            for (int i = 0; i < seats.length(); i++) {
-                JSONObject s = seats.optJSONObject(i);
-                if (s == null) continue;
-                String name = s.optString("displayName", "Player");
-                boolean isWinner = s.optString("playerId", "")
-                        .equals(snapshot.optString("winnerPlayerId", ""));
-                int seat = s.optInt("seat", 0);
-                boolean isMe = callback.getPlayerId() != null
-                        && callback.getPlayerId().equals(s.optString("playerId"));
+        // ── Action buttons ───────────────────────────────────────────────────
+        body.addView(buildActionButtons());
 
-                LinearLayout row = new LinearLayout(activity);
-                row.setOrientation(LinearLayout.HORIZONTAL);
-                row.setGravity(Gravity.CENTER_VERTICAL);
-                row.setPadding(dp(14), dp(12), dp(14), dp(12));
-                row.setBackground(card(
-                    isWinner ? theme.bgSel() : theme.bgCard(),
-                    dp(14),
-                    isWinner ? 0x44F9A825 : theme.strokeCardAlt()));
-                root.addView(row, lp(-1, -2, 0, 0, 0, dp(6)));
+        return createScreenShell("Match Over", body);
+    }
 
-                View dot = new View(activity);
-                dot.setBackground(circle(seatColor(seat)));
-                row.addView(dot, lp(dp(24), dp(24), 0, 0, dp(10), 0));
+    // ── Hero banner ───────────────────────────────────────────────────────────
 
-                String displayName = (isMe ? "You" : name) + (s.optBoolean("isBot") ? " (Bot)" : "");
-                LinearLayout.LayoutParams np = new LinearLayout.LayoutParams(0, -2, 1);
-                row.addView(text(displayName, 15, theme.txtPrimary(), Typeface.BOLD), np);
+    private View buildHeroBanner(boolean won, String winnerName) {
+        LinearLayout banner = new LinearLayout(activity);
+        banner.setOrientation(LinearLayout.VERTICAL);
+        banner.setGravity(Gravity.CENTER);
+        banner.setBackground(cardGradient(theme.bgHeroStart(), theme.bgHeroEnd(), dp(22)));
+        banner.setPadding(dp(20), dp(28), dp(20), dp(24));
 
-                if (isWinner) {
-                    row.addView(text("★ Winner", 13, ThemeManager.YELLOW, Typeface.BOLD));
-                }
-            }
-        }
+        // Icon
+        TextView icon = new TextView(activity);
+        icon.setText(won ? "🏆" : "😞");
+        icon.setTextSize(52);
+        icon.setGravity(Gravity.CENTER);
+        banner.addView(icon, lp(-1, -2, 0, 0, 0, dp(10)));
 
-        // Spacer
-        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, 0);
-        sp.weight = 1;
-        root.addView(new View(activity), sp);
+        // Headline
+        TextView headline = text(won ? "Victory!" : "Defeat",
+                28, Color.WHITE, Typeface.BOLD);
+        headline.setGravity(Gravity.CENTER);
+        headline.setLetterSpacing(0f);
+        banner.addView(headline, lp(-1, -2, 0, 0, 0, dp(4)));
 
-        // ── Action buttons ────────────────────────────────────────────────────
-        LinearLayout btnRow = new LinearLayout(activity);
-        btnRow.setOrientation(LinearLayout.HORIZONTAL);
-        root.addView(btnRow, lp(-1, dp(56), 0, dp(16), 0, 0));
+        // Subline
+        String sub = won
+                ? callback.getDisplayName() + " wins this match"
+                : winnerName + " won the match";
+        TextView subTv = text(sub, 13, 0xCCFFFFFF, Typeface.NORMAL);
+        subTv.setGravity(Gravity.CENTER);
+        banner.addView(subTv);
 
-        Button again = actionButton("🎲  Play Again", ThemeManager.BLUE, ThemeManager.BLUE_LIGHT);
-        // Interstitial at the natural break between rounds, then start the next match.
-        again.setOnClickListener(v ->
-            AdManager.get().showInterstitial(() -> callback.startBotMatch("classic_2p")));
-        LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(0, -1, 1);
-        ap.setMargins(0, 0, dp(6), 0);
-        btnRow.addView(again, ap);
+        return banner;
+    }
 
-        Button home = secondaryButton("Home");
-        home.setTextSize(14);
-        home.setOnClickListener(v -> callback.navigateTo("home"));
-        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(0, -1, 1);
-        hp.setMargins(dp(6), 0, 0, 0);
-        btnRow.addView(home, hp);
+    // ── Rewards card ──────────────────────────────────────────────────────────
 
-        return root;
+    private View buildRewardsCard(boolean won) {
+        LinearLayout card = new LinearLayout(activity);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER);
+        card.setBackground(glowCard(theme.bgCard(), dp(18), theme.strokeCardGlow()));
+        card.setPadding(dp(16), dp(20), dp(16), dp(20));
+
+        addRewardCol(card, "RATING", won ? "+12" : "−6",
+                won ? ThemeManager.GREEN : ThemeManager.RED);
+
+        View divider = new View(activity);
+        divider.setBackgroundColor(theme.strokeCard());
+        card.addView(divider, lp(dp(1), dp(44)));
+
+        addRewardCol(card, "COINS", won ? "+100" : "+15", ThemeManager.GOLD);
+
+        return card;
     }
 
     private void addRewardCol(LinearLayout parent, String label, String value, int color) {
         LinearLayout col = new LinearLayout(activity);
         col.setOrientation(LinearLayout.VERTICAL);
         col.setGravity(Gravity.CENTER);
-        col.setPadding(dp(20), dp(4), dp(20), dp(4));
+        col.setPadding(dp(24), 0, dp(24), 0);
 
-        TextView v = text(value, 26, color, Typeface.BOLD);
+        TextView v = text(value, 24, color, Typeface.BOLD);
         v.setGravity(Gravity.CENTER);
-        col.addView(v);
+        col.addView(v, lp(-1, -2, 0, 0, 0, dp(3)));
 
-        TextView l = text(label, 11, theme.txtMuted(), Typeface.BOLD);
+        TextView l = text(label, 10, theme.txtMuted(), Typeface.BOLD);
         l.setGravity(Gravity.CENTER);
-        l.setLetterSpacing(0.10f);
+        l.setLetterSpacing(0.04f);
         col.addView(l);
 
         parent.addView(col, new LinearLayout.LayoutParams(0, -2, 1));
     }
 
-    private void addDividerV(LinearLayout parent) {
-        View v = new View(activity);
-        v.setBackgroundColor(theme.strokeCard());
-        parent.addView(v, lp(dp(1), dp(48)));
+    // ── Player list ───────────────────────────────────────────────────────────
+
+    private View buildPlayerList() {
+        LinearLayout list = new LinearLayout(activity);
+        list.setOrientation(LinearLayout.VERTICAL);
+
+        JSONArray seats = snapshot != null ? snapshot.optJSONArray("seats") : null;
+        String winnerId = snapshot != null ? snapshot.optString("winnerPlayerId", "") : "";
+
+        if (seats != null && seats.length() > 0) {
+            for (int i = 0; i < seats.length(); i++) {
+                JSONObject s = seats.optJSONObject(i);
+                if (s == null) continue;
+                String name    = s.optString("displayName", "Player " + (i + 1));
+                boolean isWinner = winnerId.equals(s.optString("playerId", ""));
+                boolean isMe   = callback.getPlayerId() != null
+                        && callback.getPlayerId().equals(s.optString("playerId"));
+                boolean isBot  = s.optBoolean("isBot", false);
+                int seat       = s.optInt("seat", i);
+
+                list.addView(buildPlayerRow(name, seat, isWinner, isMe, isBot),
+                        lp(-1, -2, 0, 0, 0, i < seats.length() - 1 ? dp(8) : 0));
+            }
+        } else {
+            // Fallback when no snapshot: show a single placeholder row
+            list.addView(buildPlayerRow(callback.getDisplayName(), 0, true, true, false));
+        }
+
+        return list;
+    }
+
+    private View buildPlayerRow(String name, int seat, boolean isWinner,
+                                 boolean isMe, boolean isBot) {
+        LinearLayout row = new LinearLayout(activity);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+
+        int bgColor     = isWinner ? theme.bgSel() : theme.bgCard();
+        int borderColor = isWinner ? 0x44F5B700 : theme.strokeCard();
+        row.setBackground(glowCard(bgColor, dp(16), borderColor));
+        row.setPadding(dp(14), dp(13), dp(14), dp(13));
+
+        // Seat color dot
+        View dot = new View(activity);
+        dot.setBackground(circle(seatColor(seat)));
+        row.addView(dot, lp(dp(12), dp(12), 0, 0, dp(12), 0));
+
+        // Name
+        String displayName = (isMe ? "You" : name) + (isBot ? " (Bot)" : "");
+        row.addView(text(displayName, 14, theme.txtPrimary(), Typeface.BOLD),
+                new LinearLayout.LayoutParams(0, -2, 1));
+
+        // Winner badge or rank
+        if (isWinner) {
+            row.addView(badge("★ Winner", 0x22F5B700, ThemeManager.GOLD));
+        } else {
+            row.addView(text("-", 13, theme.txtMuted(), Typeface.NORMAL));
+        }
+
+        return row;
+    }
+
+    // ── Action buttons ────────────────────────────────────────────────────────
+
+    private View buildActionButtons() {
+        LinearLayout row = new LinearLayout(activity);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+
+        Button again = primaryButton("⚡  Play Again");
+        again.setPadding(0, dp(14), 0, dp(14));
+        again.setOnClickListener(v ->
+                AdManager.get().showInterstitial(() -> callback.startBotMatch("classic_2p")));
+        LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(0, dp(52), 1);
+        ap.setMargins(0, 0, dp(10), 0);
+        row.addView(again, ap);
+
+        Button home = secondaryButton("⌂  Home");
+        home.setPadding(0, dp(14), 0, dp(14));
+        home.setOnClickListener(v -> callback.navigateTo("home"));
+        row.addView(home, new LinearLayout.LayoutParams(0, dp(52), 1));
+
+        return row;
     }
 }

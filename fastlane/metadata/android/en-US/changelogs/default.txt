@@ -1,1 +1,1 @@
-Refreshed internal test build with a redesigned Ludo Rush game UI, playable bot match controls, live room status, player panels, and a clearer board experience.
+Added colorful light and dark themes, cleaner readable text, richer lobby/board styling, and verified the dice flow in offline matches.

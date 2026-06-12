@@ -10,8 +10,8 @@ android {
         applicationId System.getenv("ANDROID_PACKAGE_NAME") ?: "com.ludorush.game"
         minSdk 24
         targetSdk 36
-        versionCode Integer.parseInt(System.getenv("ANDROID_VERSION_CODE") ?: "6")
-        versionName System.getenv("APP_VERSION") ?: "0.3.0"
+        versionCode Integer.parseInt(System.getenv("ANDROID_VERSION_CODE") ?: "10")
+        versionName System.getenv("APP_VERSION") ?: "0.3.4"
 
         // AdMob unit IDs are injected at build time — never hardcoded in Java/source.
         // Resolution order for each ID: environment variable → local.properties → Google test ID.
