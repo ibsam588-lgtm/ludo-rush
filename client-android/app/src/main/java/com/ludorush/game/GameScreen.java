@@ -21,7 +21,7 @@ import org.json.JSONObject;
 
 public final class GameScreen extends BaseScreen {
     private TextView statusText;
-    private TextView diceText;
+    private DiceView diceView;
     private TextView turnText;
     private TextView movesText;
     private LinearLayout playerStrip;
@@ -61,7 +61,7 @@ public final class GameScreen extends BaseScreen {
         Button back = new Button(activity);
         back.setAllCaps(false);
         back.setText("‹");
-        back.setTextColor(theme.txtPrimary());
+        back.setTextColor(ThemeManager.GOLD);
         back.setTextSize(26);
         back.setTypeface(Typeface.DEFAULT_BOLD);
         back.setBackground(null);
@@ -88,13 +88,13 @@ public final class GameScreen extends BaseScreen {
         statsRow.setOrientation(LinearLayout.HORIZONTAL);
         root.addView(statsRow, lp(-1, -2, 0, 0, 0, dp(8)));
 
-        diceText  = metric("DICE",  "—");
+        LinearLayout diceCell = diceMetric();
         turnText  = metric("TURN",  "Wait");
         movesText = metric("MOVES", "0");
 
         LinearLayout.LayoutParams mLp = new LinearLayout.LayoutParams(0, dp(64), 1);
         mLp.setMargins(dp(2), 0, dp(2), 0);
-        statsRow.addView(diceText,  mLp);
+        statsRow.addView(diceCell,  mLp);
         statsRow.addView(turnText,  new LinearLayout.LayoutParams(0, dp(64), 1));
         statsRow.addView(movesText, new LinearLayout.LayoutParams(0, dp(64), 1));
 
@@ -176,7 +176,7 @@ public final class GameScreen extends BaseScreen {
         int mySeat     = mySeat();
         boolean myTurn = mySeat >= 0 && mySeat == turnSeat && "playing".equals(status);
 
-        diceText.setText("DICE\n"  + (dice == 0 ? "—" : dice));
+        diceView.setValue(dice);
         turnText.setText("TURN\n"  + (myTurn ? "You" : seatName(turnSeat)));
         movesText.setText("MOVES\n" + (moves == null ? 0 : moves.length()));
 
@@ -292,6 +292,106 @@ public final class GameScreen extends BaseScreen {
     }
 
     public JSONObject getSnapshot() { return snapshot; }
+
+    /** Stat cell housing the premium canvas die, styled to match metric() siblings. */
+    private LinearLayout diceMetric() {
+        LinearLayout cell = new LinearLayout(activity);
+        cell.setOrientation(LinearLayout.VERTICAL);
+        cell.setGravity(Gravity.CENTER);
+        cell.setPadding(dp(4), dp(7), dp(4), dp(6));
+        cell.setBackground(card(theme.bgMetric(), dp(14), theme.strokeCardAlt()));
+
+        TextView lbl = text("DICE", 11, theme.txtMuted(), Typeface.BOLD);
+        lbl.setGravity(Gravity.CENTER);
+        lbl.setLetterSpacing(0.1f);
+        cell.addView(lbl);
+
+        diceView = new DiceView(activity);
+        cell.addView(diceView, lp(dp(36), dp(36), 0, dp(3), 0, 0));
+        return cell;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    // Premium dice canvas
+    // ══════════════════════════════════════════════════════════════════════════
+
+    public static final class DiceView extends View {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final RectF r = new RectF();
+        private int value;
+
+        public DiceView(Activity activity) { super(activity); }
+
+        public void setValue(int v) { value = v; invalidate(); }
+
+        @Override protected void onDraw(Canvas canvas) {
+            int w = getWidth(), h = getHeight();
+            float s = Math.min(w, h);
+            float pad = s * 0.1f;
+            float left = (w - s) / 2f + pad, top = (h - s) / 2f + pad;
+            float right = (w + s) / 2f - pad, bottom = (h + s) / 2f - pad;
+            float cw = right - left, ch = bottom - top;
+            float rad = cw * 0.24f;
+
+            // soft drop shadow
+            r.set(left, top + s * 0.05f, right, bottom + s * 0.05f);
+            paint.setColor(0x40000000);
+            canvas.drawRoundRect(r, rad, rad, paint);
+
+            // ivory face with a subtle top-to-bottom sheen
+            r.set(left, top, right, bottom);
+            paint.setShader(new LinearGradient(left, top, right, bottom,
+                0xffFFFDF4, 0xffEADFC0, Shader.TileMode.CLAMP));
+            canvas.drawRoundRect(r, rad, rad, paint);
+            paint.setShader(null);
+
+            // gold rim
+            paint.setStyle(Paint.Style.STROKE);
+            paint.setStrokeWidth(s * 0.06f);
+            paint.setColor(ThemeManager.GOLD);
+            canvas.drawRoundRect(r, rad, rad, paint);
+            paint.setStyle(Paint.Style.FILL);
+
+            float cx = left + cw / 2f, cy = top + ch / 2f;
+
+            // no active roll yet → a single muted dash
+            if (value < 1 || value > 6) {
+                paint.setColor(0xff9A8A5E);
+                paint.setStrokeWidth(s * 0.05f);
+                paint.setStyle(Paint.Style.STROKE);
+                paint.setStrokeCap(Paint.Cap.ROUND);
+                canvas.drawLine(cx - cw * 0.16f, cy, cx + cw * 0.16f, cy, paint);
+                paint.setStyle(Paint.Style.FILL);
+                return;
+            }
+
+            // navy pips in the standard face arrangement
+            float pr = cw * 0.1f;
+            float lx = left + cw * 0.29f, rx = right - cw * 0.29f;
+            float ty = top + ch * 0.29f, by = bottom - ch * 0.29f;
+            paint.setColor(ThemeManager.NAVY);
+            boolean diag  = value == 2 || value == 3;
+            boolean four  = value >= 4;
+            boolean mid   = value % 2 == 1;            // 1,3,5 carry a centre pip
+            boolean sixMid = value == 6;               // 6 uses the two mid-row pips
+            if (four) {                                 // four corners
+                canvas.drawCircle(lx, ty, pr, paint);
+                canvas.drawCircle(rx, ty, pr, paint);
+                canvas.drawCircle(lx, by, pr, paint);
+                canvas.drawCircle(rx, by, pr, paint);
+            } else if (diag) {                          // 2 & 3 share a TL–BR diagonal
+                canvas.drawCircle(lx, ty, pr, paint);
+                canvas.drawCircle(rx, by, pr, paint);
+            }
+            if (sixMid) {                               // 6 adds left/right middle pips
+                canvas.drawCircle(lx, cy, pr, paint);
+                canvas.drawCircle(rx, cy, pr, paint);
+            }
+            if (mid) {                                  // centre pip for 1,3,5
+                canvas.drawCircle(cx, cy, pr, paint);
+            }
+        }
+    }
 
     // ══════════════════════════════════════════════════════════════════════════
     // Board canvas

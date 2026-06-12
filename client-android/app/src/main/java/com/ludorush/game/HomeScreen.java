@@ -44,9 +44,9 @@ public final class HomeScreen extends BaseScreen {
         banner.setBackground(cardGradient(theme.bgGradStart(), theme.bgGradEnd(), dp(20)));
         inner.addView(banner, lp(-1, -2, 0, 0, 0, dp(20)));
 
-        // Avatar circle with coloured ring
+        // Avatar circle with royal gold ring
         View avatar = new View(activity);
-        avatar.setBackground(circleOutline(ThemeManager.RED, 0x55FFFFFF));
+        avatar.setBackground(circleOutline(ThemeManager.NAVY, ThemeManager.GOLD));
         banner.addView(avatar, lp(dp(52), dp(52)));
 
         // Name + stats
@@ -111,7 +111,7 @@ public final class HomeScreen extends BaseScreen {
         titleText.setLetterSpacing(0.06f);
         inner.addView(titleText, lp(-1, -2, 0, dp(4), 0, dp(2)));
 
-        TextView subText = text("Roll. Move. Conquer.", 14, theme.txtMuted(), Typeface.NORMAL);
+        TextView subText = text("Roll. Race. Reign.", 14, theme.txtMuted(), Typeface.NORMAL);
         subText.setGravity(Gravity.CENTER);
         inner.addView(subText, lp(-1, -2, 0, 0, 0, dp(24)));
 
@@ -157,7 +157,7 @@ public final class HomeScreen extends BaseScreen {
         addNavCard(row3, "Match History", "Past games", ThemeManager.RED, "history", "📜");
 
         // Version tag
-        TextView ver = text("v0.3.0 — Ludo Rush", 11, theme.txtVer(), Typeface.NORMAL);
+        TextView ver = text("v0.4.0 — Royal Gold", 11, theme.txtVer(), Typeface.NORMAL);
         ver.setGravity(Gravity.CENTER);
         inner.addView(ver, lp(-1, -2, 0, dp(4), 0, dp(4)));
 
