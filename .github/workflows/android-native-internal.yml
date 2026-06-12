@@ -65,6 +65,7 @@ jobs:
           ADMOB_BANNER_ID: ${{ vars.ADMOB_BANNER_ID || 'ca-app-pub-8127360916614638/2493360027' }}
           ADMOB_INTERSTITIAL_ID: ${{ vars.ADMOB_INTERSTITIAL_ID || 'ca-app-pub-8127360916614638/7299839850' }}
           ADMOB_REWARDED_ID: ${{ vars.ADMOB_REWARDED_ID || 'ca-app-pub-8127360916614638/2267005028' }}
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
