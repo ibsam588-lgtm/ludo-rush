@@ -1,8 +1,10 @@
 package com.ludorush.game;
 
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -80,7 +82,7 @@ public final class SettingsScreen extends BaseScreen {
         Button privacy = secondaryButton("Privacy Policy");
         privacy.setTextSize(14);
         privacy.setOnClickListener(v ->
-            Toast.makeText(activity, "Privacy Policy — coming soon", Toast.LENGTH_SHORT).show());
+            openUrl("https://corsairlabs.com/ludo-rush-privacy-policy"));
         content.addView(privacy, lp(-1, dp(50), 0, 0, 0, dp(8)));
 
         Button terms = secondaryButton("Terms of Service");
@@ -142,5 +144,10 @@ public final class SettingsScreen extends BaseScreen {
         row.addView(text(label, 14, theme.txtSecondary(), Typeface.NORMAL),
                 new LinearLayout.LayoutParams(0, -2, 1));
         row.addView(text(value, 14, theme.txtPrimary(), Typeface.BOLD));
+    }
+
+    private void openUrl(String url) {
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+        activity.startActivity(intent);
     }
 }
