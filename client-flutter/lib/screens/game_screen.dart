@@ -24,7 +24,6 @@ class _GameScreenState extends State<GameScreen> {
       builder: (context, state, _) {
         final snapshot = state.lastSnapshot;
 
-        // Detect new dice roll and trigger animation
         if (snapshot != null) {
           final dv = snapshot.diceValue;
           if (dv > 0 && dv != _prevDiceValue) {
@@ -40,48 +39,52 @@ class _GameScreenState extends State<GameScreen> {
           }
         }
 
-        final mySeat  = state.mySeat;
-        final myTurn  = snapshot?.currentTurnSeat == mySeat;
-        final canRoll = myTurn && (snapshot?.diceValue ?? 0) == 0 && !_rolling;
+        final mySeat    = state.mySeat;
+        final myTurn    = snapshot?.currentTurnSeat == mySeat;
+        final canRoll   = myTurn && (snapshot?.diceValue ?? 0) == 0 && !_rolling;
         final legalCount = snapshot?.availableMoves.length ?? 0;
 
         return PopScope(
           canPop: false,
-          onPopInvokedWithResult: (didPop, result) {
+          onPopInvokedWithResult: (didPop, _) {
             if (!didPop) _showLeaveDialog(context, state);
           },
           child: Scaffold(
-            backgroundColor: context.bgPage,
+            backgroundColor: bgDeep,
             body: SafeArea(
               child: Column(
                 children: [
-                  _Header(state: state, onResign: () => _showResignDialog(context, state)),
-                  _OpponentStrip(snapshot: snapshot, mySeat: mySeat),
+                  // ── Top bar (opponent) ──────────────────────────────
+                  _TopBar(state: state, snapshot: snapshot, mySeat: mySeat),
+
+                  // ── Board ───────────────────────────────────────────
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                       child: LudoBoard(
                         snapshot: snapshot,
-                        playerId: state.playerId,
+                        mySeat: mySeat,
                         onPieceTap: (pieceId) => state.movePiece(pieceId),
                       ),
                     ),
                   ),
-                  _MyRow(
-                    state: state,
-                    snapshot: snapshot,
-                    mySeat: mySeat,
+
+                  // ── Turn indicator arrow ────────────────────────────
+                  if (myTurn)
+                    _TurnArrow(seat: mySeat ?? 0),
+
+                  // ── Player dice row ─────────────────────────────────
+                  _PlayerRow(
+                    state:      state,
+                    snapshot:   snapshot,
+                    mySeat:     mySeat,
+                    diceKey:    _diceKey,
+                    canRoll:    canRoll,
                     legalCount: legalCount,
-                    diceKey: _diceKey,
+                    rolling:    _rolling,
                   ),
-                  _StatusBar(statusText: state.statusText),
-                  _ActionButtons(
-                    canRoll: canRoll,
-                    hasLegal: legalCount > 0 && !_rolling,
-                    onRoll: () => state.rollDice(),
-                    onAuto: () => state.moveBestPiece(),
-                  ),
-                  const SizedBox(height: 8),
+
+                  const SizedBox(height: 6),
                 ],
               ),
             ),
@@ -95,16 +98,15 @@ class _GameScreenState extends State<GameScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: context.bgCard,
-        title: Text('Leave Match?', style: TextStyle(color: context.txtPrimary, fontWeight: FontWeight.bold)),
-        content: Text(
-          'You will forfeit the match and lose rating points.',
-          style: TextStyle(color: context.txtMuted),
-        ),
+        backgroundColor: bgPurple,
+        title: const Text('Leave Match?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text('Leaving counts as a resignation and you lose rating.',
+          style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Stay', style: TextStyle(color: AppColors.gold)),
+            child: const Text('Stay', style: TextStyle(color: goldColor)),
           ),
           TextButton(
             onPressed: () {
@@ -112,8 +114,105 @@ class _GameScreenState extends State<GameScreen> {
               state.resign();
               Navigator.of(context).popUntil((r) => r.isFirst);
             },
-            child: const Text('Leave', style: TextStyle(color: AppColors.red)),
+            child: const Text('Leave', style: TextStyle(color: boardRed)),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Top bar ────────────────────────────────────────────────────────────────────
+
+class _TopBar extends StatelessWidget {
+  final AppState state;
+  final GameSnapshot? snapshot;
+  final int? mySeat;
+  const _TopBar({required this.state, required this.snapshot, required this.mySeat});
+
+  @override
+  Widget build(BuildContext context) {
+    final opponents = snapshot?.seats
+        .where((s) => s.seat != mySeat)
+        .toList() ?? [];
+    final activeSeat = snapshot?.currentTurnSeat;
+
+    return Container(
+      color: const Color(0xFF1E002E),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Row(
+        children: [
+          // Hamburger
+          GestureDetector(
+            onTap: () => _showResignDialog(context, state),
+            child: Container(
+              width: 34, height: 34,
+              decoration: BoxDecoration(
+                color: bgPurple,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white24),
+              ),
+              child: const Icon(Icons.menu, color: Colors.white70, size: 18),
+            ),
+          ),
+          const SizedBox(width: 6),
+
+          // Status / title
+          Expanded(
+            child: Text(
+              state.statusText.isNotEmpty ? state.statusText : 'LIVE MATCH',
+              style: const TextStyle(
+                color: goldColor, fontSize: 13, fontWeight: FontWeight.bold,
+                letterSpacing: 0.6,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+
+          // Opponents
+          ...opponents.take(2).map((s) {
+            final active = s.seat == activeSeat;
+            final color  = AppColors.seatColor(s.seat);
+            return Container(
+              margin: const EdgeInsets.only(left: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: active ? color.withAlpha(50) : bgPurple,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: active ? color : Colors.white24),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Container(
+                  width: 28, height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: color,
+                    border: Border.all(color: goldColor, width: active ? 2 : 0),
+                  ),
+                  child: Center(
+                    child: Text(
+                      s.displayName.isNotEmpty ? s.displayName[0].toUpperCase() : 'P',
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(s.displayName,
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                    if (active)
+                      const Text('▶ TURN',
+                        style: TextStyle(color: goldColor, fontSize: 9, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ]),
+            );
+          }),
         ],
       ),
     );
@@ -123,23 +222,23 @@ class _GameScreenState extends State<GameScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: context.bgCard,
-        title: Text('Resign?', style: TextStyle(color: context.txtPrimary, fontWeight: FontWeight.bold)),
-        content: Text(
-          'Resigning will end the match immediately and you will lose rating.',
-          style: TextStyle(color: context.txtMuted),
-        ),
+        backgroundColor: bgPurple,
+        title: const Text('Resign?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: const Text('This counts as a loss.',
+          style: TextStyle(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.gold)),
+            child: const Text('Cancel', style: TextStyle(color: goldColor)),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               state.resign();
+              Navigator.of(context).popUntil((r) => r.isFirst);
             },
-            child: const Text('Resign', style: TextStyle(color: AppColors.red)),
+            child: const Text('Resign', style: TextStyle(color: boardRed)),
           ),
         ],
       ),
@@ -147,255 +246,155 @@ class _GameScreenState extends State<GameScreen> {
   }
 }
 
-class _Header extends StatelessWidget {
-  final AppState state;
-  final VoidCallback onResign;
-  const _Header({required this.state, required this.onResign});
+// ── Turn arrow ─────────────────────────────────────────────────────────────────
+
+class _TurnArrow extends StatelessWidget {
+  final int seat;
+  const _TurnArrow({required this.seat});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      color: context.bgHeader,
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () {
-              showDialog(
-                context: context,
-                builder: (_) => AlertDialog(
-                  backgroundColor: context.bgCard,
-                  title: Text('Leave Match?',
-                    style: TextStyle(color: context.txtPrimary, fontWeight: FontWeight.bold)),
-                  content: Text('You will forfeit the match.',
-                    style: TextStyle(color: context.txtMuted)),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Stay', style: TextStyle(color: AppColors.gold)),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        state.resign();
-                        Navigator.of(context).popUntil((r) => r.isFirst);
-                      },
-                      child: const Text('Leave', style: TextStyle(color: AppColors.red)),
-                    ),
-                  ],
-                ),
-              );
-            },
-            child: const Icon(Icons.arrow_back_ios, color: AppColors.gold, size: 20),
-          ),
-          const Expanded(
-            child: Text('LIVE MATCH', textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.gold, fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 1.2)),
-          ),
-          GestureDetector(
-            onTap: onResign,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.red.withAlpha(30),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.red.withAlpha(100)),
-              ),
-              child: const Text('Resign', style: TextStyle(color: AppColors.red, fontSize: 12, fontWeight: FontWeight.bold)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _OpponentStrip extends StatelessWidget {
-  final GameSnapshot? snapshot;
-  final int? mySeat;
-  const _OpponentStrip({required this.snapshot, required this.mySeat});
-
-  @override
-  Widget build(BuildContext context) {
-    if (snapshot == null) return const SizedBox(height: 48);
-    final opponents = snapshot!.seats.where((s) => s.seat != mySeat).toList();
-    if (opponents.isEmpty) return const SizedBox(height: 48);
-
-    return Container(
-      height: 52,
-      color: context.bgHeader,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        itemCount: opponents.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, i) {
-          final s = opponents[i];
-          final isActive = snapshot!.currentTurnSeat == s.seat;
-          final color = AppColors.seatColors[s.seat.clamp(0, 3)];
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isActive ? color.withAlpha(40) : context.bgCard,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: isActive ? color : context.strokeCard),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                const SizedBox(width: 6),
-                Text(s.displayName, style: TextStyle(color: context.txtPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
-                if (isActive) ...[
-                  const SizedBox(width: 6),
-                  Text('▶ TURN', style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
-                ],
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _MyRow extends StatelessWidget {
-  final AppState state;
-  final GameSnapshot? snapshot;
-  final int? mySeat;
-  final int legalCount;
-  final GlobalKey<DiceWidgetState> diceKey;
-  const _MyRow({
-    required this.state, required this.snapshot, required this.mySeat,
-    required this.legalCount, required this.diceKey,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final seat = mySeat ?? 0;
-    final color = AppColors.seatColors[seat.clamp(0, 3)];
-    final isMyTurn = snapshot?.currentTurnSeat == mySeat;
-    final dv = snapshot?.diceValue ?? 0;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      color: context.bgHeader,
-      child: Row(
-        children: [
-          Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(state.displayName, style: TextStyle(color: context.txtPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
-                if (isMyTurn && legalCount > 0)
-                  Text('$legalCount move${legalCount == 1 ? "" : "s"} available',
-                    style: const TextStyle(color: AppColors.green, fontSize: 11)),
-              ],
-            ),
-          ),
-          if (isMyTurn)
-            Container(
-              width: 8, height: 8,
-              decoration: const BoxDecoration(color: AppColors.green, shape: BoxShape.circle),
-              margin: const EdgeInsets.only(right: 8),
-            ),
-          SizedBox(
-            width: 44, height: 44,
-            child: DiceWidget(key: diceKey),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatusBar extends StatelessWidget {
-  final String statusText;
-  const _StatusBar({required this.statusText});
-
-  @override
-  Widget build(BuildContext context) {
-    if (statusText.isEmpty) return const SizedBox.shrink();
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 16),
-      color: context.bgPage,
-      child: Text(statusText,
-        textAlign: TextAlign.center,
-        style: TextStyle(color: context.txtMuted, fontSize: 12)),
-    );
-  }
-}
-
-class _ActionButtons extends StatelessWidget {
-  final bool canRoll;
-  final bool hasLegal;
-  final VoidCallback onRoll;
-  final VoidCallback onAuto;
-  const _ActionButtons({
-    required this.canRoll, required this.hasLegal,
-    required this.onRoll, required this.onAuto,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+    final color = AppColors.seatColor(seat);
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: _GradBtn(
-              label: '🎲  Roll Dice',
-              enabled: canRoll,
-              colors: canRoll
-                  ? [const Color(0xffE53935), const Color(0xff880E4F)]
-                  : [const Color(0xff444444), const Color(0xff333333)],
-              onTap: canRoll ? onRoll : null,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _GradBtn(
-              label: '⚡  Auto Move',
-              enabled: hasLegal,
-              colors: hasLegal
-                  ? [AppColors.navy, const Color(0xff1565C0)]
-                  : [const Color(0xff333333), const Color(0xff222222)],
-              onTap: hasLegal ? onAuto : null,
-            ),
-          ),
-        ],
-      ),
+      padding: const EdgeInsets.only(bottom: 2),
+      child: Icon(Icons.arrow_drop_up, color: color, size: 28),
     );
   }
 }
 
-class _GradBtn extends StatelessWidget {
-  final String label;
-  final bool enabled;
-  final List<Color> colors;
-  final VoidCallback? onTap;
-  const _GradBtn({required this.label, required this.enabled, required this.colors, this.onTap});
+// ── Player dice row ────────────────────────────────────────────────────────────
+
+class _PlayerRow extends StatelessWidget {
+  final AppState state;
+  final GameSnapshot? snapshot;
+  final int? mySeat;
+  final GlobalKey<DiceWidgetState> diceKey;
+  final bool canRoll;
+  final int legalCount;
+  final bool rolling;
+
+  const _PlayerRow({
+    required this.state,
+    required this.snapshot,
+    required this.mySeat,
+    required this.diceKey,
+    required this.canRoll,
+    required this.legalCount,
+    required this.rolling,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Opacity(
-        opacity: enabled ? 1.0 : 0.5,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 13),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Text(label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+    final seat  = mySeat ?? 0;
+    final color = AppColors.seatColor(seat);
+    final isMyTurn = snapshot?.currentTurnSeat == mySeat;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E002E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isMyTurn ? color.withAlpha(180) : Colors.white12,
+          width: isMyTurn ? 2 : 1,
         ),
+      ),
+      child: Row(
+        children: [
+          // Player avatar
+          Container(
+            width: 40, height: 40,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: color,
+              border: Border.all(color: goldColor, width: isMyTurn ? 2 : 0),
+            ),
+            child: Center(
+              child: Text(
+                state.displayName.isNotEmpty ? state.displayName[0].toUpperCase() : 'Y',
+                style: const TextStyle(
+                  color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Name
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(state.displayName,
+                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(isMyTurn ? '▶ YOUR TURN' : 'Waiting...',
+                style: TextStyle(
+                  color: isMyTurn ? color : Colors.white38,
+                  fontSize: 10, fontWeight: FontWeight.bold,
+                )),
+            ],
+          ),
+
+          const Spacer(),
+
+          // Auto move button
+          if (legalCount > 0 && !rolling)
+            GestureDetector(
+              onTap: state.moveBestPiece,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: blueBtn.withAlpha(200),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text('Auto', style: TextStyle(
+                  color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold,
+                )),
+              ),
+            ),
+
+          // Green circle roll button
+          GestureDetector(
+            onTap: canRoll ? state.rollDice : null,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 64, height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: canRoll
+                      ? [const Color(0xFF81C784), greenBtn]
+                      : [Colors.grey.shade700, Colors.grey.shade900],
+                  center: const Alignment(-0.3, -0.3),
+                ),
+                boxShadow: canRoll ? [
+                  BoxShadow(color: greenBtn.withAlpha(160), blurRadius: 14, spreadRadius: 2),
+                ] : [],
+                border: Border.all(
+                  color: canRoll ? const Color(0xFFA5D6A7) : Colors.white12, width: 2.5,
+                ),
+              ),
+              child: Center(
+                child: rolling
+                    ? const SizedBox(
+                        width: 24, height: 24,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                      )
+                    : const Text('🎲', style: TextStyle(fontSize: 26)),
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 8),
+
+          // Small dice display
+          SizedBox(
+            width: 48, height: 48,
+            child: DiceWidget(key: diceKey, size: 48),
+          ),
+        ],
       ),
     );
   }

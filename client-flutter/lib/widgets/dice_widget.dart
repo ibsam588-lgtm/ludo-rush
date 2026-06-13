@@ -4,50 +4,82 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 class DiceWidget extends StatefulWidget {
-  const DiceWidget({super.key});
+  final int? value;
+  final double size;
+  const DiceWidget({super.key, this.value, this.size = 60});
 
   @override
   State<DiceWidget> createState() => DiceWidgetState();
 }
 
-class DiceWidgetState extends State<DiceWidget> {
+class DiceWidgetState extends State<DiceWidget>
+    with SingleTickerProviderStateMixin {
   int _displayValue = 0;
+  late final AnimationController _bounceCtrl;
+  late final Animation<double> _bounce;
 
   int get displayValue => _displayValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _displayValue = widget.value ?? 0;
+    _bounceCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
+    _bounce = Tween<double>(begin: 1.0, end: 1.14)
+        .chain(CurveTween(curve: Curves.bounceOut))
+        .animate(_bounceCtrl);
+  }
+
+  @override
+  void dispose() {
+    _bounceCtrl.dispose();
+    super.dispose();
+  }
 
   void setValue(int v) {
     if (mounted) setState(() => _displayValue = v);
   }
 
-  // 12-frame animation sequence, 55 ms per frame — exact port from Java
   void startRoll(int finalValue, VoidCallback onDone) {
     const seq = [3, 1, 5, 2, 6, 4, 1, 3, 5, 2, 4];
-    final allFrames = [...seq, finalValue];
-    for (int i = 0; i < allFrames.length; i++) {
-      final face   = allFrames[i];
-      final isLast = i == allFrames.length - 1;
+    final frames = [...seq, finalValue];
+    for (int i = 0; i < frames.length; i++) {
+      final face   = frames[i];
+      final isLast = i == frames.length - 1;
       Timer(Duration(milliseconds: 55 * (i + 1)), () {
         if (!mounted) return;
         setState(() => _displayValue = face);
-        if (isLast) onDone();
+        if (isLast) {
+          _bounceCtrl.forward(from: 0);
+          onDone();
+        }
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return CustomPaint(
-      painter: _DicePainter(_displayValue),
+    return ScaleTransition(
+      scale: _bounce,
+      child: SizedBox(
+        width: widget.size,
+        height: widget.size,
+        child: CustomPaint(
+          painter: _DicePainter(_displayValue),
+        ),
+      ),
     );
   }
 }
 
+// ── Dice face painter ──────────────────────────────────────────────────────────
+
 class _DicePainter extends CustomPainter {
   final int value;
   _DicePainter(this.value);
-
-  static const _ivory1 = Color(0xffFFFDF4);
-  static const _ivory2 = Color(0xffEADFC0);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -60,74 +92,57 @@ class _DicePainter extends CustomPainter {
     final bottom = (size.height + s) / 2 - pad;
     final cw = right - left;
     final ch = bottom - top;
-    final rad = cw * 0.24;
+    final rad = cw * 0.22;
+    final r = Rect.fromLTRB(left, top, right, bottom);
 
     // Drop shadow
-    final shadowRect = Rect.fromLTRB(left, top + s * 0.05, right, bottom + s * 0.05);
-    paint.color = const Color(0x40000000);
-    canvas.drawRRect(RRect.fromRectXY(shadowRect, rad, rad), paint);
+    paint.color = const Color(0x55000000);
+    canvas.drawRRect(
+      RRect.fromRectXY(r.translate(0, s * 0.06), rad, rad), paint);
 
-    // Ivory face with gradient sheen
-    final faceRect = Rect.fromLTRB(left, top, right, bottom);
+    // Ivory face with gradient
     paint.shader = ui.Gradient.linear(
       Offset(left, top), Offset(right, bottom),
-      [_ivory1, _ivory2],
+      [const Color(0xFFFFFDF4), const Color(0xFFEADFC0)],
     );
-    canvas.drawRRect(RRect.fromRectXY(faceRect, rad, rad), paint);
+    canvas.drawRRect(RRect.fromRectXY(r, rad, rad), paint);
     paint.shader = null;
 
     // Gold rim
-    paint
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = s * 0.06
-      ..color = AppColors.gold;
-    canvas.drawRRect(RRect.fromRectXY(faceRect, rad, rad), paint);
+    paint.style = PaintingStyle.stroke;
+    paint.strokeWidth = s * 0.055;
+    paint.color = goldColor;
+    canvas.drawRRect(RRect.fromRectXY(r, rad, rad), paint);
     paint.style = PaintingStyle.fill;
 
-    final cx = left + cw / 2;
-    final cy = top  + ch / 2;
-
     if (value < 1 || value > 6) {
-      // No-roll dash
-      paint
-        ..style       = PaintingStyle.stroke
-        ..strokeWidth = s * 0.05
-        ..strokeCap   = StrokeCap.round
-        ..color       = const Color(0xff9A8A5E);
-      canvas.drawLine(Offset(cx - cw * 0.16, cy), Offset(cx + cw * 0.16, cy), paint);
+      paint.color = const Color(0xFF9A8A5E);
+      paint.style = PaintingStyle.stroke;
+      paint.strokeWidth = s * 0.045;
+      paint.strokeCap = StrokeCap.round;
+      final cx = left + cw / 2;
+      final cy = top + ch / 2;
+      canvas.drawLine(Offset(cx - cw * 0.15, cy), Offset(cx + cw * 0.15, cy), paint);
       paint.style = PaintingStyle.fill;
       return;
     }
 
-    // Navy pips — standard arrangement
-    final pr = cw * 0.10;
-    final lx = left + cw * 0.29;
-    final rx = right - cw * 0.29;
-    final ty = top + ch * 0.29;
-    final by = bottom - ch * 0.29;
-    paint.color = AppColors.navy;
+    // Pips
+    final pr = cw * 0.092;
+    final lx = left + cw * 0.30;
+    final rx = right - cw * 0.30;
+    final ty = top  + ch * 0.30;
+    final by = bottom - ch * 0.30;
+    final mx = left + cw / 2;
+    final my = top  + ch / 2;
+    paint.color = const Color(0xFF8B0000);
 
-    final diag   = value == 2 || value == 3;
-    final fourUp = value >= 4;
-    final mid    = value % 2 == 1;
-    final sixMid = value == 6;
+    void pip(double x, double y) => canvas.drawCircle(Offset(x, y), pr, paint);
 
-    if (fourUp) {
-      canvas.drawCircle(Offset(lx, ty), pr, paint);
-      canvas.drawCircle(Offset(rx, ty), pr, paint);
-      canvas.drawCircle(Offset(lx, by), pr, paint);
-      canvas.drawCircle(Offset(rx, by), pr, paint);
-    } else if (diag) {
-      canvas.drawCircle(Offset(lx, ty), pr, paint);
-      canvas.drawCircle(Offset(rx, by), pr, paint);
-    }
-    if (sixMid) {
-      canvas.drawCircle(Offset(lx, cy), pr, paint);
-      canvas.drawCircle(Offset(rx, cy), pr, paint);
-    }
-    if (mid) {
-      canvas.drawCircle(Offset(cx, cy), pr, paint);
-    }
+    if (value == 1 || value == 3 || value == 5) pip(mx, my);
+    if (value >= 2) { pip(lx, ty); pip(rx, by); }
+    if (value >= 4) { pip(rx, ty); pip(lx, by); }
+    if (value == 6) { pip(lx, my); pip(rx, my); }
   }
 
   @override

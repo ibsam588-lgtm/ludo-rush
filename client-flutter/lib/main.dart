@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'state/app_state.dart';
 import 'services/prefs_service.dart';
 import 'theme/app_theme.dart';
+import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/game_screen.dart';
 import 'screens/results_screen.dart';
@@ -32,20 +33,21 @@ class LudoRushApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final appState = context.watch<AppState>();
     return MaterialApp(
       title: 'Ludo Rush',
       debugShowCheckedModeBanner: false,
-      navigatorKey: appState.navigatorKey,
-      theme:      AppTheme.light(),
-      darkTheme:  AppTheme.dark(),
-      themeMode:  appState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      initialRoute: '/',
+      navigatorKey: context.read<AppState>().navigatorKey,
+      theme: AppTheme.dark(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.dark,
+      initialRoute: '/splash',
       routes: {
-        '/':       (_) => const HomeScreen(),
-        '/game':   (_) => const GameScreen(),
-        '/results':(_) => const ResultsScreen(),
-        '/shop':   (_) => const ShopScreen(),
+        '/splash':  (_) => const SplashScreen(),
+        '/home':    (_) => const HomeScreen(),
+        '/':        (_) => const HomeScreen(),
+        '/game':    (_) => const GameScreen(),
+        '/results': (_) => const ResultsScreen(),
+        '/shop':    (_) => const ShopScreen(),
       },
     );
   }

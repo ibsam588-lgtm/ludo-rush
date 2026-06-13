@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import '../models/game_snapshot.dart';
 import '../theme/app_theme.dart';
 
-// Board geometry — exact port from Java BoardView
+// ── Board geometry — exact port from Java BoardView ────────────────────────────
+
 class _BoardConsts {
   static const path = [
     [6,14],[6,13],[6,12],[6,11],[6,10],[6,9],
@@ -28,16 +29,10 @@ class _BoardConsts {
     [[13,7],[12,7],[11,7],[10,7],[9,7]],    // Green (seat 3)
   ];
 
-  // Base top-left corners (col, row) — Red at bottom-left, Blue top-left, etc.
-  static const bases = [[0,9],[0,0],[9,0],[9,9]];
-
-  // Slot offsets within each 6×6 base
-  static const slots = [[2.1,2.1],[3.9,2.1],[2.1,3.9],[3.9,3.9]];
-
-  static const seatStarts = [0, 13, 26, 39];
-
-  // Colored start cells for each seat
-  static const coloredStarts = [0, 13, 26, 39];
+  static const bases    = [[0,9],[0,0],[9,0],[9,9]];
+  static const slots    = [[2.1,2.1],[3.9,2.1],[2.1,3.9],[3.9,3.9]];
+  static const seatStarts      = [0, 13, 26, 39];
+  static const coloredStarts   = [0, 13, 26, 39];
 }
 
 // ── Tap hit record ─────────────────────────────────────────────────────────────
@@ -53,13 +48,13 @@ class _PieceHit {
 
 class LudoBoard extends StatefulWidget {
   final GameSnapshot? snapshot;
-  final String? playerId;
+  final int? mySeat;
   final void Function(String pieceId) onPieceTap;
 
   const LudoBoard({
     super.key,
     required this.snapshot,
-    required this.playerId,
+    required this.mySeat,
     required this.onPieceTap,
   });
 
@@ -106,16 +101,27 @@ class _LudoBoardState extends State<LudoBoard>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapUp: (d) => _handleTap(d.localPosition),
-      child: AnimatedBuilder(
-        animation: _pulseAnim,
-        builder: (_, __) => CustomPaint(
-          painter: _BoardPainter(
-            snapshot:   widget.snapshot,
-            playerId:   widget.playerId,
-            pulsePhase: _pulseAnim.value,
-            hits:       _hits,
+    return Container(
+      decoration: BoxDecoration(
+        color: woodBrown,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: const [
+          BoxShadow(color: Color(0x99000000), blurRadius: 18, offset: Offset(0, 6)),
+          BoxShadow(color: Color(0x44FFD426), blurRadius: 8),
+        ],
+      ),
+      padding: const EdgeInsets.all(6),
+      child: GestureDetector(
+        onTapUp: (d) => _handleTap(d.localPosition),
+        child: AnimatedBuilder(
+          animation: _pulseAnim,
+          builder: (_, __) => CustomPaint(
+            painter: _BoardPainter(
+              snapshot:   widget.snapshot,
+              mySeat:     widget.mySeat,
+              pulsePhase: _pulseAnim.value,
+              hits:       _hits,
+            ),
           ),
         ),
       ),
@@ -127,19 +133,17 @@ class _LudoBoardState extends State<LudoBoard>
 
 class _BoardPainter extends CustomPainter {
   final GameSnapshot? snapshot;
-  final String?       playerId;
+  final int?          mySeat;
   final double        pulsePhase;
   final List<_PieceHit> hits;
 
-  // Board surface colors
-  static const _navy    = AppColors.navyDeep;
-  static const _ivory   = AppColors.ivory;
-  static const _gold    = AppColors.gold;
-  static const _goldDk  = AppColors.goldDark;
+  static const _ivory  = creamCell;
+  static const _gold   = goldColor;
+  static const _goldDk = goldDark;
 
   _BoardPainter({
     required this.snapshot,
-    required this.playerId,
+    required this.mySeat,
     required this.pulsePhase,
     required this.hits,
   });
@@ -148,7 +152,7 @@ class _BoardPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final w    = size.width;
     final h    = size.height;
-    final sz   = math.min(w - 8, h - 8).toDouble();
+    final sz   = math.min(w, h).toDouble();
     final left = (w - sz) / 2;
     final top  = (h - sz) / 2;
     final cell = sz / 15.0;
@@ -163,7 +167,13 @@ class _BoardPainter extends CustomPainter {
     if (snapshot == null) _drawEmpty(canvas, left, top, sz);
   }
 
-  // ── Color blend helper ─────────────────────────────────────────────────────
+  // ── Color helpers ──────────────────────────────────────────────────────────
+
+  static int _toInt(Color c) =>
+      ((c.a * 255).round() << 24) |
+      ((c.r * 255).round() << 16) |
+      ((c.g * 255).round() << 8)  |
+      (c.b * 255).round();
 
   static int _blend(int a, int b, double t) {
     final ia = 1.0 - t;
@@ -174,34 +184,37 @@ class _BoardPainter extends CustomPainter {
     return (aa << 24) | (rr << 16) | (gg << 8) | bb;
   }
 
-  static int _seatColor(int s) {
-    const c = [0xffF32B2B, 0xff1565E0, 0xffFFD000, 0xff2DB34A];
-    return c[s.clamp(0, 3)];
-  }
-  static int _seatSoftColor(int s) {
-    const c = [0xffFF8A80, 0xff82B1FF, 0xffFFE57F, 0xff69F0AE];
-    return c[s.clamp(0, 3)];
+  static Color _seatCol(int s) => AppColors.seatColors[s.clamp(0, 3)];
+
+  static Color _seatSoft(int s) {
+    const soft = [
+      Color(0xAAE53935), Color(0xAA1E88E5), Color(0xAAFFB300), Color(0xAA43A047),
+    ];
+    return soft[s.clamp(0, 3)];
   }
 
-  // ── Shell ──────────────────────────────────────────────────────────────────
+  // ── Board shell ────────────────────────────────────────────────────────────
 
   void _drawShell(Canvas canvas, double left, double top, double size) {
     final p = Paint();
     final rect = Rect.fromLTWH(left, top, size, size);
-    p.color = _navy;
+
+    // Cream board face
+    p.color = const Color(0xFFFAF4E0);
     canvas.drawRect(rect, p);
 
-    // Double gold border
+    // Wooden inner border
     p.style = PaintingStyle.stroke;
-    final outerW = math.max(4.0, size * 0.018);
-    final innerW = math.max(2.0, size * 0.009);
-    final gap    = math.max(2.0, size * 0.009);
-    p.strokeWidth = outerW;
-    p.color = _gold;
+    p.strokeWidth = math.max(3.0, size * 0.012);
+    p.color = woodLight;
     canvas.drawRect(rect, p);
-    final inset = outerW / 2 + gap + innerW / 2;
-    final inner = Rect.fromLTRB(left + inset, top + inset, left + size - inset, top + size - inset);
-    p.strokeWidth = innerW;
+
+    // Gold accent line
+    final inset = p.strokeWidth / 2 + math.max(1.5, size * 0.006);
+    final inner = Rect.fromLTRB(
+        left + inset, top + inset, left + size - inset, top + size - inset);
+    p.strokeWidth = math.max(1.5, size * 0.006);
+    p.color = _gold;
     canvas.drawRect(inner, p);
     p.style = PaintingStyle.fill;
   }
@@ -209,14 +222,14 @@ class _BoardPainter extends CustomPainter {
   // ── Bases ──────────────────────────────────────────────────────────────────
 
   void _drawBases(Canvas canvas, double left, double top, double cell) {
-    _drawBase(canvas, left, top, cell, 0, 9, 0xffF32B2B); // Red   bottom-left
-    _drawBase(canvas, left, top, cell, 0, 0, 0xff1565E0); // Blue  top-left
-    _drawBase(canvas, left, top, cell, 9, 0, 0xffFFD000); // Yellow top-right
-    _drawBase(canvas, left, top, cell, 9, 9, 0xff2DB34A); // Green bottom-right
+    _drawBase(canvas, left, top, cell, 0, 9, boardRed);    // Red   bottom-left
+    _drawBase(canvas, left, top, cell, 0, 0, boardBlue);   // Blue  top-left
+    _drawBase(canvas, left, top, cell, 9, 0, boardYellow); // Yellow top-right
+    _drawBase(canvas, left, top, cell, 9, 9, boardGreen);  // Green bottom-right
   }
 
   void _drawBase(Canvas canvas, double left, double top, double cell,
-      int gx, int gy, int color) {
+      int gx, int gy, Color color) {
     final p  = Paint();
     final x1 = left + gx * cell;
     final y1 = top  + gy * cell;
@@ -224,8 +237,8 @@ class _BoardPainter extends CustomPainter {
     final y2 = top  + (gy + 6) * cell;
     final rect = Rect.fromLTRB(x1, y1, x2, y2);
 
-    // Colored background
-    p.color = Color(color);
+    // Solid color background
+    p.color = color;
     canvas.drawRect(rect, p);
 
     // Gold outline
@@ -235,49 +248,52 @@ class _BoardPainter extends CustomPainter {
     canvas.drawRect(rect, p);
     p.style = PaintingStyle.fill;
 
-    // Inner dark square
-    final ins = cell * 0.85;
+    // Dark inner region for nests
+    final ins = cell * 0.75;
     final inner = Rect.fromLTRB(x1 + ins, y1 + ins, x2 - ins, y2 - ins);
-    p.color = Color(_blend(color, 0xff04080F, 0.82));
+    p.color = Color(_blend(_toInt(color), 0xFF040610, 0.78));
     canvas.drawRect(inner, p);
     p.style = PaintingStyle.stroke;
-    p.strokeWidth = cell * 0.05;
-    p.color = const Color(0x99D4AF37);
+    p.strokeWidth = cell * 0.04;
+    p.color = const Color(0x88D4AF37);
     canvas.drawRect(inner, p);
     p.style = PaintingStyle.fill;
 
-    // 4 piece home slots (empty spheres)
+    // 4 nest circles
     final cx  = (x1 + x2) / 2;
     final cy  = (y1 + y2) / 2;
-    final off = cell * 0.9;
-    final r   = cell * 0.45;
+    final off = cell * 0.88;
+    final r   = cell * 0.44;
 
     for (int i = 0; i < 4; i++) {
       final px = cx + (i % 2 == 0 ? -off : off);
       final py = cy + (i < 2 ? -off : off);
 
-      // Drop shadow
-      p.color = const Color(0x55000000);
-      canvas.drawCircle(Offset(px, py + r * 0.12), r, p);
+      // Shadow
+      p.color = const Color(0x66000000);
+      canvas.drawCircle(Offset(px, py + r * 0.10), r, p);
 
-      // Gradient body
-      p.shader = ui.Gradient.linear(
-        Offset(px, py - r), Offset(px, py + r),
-        [Color(_blend(color, 0xffFFFFFF, 0.55)), Color(_blend(color, 0xff000000, 0.30))],
-      );
+      // Dark nest fill
+      p.color = Color(_blend(_toInt(color), 0xFF000000, 0.55));
       canvas.drawCircle(Offset(px, py), r, p);
-      p.shader = null;
 
-      // Gold ring
+      // Colored ring
       p.style = PaintingStyle.stroke;
-      p.strokeWidth = cell * 0.06;
+      p.strokeWidth = cell * 0.07;
+      p.color = color.withAlpha(180);
+      canvas.drawCircle(Offset(px, py), r, p);
+      p.style = PaintingStyle.fill;
+
+      // Gold outer ring
+      p.style = PaintingStyle.stroke;
+      p.strokeWidth = cell * 0.045;
       p.color = _gold;
       canvas.drawCircle(Offset(px, py), r, p);
       p.style = PaintingStyle.fill;
 
-      // Highlight dot
-      p.color = const Color(0xccFFFFFF);
-      canvas.drawCircle(Offset(px - r * 0.34, py - r * 0.36), r * 0.2, p);
+      // Highlight
+      p.color = const Color(0x99FFFFFF);
+      canvas.drawCircle(Offset(px - r * 0.30, py - r * 0.32), r * 0.18, p);
     }
   }
 
@@ -285,17 +301,18 @@ class _BoardPainter extends CustomPainter {
 
   void _drawTrack(Canvas canvas, double left, double top, double cell) {
     for (int i = 0; i < _BoardConsts.path.length; i++) {
-      final p     = _BoardConsts.path[i];
-      var fill    = _ivory.value;
-      var stroke  = 0x33B8941F;
+      final p    = _BoardConsts.path[i];
+      Color fill    = _ivory;
+      Color stroke  = const Color(0x33B8941F);
+
       for (int s = 0; s < _BoardConsts.coloredStarts.length; s++) {
         if (i == _BoardConsts.coloredStarts[s]) {
-          fill   = _seatColor(s);
-          stroke = _gold.value;
+          fill   = _seatCol(s);
+          stroke = _gold;
           break;
         }
       }
-      _drawCell(canvas, left, top, cell, p[0], p[1], fill, stroke);
+      _drawCell(canvas, left, top, cell, p[0], p[1], _toInt(fill), _toInt(stroke));
     }
 
     // Safe-cell stars
@@ -315,7 +332,7 @@ class _BoardPainter extends CustomPainter {
     for (int seat = 0; seat < 4; seat++) {
       for (final p in _BoardConsts.homeLanes[seat]) {
         _drawCell(canvas, left, top, cell, p[0], p[1],
-          _seatSoftColor(seat), 0x66D4AF37);
+          _toInt(_seatSoft(seat)), 0x66D4AF37);
       }
     }
   }
@@ -325,8 +342,8 @@ class _BoardPainter extends CustomPainter {
   void _drawGridLines(Canvas canvas, double left, double top, double cell, double size) {
     final p = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(1.0, cell * 0.02)
-      ..color = const Color(0x18000000);
+      ..strokeWidth = math.max(0.5, cell * 0.015)
+      ..color = const Color(0x22000000);
     for (int i = 0; i <= 15; i++) {
       final pos = i * cell;
       canvas.drawLine(Offset(left + pos, top), Offset(left + pos, top + 15 * cell), p);
@@ -337,7 +354,6 @@ class _BoardPainter extends CustomPainter {
   // ── Center ─────────────────────────────────────────────────────────────────
 
   void _drawCenter(Canvas canvas, double left, double top, double cell) {
-    final colors = [0xffF32B2B, 0xff1565E0, 0xffFFD000, 0xff2DB34A];
     final cx = left + 7.5 * cell;
     final cy = top  + 7.5 * cell;
     final x6 = left + 6 * cell;
@@ -347,47 +363,46 @@ class _BoardPainter extends CustomPainter {
     final p  = Paint();
 
     // Cream background
-    p.color = const Color(0xffFFF8E8);
+    p.color = const Color(0xFFFFF8E8);
     canvas.drawRect(Rect.fromLTRB(x6, y6, x9, y9), p);
 
     // 4 colored triangles
-    void tri(List<Offset> pts, int color) {
-      final path = Path()..moveTo(pts[0].dx, pts[0].dy)
+    void tri(List<Offset> pts, Color color) {
+      final path = Path()
+        ..moveTo(pts[0].dx, pts[0].dy)
         ..lineTo(pts[1].dx, pts[1].dy)
         ..lineTo(pts[2].dx, pts[2].dy)
         ..close();
-      p.color = Color(color);
+      p.color = color;
       canvas.drawPath(path, p);
     }
-    tri([Offset(x6, y9), Offset(x9, y9), Offset(cx, cy)], colors[0]); // Red: bottom
-    tri([Offset(x6, y6), Offset(x6, y9), Offset(cx, cy)], colors[1]); // Blue: left
-    tri([Offset(x6, y6), Offset(x9, y6), Offset(cx, cy)], colors[2]); // Yellow: top
-    tri([Offset(x9, y6), Offset(x9, y9), Offset(cx, cy)], colors[3]); // Green: right
+    tri([Offset(x6, y9), Offset(x9, y9), Offset(cx, cy)], boardRed);    // bottom → red
+    tri([Offset(x6, y6), Offset(x6, y9), Offset(cx, cy)], boardBlue);   // left   → blue
+    tri([Offset(x6, y6), Offset(x9, y6), Offset(cx, cy)], boardYellow); // top    → yellow
+    tri([Offset(x9, y6), Offset(x9, y9), Offset(cx, cy)], boardGreen);  // right  → green
 
-    // Diagonal lines
+    // Diagonal accent lines
     p.style = PaintingStyle.stroke;
-    p.strokeWidth = cell * 0.05;
+    p.strokeWidth = cell * 0.04;
     p.color = const Color(0x88D4AF37);
     canvas.drawLine(Offset(x6, y6), Offset(x9, y9), p);
     canvas.drawLine(Offset(x6, y9), Offset(x9, y6), p);
 
-    // Gold outer ring
-    p.strokeWidth = cell * 0.22;
+    // Gold ring
+    p.strokeWidth = cell * 0.20;
     p.color = _gold;
-    canvas.drawCircle(Offset(cx, cy), cell * 0.98, p);
+    canvas.drawCircle(Offset(cx, cy), cell * 0.96, p);
 
-    // Dark ring
     p.strokeWidth = cell * 0.04;
     p.color = _goldDk;
-    canvas.drawCircle(Offset(cx, cy), cell * 1.12, p);
+    canvas.drawCircle(Offset(cx, cy), cell * 1.10, p);
     p.style = PaintingStyle.fill;
 
-    // Cream fill circle
-    p.color = const Color(0xffFFF8E8);
-    canvas.drawCircle(Offset(cx, cy), cell * 0.66, p);
+    // Cream fill
+    p.color = const Color(0xFFFFF8E8);
+    canvas.drawCircle(Offset(cx, cy), cell * 0.64, p);
 
-    // 6-point star
-    _drawStar6(canvas, cx, cy, cell * 0.60, _gold, _goldDk);
+    _drawStar6(canvas, cx, cy, cell * 0.58, _gold, _goldDk);
   }
 
   void _drawStar6(Canvas canvas, double cx, double cy, double r, Color fill, Color outline) {
@@ -402,9 +417,10 @@ class _BoardPainter extends CustomPainter {
     path.close();
     final p = Paint()..color = fill;
     canvas.drawPath(path, p);
-    p.style = PaintingStyle.stroke;
-    p.strokeWidth = r * 0.08;
-    p.color = outline;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = r * 0.07
+      ..color = outline;
     canvas.drawPath(path, p);
     p.style = PaintingStyle.fill;
   }
@@ -433,7 +449,7 @@ class _BoardPainter extends CustomPainter {
     final p = Paint()..color = Color(fill);
     canvas.drawRect(rect, p);
     p.style = PaintingStyle.stroke;
-    p.strokeWidth = math.max(1.0, cell * 0.04);
+    p.strokeWidth = math.max(0.5, cell * 0.03);
     p.color = Color(stroke);
     canvas.drawRect(rect, p);
     p.style = PaintingStyle.fill;
@@ -453,7 +469,7 @@ class _BoardPainter extends CustomPainter {
       final r     = cell * 0.38;
       hits.add(_PieceHit(piece.pieceId, pos.dx, pos.dy, r, legal));
       _drawPiece(canvas, pos.dx, pos.dy, r,
-          Color(_seatColor(piece.seat)), legal, activeSeat == piece.seat);
+          _seatCol(piece.seat), legal, activeSeat == piece.seat);
     }
   }
 
@@ -461,37 +477,77 @@ class _BoardPainter extends CustomPainter {
       Color color, bool legal, bool active) {
     final p = Paint()..isAntiAlias = true;
 
+    // Pulse / selection ring
     if (legal || active) {
       p.style = PaintingStyle.stroke;
-      final ringAlpha = legal ? pulsePhase : 0.55;
-      p.color = Color(((ringAlpha * 220).round() << 24) | (_gold.value & 0x00FFFFFF));
-      p.strokeWidth = legal ? r * 0.36 : r * 0.18;
-      canvas.drawCircle(Offset(cx, cy), r * (legal ? 1.65 : 1.35), p);
+      final alpha = legal ? pulsePhase : 0.55;
+      p.color = Color(((alpha * 220).round() << 24) | (_toInt(_gold) & 0x00FFFFFF));
+      p.strokeWidth = legal ? r * 0.40 : r * 0.20;
+      canvas.drawCircle(Offset(cx, cy), r * (legal ? 1.70 : 1.38), p);
       p.style = PaintingStyle.fill;
     }
 
     // Drop shadow
-    p.color = const Color(0x44000000);
-    canvas.drawCircle(Offset(cx + r * 0.16, cy + r * 0.20), r, p);
+    p.color = const Color(0x55000000);
+    canvas.drawCircle(Offset(cx + r * 0.14, cy + r * 0.18), r, p);
 
-    // Gradient body
-    p.shader = ui.Gradient.linear(
-      Offset(cx, cy - r), Offset(cx, cy + r),
-      [Color(_blend(color.value, 0xffFFFFFF, 0.38)), Color(_blend(color.value, 0xff000000, 0.28))],
-    );
-    canvas.drawCircle(Offset(cx, cy), r, p);
-    p.shader = null;
-
-    // Gold ring
-    p.style = PaintingStyle.stroke;
-    p.strokeWidth = r * 0.22;
+    // Outer gold ring
     p.color = _gold;
     canvas.drawCircle(Offset(cx, cy), r, p);
+
+    // Dark inner ring
+    p.color = const Color(0xFF222222);
+    canvas.drawCircle(Offset(cx, cy), r * 0.84, p);
+
+    // Radial gradient colored fill
+    p.shader = ui.Gradient.radial(
+      Offset(cx - r * 0.26, cy - r * 0.26),
+      r * 1.1,
+      [
+        Color(_blend(_toInt(color), 0xFFFFFFFF, 0.40)),
+        color,
+        Color(_blend(_toInt(color), 0xFF000000, 0.30)),
+      ],
+      [0.0, 0.5, 1.0],
+    );
+    canvas.drawCircle(Offset(cx, cy), r * 0.76, p);
+    p.shader = null;
+
+    // Crown symbol
+    final tp = TextPainter(
+      text: TextSpan(
+        text: '♛',
+        style: TextStyle(
+          fontSize: r * 0.86,
+          color: Colors.white.withAlpha(220),
+          shadows: const [Shadow(color: Colors.black38, blurRadius: 3)],
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, Offset(cx - tp.width / 2, cy - tp.height / 2));
+
+    // Shine arc
+    p.color = Colors.white.withAlpha(70);
+    p.style = PaintingStyle.stroke;
+    p.strokeWidth = 1.5;
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(cx - r * 0.18, cy - r * 0.18), radius: r * 0.38),
+      -2.5, 1.4, false, p,
+    );
     p.style = PaintingStyle.fill;
 
-    // White highlight dot
-    p.color = const Color(0xccFFFFFF);
-    canvas.drawCircle(Offset(cx - r * 0.32, cy - r * 0.34), r * 0.22, p);
+    // Selection arrow above
+    if (legal) {
+      final ap = Paint()
+        ..color = Color(((pulsePhase * 200 + 55).round() << 24) | 0x00FFFFFF);
+      final arrowPath = Path()
+        ..moveTo(cx,         cy - r * 2.1)
+        ..lineTo(cx - r * 0.38, cy - r * 1.6)
+        ..lineTo(cx + r * 0.38, cy - r * 1.6)
+        ..close();
+      canvas.drawPath(arrowPath, ap);
+    }
   }
 
   // ── Piece position calculation ─────────────────────────────────────────────
@@ -517,7 +573,6 @@ class _BoardPainter extends CustomPainter {
       );
     }
 
-    // Active on track
     int ti = piece.trackIndex;
     if (ti < 0 || ti >= _BoardConsts.path.length) {
       ti = (_BoardConsts.seatStarts[seat.clamp(0, 3)] + progress) % _BoardConsts.path.length;
@@ -530,7 +585,7 @@ class _BoardPainter extends CustomPainter {
   }
 
   Offset _yardPos(int seat, int idx, double left, double top, double cell) {
-    final s   = seat.clamp(0, 3);
+    final s    = seat.clamp(0, 3);
     final base = _BoardConsts.bases[s];
     final slot = _BoardConsts.slots[idx % 4];
     return Offset(
@@ -550,7 +605,7 @@ class _BoardPainter extends CustomPainter {
   int _pieceIdx(String id) {
     if (id.isEmpty) return 0;
     final c = id.codeUnitAt(id.length - 1);
-    if (c >= 0x30 && c <= 0x33) return c - 0x30; // '0'-'3'
+    if (c >= 0x30 && c <= 0x33) return c - 0x30;
     return 0;
   }
 
@@ -558,8 +613,8 @@ class _BoardPainter extends CustomPainter {
 
   void _drawEmpty(Canvas canvas, double left, double top, double size) {
     final rect = Rect.fromLTRB(
-      left + size * 0.16, top + size * 0.39,
-      left + size * 0.84, top + size * 0.61,
+      left + size * 0.15, top + size * 0.39,
+      left + size * 0.85, top + size * 0.61,
     );
     final p = Paint()..color = const Color(0xE6091428);
     canvas.drawRRect(RRect.fromRectXY(rect, size * 0.05, size * 0.05), p);
@@ -569,30 +624,29 @@ class _BoardPainter extends CustomPainter {
     canvas.drawRRect(RRect.fromRectXY(rect, size * 0.05, size * 0.05), p);
     p.style = PaintingStyle.fill;
 
-    // Text via Paragraph
     final pb = ui.ParagraphBuilder(ui.ParagraphStyle(
       textAlign: TextAlign.center,
-      fontSize: size * 0.047,
+      fontSize: size * 0.044,
     ))
       ..pushStyle(ui.TextStyle(color: _gold, fontWeight: FontWeight.bold))
       ..addText('Waiting for match');
     final para = pb.build()..layout(ui.ParagraphConstraints(width: rect.width));
-    canvas.drawParagraph(para, Offset(rect.left, top + size * 0.435));
+    canvas.drawParagraph(para, Offset(rect.left, top + size * 0.432));
 
     final pb2 = ui.ParagraphBuilder(ui.ParagraphStyle(
       textAlign: TextAlign.center,
-      fontSize: size * 0.032,
+      fontSize: size * 0.030,
     ))
       ..pushStyle(ui.TextStyle(color: const Color(0xffC0C7D2)))
       ..addText('Setting up your game...');
     final para2 = pb2.build()..layout(ui.ParagraphConstraints(width: rect.width));
-    canvas.drawParagraph(para2, Offset(rect.left, top + size * 0.508));
+    canvas.drawParagraph(para2, Offset(rect.left, top + size * 0.506));
   }
 
   @override
   bool shouldRepaint(_BoardPainter old) {
     return old.snapshot != snapshot ||
            old.pulsePhase != pulsePhase ||
-           old.playerId != playerId;
+           old.mySeat != mySeat;
   }
 }
