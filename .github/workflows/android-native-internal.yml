@@ -1,6 +1,9 @@
 name: Native Android Internal Build
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       package_name:
@@ -10,11 +13,11 @@ on:
       upload_to_play:
         description: "Upload AAB to Google Play internal track"
         required: true
-        default: "false"
+        default: "true"
         type: choice
         options:
-          - "false"
           - "true"
+          - "false"
 
 permissions:
   contents: read
@@ -53,7 +56,7 @@ jobs:
       - name: Build app bundle
         run: gradle -p client-android :app:bundleRelease
         env:
-          ANDROID_PACKAGE_NAME: ${{ inputs.package_name }}
+          ANDROID_PACKAGE_NAME: ${{ inputs.package_name || 'com.ludorush.game' }}
           ANDROID_KEYSTORE_FILE: ${{ github.workspace }}/client-android/upload.keystore
           ANDROID_KEYSTORE_PASS: ${{ secrets.UNITY_ANDROID_KEYSTORE_PASS }}
           ANDROID_KEYALIAS_NAME: ${{ secrets.UNITY_ANDROID_KEYALIAS_NAME }}
@@ -74,15 +77,15 @@ jobs:
           path: client-android/app/build/outputs/bundle/release/app-release.aab
 
       - name: Setup Ruby
-        if: inputs.upload_to_play == 'true'
+        if: github.event_name == 'push' || inputs.upload_to_play == 'true'
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.3"
           bundler-cache: true
 
       - name: Upload to Google Play internal track
-        if: inputs.upload_to_play == 'true'
+        if: github.event_name == 'push' || inputs.upload_to_play == 'true'
         run: bundle exec fastlane android internal aab_path:"client-android/app/build/outputs/bundle/release/app-release.aab"
         env:
-          ANDROID_PACKAGE_NAME: ${{ inputs.package_name }}
+          ANDROID_PACKAGE_NAME: ${{ inputs.package_name || 'com.ludorush.game' }}
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
