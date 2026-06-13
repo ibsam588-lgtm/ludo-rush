@@ -43,6 +43,9 @@ public abstract class BaseScreen {
         void moveBestPiece();
         void movePiece(String pieceId);
         void resign();
+        void sendChat(String message);
+        String getCountry();
+        boolean isUnder13();
     }
 
     public BaseScreen(Activity activity, ScreenCallback callback) {

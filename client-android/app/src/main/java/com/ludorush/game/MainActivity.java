@@ -431,6 +431,21 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
         }
     }
 
+    @Override
+    public void sendChat(String message) {
+        // Chat messages are client-side only; backend chat not yet wired
+    }
+
+    @Override
+    public String getCountry() {
+        return getSharedPreferences("ludo_settings", 0).getString("player_country", "🌍");
+    }
+
+    @Override
+    public boolean isUnder13() {
+        return getSharedPreferences("ludo_settings", 0).getBoolean("is_under_13", false);
+    }
+
     // ── Screen management ─────────────────────────────────────────────────────
 
     private void showScreen(String name, String data) {
@@ -525,7 +540,7 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
                     }
                     if ("finished".equals(snap.optString("status"))) {
                         trackMatchResult(snap);
-                        main.postDelayed(() -> navigateTo("results"), 1500);
+                        // CoinRewardDialog in GameScreen credits coins and navigates to results on dismiss
                     }
                 });
             } else if (eventStatus != null && !eventStatus.isEmpty()) {
@@ -542,10 +557,8 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
         if (playerId != null && playerId.equals(winnerId)) {
             wins++;
             rating += 12;
-            coins += 100;
         } else {
             rating = Math.max(0, rating - 6);
-            coins += 15;
         }
         if (socket != null) {
             socket.close(1000, "match_finished");
