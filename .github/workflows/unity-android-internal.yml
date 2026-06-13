@@ -47,6 +47,18 @@ jobs:
           restore-keys: |
             Library-client-unity-Android-
 
+      - name: Free runner disk space
+        shell: bash
+        run: |
+          set -euo pipefail
+          df -h
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          docker system prune -af || true
+          df -h
+
       - name: Build Android App Bundle
         shell: bash
         env:
