@@ -51,6 +51,7 @@ jobs:
         shell: bash
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_ENTITLEMENT_LICENSE: ${{ secrets.UNITY_ENTITLEMENT_LICENSE }}
           LUDO_RUSH_BACKEND_URL: ${{ inputs.backend_url }}
           ANDROID_PACKAGE_NAME: ${{ inputs.package_name }}
           UNITY_ANDROID_KEYSTORE_BASE64: ${{ secrets.UNITY_ANDROID_KEYSTORE_BASE64 }}
@@ -66,7 +67,13 @@ jobs:
             exit 1
           fi
 
+          if [ -z "${UNITY_ENTITLEMENT_LICENSE:-}" ]; then
+            echo "UNITY_ENTITLEMENT_LICENSE secret is required" >&2
+            exit 1
+          fi
+
           printf '%s' "$UNITY_LICENSE" > "$RUNNER_TEMP/Unity_lic.ulf"
+          printf '%s' "$UNITY_ENTITLEMENT_LICENSE" > "$RUNNER_TEMP/UnityEntitlementLicense.xml"
 
           docker run --rm \
             --workdir /github/workspace/client-unity \
@@ -80,7 +87,7 @@ jobs:
             --env UNITY_ANDROID_KEYALIAS_NAME \
             --env UNITY_ANDROID_KEYALIAS_PASS \
             unityci/editor:6000.1.0f1-android-3 \
-            bash -lc 'mkdir -p /root/.local/share/unity3d/Unity && cp /unity-license/Unity_lic.ulf /root/.local/share/unity3d/Unity/Unity_lic.ulf && unity-editor -batchmode -nographics -quit -projectPath /github/workspace/client-unity -executeMethod LudoRush.Editor.CiBuild.BuildAndroidAppBundle -logFile -'
+            bash -lc 'mkdir -p /root/.cache/unity3d /root/.local/share/unity3d/Unity /root/.config/unity3d/Unity/licenses && cp /unity-license/Unity_lic.ulf /root/.local/share/unity3d/Unity/Unity_lic.ulf && cp /unity-license/UnityEntitlementLicense.xml /root/.config/unity3d/Unity/licenses/UnityEntitlementLicense.xml && unity-editor -batchmode -nographics -quit -projectPath /github/workspace/client-unity -executeMethod LudoRush.Editor.CiBuild.BuildAndroidAppBundle -logFile -'
 
       - name: Locate AAB
         id: locate
