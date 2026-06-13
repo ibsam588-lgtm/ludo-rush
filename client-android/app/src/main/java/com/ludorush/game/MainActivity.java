@@ -65,10 +65,13 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     private boolean backendOnline;
     private boolean connecting;
     private boolean adAttachScheduled;
+    private boolean fallbackBotStarted;
+    private boolean currentMatchIsBot;
     private JSONObject lastSnapshot;
     private int lastRollValue;
     private long lastRollAt;
     private String lastRollPlayerId;
+    private String pendingMatchMode = "classic_2p";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -293,6 +296,9 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     @Override
     public void startBotMatch(String mode) {
         if (connecting) return;
+        pendingMatchMode = mode;
+        fallbackBotStarted = false;
+        currentMatchIsBot = true;
         resetLiveMatch();
         connecting = true;
         navigateTo("game");
@@ -318,6 +324,9 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     @Override
     public void startQuickMatch(String mode) {
         if (connecting) return;
+        pendingMatchMode = mode;
+        fallbackBotStarted = false;
+        currentMatchIsBot = false;
         resetLiveMatch();
         connecting = true;
         navigateTo("game");
@@ -339,13 +348,12 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
                     "rating", rating), ticket -> {
                 String ticketId = ticket.optString("ticketId", "");
                 if (ticketId.isEmpty()) {
-                    updateGameStatus("Matchmaking failed.");
-                    connecting = false;
+                    fallbackToBots("No online room available.");
                     return;
                 }
                 pollTicket(ticketId, 0);
-            });
-        });
+            }, () -> fallbackToBots("Online matchmaking is busy."));
+        }, () -> fallbackToBots("Online matchmaking is busy."));
     }
 
     @Override
@@ -472,7 +480,9 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
                 connecting = false;
                 send(json("type", "join", "playerId", playerId, "displayName", displayName));
                 send(json("type", "fill_bots", "playerId", playerId));
-                updateGameStatus("Match connected. Bots are seated.");
+                updateGameStatus(currentMatchIsBot
+                        ? "Bot match connected. Roll when it is your turn."
+                        : "Match connected. Empty seats fill with bots.");
             }
 
             @Override public void onMessage(WebSocket ws, String text) {
@@ -481,7 +491,11 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
 
             @Override public void onFailure(WebSocket ws, Throwable t, Response r) {
                 connecting = false;
-                updateGameStatus("Connection error: " + t.getMessage());
+                if (!currentMatchIsBot) {
+                    fallbackToBots("Online room connection failed.");
+                } else {
+                    updateGameStatus("Connection error: " + t.getMessage());
+                }
             }
         });
     }
@@ -542,9 +556,8 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     }
 
     private void pollTicket(String ticketId, int attempt) {
-        if (attempt > 15) {
-            updateGameStatus("Matchmaking timed out.");
-            connecting = false;
+        if (attempt >= 4) {
+            fallbackToBots("No online players found.");
             return;
         }
         main.postDelayed(() -> {
@@ -553,8 +566,7 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
                     .build();
             http.newCall(req).enqueue(new Callback() {
                 @Override public void onFailure(Call call, IOException e) {
-                    connecting = false;
-                    updateGameStatus("Ticket check failed.");
+                    fallbackToBots("Online matchmaking check failed.");
                 }
 
                 @Override public void onResponse(Call call, Response response) throws IOException {
@@ -571,16 +583,25 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
                             updateGameStatus("Searching... (" + (attempt + 1) + ")");
                             pollTicket(ticketId, attempt + 1);
                         } else {
-                            connecting = false;
-                            updateGameStatus("Matchmaking: " + status);
+                            fallbackToBots("No online players found.");
                         }
                     } catch (Exception e) {
-                        connecting = false;
-                        updateGameStatus("Ticket parse error.");
+                        fallbackToBots("Online matchmaking check failed.");
                     }
                 }
             });
         }, 2000);
+    }
+
+    private void fallbackToBots(String reason) {
+        if (fallbackBotStarted) return;
+        fallbackBotStarted = true;
+        connecting = false;
+        updateGameStatus(reason + " Starting bot match...");
+        main.postDelayed(() -> {
+            connecting = false;
+            startBotMatch(pendingMatchMode);
+        }, 650);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
@@ -730,14 +751,17 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     }
 
     private void post(String path, JSONObject payload, JsonHandler handler) {
+        post(path, payload, handler, null);
+    }
+
+    private void post(String path, JSONObject payload, JsonHandler handler, Runnable onError) {
         Request req = new Request.Builder()
                 .url(BACKEND_URL + path)
                 .post(RequestBody.create(payload.toString(), JSON))
                 .build();
         http.newCall(req).enqueue(new Callback() {
             @Override public void onFailure(Call call, IOException e) {
-                connecting = false;
-                updateGameStatus("Request failed: " + e.getMessage());
+                handleRequestError("Request failed: " + e.getMessage(), onError);
             }
 
             @Override public void onResponse(Call call, Response r) throws IOException {
@@ -745,17 +769,24 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
                 r.close();
                 try {
                     if (!r.isSuccessful()) {
-                        connecting = false;
-                        updateGameStatus("HTTP " + r.code() + ": " + text);
+                        handleRequestError("HTTP " + r.code() + ": " + text, onError);
                         return;
                     }
                     handler.handle(new JSONObject(text));
                 } catch (Exception e) {
-                    connecting = false;
-                    updateGameStatus("Response error: " + e.getMessage());
+                    handleRequestError("Response error: " + e.getMessage(), onError);
                 }
             }
         });
+    }
+
+    private void handleRequestError(String message, Runnable onError) {
+        connecting = false;
+        if (onError != null) {
+            onError.run();
+        } else {
+            updateGameStatus(message);
+        }
     }
 
     private void send(JSONObject msg) {
