@@ -45,10 +45,10 @@ class _GameScreenState extends State<GameScreen> {
         final canRoll = myTurn && (snapshot?.diceValue ?? 0) == 0 && !_rolling;
         final legalCount = snapshot?.availableMoves.length ?? 0;
 
-        return WillPopScope(
-          onWillPop: () async {
-            _showLeaveDialog(context, state);
-            return false;
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (!didPop) _showLeaveDialog(context, state);
           },
           child: Scaffold(
             backgroundColor: context.bgPage,
@@ -62,8 +62,8 @@ class _GameScreenState extends State<GameScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       child: LudoBoard(
                         snapshot: snapshot,
-                        mySeat: mySeat,
-                        onPieceTapped: (pieceId) => state.movePiece(pieceId),
+                        playerId: state.playerId,
+                        onPieceTap: (pieceId) => state.movePiece(pieceId),
                       ),
                     ),
                   ),

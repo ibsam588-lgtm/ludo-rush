@@ -62,7 +62,7 @@ class AppState extends ChangeNotifier {
   void _healthCheck() {
     http.get(Uri.parse('$_backendUrl/health')).then((r) {
       backendOnline = r.statusCode < 400;
-    }).catchError((_) => backendOnline = false);
+    }).catchError((_) { backendOnline = false; });
   }
 
   // ── Navigation ─────────────────────────────────────────────────────────────
