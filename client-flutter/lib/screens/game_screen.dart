@@ -46,9 +46,6 @@ class _GameScreenState extends State<GameScreen> {
 
         return PopScope(
           canPop: false,
-          onPopInvokedWithResult: (didPop, _) {
-            if (!didPop) _showLeaveDialog(context, state);
-          },
           child: Scaffold(
             backgroundColor: bgDeep,
             body: SafeArea(

@@ -170,10 +170,10 @@ class _BoardPainter extends CustomPainter {
   // ── Color helpers ──────────────────────────────────────────────────────────
 
   static int _toInt(Color c) =>
-      ((c.a * 255).round() << 24) |
-      ((c.r * 255).round() << 16) |
-      ((c.g * 255).round() << 8)  |
-      (c.b * 255).round();
+      (c.alpha << 24) |
+      (c.red   << 16) |
+      (c.green << 8)  |
+      c.blue;
 
   static int _blend(int a, int b, double t) {
     final ia = 1.0 - t;
