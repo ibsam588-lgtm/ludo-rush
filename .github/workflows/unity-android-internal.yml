@@ -48,22 +48,39 @@ jobs:
             Library-client-unity-Android-
 
       - name: Build Android App Bundle
-        uses: game-ci/unity-builder@v4
+        shell: bash
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
-          UNITY_SERIAL: ${{ secrets.UNITY_SERIAL }}
-          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
-          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
           LUDO_RUSH_BACKEND_URL: ${{ inputs.backend_url }}
           ANDROID_PACKAGE_NAME: ${{ inputs.package_name }}
           UNITY_ANDROID_KEYSTORE_BASE64: ${{ secrets.UNITY_ANDROID_KEYSTORE_BASE64 }}
           UNITY_ANDROID_KEYSTORE_PASS: ${{ secrets.UNITY_ANDROID_KEYSTORE_PASS }}
           UNITY_ANDROID_KEYALIAS_NAME: ${{ secrets.UNITY_ANDROID_KEYALIAS_NAME }}
           UNITY_ANDROID_KEYALIAS_PASS: ${{ secrets.UNITY_ANDROID_KEYALIAS_PASS }}
-        with:
-          projectPath: client-unity
-          targetPlatform: Android
-          buildMethod: LudoRush.Editor.CiBuild.BuildAndroidAppBundle
+          ANDROID_VERSION_CODE: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${UNITY_LICENSE:-}" ]; then
+            echo "UNITY_LICENSE secret is required" >&2
+            exit 1
+          fi
+
+          printf '%s' "$UNITY_LICENSE" > "$RUNNER_TEMP/Unity_lic.ulf"
+
+          docker run --rm \
+            --workdir /github/workspace/client-unity \
+            --volume "$GITHUB_WORKSPACE:/github/workspace" \
+            --volume "$RUNNER_TEMP:/unity-license:ro" \
+            --env LUDO_RUSH_BACKEND_URL \
+            --env ANDROID_PACKAGE_NAME \
+            --env ANDROID_VERSION_CODE \
+            --env UNITY_ANDROID_KEYSTORE_BASE64 \
+            --env UNITY_ANDROID_KEYSTORE_PASS \
+            --env UNITY_ANDROID_KEYALIAS_NAME \
+            --env UNITY_ANDROID_KEYALIAS_PASS \
+            unityci/editor:6000.1.0f1-android-3 \
+            bash -lc 'mkdir -p /root/.local/share/unity3d/Unity && cp /unity-license/Unity_lic.ulf /root/.local/share/unity3d/Unity/Unity_lic.ulf && unity-editor -batchmode -nographics -quit -projectPath /github/workspace/client-unity -executeMethod LudoRush.Editor.CiBuild.BuildAndroidAppBundle -logFile -'
 
       - name: Locate AAB
         id: locate
