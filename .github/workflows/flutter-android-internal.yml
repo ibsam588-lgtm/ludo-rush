@@ -41,15 +41,15 @@ jobs:
 
       - name: Decode keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
+          echo "${{ secrets.UNITY_ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
 
       - name: Build release AAB
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/client-flutter/android/app/keystore.jks
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-        run: flutter build appbundle --release
+          KEY_ALIAS:    ${{ secrets.UNITY_ANDROID_KEYALIAS_NAME }}
+          KEY_PASSWORD: ${{ secrets.UNITY_ANDROID_KEYALIAS_PASS }}
+          STORE_PASSWORD: ${{ secrets.UNITY_ANDROID_KEYSTORE_PASS }}
+        run: flutter build appbundle --release --build-number=${{ github.run_number }}
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
@@ -61,7 +61,7 @@ jobs:
       - name: Upload to Play Store (Internal)
         uses: r0adkll/upload-google-play@v1
         with:
-          serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.ludorush.game
           releaseFiles: client-flutter/build/app/outputs/bundle/release/app-release.aab
           track: internal
