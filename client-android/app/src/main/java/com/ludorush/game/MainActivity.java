@@ -342,6 +342,11 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
     }
 
     @Override
+    public void movePiece(String pieceId) {
+        send(json("type", "move_piece", "playerId", playerId, "pieceId", pieceId));
+    }
+
+    @Override
     public void resign() {
         if (socket != null && playerId != null) {
             send(json("type", "resign", "playerId", playerId));

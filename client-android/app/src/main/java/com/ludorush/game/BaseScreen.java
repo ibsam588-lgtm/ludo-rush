@@ -33,6 +33,7 @@ public abstract class BaseScreen {
         void startQuickMatch(String mode);
         void rollDice();
         void moveBestPiece();
+        void movePiece(String pieceId);
         void resign();
     }
 
