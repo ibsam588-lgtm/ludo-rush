@@ -116,14 +116,38 @@ namespace LudoRush.Editor
                 return;
             }
 
-            var keystorePath = Path.Combine(Path.GetTempPath(), "ludo-rush-upload.keystore");
-            File.WriteAllBytes(keystorePath, Convert.FromBase64String(keystoreBase64));
+            var keystorePass = RequireEnvironmentVariable("UNITY_ANDROID_KEYSTORE_PASS");
+            var keyaliasName = RequireEnvironmentVariable("UNITY_ANDROID_KEYALIAS_NAME");
+            var keyaliasPass = RequireEnvironmentVariable("UNITY_ANDROID_KEYALIAS_PASS");
+            var keystoreDirectory = Path.GetFullPath(Path.Combine("Library", "BuildSigning"));
+            Directory.CreateDirectory(keystoreDirectory);
+
+            var keystorePath = Path.Combine(keystoreDirectory, "ludo-rush-upload.keystore");
+            File.WriteAllBytes(keystorePath, Convert.FromBase64String(keystoreBase64.Trim()));
+            var keystoreInfo = new FileInfo(keystorePath);
+            if (!keystoreInfo.Exists || keystoreInfo.Length == 0)
+            {
+                throw new InvalidOperationException($"Android keystore was not written correctly at {keystorePath}.");
+            }
+
+            Debug.Log($"Using Android keystore at {keystorePath} ({keystoreInfo.Length} bytes).");
 
             PlayerSettings.Android.useCustomKeystore = true;
-            PlayerSettings.Android.keystoreName = keystorePath;
-            PlayerSettings.Android.keystorePass = Environment.GetEnvironmentVariable("UNITY_ANDROID_KEYSTORE_PASS") ?? "";
-            PlayerSettings.Android.keyaliasName = Environment.GetEnvironmentVariable("UNITY_ANDROID_KEYALIAS_NAME") ?? "";
-            PlayerSettings.Android.keyaliasPass = Environment.GetEnvironmentVariable("UNITY_ANDROID_KEYALIAS_PASS") ?? "";
+            PlayerSettings.Android.keystoreName = keystorePath.Replace("\\", "/");
+            PlayerSettings.Android.keystorePass = keystorePass;
+            PlayerSettings.Android.keyaliasName = keyaliasName;
+            PlayerSettings.Android.keyaliasPass = keyaliasPass;
+        }
+
+        private static string RequireEnvironmentVariable(string name)
+        {
+            var value = Environment.GetEnvironmentVariable(name);
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                throw new InvalidOperationException($"{name} is required for Android release signing.");
+            }
+
+            return value;
         }
 
         private static void SetObject(UnityEngine.Object target, string fieldName, UnityEngine.Object value)
