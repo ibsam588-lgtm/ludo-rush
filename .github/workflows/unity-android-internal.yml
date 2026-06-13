@@ -106,7 +106,27 @@ jobs:
             --env UNITY_ANDROID_KEYALIAS_PASS \
             --env UNITY_ACCESS_TOKEN \
             unityci/editor:6000.1.0f1-android-3 \
-            bash -lc 'set -euo pipefail; mkdir -p /root/.cache/unity3d /root/.local/share/unity3d/Unity /root/.config/unity3d/Unity/licenses; cp /unity-license/Unity_lic.ulf /root/.local/share/unity3d/Unity/Unity_lic.ulf; cp /unity-license/UnityEntitlementLicense.xml /root/.config/unity3d/Unity/licenses/UnityEntitlementLicense.xml; /opt/unity/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client --activate-all --include-personal --accessToken "$UNITY_ACCESS_TOKEN"; unity-editor -batchmode -nographics -quit -projectPath /github/workspace/client-unity -executeMethod LudoRush.Editor.CiBuild.BuildAndroidAppBundle -logFile -'
+            bash -lc '
+              set -euo pipefail
+
+              mkdir -p /root/.cache/unity3d /root/.local/share/unity3d/Unity /root/.config/unity3d/Unity/licenses
+              cp /unity-license/Unity_lic.ulf /root/.local/share/unity3d/Unity/Unity_lic.ulf
+              cp /unity-license/UnityEntitlementLicense.xml /root/.config/unity3d/Unity/licenses/UnityEntitlementLicense.xml
+
+              /opt/unity/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client --activate-all --include-personal --accessToken "$UNITY_ACCESS_TOKEN"
+
+              for attempt in 1 2 3; do
+                if unity-editor -batchmode -nographics -quit -projectPath /github/workspace/client-unity -executeMethod LudoRush.Editor.CiBuild.BuildAndroidAppBundle -logFile -; then
+                  exit 0
+                fi
+
+                echo "Unity build attempt ${attempt} failed." >&2
+                if [ "$attempt" -eq 3 ]; then
+                  exit 1
+                fi
+                sleep 30
+              done
+            '
 
       - name: Locate AAB
         id: locate
