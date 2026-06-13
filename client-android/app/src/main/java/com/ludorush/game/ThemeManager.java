@@ -89,6 +89,13 @@ public final class ThemeManager {
     public static final int INDIGO       = 0xff3949AB;   // legacy alias
     public static final int SURFACE_GLOW = 0x22FFD700;
 
+    /** Navy blues for board and dice pips. */
+    public static final int NAVY      = 0xff1A237E;   // deep navy for dice pips & buttons
+    public static final int NAVY_DEEP = 0xff0D1B5E;   // darker navy for board surface
+
+    /** Gold variant for board accents. */
+    public static final int GOLD_DARK = 0xffC8940A;   // darker gold for board detail lines
+
     /** Legacy aliases — kept so existing call-sites compile unchanged. */
     public static final int BLUE_LIGHT  = 0xff90CAF9;
     public static final int GREEN_LIGHT = 0xffA5D6A7;

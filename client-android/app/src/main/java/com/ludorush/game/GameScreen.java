@@ -53,6 +53,13 @@ public final class GameScreen extends BaseScreen {
         if (statusText != null) statusText.setText(text);
     }
 
+    /** Called by MainActivity when a dice roll event arrives.
+     *  Dice animation is already handled via updateSnapshot/refreshUi;
+     *  this stub exists for backward compatibility. */
+    public void setLastRoll(int value, boolean myRoll) {
+        // no-op: animation is driven by snapshot diceValue in refreshUi()
+    }
+
     @Override
     public View createView() {
         LinearLayout root = new LinearLayout(activity);
@@ -822,82 +829,4 @@ public final class GameScreen extends BaseScreen {
                 return offset(left + (p[0] + 0.5f) * cell, top + (p[1] + 0.5f) * cell, pi, cell * 0.4f);
             }
             int ti = piece.optInt("trackIndex", -1);
-            if (ti < 0 || ti >= PATH.length) ti = (seatStart(seat) + progress) % PATH.length;
-            int[] p = PATH[ti];
-            return offset(left + (p[0] + 0.5f) * cell, top + (p[1] + 0.5f) * cell, pi, cell * 0.34f);
-        }
-
-        private float[] yardPos(int seat, int idx, int left, int top, float cell) {
-            int[][] bases = {{0,9},{0,0},{9,0},{9,9}};
-            int s = Math.max(0, Math.min(3, seat));
-            float[][] slots = {{2.1f,2.1f},{3.9f,2.1f},{2.1f,3.9f},{3.9f,3.9f}};
-            return new float[]{
-                left + (bases[s][0] + slots[idx % 4][0]) * cell,
-                top  + (bases[s][1] + slots[idx % 4][1]) * cell
-            };
-        }
-
-        private float[] offset(float x, float y, int idx, float amt) {
-            float d = Math.max(3f, amt * 0.16f);
-            return new float[]{x + (idx % 2 == 0 ? -d : d), y + (idx < 2 ? -d : d)};
-        }
-
-        private int pieceIdx(String id) {
-            if (id == null || id.isEmpty()) return 0;
-            char c = id.charAt(id.length() - 1);
-            return c >= '0' && c <= '3' ? c - '0' : 0;
-        }
-
-        private int seatStart(int s) {
-            int[] starts = {0, 13, 26, 39};
-            return starts[Math.max(0, Math.min(3, s))];
-        }
-
-        private int seatColor(int s) {
-            int[] c = {ThemeManager.RED, ThemeManager.BLUE, ThemeManager.YELLOW, ThemeManager.GREEN};
-            return c[Math.max(0, Math.min(3, s))];
-        }
-
-        private boolean contains(JSONArray a, String v) {
-            if (a == null || v == null) return false;
-            for (int i = 0; i < a.length(); i++) if (v.equals(a.optString(i))) return true;
-            return false;
-        }
-
-        private void drawEmpty(Canvas canvas, int left, int top, int size) {
-            if (snapshot != null) return;
-            rect.set(left + size * 0.16f, top + size * 0.39f,
-                     left + size * 0.84f, top + size * 0.61f);
-            paint.setColor(0xE6091428);
-            canvas.drawRoundRect(rect, size * 0.05f, size * 0.05f, paint);
-            paint.setStyle(Paint.Style.STROKE);
-            paint.setStrokeWidth(Math.max(2f, size * 0.006f));
-            paint.setColor(GOLD);
-            canvas.drawRoundRect(rect, size * 0.05f, size * 0.05f, paint);
-            paint.setStyle(Paint.Style.FILL);
-            paint.setColor(GOLD);
-            paint.setTypeface(Typeface.DEFAULT_BOLD);
-            paint.setTextSize(size * 0.047f);
-            paint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("Waiting for match", left + size / 2f, top + size * 0.49f, paint);
-            paint.setTextSize(size * 0.032f);
-            paint.setColor(0xffC0C7D2);
-            canvas.drawText("Setting up your game...", left + size / 2f, top + size * 0.55f, paint);
-            paint.setTextAlign(Paint.Align.LEFT);
-        }
-
-        private void drawStar(Canvas canvas, float cx, float cy, float radius, int color) {
-            Path star = new Path();
-            for (int i = 0; i < 10; i++) {
-                double angle = -Math.PI / 2 + i * Math.PI / 5;
-                float r = i % 2 == 0 ? radius : radius * 0.45f;
-                float x = cx + (float) Math.cos(angle) * r;
-                float y = cy + (float) Math.sin(angle) * r;
-                if (i == 0) star.moveTo(x, y); else star.lineTo(x, y);
-            }
-            star.close();
-            paint.setColor(color);
-            canvas.drawPath(star, paint);
-        }
-    }
-}
+            if (ti < 0 || ti >= PATH.length) ti = (seatStart
