@@ -7,15 +7,23 @@ import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+/**
+ * Royal Rush base screen with premium component helpers.
+ * All UI is built programmatically — no XML layouts.
+ */
 public abstract class BaseScreen {
 
     protected final Activity activity;
     protected final ScreenCallback callback;
     protected final ThemeManager theme;
+    private static final Typeface BODY_FONT = Typeface.create("sans-serif", Typeface.NORMAL);
+    private static final Typeface BODY_BOLD = Typeface.create("sans-serif-medium", Typeface.BOLD);
+    private static final Typeface DISPLAY_FONT = Typeface.create("sans-serif-medium", Typeface.BOLD);
 
     public interface ScreenCallback {
         void navigateTo(String screen);
@@ -51,18 +59,25 @@ public abstract class BaseScreen {
         return (int) (v * activity.getResources().getDisplayMetrics().density + 0.5f);
     }
 
-    // ── Text ─────────────────────────────────────────────────────────────────
+    // ── Text ──────────────────────────────────────────────────────────────────
 
     protected TextView text(String t, int sp, int color, int style) {
         TextView v = new TextView(activity);
         v.setText(t);
         v.setTextSize(sp);
         v.setTextColor(color);
-        v.setTypeface(Typeface.DEFAULT, style);
+        v.setTypeface(fontFor(style));
+        v.setIncludeFontPadding(false);
         return v;
     }
 
-    // ── Drawables ─────────────────────────────────────────────────────────────
+    protected Typeface fontFor(int style) {
+        if (style == Typeface.BOLD) return DISPLAY_FONT;
+        if (style == Typeface.BOLD_ITALIC) return BODY_BOLD;
+        return BODY_FONT;
+    }
+
+    // ── Card drawables ────────────────────────────────────────────────────────
 
     protected GradientDrawable card(int color, int radius, int strokeColor) {
         GradientDrawable d = new GradientDrawable();
@@ -73,17 +88,17 @@ public abstract class BaseScreen {
     }
 
     protected GradientDrawable cardGradient(int start, int end, int radius) {
-        GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{start, end});
+        GradientDrawable d = new GradientDrawable(
+                GradientDrawable.Orientation.TL_BR, new int[]{start, end});
         d.setCornerRadius(radius);
         d.setStroke(dp(1), theme.strokeGrad());
         return d;
     }
 
     protected GradientDrawable buttonGradient(int start, int end, int radius) {
-        GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.TL_BR, new int[]{start, end});
+        GradientDrawable d = new GradientDrawable(
+                GradientDrawable.Orientation.LEFT_RIGHT, new int[]{start, end});
         d.setCornerRadius(radius);
-        // Faint gold rim gives every primary action a minted, premium edge.
-        d.setStroke(dp(1), 0x55FFDD8A);
         return d;
     }
 
@@ -102,18 +117,41 @@ public abstract class BaseScreen {
         return d;
     }
 
+    // ── Glowing card ──────────────────────────────────────────────────────────
+
+    protected GradientDrawable glowCard(int color, int radius, int glowColor) {
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(color);
+        d.setCornerRadius(radius);
+        d.setStroke(dp(1), glowColor);
+        return d;
+    }
+
     // ── Buttons ───────────────────────────────────────────────────────────────
+
+    protected Button primaryButton(String label) {
+        Button b = new Button(activity);
+        b.setAllCaps(false);
+        b.setText(label);
+        b.setTextColor(0xff1A0800);   // dark brown on gold — high contrast
+        b.setTextSize(15);
+        b.setTypeface(DISPLAY_FONT);
+        b.setIncludeFontPadding(false);
+        b.setBackground(buttonGradient(ThemeManager.GOLD, ThemeManager.AMBER, dp(20)));
+        b.setElevation(dp(4));
+        return b;
+    }
 
     protected Button actionButton(String label, int start, int end) {
         Button b = new Button(activity);
         b.setAllCaps(false);
         b.setText(label);
         b.setTextColor(Color.WHITE);
-        b.setTextSize(16);
-        b.setTypeface(Typeface.DEFAULT_BOLD);
-        b.setBackground(buttonGradient(start, end, dp(16)));
-        b.setLetterSpacing(0.02f);
-        b.setElevation(dp(3));
+        b.setTextSize(15);
+        b.setTypeface(DISPLAY_FONT);
+        b.setIncludeFontPadding(false);
+        b.setBackground(buttonGradient(start, end, dp(20)));
+        b.setElevation(dp(2));
         return b;
     }
 
@@ -121,10 +159,23 @@ public abstract class BaseScreen {
         Button b = new Button(activity);
         b.setAllCaps(false);
         b.setText(label);
-        b.setTextColor(theme.txtPrimary());
+        b.setTextColor(Color.WHITE);
         b.setTextSize(13);
-        b.setTypeface(Typeface.DEFAULT_BOLD);
-        b.setBackground(card(theme.bgCard(), dp(16), theme.strokeCard()));
+        b.setTypeface(DISPLAY_FONT);
+        b.setIncludeFontPadding(false);
+        b.setBackground(card(0xff1565C0, dp(20), ThemeManager.GOLD));
+        return b;
+    }
+
+    protected Button ghostButton(String label, int borderColor) {
+        Button b = new Button(activity);
+        b.setAllCaps(false);
+        b.setText(label);
+        b.setTextColor(borderColor);
+        b.setTextSize(13);
+        b.setTypeface(DISPLAY_FONT);
+        b.setIncludeFontPadding(false);
+        b.setBackground(card(0x00000000, dp(20), borderColor));
         return b;
     }
 
@@ -140,68 +191,12 @@ public abstract class BaseScreen {
         return p;
     }
 
-    // ── Seat colors ───────────────────────────────────────────────────────────
-
-    protected int seatColor(int seat) {
-        int[] c = {ThemeManager.RED, ThemeManager.BLUE, ThemeManager.YELLOW, ThemeManager.GREEN};
-        return c[Math.max(0, Math.min(c.length - 1, seat))];
-    }
-
-    // ── Common composites ─────────────────────────────────────────────────────
-
-    protected LinearLayout createHeader(String title) {
-        // Vertical wrapper: title row + a thin gold rule that frames every page.
-        LinearLayout wrap = new LinearLayout(activity);
-        wrap.setOrientation(LinearLayout.VERTICAL);
-        wrap.setBackgroundColor(theme.bgHeader());
-
-        LinearLayout h = new LinearLayout(activity);
-        h.setOrientation(LinearLayout.HORIZONTAL);
-        h.setGravity(Gravity.CENTER_VERTICAL);
-        h.setPadding(dp(4), dp(12), dp(4), dp(12));
-        wrap.addView(h, lp(-1, -2));
-
-        Button back = new Button(activity);
-        back.setAllCaps(false);
-        back.setText("‹");
-        back.setTextColor(ThemeManager.GOLD);
-        back.setTextSize(26);
-        back.setTypeface(Typeface.DEFAULT_BOLD);
-        back.setBackground(null);
-        back.setOnClickListener(v -> callback.goBack());
-        h.addView(back, lp(dp(52), dp(52)));
-
-        TextView t = text(title, 20, theme.txtPrimary(), Typeface.BOLD);
-        t.setLetterSpacing(0.04f);
-        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, -2, 1);
-        h.addView(t, tp);
-
-        // Quick theme toggle — ☀️ in dark mode, 🌙 in light mode
-        Button themeToggle = new Button(activity);
-        themeToggle.setAllCaps(false);
-        themeToggle.setText(theme.isDark() ? "☀️" : "🌙");
-        themeToggle.setTextSize(20);
-        themeToggle.setBackground(null);
-        themeToggle.setPadding(0, 0, 0, 0);
-        themeToggle.setOnClickListener(v -> {
-            theme.setDark(!theme.isDark());
-            activity.recreate();
-        });
-        h.addView(themeToggle, lp(dp(48), dp(48)));
-
-        View rule = new View(activity);
-        rule.setBackground(new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-            new int[]{0x00E9B949, ThemeManager.GOLD, 0x00E9B949}));
-        wrap.addView(rule, lp(-1, dp(2)));
-
-        return wrap;
-    }
+    // ── Screen shell ──────────────────────────────────────────────────────────
 
     protected View createScreenShell(String title, View content) {
         return createScreenShell(title, content, false);
     }
 
-    /** @param withBanner append a 320×50 AdMob banner below the scroll area */
     protected View createScreenShell(String title, View content, boolean withBanner) {
         LinearLayout root = new LinearLayout(activity);
         root.setOrientation(LinearLayout.VERTICAL);
@@ -216,7 +211,7 @@ public abstract class BaseScreen {
 
         LinearLayout body = new LinearLayout(activity);
         body.setOrientation(LinearLayout.VERTICAL);
-        body.setPadding(dp(18), dp(12), dp(18), dp(18));
+        body.setPadding(dp(18), dp(12), dp(18), dp(20));
         body.addView(content, lp(-1, -2));
         scroll.addView(body, new ScrollView.LayoutParams(-1, -2));
 
@@ -237,24 +232,135 @@ public abstract class BaseScreen {
         return root;
     }
 
+    /** Top navigation bar used by inner screens. */
+    protected LinearLayout createHeader(String title) {
+        LinearLayout h = new LinearLayout(activity);
+        h.setOrientation(LinearLayout.HORIZONTAL);
+        h.setGravity(Gravity.CENTER_VERTICAL);
+        h.setPadding(dp(4), dp(14), dp(12), dp(14));
+        h.setBackground(card(theme.bgHeader(), 0, theme.strokeCard()));
+
+        Button back = new Button(activity);
+        back.setAllCaps(false);
+        back.setText("<");
+        back.setTextColor(ThemeManager.GOLD);
+        back.setTextSize(26);
+        back.setTypeface(DISPLAY_FONT);
+        back.setIncludeFontPadding(false);
+        back.setBackground(null);
+        back.setPadding(dp(12), 0, dp(8), 0);
+        back.setOnClickListener(v -> callback.goBack());
+        h.addView(back, lp(dp(52), dp(52)));
+
+        TextView t = text(title, 18, ThemeManager.GOLD, Typeface.BOLD);
+        t.setLetterSpacing(0.01f);
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, -2, 1);
+        h.addView(t, tp);
+
+        Button themeToggle = new Button(activity);
+        themeToggle.setAllCaps(false);
+        themeToggle.setText(theme.isDark() ? "LT" : "DK");
+        themeToggle.setTextSize(11);
+        themeToggle.setTypeface(DISPLAY_FONT);
+        themeToggle.setIncludeFontPadding(false);
+        themeToggle.setBackground(circle(theme.bgCard()));
+        themeToggle.setPadding(dp(4), dp(4), dp(4), dp(4));
+        themeToggle.setOnClickListener(v -> {
+            theme.setDark(!theme.isDark());
+            activity.recreate();
+        });
+        h.addView(themeToggle, lp(dp(40), dp(40)));
+
+        return h;
+    }
+
+    // ── Section label ─────────────────────────────────────────────────────────
+
+    protected void addSectionLabel(LinearLayout parent, String label) {
+        TextView t = text(label, 10, theme.txtMuted(), Typeface.BOLD);
+        t.setPadding(dp(2), 0, 0, 0);
+        t.setLetterSpacing(0.06f);
+        parent.addView(t, lp(-1, -2, 0, dp(20), 0, dp(10)));
+    }
+
+    // ── Metric chip ───────────────────────────────────────────────────────────
+
     protected TextView metric(String label, String value) {
         TextView v = new TextView(activity);
         v.setGravity(Gravity.CENTER);
         v.setTextColor(theme.txtPrimary());
         v.setTextSize(13);
-        v.setTypeface(Typeface.DEFAULT_BOLD);
+        v.setTypeface(DISPLAY_FONT);
+        v.setIncludeFontPadding(false);
         v.setText(label + "\n" + value);
-        v.setBackground(card(theme.bgMetric(), dp(14), theme.strokeCardAlt()));
-        v.setPadding(dp(4), dp(10), dp(4), dp(10));
+        v.setBackground(glowCard(theme.bgCard(), dp(16), theme.strokeCardGlow()));
+        v.setPadding(dp(4), dp(12), dp(4), dp(12));
         return v;
     }
 
-    protected void addSectionLabel(LinearLayout parent, String label) {
-        TextView t = text(label, 11, ThemeManager.GOLD_DARK, Typeface.BOLD);
-        t.setPadding(dp(2), 0, 0, 0);
-        t.setLetterSpacing(0.16f);
-        parent.addView(t, lp(-1, -2, 0, dp(16), 0, dp(8)));
+    // ── Seat colors ───────────────────────────────────────────────────────────
+
+    protected int seatColor(int seat) {
+        int[] c = {ThemeManager.RED, ThemeManager.BLUE, ThemeManager.YELLOW, ThemeManager.GREEN};
+        return c[Math.max(0, Math.min(c.length - 1, seat))];
     }
+
+    protected int seatColorSoft(int seat) {
+        int[] c = {ThemeManager.RED_SOFT, ThemeManager.BLUE_SOFT,
+                   ThemeManager.YELLOW_SOFT, ThemeManager.GREEN_SOFT};
+        return c[Math.max(0, Math.min(c.length - 1, seat))];
+    }
+
+    // ── Badge / chip ──────────────────────────────────────────────────────────
+
+    protected TextView badge(String badgeText, int bgColor, int textColor) {
+        TextView v = new TextView(activity);
+        v.setText(badgeText);
+        v.setTextColor(textColor);
+        v.setTextSize(10);
+        v.setTypeface(DISPLAY_FONT);
+        v.setIncludeFontPadding(false);
+        v.setLetterSpacing(0.02f);
+        v.setPadding(dp(8), dp(3), dp(8), dp(3));
+        GradientDrawable d = new GradientDrawable();
+        d.setColor(bgColor);
+        d.setCornerRadius(dp(12));
+        v.setBackground(d);
+        return v;
+    }
+
+    // ── Avatar ────────────────────────────────────────────────────────────────
+
+    protected FrameLayout avatarRing(String initial, int ringColor, int size) {
+        FrameLayout frame = new FrameLayout(activity);
+
+        View ring = new View(activity);
+        ring.setBackground(circleOutline(ringColor, ringColor));
+        frame.addView(ring, new FrameLayout.LayoutParams(size, size));
+
+        int innerSize = (int)(size * 0.82f);
+        int offset = (size - innerSize) / 2;
+        TextView inner = new TextView(activity);
+        inner.setGravity(Gravity.CENTER);
+        String letter = (initial != null && !initial.isEmpty())
+                ? initial.substring(0, 1).toUpperCase() : "?";
+        inner.setText(letter);
+        inner.setTextColor(Color.WHITE);
+        inner.setTextSize(innerSize * 0.016f);
+        inner.setTypeface(DISPLAY_FONT);
+        inner.setIncludeFontPadding(false);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setShape(GradientDrawable.OVAL);
+        bg.setColor(ringColor);
+        inner.setBackground(bg);
+        FrameLayout.LayoutParams ilp = new FrameLayout.LayoutParams(innerSize, innerSize);
+        ilp.setMargins(offset, offset, offset, offset);
+        frame.addView(inner, ilp);
+
+        return frame;
+    }
+
+    // ── Divider ───────────────────────────────────────────────────────────────
 
     protected View hairline() {
         View v = new View(activity);

@@ -4,15 +4,8 @@ import android.content.Context;
 import android.content.SharedPreferences;
 
 /**
- * Singleton theme registry — the heart of the "Royal Gold" visual identity.
- *
- * The signature skin is deep royal-navy + antique gold.  Player pieces are jewel
- * tones — crimson ruby, royal sapphire, imperial emerald and amber gold — each
- * paired with a softer companion tint for lanes, gradients and highlights.  A
- * warm-ivory light skin mirrors the same luxury language.
- *
- * Call get(ctx) anywhere; setDark() flips skins and persists.  All color methods
- * return int ARGB values safe for View.setBackgroundColor / TextView.setTextColor.
+ * Royal Rush theme — premium Ludo game aesthetic.
+ * Deep purple canvas (à la Ludo Star) with gold accents and classic vivid piece colours.
  */
 public final class ThemeManager {
 
@@ -30,61 +23,73 @@ public final class ThemeManager {
         return instance;
     }
 
-    public boolean isDark() { return dark; }
+    public boolean isDark()  { return dark; }
 
     public void setDark(boolean d) {
         dark = d;
         prefs.edit().putBoolean("dark_mode", d).apply();
     }
 
-    // ── Page / structural backgrounds ─────────────────────────────────────────
-    public int bgPage()        { return dark ? 0xff0D1B3E : 0xffF7F1E3; }  // royal navy
-    public int bgBoard()       { return dark ? 0xff091428 : 0xffFBF5E6; }  // deep board navy
-    public int bgHeader()      { return dark ? 0xff0B1530 : 0xffFFFDF6; }
-    public int bgCard()        { return dark ? 0xff13234A : 0xffFFFDF8; }
-    public int bgMetric()      { return dark ? 0x22D4AF37 : 0xffF3EAD4; }
-    public int bgSel()         { return dark ? 0xff1E3460 : 0xffFAEFCD; }
-    public int bgDanger()      { return dark ? 0xff2A1018 : 0xffFCECEC; }
-    public int bgGradStart()   { return dark ? 0xff1E3A6E : 0xffFFF7E4; }  // hero gradient (navy)
-    public int bgGradEnd()     { return dark ? 0xff0D1B3E : 0xffF5EBD3; }
+    // ── Backgrounds ───────────────────────────────────────────────────────────
+    public int bgPage()      { return dark ? 0xff150020 : 0xffFFF0FB; }
+    public int bgSurface()   { return dark ? 0xff2A0B49 : 0xffFFE15A; }
+    public int bgCard()      { return dark ? 0xff3B145B : 0xffFFFFFF; }
+    public int bgCardHigh()  { return dark ? 0xff6E1C83 : 0xffFFD6F0; }
+    public int bgHeader()    { return dark ? 0xff4D0F69 : 0xffFF4FA3; }
+    public int bgBoard()     { return dark ? 0xff23102F : 0xffFFF9DD; }
+    public int bgMetric()    { return dark ? 0x33FFD426 : 0xffFFF0A6; }
+    public int bgSel()       { return dark ? 0xff9A24D4 : 0xff40D8FF; }
+    public int bgDanger()    { return dark ? 0xff2A1218 : 0xffffE0EC; }
+    public int bgGradStart() { return dark ? 0xffFFD426 : 0xffFFD426; }
+    public int bgGradEnd()   { return dark ? 0xffFF9A00 : 0xffFF9A00; }
+    public int bgHeroStart() { return dark ? 0xffA51FE0 : 0xffFF67B7; }
+    public int bgHeroEnd()   { return dark ? 0xff1E0638 : 0xff37D5FF; }
+    public int bgBottomBar() { return dark ? 0xff6B255F : 0xff6738E8; }
+    public int bgInput()     { return dark ? 0xff35104F : 0xffFFF7D7; }
 
-    // ── Text ─────────────────────────────────────────────────────────────────
-    public int txtPrimary()    { return dark ? 0xffF6F1E4 : 0xff14203B; }
-    public int txtSecondary()  { return dark ? 0xffBCC6DA : 0xff52607B; }
-    public int txtMuted()      { return dark ? 0xff8794AE : 0xff7A86A0; }
-    public int txtDim()        { return dark ? 0xff42507A : 0xffC9BD9C; }
-    public int txtVer()        { return dark ? 0xff3C4A6E : 0xffB8AC8A; }
+    // ── Text ──────────────────────────────────────────────────────────────────
+    public int txtPrimary()   { return dark ? 0xffFFFFFF : 0xff25102F; }
+    public int txtSecondary() { return dark ? 0xEEFFF0FF : 0xff5A245C; }
+    public int txtMuted()     { return dark ? 0xCCFFECA8 : 0xff7A3E7F; }
+    public int txtDim()       { return dark ? 0x77FFFFFF : 0xffA066A8; }
+    public int txtHero()      { return 0xffFFFFFF; }
+    public int txtVer()       { return dark ? 0x44FFFFFF : 0xffA0BBCC; }
 
-    // ── Borders ───────────────────────────────────────────────────────────────
-    public int strokeCard()    { return dark ? 0x33D4AF37 : 0xffE6D8B6; }
-    public int strokeCardAlt() { return dark ? 0x22D4AF37 : 0xffEFE6CC; }
-    public int strokeGrad()    { return dark ? 0x4DD4AF37 : 0xffE2D2A6; }
-    public int strokeSel()     { return GOLD; }  // selected-mode border, gold in both skins
-    public int strokeDanger()  { return dark ? 0x44DC143C : 0xffF2C9C9; }
+    // ── Borders / strokes ─────────────────────────────────────────────────────
+    public int strokeCard()     { return dark ? 0x77FFD426 : 0xff8D4CFF; }
+    public int strokeCardAlt()  { return dark ? 0x55FFD426 : 0xffD7C8FF; }
+    public int strokeCardGlow() { return dark ? 0xBBFFD426 : 0xffFF4FA3; }
+    public int strokeSel()      { return GOLD; }
+    public int strokeAccent()   { return dark ? 0xAAFFD426 : 0xff7C4DFF; }
+    public int strokeDanger()   { return dark ? 0x55E53935 : 0xffFF8AB3; }
+    public int strokeGrad()     { return dark ? 0xffFFD426 : 0xff7C4DFF; }
 
-    // ── System bar colors (read by MainActivity) ──────────────────────────────
-    public int sysBarColor()   { return dark ? 0xff0D1B3E : 0xffF7F1E3; }
+    // ── System bar ────────────────────────────────────────────────────────────
+    public int sysBarColor() { return dark ? 0xff150020 : 0xffFFF0FB; }
 
-    // ── Jewel player palette (constant across both skins) ──────────────────────
-    public static final int RED         = 0xffDC143C; // crimson ruby
-    public static final int BLUE        = 0xff1E5FA8; // royal sapphire
-    public static final int GREEN       = 0xff1B7A3E; // imperial emerald
-    public static final int YELLOW      = 0xffD4A017; // amber gold
+    // ── Brand palette ─────────────────────────────────────────────────────────
 
-    // soft companion tints — lanes, gradients, light highlights
-    public static final int RED_SOFT    = 0xffE8637D;
-    public static final int BLUE_SOFT   = 0xff6B9ED4;
-    public static final int GREEN_SOFT  = 0xff62BC85;
-    public static final int YELLOW_SOFT = 0xffE8CB6B;
+    /** Classic Ludo piece colours — vivid and saturated. */
+    public static final int RED    = 0xffF32B2B;   // punchy red
+    public static final int BLUE   = 0xff1565E0;   // bright royal blue
+    public static final int YELLOW = 0xffFFD000;   // golden yellow
+    public static final int GREEN  = 0xff2DB34A;   // vivid green
 
-    // legacy aliases (kept so existing screens keep compiling)
-    public static final int BLUE_LIGHT  = BLUE_SOFT;
-    public static final int GREEN_LIGHT = GREEN_SOFT;
+    /** Home-lane tints — strong enough to read on cream path cells. */
+    public static final int RED_SOFT    = 0xffFF8A80;   // warm coral
+    public static final int BLUE_SOFT   = 0xff82B1FF;   // electric blue tint
+    public static final int YELLOW_SOFT = 0xffFFE57F;   // warm gold tint
+    public static final int GREEN_SOFT  = 0xff69F0AE;   // bright mint
 
-    // ── Royal accents ──────────────────────────────────────────────────────────
-    public static final int GOLD        = 0xffD4AF37; // antique gold accent
-    public static final int GOLD_LIGHT  = 0xffEAD08A;
-    public static final int GOLD_DARK   = 0xffA8842A;
-    public static final int NAVY        = 0xff0D1B3E; // page navy
-    public static final int NAVY_DEEP   = 0xff091428; // board navy
+    /** UI accents. */
+    public static final int GOLD         = 0xffFFD426;
+    public static final int AMBER        = 0xffFF9A00;
+    public static final int TEAL         = 0xff32D3C8;
+    public static final int VIOLET       = 0xff7C3AED;   // legacy alias
+    public static final int INDIGO       = 0xff3949AB;   // legacy alias
+    public static final int SURFACE_GLOW = 0x22FFD700;
+
+    /** Legacy aliases — kept so existing call-sites compile unchanged. */
+    public static final int BLUE_LIGHT  = 0xff90CAF9;
+    public static final int GREEN_LIGHT = 0xffA5D6A7;
 }
