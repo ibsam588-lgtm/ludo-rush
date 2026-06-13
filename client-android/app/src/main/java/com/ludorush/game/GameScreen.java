@@ -15,6 +15,8 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RadialGradient;
 import android.graphics.RectF;
+import android.graphics.Camera;
+import android.graphics.Matrix;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
@@ -777,6 +779,10 @@ public final class GameScreen extends BaseScreen {
         private final RectF r = new RectF();
         private int displayValue;
         private float slideOff = 0f;
+        private float diceYaw = 0f;
+        private float dicePitch = 0f;
+        private final Camera camera3d = new Camera();
+        private final Matrix matrix3d = new Matrix();
         private final Handler h = new Handler(Looper.getMainLooper());
 
         public DiceOverlayView(Context ctx) { super(ctx); }
@@ -784,36 +790,55 @@ public final class GameScreen extends BaseScreen {
         void showRoll(int finalValue) {
             setVisibility(VISIBLE);
             setAlpha(1f); setScaleX(1f); setScaleY(1f);
-            slideOff = 0f;
+            slideOff = 0f; diceYaw = 0f; dicePitch = 0f;
 
-            // Slide in from below
             ValueAnimator slideIn = ValueAnimator.ofFloat(220f, 0f);
             slideIn.setDuration(280);
             slideIn.setInterpolator(new DecelerateInterpolator());
             slideIn.addUpdateListener(a -> { slideOff = (float) a.getAnimatedValue(); invalidate(); });
             slideIn.start();
 
-            // Cycle faces then land
             int[] seq = {3, 1, 5, 2, 6, 4, 1, 3, 5, 2, 4, finalValue};
-            for (int i = 0; i < seq.length; i++) {
+            int total = seq.length;
+            for (int i = 0; i < total; i++) {
                 final int face = seq[i];
-                final boolean last = i == seq.length - 1;
+                final boolean last = i == total - 1;
+                final float prog = (float)(i + 1) / total;
                 h.postDelayed(() -> {
                     displayValue = face;
-                    if (last) {
-                        ValueAnimator pop = ValueAnimator.ofFloat(1.18f, 1f);
-                        pop.setDuration(320);
-                        pop.setInterpolator(new OvershootInterpolator());
-                        pop.addUpdateListener(a -> {
-                            float v = (float) a.getAnimatedValue();
-                            setScaleX(v); setScaleY(v);
+                    if (!last) {
+                        diceYaw   = prog * 360f;
+                        dicePitch = prog * 180f;
+                        invalidate();
+                    } else {
+                        final float sy = diceYaw, sp = dicePitch;
+                        ValueAnimator flatten = ValueAnimator.ofFloat(1f, 0f);
+                        flatten.setDuration(200);
+                        flatten.setInterpolator(new DecelerateInterpolator());
+                        flatten.addUpdateListener(a2 -> {
+                            float ft = (float) a2.getAnimatedValue();
+                            diceYaw   = sy * ft;
+                            dicePitch = sp * ft;
+                            invalidate();
                         });
-                        pop.start();
+                        flatten.addListener(new AnimatorListenerAdapter() {
+                            @Override public void onAnimationEnd(Animator an) {
+                                diceYaw = 0f; dicePitch = 0f;
+                                ValueAnimator pop = ValueAnimator.ofFloat(1.18f, 1f);
+                                pop.setDuration(320);
+                                pop.setInterpolator(new OvershootInterpolator());
+                                pop.addUpdateListener(a3 -> {
+                                    float v = (float) a3.getAnimatedValue();
+                                    setScaleX(v); setScaleY(v);
+                                });
+                                pop.start();
+                                invalidate();
+                            }
+                        });
+                        flatten.start();
                     }
-                    invalidate();
-                }, 65L * (i + 1));
+                }, 55L * (i + 1));
             }
-            // Auto-hide after 2.5s
             h.postDelayed(this::hide, 2800);
         }
 
@@ -833,32 +858,40 @@ public final class GameScreen extends BaseScreen {
             float rad   = size * 0.18f;
             float cw    = right - left, ch = bot - top;
 
-            // Backdrop scrim
             paint.setColor(0xCC000000);
             float scrim = size * 0.7f;
             canvas.drawRoundRect(cx-scrim, cy-scrim, cx+scrim, cy+scrim,
                 size*0.14f, size*0.14f, paint);
 
-            // Shadow
+            boolean tumbling = (diceYaw != 0f || dicePitch != 0f);
+            if (tumbling) {
+                camera3d.save();
+                camera3d.rotateY(diceYaw);
+                camera3d.rotateX(dicePitch);
+                camera3d.getMatrix(matrix3d);
+                camera3d.restore();
+                matrix3d.preTranslate(-cx, -cy);
+                matrix3d.postTranslate(cx, cy);
+                canvas.save();
+                canvas.concat(matrix3d);
+            }
+
             r.set(left+size*0.04f, top+size*0.06f, right+size*0.04f, bot+size*0.06f);
             paint.setColor(0x60000000);
             canvas.drawRoundRect(r, rad, rad, paint);
 
-            // Face gradient (ivory)
             r.set(left, top, right, bot);
             paint.setShader(new LinearGradient(left, top, right, bot,
                 0xffFFFDF4, 0xffE8DFB8, Shader.TileMode.CLAMP));
             canvas.drawRoundRect(r, rad, rad, paint);
             paint.setShader(null);
 
-            // Gold rim
             paint.setStyle(Paint.Style.STROKE);
             paint.setStrokeWidth(size * 0.052f);
             paint.setColor(ThemeManager.GOLD);
             canvas.drawRoundRect(r, rad, rad, paint);
             paint.setStyle(Paint.Style.FILL);
 
-            // Pips in classic arrangement
             float pr = cw * 0.1f;
             float lx = left + cw*0.29f, rx = right - cw*0.29f;
             float ty2 = top + ch*0.29f, by2 = bot - ch*0.29f;
@@ -878,10 +911,10 @@ public final class GameScreen extends BaseScreen {
                 canvas.drawCircle(lx, mid_cy, pr, paint); canvas.drawCircle(rx, mid_cy, pr, paint);
             }
             if (midDot) canvas.drawCircle(mid_cx, mid_cy, pr, paint);
+
+            if (tumbling) canvas.restore();
         }
     }
-
-    // ══════════════════════════════════════════════════════════════════════════
     // Small dice in my-row
     // ══════════════════════════════════════════════════════════════════════════
 
@@ -985,10 +1018,10 @@ public final class GameScreen extends BaseScreen {
             {6,14},{3,8},{0,6},{6,3},{8,0},{11,6},{14,8},{8,11}
         };
         private static final int[][][] HOME_LANES = {
-            {{7,13},{7,12},{7,11},{7,10},{7,9}},
-            {{1,7},{2,7},{3,7},{4,7},{5,7}},
-            {{7,1},{7,2},{7,3},{7,4},{7,5}},
-            {{13,7},{12,7},{11,7},{10,7},{9,7}}
+            {{7,14},{7,13},{7,12},{7,11},{7,10}},
+            {{0,7},{1,7},{2,7},{3,7},{4,7}},
+            {{7,0},{7,1},{7,2},{7,3},{7,4}},
+            {{14,7},{13,7},{12,7},{11,7},{10,7}}
         };
 
         private static final int NAVY    = ThemeManager.NAVY_DEEP;
@@ -1018,6 +1051,11 @@ public final class GameScreen extends BaseScreen {
         // Pulse animation
         private float pulsePhase = 1f;
         private ValueAnimator pulseAnim;
+
+        // Goti selection scale
+        private String selectedPieceId = null;
+        private float selectScale = 1f;
+        private ValueAnimator selectAnim;
 
         // Move animation
         private static final class AnimPiece {
@@ -1104,6 +1142,22 @@ public final class GameScreen extends BaseScreen {
             pulsePhase = 1f; invalidate();
         }
 
+        public void setSelectedPiece(String id) {
+            selectedPieceId = id;
+            if (selectAnim != null) selectAnim.cancel();
+            selectAnim = ValueAnimator.ofFloat(1.0f, 1.4f);
+            selectAnim.setDuration(150);
+            selectAnim.setInterpolator(new OvershootInterpolator(3f));
+            selectAnim.addUpdateListener(a -> { selectScale = (float) a.getAnimatedValue(); invalidate(); });
+            selectAnim.start();
+        }
+
+        public void clearSelectedPiece() {
+            selectedPieceId = null; selectScale = 1f;
+            if (selectAnim != null) { selectAnim.cancel(); selectAnim = null; }
+            invalidate();
+        }
+
         @Override
         public boolean onTouchEvent(MotionEvent event) {
             if (event.getAction() != MotionEvent.ACTION_UP) return true;
@@ -1114,7 +1168,9 @@ public final class GameScreen extends BaseScreen {
                 if (h.legal && d < h.r * 2.8f && d < bestDist) { bestDist = d; best = h; }
             }
             if (best != null && tapListener != null) {
-                tapListener.onPieceTap(best.pieceId); stopPulse();
+                setSelectedPiece(best.pieceId);
+                tapListener.onPieceTap(best.pieceId);
+                stopPulse();
             }
             return true;
         }
@@ -1367,9 +1423,34 @@ public final class GameScreen extends BaseScreen {
                     };
                 }
 
-                pieceHits.add(new PieceHit(pid, pos[0], pos[1], cell*0.38f, legal));
-                drawPiece(canvas, pos[0], pos[1], cell*0.38f,
+
+                float baseR = cell * 0.38f;
+                boolean sel = pid.equals(selectedPieceId);
+                pieceHits.add(new PieceHit(pid, pos[0], pos[1], baseR, legal));
+
+                if (sel && selectScale > 1f) {
+                    paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeWidth(baseR * 0.55f);
+                    int auraCol = (seatColor(seat) & 0x00FFFFFF) | 0x99000000;
+                    paint.setColor(auraCol);
+                    canvas.drawCircle(pos[0], pos[1], baseR * selectScale * 1.35f, paint);
+                    paint.setStyle(Paint.Style.FILL);
+                    canvas.save();
+                    canvas.scale(selectScale, selectScale, pos[0], pos[1]);
+                }
+
+                drawPiece(canvas, pos[0], pos[1], baseR,
                     seatColor(seat), legal, activeSeat == seat);
+
+                if (sel && selectScale > 1f) {
+                    canvas.restore();
+                    paint.setColor(ThemeManager.GOLD);
+                    paint.setTextSize(baseR * 1.1f);
+                    paint.setTypeface(Typeface.DEFAULT_BOLD);
+                    paint.setTextAlign(Paint.Align.CENTER);
+                    canvas.drawText("▲", pos[0], pos[1] - baseR * selectScale * 2.0f, paint);
+                    paint.setTextAlign(Paint.Align.LEFT);
+                }
             }
         }
 
@@ -1442,10 +1523,10 @@ public final class GameScreen extends BaseScreen {
             int progress = piece.optInt("progress", -1);
             if ("yard".equals(state) || progress < 0)
                 return yardPos(seat, pi, left, top, cell);
-            if ("finished".equals(state) || progress >= 57)
+            if ("finished".equals(state) || progress >= 56)
                 return offset(left+7.5f*cell, top+7.5f*cell, pi, cell);
-            if ("home".equals(state) || progress > 51) {
-                int li = Math.max(0, Math.min(4, progress-52));
+            if ("home".equals(state) || progress > 50) {
+                int li = Math.max(0, Math.min(4, progress-51));
                 int[] p = HOME_LANES[Math.max(0,Math.min(3,seat))][li];
                 return offset(left+(p[0]+0.5f)*cell, top+(p[1]+0.5f)*cell, pi, cell*0.4f);
             }

@@ -93,7 +93,11 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
         setContentView(shell);
         applyThemeSystemBars();
         healthCheck();
-        navigateTo("home");
+        if (!getSharedPreferences("ludo_settings", 0).getBoolean("profile_setup_done", false)) {
+            navigateTo("profile_setup");
+        } else {
+            navigateTo("home");
+        }
         scheduleAdAttach();
     }
 
@@ -479,6 +483,8 @@ public final class MainActivity extends Activity implements BaseScreen.ScreenCal
             case "leaderboard": return new LeaderboardScreen(this, this);
             case "settings":    return new SettingsScreen(this, this);
             case "shop":        return new ShopScreen(this, this);
+            case "profile_setup": return new ProfileSetupScreen(this, this);
+            case "friends":       return new FriendsScreen(this, this);
             default:            return new HomeScreen(this, this);
         }
     }
