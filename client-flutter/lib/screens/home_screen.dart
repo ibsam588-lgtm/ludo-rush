@@ -108,42 +108,42 @@ class _WarmBgPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final p = Paint()..style = PaintingStyle.fill;
 
-    // Warm deep base
+    // Warm deep base — slightly warmer/brighter than before
     p.shader = ui.Gradient.radial(
-      Offset(size.width * 0.5, size.height * 0.25),
-      size.height * 0.9,
-      [const Color(0xFF2D0A3A), const Color(0xFF1A0520)],
+      Offset(size.width * 0.5, size.height * 0.20),
+      size.height * 0.95,
+      [const Color(0xFF3A0E4A), const Color(0xFF1A0520)],
       [0.0, 1.0],
     );
     canvas.drawRect(Offset.zero & size, p);
 
-    // Amber orb (top-left wandering)
-    final cx1 = size.width * (0.15 + 0.25 * math.sin(t * math.pi * 2));
-    final cy1 = size.height * (0.08 + 0.12 * math.cos(t * math.pi * 2));
+    // Strong amber orb at top (very visible, like Ludo Star warm glow)
+    final cx1 = size.width * (0.5 + 0.20 * math.sin(t * math.pi * 2));
+    final cy1 = size.height * (0.10 + 0.06 * math.cos(t * math.pi * 2));
     p.shader = ui.Gradient.radial(
       Offset(cx1, cy1),
-      size.width * 0.55,
-      [const Color(0x18FF9A00), Colors.transparent],
+      size.width * 0.65,
+      [const Color(0x40FF9A00), Colors.transparent],
     );
     canvas.drawRect(Offset.zero & size, p);
 
-    // Orange-red orb (right-center wandering)
-    final cx2 = size.width * (0.80 + 0.15 * math.cos(t * math.pi * 2 + 2.1));
-    final cy2 = size.height * (0.45 + 0.18 * math.sin(t * math.pi * 2 + 2.1));
+    // Orange-red orb (right)
+    final cx2 = size.width * (0.82 + 0.12 * math.cos(t * math.pi * 2 + 2.1));
+    final cy2 = size.height * (0.40 + 0.14 * math.sin(t * math.pi * 2 + 2.1));
     p.shader = ui.Gradient.radial(
       Offset(cx2, cy2),
-      size.width * 0.50,
-      [const Color(0x14FF6040), Colors.transparent],
+      size.width * 0.45,
+      [const Color(0x28FF4500), Colors.transparent],
     );
     canvas.drawRect(Offset.zero & size, p);
 
     // Gold orb (bottom-center)
-    final cx3 = size.width * (0.45 + 0.1 * math.sin(t * math.pi * 2 + 4.2));
-    final cy3 = size.height * (0.75 + 0.08 * math.cos(t * math.pi * 2 + 4.2));
+    final cx3 = size.width * (0.40 + 0.10 * math.sin(t * math.pi * 2 + 4.2));
+    final cy3 = size.height * (0.78 + 0.06 * math.cos(t * math.pi * 2 + 4.2));
     p.shader = ui.Gradient.radial(
       Offset(cx3, cy3),
-      size.width * 0.40,
-      [const Color(0x14FFD426), Colors.transparent],
+      size.width * 0.42,
+      [const Color(0x28FFD426), Colors.transparent],
     );
     canvas.drawRect(Offset.zero & size, p);
     p.shader = null;
@@ -417,9 +417,9 @@ class _ModeGrid extends StatelessWidget {
         Row(children: [
           Expanded(child: _BigModeCard(
             title: '2 Players',
-            subtitle: 'Quick Duel',
-            gradient: [const Color(0xFFE65100), const Color(0xFF8B0000)],
-            glowColor: const Color(0xFFFF6B35),
+            subtitle: 'Quick Match',
+            gradient: [const Color(0xFFE53935), const Color(0xFFB71C1C)],
+            glowColor: const Color(0xFFFF5252),
             seats: [boardRed, boardBlue],
             emoji: '⚔️',
             pulse: pulse,
@@ -428,9 +428,9 @@ class _ModeGrid extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(child: _BigModeCard(
             title: '4 Players',
-            subtitle: 'Battle Royal',
-            gradient: [const Color(0xFF6A1B9A), const Color(0xFF2D0A3A)],
-            glowColor: const Color(0xFFFF9A00),
+            subtitle: 'Classic Mode',
+            gradient: [const Color(0xFF7B1FA2), const Color(0xFF4A148C)],
+            glowColor: const Color(0xFFCE93D8),
             seats: [boardRed, boardBlue, boardYellow, boardGreen],
             emoji: '👑',
             pulse: pulse,
@@ -439,12 +439,12 @@ class _ModeGrid extends StatelessWidget {
         ]),
         const SizedBox(height: 10),
 
-        // Small mode cards
+        // Small mode cards — brighter / more vibrant
         Row(children: [
           Expanded(child: _SmallModeCard(
             title: 'Private',
-            emoji: '❤️',
-            gradient: [const Color(0xFFE91E63), const Color(0xFF880E4F)],
+            emoji: '🔒',
+            gradient: [const Color(0xFFE91E63), const Color(0xFFC2185B)],
             pulse: pulse,
             onTap: () => ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Private rooms — coming soon'))),
@@ -453,7 +453,7 @@ class _ModeGrid extends StatelessWidget {
           Expanded(child: _SmallModeCard(
             title: 'Online',
             emoji: '🌍',
-            gradient: [const Color(0xFF0288D1), const Color(0xFF01579B)],
+            gradient: [const Color(0xFF1565C0), const Color(0xFF0D47A1)],
             pulse: pulse,
             onTap: () => state.startQuickMatch('classic_2p'),
           )),
@@ -713,28 +713,26 @@ class _SmallModeCardState extends State<_SmallModeCard>
         scale: _pressAnim,
         child: AnimatedBuilder(
           animation: widget.pulse,
-          builder: (_, __) => Container(
+          builder: (_, __) {
+            final glow = 0.4 + 0.6 * widget.pulse.value;
+            return Container(
             height: 90,
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  widget.gradient.first.withAlpha(60),
-                  widget.gradient.last.withAlpha(60),
-                ],
+                colors: widget.gradient,   // full opacity — vivid like Ludo Star
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: widget.gradient.first.withAlpha(
-                  (60 + widget.pulse.value * 110).round()),
+                color: Colors.white.withAlpha((glow * 80).round()),
                 width: 1.5,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: widget.gradient.first.withAlpha(
-                    (widget.pulse.value * 55).round()),
-                  blurRadius: 10,
+                  color: widget.gradient.first.withAlpha((glow * 120).round()),
+                  blurRadius: 14,
+                  spreadRadius: glow * 1,
                 ),
               ],
             ),
@@ -750,7 +748,8 @@ class _SmallModeCardState extends State<_SmallModeCard>
                   )),
               ],
             ),
-          ),
+          );
+          },
         ),
       ),
     );

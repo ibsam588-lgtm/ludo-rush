@@ -203,19 +203,29 @@ class _BoardPainter extends CustomPainter {
     p.color = const Color(0xFFFAF4E0);
     canvas.drawRect(rect, p);
 
-    // Wooden inner border
+    // Double wood-style border (outer thick + inner thin)
     p.style = PaintingStyle.stroke;
-    p.strokeWidth = math.max(3.0, size * 0.012);
-    p.color = woodLight;
+
+    // Outer thick wood border
+    p.strokeWidth = math.max(5.0, size * 0.018);
+    p.color = woodBrown;
     canvas.drawRect(rect, p);
 
-    // Gold accent line
-    final inset = p.strokeWidth / 2 + math.max(1.5, size * 0.006);
-    final inner = Rect.fromLTRB(
-        left + inset, top + inset, left + size - inset, top + size - inset);
-    p.strokeWidth = math.max(1.5, size * 0.006);
+    // Mid gold accent
+    final sw = p.strokeWidth;
+    final in1 = sw * 0.55 + math.max(1.0, size * 0.004);
+    final r1  = Rect.fromLTRB(left + in1, top + in1, left + size - in1, top + size - in1);
+    p.strokeWidth = math.max(2.5, size * 0.009);
     p.color = _gold;
-    canvas.drawRect(inner, p);
+    canvas.drawRect(r1, p);
+
+    // Inner thin wood line
+    final in2 = in1 + p.strokeWidth + math.max(1.0, size * 0.003);
+    final r2  = Rect.fromLTRB(left + in2, top + in2, left + size - in2, top + size - in2);
+    p.strokeWidth = math.max(1.5, size * 0.005);
+    p.color = woodLight;
+    canvas.drawRect(r2, p);
+
     p.style = PaintingStyle.fill;
   }
 
@@ -243,57 +253,61 @@ class _BoardPainter extends CustomPainter {
 
     // Gold outline
     p.style = PaintingStyle.stroke;
-    p.strokeWidth = cell * 0.10;
+    p.strokeWidth = cell * 0.12;
     p.color = _gold;
     canvas.drawRect(rect, p);
     p.style = PaintingStyle.fill;
 
-    // Dark inner region for nests
-    final ins = cell * 0.75;
-    final inner = Rect.fromLTRB(x1 + ins, y1 + ins, x2 - ins, y2 - ins);
-    p.color = Color(_blend(_toInt(color), 0xFF000000, 0.40));
-    canvas.drawRect(inner, p);
+    // WHITE inner region for nests (Ludo Star style)
+    final ins = cell * 0.60;
+    final innerRect = Rect.fromLTRB(x1 + ins, y1 + ins, x2 - ins, y2 - ins);
+    final innerRR   = RRect.fromRectXY(innerRect, cell * 0.35, cell * 0.35);
+    p.color = const Color(0xFFFAF6F0);   // warm cream-white
+    canvas.drawRRect(innerRR, p);
+    // Subtle inner border
     p.style = PaintingStyle.stroke;
-    p.strokeWidth = cell * 0.04;
-    p.color = const Color(0x88D4AF37);
-    canvas.drawRect(inner, p);
+    p.strokeWidth = cell * 0.05;
+    p.color = _gold.withAlpha(100);
+    canvas.drawRRect(innerRR, p);
     p.style = PaintingStyle.fill;
 
-    // 4 nest circles
+    // 4 nest circles — vivid, 3D-looking
     final cx  = (x1 + x2) / 2;
     final cy  = (y1 + y2) / 2;
-    final off = cell * 0.88;
-    final r   = cell * 0.44;
+    final off = cell * 0.92;
+    final r   = cell * 0.42;
 
     for (int i = 0; i < 4; i++) {
       final px = cx + (i % 2 == 0 ? -off : off);
       final py = cy + (i < 2 ? -off : off);
 
-      // Shadow
-      p.color = const Color(0x66000000);
-      canvas.drawCircle(Offset(px, py + r * 0.10), r, p);
+      // Drop shadow
+      p.color = const Color(0x44000000);
+      canvas.drawCircle(Offset(px + r * 0.08, py + r * 0.12), r, p);
 
-      // Dark nest fill
-      p.color = Color(_blend(_toInt(color), 0xFF000000, 0.38));
+      // VIVID color fill (like Ludo Star)
+      p.color = color;
       canvas.drawCircle(Offset(px, py), r, p);
 
-      // Colored ring
+      // Slightly darker edge for 3D depth
       p.style = PaintingStyle.stroke;
-      p.strokeWidth = cell * 0.07;
-      p.color = color.withAlpha(180);
+      p.strokeWidth = cell * 0.09;
+      p.color = Color(_blend(_toInt(color), 0xFF000000, 0.30));
       canvas.drawCircle(Offset(px, py), r, p);
       p.style = PaintingStyle.fill;
 
       // Gold outer ring
       p.style = PaintingStyle.stroke;
-      p.strokeWidth = cell * 0.045;
+      p.strokeWidth = cell * 0.05;
       p.color = _gold;
-      canvas.drawCircle(Offset(px, py), r, p);
+      canvas.drawCircle(Offset(px, py), r * 1.15, p);
       p.style = PaintingStyle.fill;
 
-      // Highlight
-      p.color = const Color(0x99FFFFFF);
-      canvas.drawCircle(Offset(px - r * 0.30, py - r * 0.32), r * 0.18, p);
+      // White top-left shine for 3D sphere effect
+      p.color = const Color(0x88FFFFFF);
+      canvas.drawCircle(Offset(px - r * 0.28, py - r * 0.30), r * 0.38, p);
+      p.color = const Color(0x44FFFFFF);
+      canvas.drawCircle(Offset(px - r * 0.14, py - r * 0.16), r * 0.20, p);
     }
   }
 
@@ -331,8 +345,9 @@ class _BoardPainter extends CustomPainter {
   void _drawHomeLanes(Canvas canvas, double left, double top, double cell) {
     for (int seat = 0; seat < 4; seat++) {
       for (final p in _BoardConsts.homeLanes[seat]) {
+        // Use vivid seat color (not semi-transparent) like Ludo Star
         _drawCell(canvas, left, top, cell, p[0], p[1],
-          _toInt(_seatSoft(seat)), 0x66D4AF37);
+          _toInt(_seatCol(seat)), 0xCCD4AF37);
       }
     }
   }
