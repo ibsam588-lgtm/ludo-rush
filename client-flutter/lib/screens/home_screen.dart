@@ -1,56 +1,79 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 
+// ═══════════════════════════════════════════════════════════════════════════════
+//  HOME SCREEN — Neon Gaming Lobby
+// ═══════════════════════════════════════════════════════════════════════════════
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _navIndex = 2;
+
+  late final AnimationController _bgCtrl;
+  late final AnimationController _pulseCtrl;
+  late final AnimationController _shimmerCtrl;
+  late final AnimationController _starCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _bgCtrl      = AnimationController(vsync: this, duration: const Duration(seconds: 12))..repeat();
+    _pulseCtrl   = AnimationController(vsync: this, duration: const Duration(milliseconds: 1800))..repeat(reverse: true);
+    _shimmerCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat();
+    _starCtrl    = AnimationController(vsync: this, duration: const Duration(seconds: 6))..repeat();
+  }
+
+  @override
+  void dispose() {
+    _bgCtrl.dispose();
+    _pulseCtrl.dispose();
+    _shimmerCtrl.dispose();
+    _starCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AppState>(
       builder: (context, state, _) => Scaffold(
-        backgroundColor: bgDeep,
+        backgroundColor: const Color(0xFF08001A),
         body: Stack(
           children: [
-            // Radial bg
-            Positioned.fill(child: CustomPaint(painter: _HomeBgPainter())),
+            // ── Animated neon background ──────────────────────────
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _bgCtrl,
+                builder: (_, __) => CustomPaint(
+                  painter: _NeonBgPainter(_bgCtrl.value, _starCtrl.value),
+                ),
+              ),
+            ),
 
+            // ── Main UI ───────────────────────────────────────────
             SafeArea(
               child: Column(
                 children: [
-                  _TopBar(state: state),
-                  _FramesRow(),
-                  // Watermark
+                  _TopBar(state: state, shimmer: _shimmerCtrl),
+                  _SkinFrames(),
                   Expanded(
                     child: Stack(
                       children: [
-                        Center(
-                          child: Opacity(
-                            opacity: 0.10,
-                            child: Text(
-                              'LUDO\nRUSH',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 64,
-                                fontWeight: FontWeight.w900,
-                                color: goldColor,
-                                letterSpacing: 8,
-                              ),
-                            ),
-                          ),
-                        ),
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-                          child: _ModeGrid(state: state),
+                          padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+                          child: _ModeGrid(
+                            state: state,
+                            pulse: _pulseCtrl,
+                            shimmer: _shimmerCtrl,
+                          ),
                         ),
                         if (state.connecting)
                           const Positioned.fill(child: _JoiningOverlay()),
@@ -58,7 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   _BottomNav(
-                    selectedIndex: _navIndex,
+                    index: _navIndex,
                     onTap: (i) {
                       setState(() => _navIndex = i);
                       if (i == 0) Navigator.pushNamed(context, '/shop');
@@ -74,116 +97,183 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ── Background ─────────────────────────────────────────────────────────────────
+// ── Animated neon background ─────────────────────────────────────────────────
 
-class _HomeBgPainter extends CustomPainter {
+class _NeonBgPainter extends CustomPainter {
+  final double t;
+  final double starT;
+  _NeonBgPainter(this.t, this.starT);
+
   @override
   void paint(Canvas canvas, Size size) {
-    final p = Paint();
-    p.color = bgDeep;
+    final p = Paint()..style = PaintingStyle.fill;
+
+    // Deep space base
+    p.shader = ui.Gradient.radial(
+      Offset(size.width * 0.5, size.height * 0.25),
+      size.height * 0.9,
+      [const Color(0xFF1C0050), const Color(0xFF08001A)],
+      [0.0, 1.0],
+    );
     canvas.drawRect(Offset.zero & size, p);
 
+    // Cyan orb (top-left wandering)
+    final cx1 = size.width * (0.15 + 0.25 * math.sin(t * math.pi * 2));
+    final cy1 = size.height * (0.08 + 0.12 * math.cos(t * math.pi * 2));
     p.shader = ui.Gradient.radial(
-      Offset(size.width / 2, size.height * 0.40),
-      size.width * 0.75,
-      [const Color(0xFF3A0058), bgDeep],
+      Offset(cx1, cy1),
+      size.width * 0.55,
+      [const Color(0x1400CFFF), Colors.transparent],
+    );
+    canvas.drawRect(Offset.zero & size, p);
+
+    // Magenta orb (right-center wandering)
+    final cx2 = size.width * (0.80 + 0.15 * math.cos(t * math.pi * 2 + 2.1));
+    final cy2 = size.height * (0.45 + 0.18 * math.sin(t * math.pi * 2 + 2.1));
+    p.shader = ui.Gradient.radial(
+      Offset(cx2, cy2),
+      size.width * 0.50,
+      [const Color(0x18E040FB), Colors.transparent],
+    );
+    canvas.drawRect(Offset.zero & size, p);
+
+    // Gold orb (bottom-center)
+    final cx3 = size.width * (0.45 + 0.1 * math.sin(t * math.pi * 2 + 4.2));
+    final cy3 = size.height * (0.75 + 0.08 * math.cos(t * math.pi * 2 + 4.2));
+    p.shader = ui.Gradient.radial(
+      Offset(cx3, cy3),
+      size.width * 0.40,
+      [const Color(0x12FFD426), Colors.transparent],
     );
     canvas.drawRect(Offset.zero & size, p);
     p.shader = null;
 
-    p.color = const Color(0x15FFD426);
-    for (int i = 0; i < 40; i++) {
-      final x = ((i * 137 + 11) % 1000) / 1000.0 * size.width;
-      final y = ((i * 211 + 37) % 1000) / 1000.0 * size.height;
-      canvas.drawCircle(Offset(x, y), 1.5 + (i % 3), p);
+    // Twinkling stars
+    for (int i = 0; i < 60; i++) {
+      final sx = ((i * 137 + 11) % 1000) / 1000.0 * size.width;
+      final sy = ((i * 211 + 37) % 1000) / 1000.0 * size.height;
+      final twinkle = 0.2 + 0.8 * (0.5 + 0.5 * math.sin(starT * math.pi * 2 * 3 + i * 0.9));
+      final r = 0.6 + (i % 4) * 0.5;
+      p.color = Color.fromARGB((twinkle * 160).round(), 255, 255, 255);
+      canvas.drawCircle(Offset(sx, sy), r, p);
+    }
+
+    // Colored sparkles
+    const sparkColors = [Color(0xFF00E5FF), Color(0xFFE040FB), Color(0xFFFFD426)];
+    for (int i = 0; i < 15; i++) {
+      final sx = ((i * 317 + 53) % 1000) / 1000.0 * size.width;
+      final sy = ((i * 173 + 79) % 1000) / 1000.0 * size.height;
+      final phase = starT * math.pi * 2 + i * 1.2;
+      final brightness = (0.5 + 0.5 * math.sin(phase)).clamp(0.0, 1.0);
+      p.color = sparkColors[i % 3].withAlpha((brightness * 100).round());
+      canvas.drawCircle(Offset(sx, sy), 1.2, p);
     }
   }
 
   @override
-  bool shouldRepaint(_HomeBgPainter _) => false;
+  bool shouldRepaint(_NeonBgPainter old) => old.t != t || old.starT != starT;
 }
 
-// ── Top bar ────────────────────────────────────────────────────────────────────
+// ── Top bar ──────────────────────────────────────────────────────────────────
 
 class _TopBar extends StatelessWidget {
   final AppState state;
-  const _TopBar({required this.state});
+  final AnimationController shimmer;
+  const _TopBar({required this.state, required this.shimmer});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
       child: Row(
         children: [
-          // Avatar
+          // Rainbow avatar ring
           GestureDetector(
             onTap: () {},
-            child: Container(
-              width: 52, height: 52,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: bgMagenta,
-                border: Border.all(color: Colors.white38, width: 2),
-              ),
-              child: Center(
-                child: Text(
-                  state.displayName.isNotEmpty ? state.displayName[0].toUpperCase() : 'L',
-                  style: const TextStyle(
-                    color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold,
+            child: AnimatedBuilder(
+              animation: shimmer,
+              builder: (_, __) => Container(
+                width: 54, height: 54,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: SweepGradient(
+                    colors: const [
+                      Color(0xFF00E5FF), Color(0xFFE040FB), Color(0xFFFFD426),
+                      Color(0xFF69F0AE), Color(0xFF00E5FF),
+                    ],
+                    startAngle: shimmer.value * math.pi * 2,
+                    endAngle:   shimmer.value * math.pi * 2 + math.pi * 2,
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(2.5),
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFF1A0040),
+                    ),
+                    child: Center(
+                      child: Text(
+                        state.displayName.isNotEmpty
+                            ? state.displayName[0].toUpperCase()
+                            : 'L',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20, fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-          const SizedBox(width: 6),
-          // XP
+          const SizedBox(width: 8),
+
+          // Name + XP bar
           Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Row(children: [
-                const Icon(Icons.star, color: goldColor, size: 14),
-                const SizedBox(width: 2),
-                Text('${state.rating}/50',
-                  style: const TextStyle(color: goldColor, fontSize: 11, fontWeight: FontWeight.bold)),
-              ]),
-              Container(
-                width: 60, height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.white12,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-                child: FractionallySizedBox(
-                  alignment: Alignment.centerLeft,
-                  widthFactor: ((state.rating % 50) / 50).clamp(0.04, 1.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: goldColor,
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  ),
+              Text(
+                state.displayName,
+                style: const TextStyle(
+                  color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold,
                 ),
               ),
+              const SizedBox(height: 3),
+              Row(children: [
+                const Icon(Icons.stars_rounded, color: goldColor, size: 12),
+                const SizedBox(width: 3),
+                Text('Lv ${state.rating ~/ 50 + 1}',
+                  style: const TextStyle(color: goldColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                const SizedBox(width: 6),
+                _ShimmerXpBar(shimmer: shimmer, value: (state.rating % 50) / 50.0),
+              ]),
             ],
           ),
+
           const Spacer(),
-          _CurrencyPill(icon: '🏆', value: '${state.wins}',   bg: const Color(0xFF3D2800)),
-          const SizedBox(width: 4),
-          _CurrencyPill(icon: '🪙', value: _fmt(state.coins), bg: const Color(0xFF3D2800), gold: true),
-          const SizedBox(width: 4),
-          _CurrencyPill(icon: '💎', value: '30',              bg: const Color(0xFF003828)),
-          const SizedBox(width: 4),
+
+          // Currency pills
+          _NeonPill(icon: '🏆', val: '${state.wins}',     glow: const Color(0xFFFFD426)),
+          const SizedBox(width: 5),
+          _NeonPill(icon: '🪙', val: _fmt(state.coins),   glow: const Color(0xFFFFB300)),
+          const SizedBox(width: 5),
+          _NeonPill(icon: '💎', val: '30',               glow: const Color(0xFF00E5FF)),
+          const SizedBox(width: 6),
+
+          // Settings button
           GestureDetector(
             onTap: state.toggleDarkMode,
             child: Container(
               width: 36, height: 36,
               decoration: BoxDecoration(
-                color: bgPurple,
                 shape: BoxShape.circle,
+                color: Colors.white.withAlpha(10),
                 border: Border.all(color: Colors.white24),
               ),
-              child: const Center(child: Icon(Icons.settings, color: Colors.white70, size: 18)),
+              child: const Icon(Icons.settings_rounded, color: Colors.white54, size: 18),
             ),
           ),
         ],
@@ -191,32 +281,72 @@ class _TopBar extends StatelessWidget {
     );
   }
 
-  String _fmt(int n) {
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
-    return '$n';
+  static String _fmt(int n) => n >= 1000 ? '${(n / 1000).toStringAsFixed(1)}K' : '$n';
+}
+
+class _ShimmerXpBar extends StatelessWidget {
+  final AnimationController shimmer;
+  final double value;
+  const _ShimmerXpBar({required this.shimmer, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 70, height: 8,
+      child: Stack(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white10,
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+          AnimatedBuilder(
+            animation: shimmer,
+            builder: (_, __) => FractionallySizedBox(
+              widthFactor: value.clamp(0.05, 1.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                  gradient: LinearGradient(
+                    colors: const [Color(0xFF00E5FF), Color(0xFFFFD426), Color(0xFF00E5FF)],
+                    stops: const [0, 0.5, 1],
+                    begin: Alignment(shimmer.value * 2 - 1, 0),
+                    end:   Alignment(shimmer.value * 2 + 1, 0),
+                  ),
+                  boxShadow: [BoxShadow(
+                    color: const Color(0xFF00E5FF).withAlpha(100),
+                    blurRadius: 4,
+                  )],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
-class _CurrencyPill extends StatelessWidget {
-  final String icon;
-  final String value;
-  final Color bg;
-  final bool gold;
-  const _CurrencyPill({required this.icon, required this.value, required this.bg, this.gold = false});
+class _NeonPill extends StatelessWidget {
+  final String icon, val;
+  final Color glow;
+  const _NeonPill({required this.icon, required this.val, required this.glow});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
-        color: bg,
+        color: glow.withAlpha(18),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: gold ? goldColor : Colors.white24, width: 1),
+        border: Border.all(color: glow.withAlpha(90), width: 1),
+        boxShadow: [BoxShadow(color: glow.withAlpha(30), blurRadius: 6)],
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Text(icon, style: const TextStyle(fontSize: 13)),
+        Text(icon, style: const TextStyle(fontSize: 12)),
         const SizedBox(width: 3),
-        Text(value, style: const TextStyle(
+        Text(val, style: const TextStyle(
           color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold,
         )),
       ]),
@@ -224,272 +354,455 @@ class _CurrencyPill extends StatelessWidget {
   }
 }
 
-// ── Skin frames row ────────────────────────────────────────────────────────────
+// ── Skin frames row ──────────────────────────────────────────────────────────
 
-class _FramesRow extends StatelessWidget {
-  const _FramesRow();
+class _SkinFrames extends StatelessWidget {
+  const _SkinFrames();
+
+  static const _colors = [
+    Color(0xFFE53935), Color(0xFF1E88E5), Color(0xFFFFB300),
+    Color(0xFF43A047), Color(0xFFE040FB),
+  ];
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 78,
+      height: 76,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        itemCount: 4,
-        itemBuilder: (_, i) => Container(
-          width: 62,
-          margin: const EdgeInsets.only(right: 8),
-          decoration: BoxDecoration(
-            color: bgPurple,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white12),
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Opacity(
-                opacity: 0.3,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    color: AppColors.seatColors[i % 4].withAlpha(80),
-                    child: const Center(
-                      child: Icon(Icons.person, color: Colors.white54, size: 28),
-                    ),
-                  ),
-                ),
-              ),
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.lock, color: Colors.white60, size: 16),
-                  const SizedBox(height: 2),
-                  Text('Lv ${(i + 1) * 4}',
-                    style: const TextStyle(color: Colors.white54, fontSize: 9, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ],
-          ),
-        ),
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+        itemCount: 5,
+        itemBuilder: (_, i) {
+          final c = _colors[i];
+          return Container(
+            width: 58, height: 64,
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF100028),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: c.withAlpha(90), width: 1.5),
+              boxShadow: [BoxShadow(color: c.withAlpha(40), blurRadius: 8)],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.lock_rounded, color: c.withAlpha(200), size: 18),
+                const SizedBox(height: 4),
+                Text('Lv ${(i + 1) * 5}',
+                  style: TextStyle(
+                    color: c.withAlpha(160), fontSize: 9, fontWeight: FontWeight.bold,
+                  )),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-// ── Mode grid ──────────────────────────────────────────────────────────────────
+// ── Mode grid ────────────────────────────────────────────────────────────────
 
 class _ModeGrid extends StatelessWidget {
   final AppState state;
-  const _ModeGrid({required this.state});
+  final AnimationController pulse;
+  final AnimationController shimmer;
+  const _ModeGrid({required this.state, required this.pulse, required this.shimmer});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // Top 2 big cards
-        Row(
-          children: [
-            Expanded(child: _BigModeCard(
-              title: '2 Player',
-              number: '2',
-              colors: [const Color(0xFFFFB300), const Color(0xFFFF6F00)],
-              seats: [boardRed, boardBlue],
-              onTap: () => state.startQuickMatch('classic_2p'),
-            )),
-            const SizedBox(width: 8),
-            Expanded(child: _BigModeCard(
-              title: '4 Player',
-              number: '4',
-              colors: [const Color(0xFF6B1A8A), bgPurple],
-              seats: [boardRed, boardBlue, boardYellow, boardGreen],
-              onTap: () => state.startQuickMatch('classic_4p'),
-            )),
-          ],
-        ),
-        const SizedBox(height: 8),
-        // Bottom 3 small cards
-        Row(
-          children: [
-            Expanded(child: _SmallModeCard(
-              title: 'Private',
-              icon: '❤️',
-              color: const Color(0xFFE91E63),
-              onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Private rooms — coming soon'))),
-            )),
-            const SizedBox(width: 6),
-            Expanded(child: _SmallModeCard(
-              title: 'Quick Match',
-              icon: '🌍',
-              color: boardBlue,
-              onTap: () => state.startQuickMatch('classic_2p'),
-            )),
-            const SizedBox(width: 6),
-            Expanded(child: _SmallModeCard(
-              title: 'vs Bots',
-              icon: '🤖',
-              color: boardGreen,
-              onTap: () => state.startBotMatch('classic_2p'),
-            )),
-          ],
-        ),
+        // Big mode cards
+        Row(children: [
+          Expanded(child: _BigModeCard(
+            title: '2 Players',
+            subtitle: 'Quick Duel',
+            gradient: [const Color(0xFFFF6B35), const Color(0xFFB71C1C)],
+            glowColor: const Color(0xFFFF6B35),
+            seats: [boardRed, boardBlue],
+            emoji: '⚔️',
+            pulse: pulse,
+            onTap: () => state.startQuickMatch('classic_2p'),
+          )),
+          const SizedBox(width: 10),
+          Expanded(child: _BigModeCard(
+            title: '4 Players',
+            subtitle: 'Battle Royal',
+            gradient: [const Color(0xFF8E24AA), const Color(0xFF1A0050)],
+            glowColor: const Color(0xFFE040FB),
+            seats: [boardRed, boardBlue, boardYellow, boardGreen],
+            emoji: '👑',
+            pulse: pulse,
+            onTap: () => state.startQuickMatch('classic_4p'),
+          )),
+        ]),
+        const SizedBox(height: 10),
+
+        // Small mode cards
+        Row(children: [
+          Expanded(child: _SmallModeCard(
+            title: 'Private',
+            emoji: '❤️',
+            gradient: [const Color(0xFFE91E63), const Color(0xFF880E4F)],
+            pulse: pulse,
+            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Private rooms — coming soon'))),
+          )),
+          const SizedBox(width: 8),
+          Expanded(child: _SmallModeCard(
+            title: 'Online',
+            emoji: '🌍',
+            gradient: [const Color(0xFF0288D1), const Color(0xFF01579B)],
+            pulse: pulse,
+            onTap: () => state.startQuickMatch('classic_2p'),
+          )),
+          const SizedBox(width: 8),
+          Expanded(child: _SmallModeCard(
+            title: 'vs Bots',
+            emoji: '🤖',
+            gradient: [const Color(0xFF2E7D32), const Color(0xFF1B5E20)],
+            pulse: pulse,
+            onTap: () => state.startBotMatch('classic_2p'),
+          )),
+        ]),
       ],
     );
   }
 }
 
-class _BigModeCard extends StatelessWidget {
-  final String title;
-  final String number;
-  final List<Color> colors;
+// ── Big mode card ────────────────────────────────────────────────────────────
+
+class _BigModeCard extends StatefulWidget {
+  final String title, subtitle, emoji;
+  final List<Color> gradient;
+  final Color glowColor;
   final List<Color> seats;
+  final AnimationController pulse;
   final VoidCallback onTap;
+
   const _BigModeCard({
-    required this.title, required this.number, required this.colors,
-    required this.seats, required this.onTap,
+    required this.title, required this.subtitle, required this.emoji,
+    required this.gradient, required this.glowColor, required this.seats,
+    required this.pulse, required this.onTap,
   });
+
+  @override
+  State<_BigModeCard> createState() => _BigModeCardState();
+}
+
+class _BigModeCardState extends State<_BigModeCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pressCtrl;
+  late final Animation<double> _pressAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressCtrl = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 120),
+    );
+    _pressAnim = Tween<double>(begin: 1.0, end: 0.94)
+        .animate(CurvedAnimation(parent: _pressCtrl, curve: Curves.easeIn));
+  }
+
+  @override
+  void dispose() {
+    _pressCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 180,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: colors,
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(color: colors.first.withAlpha(100), blurRadius: 12, offset: const Offset(0, 4)),
-          ],
-          border: Border.all(color: Colors.white24, width: 1.5),
-        ),
-        child: Stack(
-          children: [
-            // Big number
-            Positioned(
-              top: 10, right: 14,
-              child: Text(number, style: TextStyle(
-                fontSize: 72, fontWeight: FontWeight.w900,
-                color: Colors.white.withAlpha(30),
-              )),
-            ),
-            // Seat dots
-            Positioned(
-              top: 10, left: 12,
-              child: Wrap(
-                spacing: 4, runSpacing: 4,
-                children: seats.take(4).map((c) => Container(
-                  width: 12, height: 12,
-                  decoration: BoxDecoration(color: c, shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white54, width: 1)),
-                )).toList(),
-              ),
-            ),
-            // Dice icon
-            const Positioned(
-              bottom: 32, left: 12,
-              child: Text('🎲', style: TextStyle(fontSize: 28)),
-            ),
-            // Title at bottom
-            Positioned(
-              bottom: 8, left: 12, right: 8,
-              child: Row(
-                children: [
-                  Text(title, style: const TextStyle(
-                    color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold,
-                    shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
-                  )),
-                  const Spacer(),
-                  const Icon(Icons.play_circle_filled, color: Colors.white70, size: 22),
+      onTapDown: (_) => _pressCtrl.forward(),
+      onTapUp: (_) {
+        _pressCtrl.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _pressCtrl.reverse(),
+      child: ScaleTransition(
+        scale: _pressAnim,
+        child: AnimatedBuilder(
+          animation: widget.pulse,
+          builder: (_, __) {
+            final glow = 0.4 + 0.6 * widget.pulse.value;
+            return Container(
+              height: 178,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: widget.gradient,
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: widget.glowColor.withAlpha((glow * 200).round()),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.glowColor.withAlpha((glow * 90).round()),
+                    blurRadius: 20 + glow * 10,
+                    spreadRadius: glow * 2,
+                  ),
                 ],
               ),
-            ),
-          ],
+              child: Stack(
+                children: [
+                  // Hex grid pattern overlay
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: CustomPaint(painter: _HexPatternPainter()),
+                    ),
+                  ),
+
+                  // Big emoji watermark
+                  Positioned(
+                    right: -10, top: -10,
+                    child: Opacity(
+                      opacity: 0.12,
+                      child: Text(widget.emoji, style: const TextStyle(fontSize: 100)),
+                    ),
+                  ),
+
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Seat dots
+                        Row(children: widget.seats.map((c) => Container(
+                          width: 14, height: 14,
+                          margin: const EdgeInsets.only(right: 5),
+                          decoration: BoxDecoration(
+                            color: c,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white60, width: 1.5),
+                            boxShadow: [BoxShadow(color: c.withAlpha(180), blurRadius: 6)],
+                          ),
+                        )).toList()),
+
+                        const Spacer(),
+
+                        // Emoji
+                        Text(widget.emoji, style: const TextStyle(fontSize: 26)),
+                        const SizedBox(height: 3),
+
+                        // Title
+                        Text(widget.title, style: const TextStyle(
+                          color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900,
+                          shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
+                        )),
+                        Text(widget.subtitle, style: TextStyle(
+                          color: Colors.white.withAlpha(190), fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        )),
+                      ],
+                    ),
+                  ),
+
+                  // Play button
+                  Positioned(
+                    right: 12, bottom: 12,
+                    child: Container(
+                      width: 42, height: 42,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withAlpha(25),
+                        border: Border.all(color: Colors.white54, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.glowColor.withAlpha((glow * 80).round()),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-class _SmallModeCard extends StatelessWidget {
-  final String title;
-  final String icon;
-  final Color color;
+// Hexagonal grid background pattern
+class _HexPatternPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()
+      ..color = Colors.white.withAlpha(12)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.8;
+
+    const r = 13.0;
+    const h = r * 1.732;
+
+    for (double col = -r; col < size.width + r; col += r * 1.5) {
+      for (double row = -h; row < size.height + h; row += h) {
+        final offset = ((col / (r * 1.5)).toInt() % 2 == 0) ? 0.0 : h / 2;
+        final cx = col;
+        final cy = row + offset;
+        final path = Path();
+        for (int i = 0; i < 6; i++) {
+          final a = i * math.pi / 3 - math.pi / 6;
+          final px = cx + r * math.cos(a);
+          final py = cy + r * math.sin(a);
+          if (i == 0) path.moveTo(px, py);
+          else path.lineTo(px, py);
+        }
+        path.close();
+        canvas.drawPath(path, p);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_HexPatternPainter _) => false;
+}
+
+// ── Small mode card ──────────────────────────────────────────────────────────
+
+class _SmallModeCard extends StatefulWidget {
+  final String title, emoji;
+  final List<Color> gradient;
+  final AnimationController pulse;
   final VoidCallback onTap;
   const _SmallModeCard({
-    required this.title, required this.icon, required this.color, required this.onTap,
+    required this.title, required this.emoji, required this.gradient,
+    required this.pulse, required this.onTap,
   });
+
+  @override
+  State<_SmallModeCard> createState() => _SmallModeCardState();
+}
+
+class _SmallModeCardState extends State<_SmallModeCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pressCtrl;
+  late final Animation<double> _pressAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _pressCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 100));
+    _pressAnim = Tween<double>(begin: 1.0, end: 0.92)
+        .animate(CurvedAnimation(parent: _pressCtrl, curve: Curves.easeIn));
+  }
+
+  @override
+  void dispose() {
+    _pressCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 92,
-        decoration: BoxDecoration(
-          color: bgPurple,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withAlpha(120), width: 1.5),
-          boxShadow: [
-            BoxShadow(color: color.withAlpha(40), blurRadius: 8, offset: const Offset(0, 3)),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(icon, style: const TextStyle(fontSize: 26)),
-            const SizedBox(height: 4),
-            Text(title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold,
+      onTapDown: (_) => _pressCtrl.forward(),
+      onTapUp: (_) { _pressCtrl.reverse(); widget.onTap(); },
+      onTapCancel: () => _pressCtrl.reverse(),
+      child: ScaleTransition(
+        scale: _pressAnim,
+        child: AnimatedBuilder(
+          animation: widget.pulse,
+          builder: (_, __) => Container(
+            height: 90,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  widget.gradient.first.withAlpha(55),
+                  widget.gradient.last.withAlpha(55),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: widget.gradient.first.withAlpha(
+                  (60 + widget.pulse.value * 110).round()),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: widget.gradient.first.withAlpha(
+                    (widget.pulse.value * 55).round()),
+                  blurRadius: 10,
+                ),
+              ],
             ),
-          ],
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(widget.emoji, style: const TextStyle(fontSize: 26)),
+                const SizedBox(height: 5),
+                Text(widget.title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold,
+                  )),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Joining overlay ────────────────────────────────────────────────────────────
+// ── Joining overlay ──────────────────────────────────────────────────────────
 
 class _JoiningOverlay extends StatelessWidget {
   const _JoiningOverlay();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: bgDeep.withAlpha(180),
-      child: const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(color: goldColor, strokeWidth: 3),
-            SizedBox(height: 16),
-            Text('Joining...', style: TextStyle(
-              color: goldColor, fontSize: 18, fontWeight: FontWeight.bold,
-            )),
-          ],
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          color: const Color(0xFF08001A).withAlpha(190),
+          child: const Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 60, height: 60,
+                  child: CircularProgressIndicator(
+                    color: Color(0xFF00E5FF), strokeWidth: 3,
+                  ),
+                ),
+                SizedBox(height: 22),
+                Text('Finding Match...', style: TextStyle(
+                  color: Color(0xFF00E5FF),
+                  fontSize: 20, fontWeight: FontWeight.bold,
+                  shadows: [Shadow(color: Color(0xFF00E5FF), blurRadius: 16)],
+                )),
+                SizedBox(height: 8),
+                Text('Searching for players worldwide',
+                  style: TextStyle(color: Colors.white54, fontSize: 13)),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 }
 
-// ── Bottom nav ─────────────────────────────────────────────────────────────────
+// ── Bottom nav ───────────────────────────────────────────────────────────────
 
 class _BottomNav extends StatelessWidget {
-  final int selectedIndex;
+  final int index;
   final void Function(int) onTap;
-  const _BottomNav({required this.selectedIndex, required this.onTap});
+  const _BottomNav({required this.index, required this.onTap});
 
   static const _items = [
     ('🛒', 'Shop'),
@@ -501,45 +814,62 @@ class _BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 70,
-      margin: const EdgeInsets.fromLTRB(0, 0, 0, 0),
-      decoration: const BoxDecoration(
-        color: bgPurple,
-        border: Border(top: BorderSide(color: goldColor, width: 1.5)),
-      ),
-      child: Row(
-        children: List.generate(_items.length, (i) {
-          final active = i == selectedIndex;
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onTap(i),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(_items[i].$1,
-                    style: TextStyle(fontSize: active ? 24 : 20)),
-                  const SizedBox(height: 2),
-                  Text(_items[i].$2,
-                    style: TextStyle(
-                      color: active ? goldColor : Colors.white54,
-                      fontSize: 9,
-                      fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                    )),
-                  if (active)
-                    Container(
-                      margin: const EdgeInsets.only(top: 2),
-                      width: 20, height: 2,
-                      decoration: BoxDecoration(
-                        color: goldColor,
-                        borderRadius: BorderRadius.circular(1),
+    return ClipRect(
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          height: 72,
+          decoration: const BoxDecoration(
+            color: Color(0xBB140030),
+            border: Border(top: BorderSide(color: Color(0x55FFD426))),
+          ),
+          child: Row(
+            children: List.generate(_items.length, (i) {
+              final active = i == index;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onTap(i),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: EdgeInsets.all(active ? 7 : 4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: active ? goldColor.withAlpha(30) : Colors.transparent,
+                          boxShadow: active
+                              ? [BoxShadow(color: goldColor.withAlpha(50), blurRadius: 8)]
+                              : null,
+                        ),
+                        child: Text(_items[i].$1,
+                          style: TextStyle(fontSize: active ? 22 : 18)),
                       ),
-                    ),
-                ],
-              ),
-            ),
-          );
-        }),
+                      Text(_items[i].$2, style: TextStyle(
+                        color: active ? goldColor : Colors.white38,
+                        fontSize: 9,
+                        fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                      )),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        margin: const EdgeInsets.only(top: 2),
+                        width: active ? 20 : 0,
+                        height: 2,
+                        decoration: BoxDecoration(
+                          color: goldColor,
+                          borderRadius: BorderRadius.circular(2),
+                          boxShadow: active
+                              ? [const BoxShadow(color: goldColor, blurRadius: 6)]
+                              : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
       ),
     );
   }

@@ -1,267 +1,325 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dice_widget.dart';
 
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SPLASH SCREEN — Cinematic intro with staggered animations
+// ═══════════════════════════════════════════════════════════════════════════════
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
-
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  late final AnimationController _fadeCtrl;
-  late final AnimationController _scaleCtrl;
-  late final Animation<double> _fade;
-  late final Animation<double> _scale;
+
+  // Main sequence controller (2.4s)
+  late final AnimationController _seqCtrl;
+
+  // Background pulse
+  late final AnimationController _bgCtrl;
+
+  // Particle float
+  late final AnimationController _particleCtrl;
+
+  // Progress bar (3s total)
   late final AnimationController _progressCtrl;
+
+  // Dice widget
   final _diceKey = GlobalKey<DiceWidgetState>();
+
+  // Letter animations — L, U, D, O  (staggered)
+  late final List<Animation<double>> _letterScale;
+  late final List<Animation<double>> _letterFade;
+
+  // RUSH text
+  late final Animation<double> _rushFade;
+  late final Animation<Offset> _rushSlide;
+
+  // Subtitle fade
+  late final Animation<double> _subtitleFade;
 
   @override
   void initState() {
     super.initState();
 
-    _fadeCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
-    _scaleCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 1100));
-    _progressCtrl = AnimationController(vsync: this, duration: const Duration(seconds: 3));
+    _seqCtrl = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 2200),
+    );
 
-    _fade  = CurvedAnimation(parent: _fadeCtrl,  curve: Curves.easeIn);
-    _scale = CurvedAnimation(parent: _scaleCtrl, curve: Curves.elasticOut);
+    _bgCtrl = AnimationController(
+      vsync: this, duration: const Duration(seconds: 8),
+    )..repeat();
 
-    _fadeCtrl.forward();
-    _scaleCtrl.forward();
-    _progressCtrl.forward();
+    _particleCtrl = AnimationController(
+      vsync: this, duration: const Duration(seconds: 4),
+    )..repeat();
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _diceKey.currentState?.startRoll(6, () {});
+    _progressCtrl = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 3200),
+    );
+
+    // Staggered letter animations
+    _letterScale = List.generate(4, (i) {
+      final start = 0.0 + i * 0.07;
+      final end   = start + 0.20;
+      return Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(
+          parent: _seqCtrl,
+          curve: Interval(start, end, curve: Curves.elasticOut),
+        ),
+      );
     });
 
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
-      }
+    _letterFade = List.generate(4, (i) {
+      final start = 0.0 + i * 0.07;
+      final end   = start + 0.14;
+      return Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(
+          parent: _seqCtrl,
+          curve: Interval(start, end, curve: Curves.easeOut),
+        ),
+      );
+    });
+
+    _rushFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _seqCtrl,
+        curve: const Interval(0.38, 0.60, curve: Curves.easeOut),
+      ),
+    );
+    _rushSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+      CurvedAnimation(
+        parent: _seqCtrl,
+        curve: const Interval(0.38, 0.62, curve: Curves.easeOut),
+      ),
+    );
+
+    _subtitleFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _seqCtrl,
+        curve: const Interval(0.65, 0.90, curve: Curves.easeIn),
+      ),
+    );
+
+    // Start sequence
+    _seqCtrl.forward();
+    _progressCtrl.forward();
+
+    // Roll dice when sequence reaches 60%
+    Future.delayed(const Duration(milliseconds: 1300), () {
+      if (mounted) _diceKey.currentState?.startRoll(6, () {});
+    });
+
+    // Navigate to home after 3.2s
+    Future.delayed(const Duration(milliseconds: 3200), () {
+      if (mounted) Navigator.pushReplacementNamed(context, '/home');
     });
   }
 
   @override
   void dispose() {
-    _fadeCtrl.dispose();
-    _scaleCtrl.dispose();
+    _seqCtrl.dispose();
+    _bgCtrl.dispose();
+    _particleCtrl.dispose();
     _progressCtrl.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      backgroundColor: bgDeep,
+      backgroundColor: const Color(0xFF05000F),
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Radial bg glow
-          CustomPaint(painter: _SplashBgPainter()),
-
-          // Theatre curtain overlays
-          Positioned(
-            left: 0, top: 0, bottom: 0,
-            width: MediaQuery.of(context).size.width * 0.12,
-            child: _Curtain(left: true),
-          ),
-          Positioned(
-            right: 0, top: 0, bottom: 0,
-            width: MediaQuery.of(context).size.width * 0.12,
-            child: _Curtain(left: false),
+          // ── Animated background ─────────────────────────────
+          AnimatedBuilder(
+            animation: _bgCtrl,
+            builder: (_, __) => CustomPaint(
+              painter: _SplashBgPainter(_bgCtrl.value, _particleCtrl.value),
+            ),
           ),
 
-          // Scattered stars
-          ..._buildStars(context),
+          // ── Floating particles (bottom to top) ─────────────
+          AnimatedBuilder(
+            animation: _particleCtrl,
+            builder: (_, __) => CustomPaint(
+              painter: _FloatingParticlePainter(_particleCtrl.value),
+            ),
+          ),
 
-          // Main content
-          FadeTransition(
-            opacity: _fade,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 60),
+          // ── Main content ────────────────────────────────────
+          Column(
+            children: [
+              SizedBox(height: size.height * 0.14),
 
-                // Crown
-                ScaleTransition(
-                  scale: _scale,
-                  child: const Text('👑', style: TextStyle(fontSize: 48)),
-                ),
-                const SizedBox(height: 8),
-
-                // LUDO in colored letters
-                _buildLudoText(),
-                const SizedBox(height: 4),
-
-                // RUSH
-                const Text(
-                  'RUSH',
-                  style: TextStyle(
-                    fontSize: 36, fontWeight: FontWeight.w900,
-                    color: goldColor, letterSpacing: 8,
-                    shadows: [Shadow(color: Color(0xBBFFD426), blurRadius: 16)],
+              // Crown
+              AnimatedBuilder(
+                animation: _letterScale[0],
+                builder: (_, __) => ScaleTransition(
+                  scale: _letterScale[0],
+                  child: FadeTransition(
+                    opacity: _letterFade[0],
+                    child: const Text('👑', style: TextStyle(fontSize: 44)),
                   ),
                 ),
+              ),
 
-                const SizedBox(height: 32),
+              const SizedBox(height: 10),
 
-                // 3D dice
-                SizedBox(
-                  width: 100, height: 100,
-                  child: DiceWidget(key: _diceKey),
+              // L-U-D-O animated letters
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _AnimLetter('L', boardRed,    _letterScale[0], _letterFade[0]),
+                  _AnimLetter('U', boardBlue,   _letterScale[1], _letterFade[1]),
+                  _AnimLetter('D', boardYellow, _letterScale[2], _letterFade[2]),
+                  _AnimLetter('O', boardGreen,  _letterScale[3], _letterFade[3]),
+                ],
+              ),
+
+              // RUSH
+              SlideTransition(
+                position: _rushSlide,
+                child: FadeTransition(
+                  opacity: _rushFade,
+                  child: const Text(
+                    'RUSH',
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.w900,
+                      color: goldColor,
+                      letterSpacing: 10,
+                      shadows: [
+                        Shadow(color: Color(0xBBFFD426), blurRadius: 20),
+                        Shadow(color: Color(0xFFFF9900), blurRadius: 40),
+                      ],
+                    ),
+                  ),
                 ),
+              ),
 
-                const SizedBox(height: 40),
+              SizedBox(height: size.height * 0.04),
 
-                // Loading bar
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 48),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Loading...',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
+              // Dice
+              SizedBox(
+                width: 100, height: 100,
+                child: DiceWidget(key: _diceKey),
+              ),
+
+              SizedBox(height: size.height * 0.04),
+
+              // Progress bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 52),
+                child: Column(
+                  children: [
+                    FadeTransition(
+                      opacity: _subtitleFade,
+                      child: const Text(
+                        'LOADING...',
+                        style: TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12, letterSpacing: 3,
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      AnimatedBuilder(
-                        animation: _progressCtrl,
-                        builder: (_, __) => Container(
-                          height: 10,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: goldColor, width: 1.5),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: LinearProgressIndicator(
-                              value: _progressCtrl.value,
-                              backgroundColor: Colors.transparent,
-                              valueColor: const AlwaysStoppedAnimation<Color>(greenBtn),
-                              minHeight: 10,
-                            ),
+                    ),
+                    const SizedBox(height: 10),
+                    AnimatedBuilder(
+                      animation: _progressCtrl,
+                      builder: (_, __) => Container(
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: Colors.white10,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(3),
+                          child: Stack(
+                            children: [
+                              FractionallySizedBox(
+                                widthFactor: _progressCtrl.value,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [Color(0xFF00E5FF), Color(0xFFFFD426)],
+                                    ),
+                                    borderRadius: BorderRadius.circular(3),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF00E5FF).withAlpha(130),
+                                        blurRadius: 8,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+              ),
 
-                const SizedBox(height: 24),
+              SizedBox(height: size.height * 0.035),
 
-                const Text(
-                  'Play Ludo Rush with friends worldwide',
-                  style: TextStyle(color: Colors.white60, fontSize: 14),
+              // Tagline
+              FadeTransition(
+                opacity: _subtitleFade,
+                child: const Text(
+                  'Play with friends worldwide',
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 13, letterSpacing: 0.5,
+                  ),
                   textAlign: TextAlign.center,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
-
-  Widget _buildLudoText() {
-    const letters = ['L', 'U', 'D', 'O'];
-    const colors  = [boardRed, boardGreen, boardBlue, boardYellow];
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(letters.length, (i) => Text(
-        letters[i],
-        style: TextStyle(
-          fontSize: 52,
-          fontWeight: FontWeight.w900,
-          color: colors[i],
-          shadows: [
-            Shadow(color: colors[i].withAlpha(180), blurRadius: 12),
-            const Shadow(color: Colors.black54, blurRadius: 4, offset: Offset(2, 3)),
-          ],
-        ),
-      )),
-    );
-  }
-
-  List<Widget> _buildStars(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    const positions = [
-      [0.1, 0.08], [0.85, 0.06], [0.05, 0.35], [0.92, 0.28],
-      [0.15, 0.72], [0.82, 0.68], [0.45, 0.05], [0.55, 0.92],
-      [0.25, 0.15], [0.72, 0.18], [0.38, 0.82], [0.65, 0.78],
-    ];
-    const sizes   = [14.0, 18.0, 12.0, 20.0, 16.0, 14.0, 22.0, 12.0, 18.0, 16.0, 14.0, 20.0];
-    const opacs   = [0.8, 0.6, 1.0, 0.7, 0.9, 0.5, 0.8, 0.6, 1.0, 0.7, 0.9, 0.5];
-
-    return List.generate(positions.length, (i) => Positioned(
-      left:  positions[i][0] * size.width,
-      top:   positions[i][1] * size.height,
-      child: Opacity(
-        opacity: opacs[i],
-        child: Icon(Icons.star, color: goldColor, size: sizes[i]),
-      ),
-    ));
-  }
 }
 
-// ── Background painter ────────────────────────────────────────────────────────
+// ── Animated letter widget ───────────────────────────────────────────────────
 
-class _SplashBgPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint();
-    // Base
-    paint.color = bgDeep;
-    canvas.drawRect(Offset.zero & size, paint);
+class _AnimLetter extends StatelessWidget {
+  final String letter;
+  final Color color;
+  final Animation<double> scale;
+  final Animation<double> fade;
 
-    // Radial center glow
-    paint.shader = ui.Gradient.radial(
-      Offset(size.width / 2, size.height * 0.45),
-      size.width * 0.65,
-      [const Color(0xFF3D0060), bgDeep],
-      [0.0, 1.0],
-    );
-    canvas.drawRect(Offset.zero & size, paint);
-    paint.shader = null;
-
-    // Bokeh particles
-    paint.color = const Color(0x18FFD426);
-    for (int i = 0; i < 30; i++) {
-      final x = ((i * 137 + 23) % 1000) / 1000.0 * size.width;
-      final y = ((i * 211 + 53) % 1000) / 1000.0 * size.height;
-      final r = 3.0 + (i % 4) * 2.0;
-      canvas.drawCircle(Offset(x, y), r, paint);
-    }
-    paint.color = const Color(0x10FF69B4);
-    for (int i = 0; i < 20; i++) {
-      final x = ((i * 173 + 67) % 1000) / 1000.0 * size.width;
-      final y = ((i * 97  + 31) % 1000) / 1000.0 * size.height;
-      canvas.drawCircle(Offset(x, y), 2.0 + (i % 3), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_SplashBgPainter _) => false;
-}
-
-// ── Curtain widget ─────────────────────────────────────────────────────────────
-
-class _Curtain extends StatelessWidget {
-  final bool left;
-  const _Curtain({required this.left});
+  const _AnimLetter(this.letter, this.color, this.scale, this.fade);
 
   @override
   Widget build(BuildContext context) {
-    return ClipPath(
-      clipper: _CurtainClipper(left: left),
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: const [Color(0xFF8B0000), Color(0xFF4A0000)],
-            begin: left ? Alignment.centerLeft : Alignment.centerRight,
-            end:   left ? Alignment.centerRight : Alignment.centerLeft,
+    return ScaleTransition(
+      scale: scale,
+      child: FadeTransition(
+        opacity: fade,
+        child: Text(
+          letter,
+          style: TextStyle(
+            fontSize: 58,
+            fontWeight: FontWeight.w900,
+            color: color,
+            shadows: [
+              Shadow(color: color.withAlpha(200), blurRadius: 18),
+              Shadow(color: color.withAlpha(100), blurRadius: 40),
+              const Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(2, 3)),
+            ],
           ),
         ),
       ),
@@ -269,31 +327,118 @@ class _Curtain extends StatelessWidget {
   }
 }
 
-class _CurtainClipper extends CustomClipper<Path> {
-  final bool left;
-  const _CurtainClipper({required this.left});
+// ── Splash background painter ────────────────────────────────────────────────
+
+class _SplashBgPainter extends CustomPainter {
+  final double t;
+  final double pt;
+  _SplashBgPainter(this.t, this.pt);
 
   @override
-  Path getClip(Size size) {
-    final path = Path();
-    if (left) {
-      path.moveTo(0, 0);
-      path.lineTo(size.width, 0);
-      path.lineTo(size.width * 0.5, size.height / 2);
-      path.lineTo(size.width, size.height);
-      path.lineTo(0, size.height);
-      path.close();
-    } else {
-      path.moveTo(size.width, 0);
-      path.lineTo(0, 0);
-      path.lineTo(size.width * 0.5, size.height / 2);
-      path.lineTo(0, size.height);
-      path.lineTo(size.width, size.height);
-      path.close();
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..style = PaintingStyle.fill;
+
+    // Deep base
+    p.shader = ui.Gradient.radial(
+      Offset(size.width * 0.5, size.height * 0.40),
+      size.height * 0.85,
+      [const Color(0xFF1E0050), const Color(0xFF05000F)],
+      [0.0, 1.0],
+    );
+    canvas.drawRect(Offset.zero & size, p);
+
+    // Cyan pulse (top)
+    final pulse = 0.5 + 0.5 * math.sin(t * math.pi * 2);
+    p.shader = ui.Gradient.radial(
+      Offset(size.width * 0.5, size.height * 0.1),
+      size.width * (0.5 + 0.2 * pulse),
+      [Color.fromARGB((18 + (pulse * 12).round()), 0, 229, 255), Colors.transparent],
+    );
+    canvas.drawRect(Offset.zero & size, p);
+
+    // Magenta pulse (center)
+    p.shader = ui.Gradient.radial(
+      Offset(size.width * 0.5, size.height * 0.5),
+      size.width * (0.35 + 0.15 * (1 - pulse)),
+      [Color.fromARGB((12 + ((1 - pulse) * 10).round()), 224, 64, 251), Colors.transparent],
+    );
+    canvas.drawRect(Offset.zero & size, p);
+    p.shader = null;
+
+    // Stars
+    for (int i = 0; i < 80; i++) {
+      final sx = ((i * 137 + 23) % 1000) / 1000.0 * size.width;
+      final sy = ((i * 211 + 79) % 1000) / 1000.0 * size.height;
+      final twinkle = 0.15 + 0.85 * (0.5 + 0.5 * math.sin(t * math.pi * 2 * 2 + i * 0.8));
+      final r = 0.5 + (i % 4) * 0.55;
+      p.color = Color.fromARGB((twinkle * 180).round(), 255, 255, 255);
+      canvas.drawCircle(Offset(sx, sy), r, p);
     }
-    return path;
   }
 
   @override
-  bool shouldReclip(_CurtainClipper _) => false;
+  bool shouldRepaint(_SplashBgPainter old) => old.t != t || old.pt != pt;
+}
+
+// ── Floating particles ───────────────────────────────────────────────────────
+
+class _FloatingParticlePainter extends CustomPainter {
+  final double t;
+  _FloatingParticlePainter(this.t);
+
+  static const _colors = [
+    Color(0xFF00E5FF), Color(0xFFE040FB), Color(0xFFFFD426),
+    Color(0xFF69F0AE), Color(0xFFFF6B35), Color(0xFFFFB300),
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..style = PaintingStyle.fill;
+
+    for (int i = 0; i < 30; i++) {
+      final baseX = ((i * 317 + 53) % 1000) / 1000.0 * size.width;
+      final speed = 0.08 + (i % 5) * 0.04;
+      // Start from bottom, rise to top, loop
+      final rawY = 1.0 - ((i * 0.03 + t * speed) % 1.0);
+      final y = rawY * size.height;
+      final x = baseX + math.sin(t * math.pi * 2 * 0.7 + i * 0.4) * 18;
+
+      final alpha = (math.sin(rawY * math.pi).clamp(0.0, 1.0) * 160).round();
+      if (alpha <= 0) continue;
+
+      p.color = _colors[i % _colors.length].withAlpha(alpha);
+      final r = 1.5 + (i % 4) * 1.2;
+      canvas.drawCircle(Offset(x, y), r, p);
+    }
+
+    // Larger gems/diamonds occasionally
+    for (int i = 0; i < 8; i++) {
+      final baseX = ((i * 127 + 11) % 1000) / 1000.0 * size.width;
+      final speed = 0.05 + (i % 3) * 0.02;
+      final rawY = 1.0 - ((i * 0.12 + t * speed) % 1.0);
+      final y = rawY * size.height;
+      final x = baseX + math.cos(t * math.pi * 2 * 0.5 + i * 0.9) * 22;
+
+      final alpha = (math.sin(rawY * math.pi).clamp(0.0, 1.0) * 120).round();
+      if (alpha <= 0) continue;
+
+      p.color = _colors[i % _colors.length].withAlpha(alpha);
+
+      // Draw diamond shape
+      canvas.save();
+      canvas.translate(x, y);
+      canvas.rotate(t * math.pi + i * 0.8);
+      final path = Path()
+        ..moveTo(0, -5)
+        ..lineTo(3.5, 0)
+        ..lineTo(0, 5)
+        ..lineTo(-3.5, 0)
+        ..close();
+      canvas.drawPath(path, p);
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_FloatingParticlePainter old) => old.t != t;
 }
