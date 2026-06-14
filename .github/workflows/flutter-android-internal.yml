@@ -51,7 +51,9 @@ jobs:
           KEY_ALIAS:    ${{ secrets.UNITY_ANDROID_KEYALIAS_NAME }}
           KEY_PASSWORD: ${{ secrets.UNITY_ANDROID_KEYALIAS_PASS }}
           STORE_PASSWORD: ${{ secrets.UNITY_ANDROID_KEYSTORE_PASS }}
-        run: flutter build appbundle --release --build-number=${{ github.run_number }}
+        # Offset by 10000 so Flutter version codes are always higher than
+        # any previous native-Android builds (which used raw run_number).
+        run: flutter build appbundle --release --build-number=$((GITHUB_RUN_NUMBER + 10000))
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
