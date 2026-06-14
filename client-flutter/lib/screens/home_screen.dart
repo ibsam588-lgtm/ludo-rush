@@ -6,7 +6,7 @@ import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  HOME SCREEN — Neon Gaming Lobby
+//  HOME SCREEN — Warm Cartoon Game Lobby
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class HomeScreen extends StatefulWidget {
@@ -45,15 +45,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Consumer<AppState>(
       builder: (context, state, _) => Scaffold(
-        backgroundColor: const Color(0xFF08001A),
+        backgroundColor: const Color(0xFF1A0520),
         body: Stack(
           children: [
-            // ── Animated neon background ──────────────────────────
+            // ── Animated warm background ──────────────────────────
             Positioned.fill(
               child: AnimatedBuilder(
                 animation: _bgCtrl,
                 builder: (_, __) => CustomPaint(
-                  painter: _NeonBgPainter(_bgCtrl.value, _starCtrl.value),
+                  painter: _WarmBgPainter(_bgCtrl.value, _starCtrl.value),
                 ),
               ),
             ),
@@ -97,43 +97,43 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 }
 
-// ── Animated neon background ─────────────────────────────────────────────────
+// ── Animated warm background ─────────────────────────────────────────────────
 
-class _NeonBgPainter extends CustomPainter {
+class _WarmBgPainter extends CustomPainter {
   final double t;
   final double starT;
-  _NeonBgPainter(this.t, this.starT);
+  _WarmBgPainter(this.t, this.starT);
 
   @override
   void paint(Canvas canvas, Size size) {
     final p = Paint()..style = PaintingStyle.fill;
 
-    // Deep space base
+    // Warm deep base
     p.shader = ui.Gradient.radial(
       Offset(size.width * 0.5, size.height * 0.25),
       size.height * 0.9,
-      [const Color(0xFF1C0050), const Color(0xFF08001A)],
+      [const Color(0xFF2D0A3A), const Color(0xFF1A0520)],
       [0.0, 1.0],
     );
     canvas.drawRect(Offset.zero & size, p);
 
-    // Cyan orb (top-left wandering)
+    // Amber orb (top-left wandering)
     final cx1 = size.width * (0.15 + 0.25 * math.sin(t * math.pi * 2));
     final cy1 = size.height * (0.08 + 0.12 * math.cos(t * math.pi * 2));
     p.shader = ui.Gradient.radial(
       Offset(cx1, cy1),
       size.width * 0.55,
-      [const Color(0x1400CFFF), Colors.transparent],
+      [const Color(0x18FF9A00), Colors.transparent],
     );
     canvas.drawRect(Offset.zero & size, p);
 
-    // Magenta orb (right-center wandering)
+    // Orange-red orb (right-center wandering)
     final cx2 = size.width * (0.80 + 0.15 * math.cos(t * math.pi * 2 + 2.1));
     final cy2 = size.height * (0.45 + 0.18 * math.sin(t * math.pi * 2 + 2.1));
     p.shader = ui.Gradient.radial(
       Offset(cx2, cy2),
       size.width * 0.50,
-      [const Color(0x18E040FB), Colors.transparent],
+      [const Color(0x14FF6040), Colors.transparent],
     );
     canvas.drawRect(Offset.zero & size, p);
 
@@ -143,23 +143,23 @@ class _NeonBgPainter extends CustomPainter {
     p.shader = ui.Gradient.radial(
       Offset(cx3, cy3),
       size.width * 0.40,
-      [const Color(0x12FFD426), Colors.transparent],
+      [const Color(0x14FFD426), Colors.transparent],
     );
     canvas.drawRect(Offset.zero & size, p);
     p.shader = null;
 
-    // Twinkling stars
+    // Twinkling warm stars/sparks
     for (int i = 0; i < 60; i++) {
       final sx = ((i * 137 + 11) % 1000) / 1000.0 * size.width;
       final sy = ((i * 211 + 37) % 1000) / 1000.0 * size.height;
       final twinkle = 0.2 + 0.8 * (0.5 + 0.5 * math.sin(starT * math.pi * 2 * 3 + i * 0.9));
       final r = 0.6 + (i % 4) * 0.5;
-      p.color = Color.fromARGB((twinkle * 160).round(), 255, 255, 255);
+      p.color = Color.fromARGB((twinkle * 140).round(), 255, 220, 180);
       canvas.drawCircle(Offset(sx, sy), r, p);
     }
 
-    // Colored sparkles
-    const sparkColors = [Color(0xFF00E5FF), Color(0xFFE040FB), Color(0xFFFFD426)];
+    // Warm sparkles
+    const sparkColors = [Color(0xFFFF9A00), Color(0xFFFF6B35), Color(0xFFFFD426)];
     for (int i = 0; i < 15; i++) {
       final sx = ((i * 317 + 53) % 1000) / 1000.0 * size.width;
       final sy = ((i * 173 + 79) % 1000) / 1000.0 * size.height;
@@ -171,7 +171,7 @@ class _NeonBgPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_NeonBgPainter old) => old.t != t || old.starT != starT;
+  bool shouldRepaint(_WarmBgPainter old) => old.t != t || old.starT != starT;
 }
 
 // ── Top bar ──────────────────────────────────────────────────────────────────
@@ -187,7 +187,7 @@ class _TopBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
       child: Row(
         children: [
-          // Rainbow avatar ring
+          // Warm gradient avatar ring
           GestureDetector(
             onTap: () {},
             child: AnimatedBuilder(
@@ -198,8 +198,8 @@ class _TopBar extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: SweepGradient(
                     colors: const [
-                      Color(0xFF00E5FF), Color(0xFFE040FB), Color(0xFFFFD426),
-                      Color(0xFF69F0AE), Color(0xFF00E5FF),
+                      Color(0xFFFF9A00), Color(0xFFFF4500), Color(0xFFFFD426),
+                      Color(0xFFFF6B35), Color(0xFFFF9A00),
                     ],
                     startAngle: shimmer.value * math.pi * 2,
                     endAngle:   shimmer.value * math.pi * 2 + math.pi * 2,
@@ -210,7 +210,7 @@ class _TopBar extends StatelessWidget {
                   child: Container(
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Color(0xFF1A0040),
+                      color: Color(0xFF2D0A3A),
                     ),
                     child: Center(
                       child: Text(
@@ -248,7 +248,7 @@ class _TopBar extends StatelessWidget {
                 Text('Lv ${state.rating ~/ 50 + 1}',
                   style: const TextStyle(color: goldColor, fontSize: 10, fontWeight: FontWeight.bold)),
                 const SizedBox(width: 6),
-                _ShimmerXpBar(shimmer: shimmer, value: (state.rating % 50) / 50.0),
+                _WarmXpBar(shimmer: shimmer, value: (state.rating % 50) / 50.0),
               ]),
             ],
           ),
@@ -256,11 +256,11 @@ class _TopBar extends StatelessWidget {
           const Spacer(),
 
           // Currency pills
-          _NeonPill(icon: '🏆', val: '${state.wins}',     glow: const Color(0xFFFFD426)),
+          _WarmPill(icon: '🏆', val: '${state.wins}',     glow: const Color(0xFFFFD426)),
           const SizedBox(width: 5),
-          _NeonPill(icon: '🪙', val: _fmt(state.coins),   glow: const Color(0xFFFFB300)),
+          _WarmPill(icon: '🪙', val: _fmt(state.coins),   glow: const Color(0xFFFF9A00)),
           const SizedBox(width: 5),
-          _NeonPill(icon: '💎', val: '30',               glow: const Color(0xFF00E5FF)),
+          _WarmPill(icon: '💎', val: '30',               glow: const Color(0xFFFF6B35)),
           const SizedBox(width: 6),
 
           // Settings button
@@ -284,10 +284,10 @@ class _TopBar extends StatelessWidget {
   static String _fmt(int n) => n >= 1000 ? '${(n / 1000).toStringAsFixed(1)}K' : '$n';
 }
 
-class _ShimmerXpBar extends StatelessWidget {
+class _WarmXpBar extends StatelessWidget {
   final AnimationController shimmer;
   final double value;
-  const _ShimmerXpBar({required this.shimmer, required this.value});
+  const _WarmXpBar({required this.shimmer, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -309,13 +309,13 @@ class _ShimmerXpBar extends StatelessWidget {
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(4),
                   gradient: LinearGradient(
-                    colors: const [Color(0xFF00E5FF), Color(0xFFFFD426), Color(0xFF00E5FF)],
+                    colors: const [Color(0xFFFF9A00), Color(0xFFFFD426), Color(0xFFFF9A00)],
                     stops: const [0, 0.5, 1],
                     begin: Alignment(shimmer.value * 2 - 1, 0),
                     end:   Alignment(shimmer.value * 2 + 1, 0),
                   ),
                   boxShadow: [BoxShadow(
-                    color: const Color(0xFF00E5FF).withAlpha(100),
+                    color: const Color(0xFFFF9A00).withAlpha(100),
                     blurRadius: 4,
                   )],
                 ),
@@ -328,20 +328,20 @@ class _ShimmerXpBar extends StatelessWidget {
   }
 }
 
-class _NeonPill extends StatelessWidget {
+class _WarmPill extends StatelessWidget {
   final String icon, val;
   final Color glow;
-  const _NeonPill({required this.icon, required this.val, required this.glow});
+  const _WarmPill({required this.icon, required this.val, required this.glow});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
-        color: glow.withAlpha(18),
+        color: glow.withAlpha(22),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: glow.withAlpha(90), width: 1),
-        boxShadow: [BoxShadow(color: glow.withAlpha(30), blurRadius: 6)],
+        border: Border.all(color: glow.withAlpha(100), width: 1),
+        boxShadow: [BoxShadow(color: glow.withAlpha(35), blurRadius: 6)],
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Text(icon, style: const TextStyle(fontSize: 12)),
@@ -361,7 +361,7 @@ class _SkinFrames extends StatelessWidget {
 
   static const _colors = [
     Color(0xFFE53935), Color(0xFF1E88E5), Color(0xFFFFB300),
-    Color(0xFF43A047), Color(0xFFE040FB),
+    Color(0xFF43A047), Color(0xFFFF6B35),
   ];
 
   @override
@@ -378,9 +378,9 @@ class _SkinFrames extends StatelessWidget {
             width: 58, height: 64,
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: const Color(0xFF100028),
+              color: const Color(0xFF2D0A3A),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: c.withAlpha(90), width: 1.5),
+              border: Border.all(color: c.withAlpha(100), width: 1.5),
               boxShadow: [BoxShadow(color: c.withAlpha(40), blurRadius: 8)],
             ),
             child: Column(
@@ -418,7 +418,7 @@ class _ModeGrid extends StatelessWidget {
           Expanded(child: _BigModeCard(
             title: '2 Players',
             subtitle: 'Quick Duel',
-            gradient: [const Color(0xFFFF6B35), const Color(0xFFB71C1C)],
+            gradient: [const Color(0xFFE65100), const Color(0xFF8B0000)],
             glowColor: const Color(0xFFFF6B35),
             seats: [boardRed, boardBlue],
             emoji: '⚔️',
@@ -429,8 +429,8 @@ class _ModeGrid extends StatelessWidget {
           Expanded(child: _BigModeCard(
             title: '4 Players',
             subtitle: 'Battle Royal',
-            gradient: [const Color(0xFF8E24AA), const Color(0xFF1A0050)],
-            glowColor: const Color(0xFFE040FB),
+            gradient: [const Color(0xFF6A1B9A), const Color(0xFF2D0A3A)],
+            glowColor: const Color(0xFFFF9A00),
             seats: [boardRed, boardBlue, boardYellow, boardGreen],
             emoji: '👑',
             pulse: pulse,
@@ -718,8 +718,8 @@ class _SmallModeCardState extends State<_SmallModeCard>
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  widget.gradient.first.withAlpha(55),
-                  widget.gradient.last.withAlpha(55),
+                  widget.gradient.first.withAlpha(60),
+                  widget.gradient.last.withAlpha(60),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -768,7 +768,7 @@ class _JoiningOverlay extends StatelessWidget {
       child: BackdropFilter(
         filter: ui.ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
-          color: const Color(0xFF08001A).withAlpha(190),
+          color: const Color(0xFF1A0520).withAlpha(190),
           child: const Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -776,14 +776,14 @@ class _JoiningOverlay extends StatelessWidget {
                 SizedBox(
                   width: 60, height: 60,
                   child: CircularProgressIndicator(
-                    color: Color(0xFF00E5FF), strokeWidth: 3,
+                    color: Color(0xFFFFD426), strokeWidth: 3,
                   ),
                 ),
                 SizedBox(height: 22),
                 Text('Finding Match...', style: TextStyle(
-                  color: Color(0xFF00E5FF),
+                  color: Color(0xFFFFD426),
                   fontSize: 20, fontWeight: FontWeight.bold,
-                  shadows: [Shadow(color: Color(0xFF00E5FF), blurRadius: 16)],
+                  shadows: [Shadow(color: Color(0xFFFF9A00), blurRadius: 16)],
                 )),
                 SizedBox(height: 8),
                 Text('Searching for players worldwide',
@@ -820,8 +820,8 @@ class _BottomNav extends StatelessWidget {
         child: Container(
           height: 72,
           decoration: const BoxDecoration(
-            color: Color(0xBB140030),
-            border: Border(top: BorderSide(color: Color(0x55FFD426))),
+            color: Color(0xBB2A0830),
+            border: Border(top: BorderSide(color: Color(0x55FF9A00))),
           ),
           child: Row(
             children: List.generate(_items.length, (i) {

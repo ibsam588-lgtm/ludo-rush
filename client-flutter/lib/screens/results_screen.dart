@@ -89,7 +89,7 @@ class _ResultsScreenState extends State<ResultsScreen>
         fit: StackFit.expand,
         children: [
           // Blurred dark backdrop
-          Container(color: const Color(0xEE08001A)),
+          Container(color: const Color(0xEE1A0520)),
 
           // Confetti (winner only)
           if (won)
@@ -118,7 +118,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0F0030),
+                      color: const Color(0xFF1E0830),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
                         color: won
@@ -228,7 +228,7 @@ class _TrophyBadge extends StatelessWidget {
                       colors: won
                           ? [
                               goldColor.withAlpha((g * 80).round()),
-                              const Color(0xFF1A0040),
+                              const Color(0xFF1E0830),
                             ]
                           : [const Color(0x225A5A5A), const Color(0xFF1A0040)],
                     ),
@@ -349,7 +349,7 @@ class _RewardsRow extends StatelessWidget {
             emoji: '⭐',
             label: 'XP',
             value: won ? '+150' : '+50',
-            color: const Color(0xFF00E5FF),
+            color: const Color(0xFFFF9A00),
           ),
         ],
       ),

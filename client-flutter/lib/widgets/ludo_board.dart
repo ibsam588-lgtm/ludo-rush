@@ -251,7 +251,7 @@ class _BoardPainter extends CustomPainter {
     // Dark inner region for nests
     final ins = cell * 0.75;
     final inner = Rect.fromLTRB(x1 + ins, y1 + ins, x2 - ins, y2 - ins);
-    p.color = Color(_blend(_toInt(color), 0xFF040610, 0.78));
+    p.color = Color(_blend(_toInt(color), 0xFF000000, 0.40));
     canvas.drawRect(inner, p);
     p.style = PaintingStyle.stroke;
     p.strokeWidth = cell * 0.04;
@@ -274,7 +274,7 @@ class _BoardPainter extends CustomPainter {
       canvas.drawCircle(Offset(px, py + r * 0.10), r, p);
 
       // Dark nest fill
-      p.color = Color(_blend(_toInt(color), 0xFF000000, 0.55));
+      p.color = Color(_blend(_toInt(color), 0xFF000000, 0.38));
       canvas.drawCircle(Offset(px, py), r, p);
 
       // Colored ring

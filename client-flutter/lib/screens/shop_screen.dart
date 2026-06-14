@@ -6,7 +6,7 @@ import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  SHOP SCREEN — Premium marketplace
+//  SHOP SCREEN — Warm cartoon marketplace
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class ShopScreen extends StatefulWidget {
@@ -49,10 +49,10 @@ class _ShopScreenState extends State<ShopScreen>
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     return Scaffold(
-      backgroundColor: const Color(0xFF08001A),
+      backgroundColor: const Color(0xFF1A0520),
       body: Stack(
         children: [
-          // Animated background
+          // Animated warm background
           Positioned.fill(
             child: AnimatedBuilder(
               animation: _bgCtrl,
@@ -100,29 +100,29 @@ class _ShopBgPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final p = Paint()..style = PaintingStyle.fill;
 
-    // Base
+    // Warm base
     p.shader = ui.Gradient.radial(
       Offset(size.width * 0.5, 0),
       size.height * 0.8,
-      [const Color(0xFF1A0040), const Color(0xFF08001A)],
+      [const Color(0xFF2D0A3A), const Color(0xFF1A0520)],
     );
     canvas.drawRect(Offset.zero & size, p);
 
-    // Gold shimmer at top (header glow)
+    // Gold/amber shimmer at top (header glow)
     p.shader = ui.Gradient.radial(
       Offset(size.width * 0.5, size.height * 0.12),
       size.width * (0.5 + 0.15 * math.sin(t * math.pi * 2)),
-      [const Color(0x18FFD426), Colors.transparent],
+      [const Color(0x20FFD426), Colors.transparent],
     );
     canvas.drawRect(Offset.zero & size, p);
     p.shader = null;
 
-    // Stars
+    // Warm twinkling stars
     for (int i = 0; i < 40; i++) {
       final sx = ((i * 137 + 11) % 1000) / 1000.0 * size.width;
       final sy = ((i * 211 + 53) % 1000) / 1000.0 * size.height;
       final tw = 0.2 + 0.8 * (0.5 + 0.5 * math.sin(t * math.pi * 2 * 2 + i));
-      p.color = Colors.white.withAlpha((tw * 80).round());
+      p.color = Colors.amber.withAlpha((tw * 70).round());
       canvas.drawCircle(Offset(sx, sy), 0.7, p);
     }
   }
@@ -143,7 +143,7 @@ class _ShopHeader extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF2D0060), Color(0xFF1A0040), Color(0xFF08001A)],
+          colors: [Color(0xFF3D0A40), Color(0xFF2D0A35), Color(0xFF1A0520)],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
@@ -187,7 +187,7 @@ class _ShopHeader extends StatelessWidget {
                         child: Container(
                           decoration: const BoxDecoration(
                             shape: BoxShape.circle,
-                            color: Color(0xFF2D0060),
+                            color: Color(0xFF3D0A40),
                           ),
                           child: const Center(
                             child: Text('🧙', style: TextStyle(fontSize: 30)),
@@ -221,7 +221,7 @@ class _ShopHeader extends StatelessWidget {
                 children: [
                   const SizedBox(height: 8),
 
-                  // SHOP text with glow
+                  // SHOP text with gold glow
                   ShaderMask(
                     shaderCallback: (bounds) => const LinearGradient(
                       colors: [goldColor, Color(0xFFFF9A00), goldColor],
@@ -253,9 +253,9 @@ class _ShopHeader extends StatelessWidget {
                       children: [
                         _CurrChip('🪙', _fmt(state.coins), const Color(0xFFFFD426)),
                         const SizedBox(width: 16),
-                        _CurrChip('💎', '30', const Color(0xFF00E5FF)),
+                        _CurrChip('💎', '30', const Color(0xFFFF9A00)),
                         const SizedBox(width: 16),
-                        _CurrChip('⚡', '0', const Color(0xFFFFB300)),
+                        _CurrChip('⚡', '0', const Color(0xFFFF6B35)),
                       ],
                     ),
                   ),
@@ -299,7 +299,7 @@ class _ShopTabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFF0A0025),
+      color: const Color(0xFF1A0530),
       child: TabBar(
         controller: controller,
         indicatorColor: goldColor,
@@ -438,7 +438,7 @@ class _ShopCardState extends State<_ShopCard>
             child: Container(
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF2A0060), Color(0xFF1A0040)],
+                  colors: [Color(0xFF4A1A3A), Color(0xFF2D0A28)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -447,8 +447,8 @@ class _ShopCardState extends State<_ShopCard>
                   color: widget.item.hot
                       ? const Color(0xAAFF6B35)
                       : widget.item.bestValue
-                          ? const Color(0xAA00E5FF)
-                          : const Color(0x55FFD426),
+                          ? const Color(0xAAFFD426)
+                          : const Color(0x55FF9A00),
                   width: (widget.item.hot || widget.item.bestValue) ? 1.5 : 1,
                 ),
                 boxShadow: [
@@ -456,7 +456,7 @@ class _ShopCardState extends State<_ShopCard>
                     color: widget.item.hot
                         ? const Color(0x30FF6B35)
                         : widget.item.bestValue
-                            ? const Color(0x3000E5FF)
+                            ? const Color(0x30FFD426)
                             : Colors.transparent,
                     blurRadius: 12,
                   ),
@@ -467,13 +467,13 @@ class _ShopCardState extends State<_ShopCard>
                 children: [
                   const SizedBox(height: 10),
 
-                  // Emoji with glow
+                  // Emoji with warm glow
                   Container(
                     width: 58, height: 58,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: Colors.white.withAlpha(8),
-                      border: Border.all(color: goldColor.withAlpha(40)),
+                      border: Border.all(color: goldColor.withAlpha(50)),
                     ),
                     child: Center(
                       child: Text(widget.item.emoji,
@@ -496,7 +496,7 @@ class _ShopCardState extends State<_ShopCard>
                   // Bonus
                   Text(widget.item.bonus,
                     style: const TextStyle(
-                      color: Color(0xFF69F0AE),
+                      color: Color(0xFFFFB74D),
                       fontSize: 11, fontWeight: FontWeight.bold,
                     )),
 
@@ -569,7 +569,7 @@ class _ShopCardState extends State<_ShopCard>
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF00BCD4), Color(0xFF006064)],
+                  colors: [Color(0xFFFF9A00), Color(0xFFE65100)],
                 ),
                 borderRadius: BorderRadius.circular(6),
                 boxShadow: const [BoxShadow(color: Colors.black38, blurRadius: 4)],

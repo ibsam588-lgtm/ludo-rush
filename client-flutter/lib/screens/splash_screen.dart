@@ -5,7 +5,7 @@ import '../theme/app_theme.dart';
 import '../widgets/dice_widget.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  SPLASH SCREEN — Cinematic intro with staggered animations
+//  SPLASH SCREEN — Cinematic warm intro with staggered animations
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class SplashScreen extends StatefulWidget {
@@ -135,11 +135,11 @@ class _SplashScreenState extends State<SplashScreen>
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF05000F),
+      backgroundColor: const Color(0xFF1A0420),
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // ── Animated background ─────────────────────────────
+          // ── Animated warm background ─────────────────────────
           AnimatedBuilder(
             animation: _bgCtrl,
             builder: (_, __) => CustomPaint(
@@ -147,7 +147,7 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
 
-          // ── Floating particles (bottom to top) ─────────────
+          // ── Floating warm particles (bottom to top) ─────────
           AnimatedBuilder(
             animation: _particleCtrl,
             builder: (_, __) => CustomPaint(
@@ -199,7 +199,7 @@ class _SplashScreenState extends State<SplashScreen>
                       letterSpacing: 10,
                       shadows: [
                         Shadow(color: Color(0xBBFFD426), blurRadius: 20),
-                        Shadow(color: Color(0xFFFF9900), blurRadius: 40),
+                        Shadow(color: Color(0xFFFF9A00), blurRadius: 40),
                       ],
                     ),
                   ),
@@ -250,12 +250,12 @@ class _SplashScreenState extends State<SplashScreen>
                                 child: Container(
                                   decoration: BoxDecoration(
                                     gradient: const LinearGradient(
-                                      colors: [Color(0xFF00E5FF), Color(0xFFFFD426)],
+                                      colors: [Color(0xFFFF9A00), Color(0xFFFFD426)],
                                     ),
                                     borderRadius: BorderRadius.circular(3),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(0xFF00E5FF).withAlpha(130),
+                                        color: const Color(0xFFFF9A00).withAlpha(130),
                                         blurRadius: 8,
                                       ),
                                     ],
@@ -338,40 +338,40 @@ class _SplashBgPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final p = Paint()..style = PaintingStyle.fill;
 
-    // Deep base
+    // Warm deep base
     p.shader = ui.Gradient.radial(
       Offset(size.width * 0.5, size.height * 0.40),
       size.height * 0.85,
-      [const Color(0xFF1E0050), const Color(0xFF05000F)],
+      [const Color(0xFF2E0A3D), const Color(0xFF1A0420)],
       [0.0, 1.0],
     );
     canvas.drawRect(Offset.zero & size, p);
 
-    // Cyan pulse (top)
+    // Amber pulse (top)
     final pulse = 0.5 + 0.5 * math.sin(t * math.pi * 2);
     p.shader = ui.Gradient.radial(
       Offset(size.width * 0.5, size.height * 0.1),
       size.width * (0.5 + 0.2 * pulse),
-      [Color.fromARGB((18 + (pulse * 12).round()), 0, 229, 255), Colors.transparent],
+      [Color.fromARGB((20 + (pulse * 14).round()), 255, 154, 0), Colors.transparent],
     );
     canvas.drawRect(Offset.zero & size, p);
 
-    // Magenta pulse (center)
+    // Warm orange pulse (center)
     p.shader = ui.Gradient.radial(
       Offset(size.width * 0.5, size.height * 0.5),
       size.width * (0.35 + 0.15 * (1 - pulse)),
-      [Color.fromARGB((12 + ((1 - pulse) * 10).round()), 224, 64, 251), Colors.transparent],
+      [Color.fromARGB((14 + ((1 - pulse) * 10).round()), 255, 96, 64), Colors.transparent],
     );
     canvas.drawRect(Offset.zero & size, p);
     p.shader = null;
 
-    // Stars
+    // Warm twinkling stars
     for (int i = 0; i < 80; i++) {
       final sx = ((i * 137 + 23) % 1000) / 1000.0 * size.width;
       final sy = ((i * 211 + 79) % 1000) / 1000.0 * size.height;
       final twinkle = 0.15 + 0.85 * (0.5 + 0.5 * math.sin(t * math.pi * 2 * 2 + i * 0.8));
       final r = 0.5 + (i % 4) * 0.55;
-      p.color = Color.fromARGB((twinkle * 180).round(), 255, 255, 255);
+      p.color = Color.fromARGB((twinkle * 160).round(), 255, 220, 180);
       canvas.drawCircle(Offset(sx, sy), r, p);
     }
   }
@@ -380,15 +380,15 @@ class _SplashBgPainter extends CustomPainter {
   bool shouldRepaint(_SplashBgPainter old) => old.t != t || old.pt != pt;
 }
 
-// ── Floating particles ───────────────────────────────────────────────────────
+// ── Floating warm particles ──────────────────────────────────────────────────
 
 class _FloatingParticlePainter extends CustomPainter {
   final double t;
   _FloatingParticlePainter(this.t);
 
   static const _colors = [
-    Color(0xFF00E5FF), Color(0xFFE040FB), Color(0xFFFFD426),
-    Color(0xFF69F0AE), Color(0xFFFF6B35), Color(0xFFFFB300),
+    Color(0xFFFF9A00), Color(0xFFFF6B35), Color(0xFFFFD426),
+    Color(0xFFFF8C42), Color(0xFFFFB300), Color(0xFFE65100),
   ];
 
   @override

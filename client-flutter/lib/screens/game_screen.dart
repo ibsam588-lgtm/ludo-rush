@@ -70,7 +70,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         return PopScope(
           canPop: false,
           child: Scaffold(
-            backgroundColor: const Color(0xFF08001A),
+            backgroundColor: const Color(0xFF1A0520),
             body: Stack(
               children: [
                 // ── Animated background ──────────────────────
@@ -180,10 +180,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1A0040),
+        backgroundColor: const Color(0xFF2D0A35),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Color(0x55E040FB)),
+          side: const BorderSide(color: Color(0x55FFD426)),
         ),
         title: const Text('Resign Match?',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -219,11 +219,11 @@ class _GameBgPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final p = Paint()..style = PaintingStyle.fill;
 
-    // Deep base
+    // Warm deep base
     p.shader = ui.Gradient.radial(
       Offset(size.width * 0.5, size.height * 0.4),
       size.height * 0.7,
-      [const Color(0xFF160040), const Color(0xFF08001A)],
+      [const Color(0xFF2D0A3A), const Color(0xFF1A0520)],
     );
     canvas.drawRect(Offset.zero & size, p);
 
@@ -242,12 +242,12 @@ class _GameBgPainter extends CustomPainter {
     p.shader = ui.Gradient.radial(
       Offset(ax, ay),
       size.width * 0.4,
-      [const Color(0x0E00E5FF), Colors.transparent],
+      [const Color(0x10FF9A00), Colors.transparent],
     );
     canvas.drawRect(Offset.zero & size, p);
     p.shader = null;
 
-    // Dim stars
+    // Dim warm stars
     for (int i = 0; i < 40; i++) {
       final sx = ((i * 137 + 41) % 1000) / 1000.0 * size.width;
       final sy = ((i * 211 + 17) % 1000) / 1000.0 * size.height;
@@ -280,7 +280,7 @@ class _GameTopBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: const BoxDecoration(
-        color: Color(0xBB1A0040),
+        color: Color(0xBB2D0A35),
         border: Border(bottom: BorderSide(color: Color(0x33FFD426))),
       ),
       child: Row(
@@ -404,7 +404,7 @@ class _PlayerActionRow extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(10, 6, 10, 0),
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
       decoration: BoxDecoration(
-        color: const Color(0xBB1A0040),
+        color: const Color(0xBB2D0A35),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isMyTurn ? seatColor.withAlpha(180) : Colors.white12,
