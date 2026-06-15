@@ -33,22 +33,24 @@ class LudoRushApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Ludo Rush',
-      debugShowCheckedModeBanner: false,
-      navigatorKey: context.read<AppState>().navigatorKey,
-      theme: AppTheme.dark(),
-      darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.dark,
-      initialRoute: '/splash',
-      routes: {
-        '/splash':  (_) => const SplashScreen(),
-        '/home':    (_) => const HomeScreen(),
-        '/':        (_) => const HomeScreen(),
-        '/game':    (_) => const GameScreen(),
-        '/results': (_) => const ResultsScreen(),
-        '/shop':    (_) => const ShopScreen(),
-      },
+    return Consumer<AppState>(
+      builder: (context, state, _) => MaterialApp(
+        title: 'Ludo Rush',
+        debugShowCheckedModeBanner: false,
+        navigatorKey: state.navigatorKey,
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: state.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+        initialRoute: '/splash',
+        routes: {
+          '/splash': (_) => const SplashScreen(),
+          '/home': (_) => const HomeScreen(),
+          '/': (_) => const HomeScreen(),
+          '/game': (_) => const GameScreen(),
+          '/results': (_) => const ResultsScreen(),
+          '/shop': (_) => const ShopScreen(),
+        },
+      ),
     );
   }
 }

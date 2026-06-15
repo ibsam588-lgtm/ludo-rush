@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../models/game_snapshot.dart';
+import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -18,7 +19,6 @@ class ResultsScreen extends StatefulWidget {
 
 class _ResultsScreenState extends State<ResultsScreen>
     with TickerProviderStateMixin {
-
   late final AnimationController _confettiCtrl;
   late final AnimationController _entryCtrl;
   late final AnimationController _glowCtrl;
@@ -32,26 +32,32 @@ class _ResultsScreenState extends State<ResultsScreen>
     super.initState();
 
     _confettiCtrl = AnimationController(
-      vsync: this, duration: const Duration(seconds: 4),
-    )..repeat();
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
 
     _entryCtrl = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 800),
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
     );
     _entryScale = Tween<double>(begin: 0.6, end: 1.0).animate(
       CurvedAnimation(parent: _entryCtrl, curve: Curves.elasticOut),
     );
     _entryFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _entryCtrl, curve: const Interval(0, 0.4, curve: Curves.easeOut)),
+      CurvedAnimation(
+          parent: _entryCtrl,
+          curve: const Interval(0, 0.4, curve: Curves.easeOut)),
     );
 
     _glowCtrl = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 1400),
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
 
     _shimmerCtrl = AnimationController(
-      vsync: this, duration: const Duration(seconds: 2),
-    )..repeat();
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
 
     _entryCtrl.forward();
   }
@@ -67,9 +73,9 @@ class _ResultsScreenState extends State<ResultsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final state    = context.read<AppState>();
+    final state = context.read<AppState>();
     final snapshot = state.lastSnapshot;
-    final myId     = state.playerId;
+    final myId = state.playerId;
 
     bool won = false;
     String winnerName = 'Unknown';
@@ -77,7 +83,7 @@ class _ResultsScreenState extends State<ResultsScreen>
       won = myId != null && myId == snapshot.winnerPlayerId;
       for (final s in snapshot.seats) {
         if (s.playerId == snapshot.winnerPlayerId) {
-          winnerName = s.displayName;
+          winnerName = state.publicSeatName(s);
           break;
         }
       }
@@ -115,7 +121,8 @@ class _ResultsScreenState extends State<ResultsScreen>
               child: ScaleTransition(
                 scale: _entryScale,
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
                   child: Container(
                     decoration: BoxDecoration(
                       color: const Color(0xFF1E0830),
@@ -141,11 +148,13 @@ class _ResultsScreenState extends State<ResultsScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         // Trophy / result icon
-                        _TrophyBadge(won: won, glow: _glowCtrl, shimmer: _shimmerCtrl),
+                        _TrophyBadge(
+                            won: won, glow: _glowCtrl, shimmer: _shimmerCtrl),
                         const SizedBox(height: 16),
 
                         // Result headline
-                        _ResultHeadline(won: won, winnerName: winnerName, state: state),
+                        _ResultHeadline(
+                            won: won, winnerName: winnerName, state: state),
                         const SizedBox(height: 18),
 
                         // Rewards row
@@ -154,29 +163,40 @@ class _ResultsScreenState extends State<ResultsScreen>
 
                         // Player list
                         if (snapshot != null)
-                          _PlayerList(snapshot: snapshot, myId: myId),
+                          _PlayerList(
+                              snapshot: snapshot, myId: myId, state: state),
 
                         const SizedBox(height: 18),
 
                         // Action buttons
                         _ActionBtn(
-                          label: won ? '⚡  Play Again' : '🎲  Try Again',
-                          colors: [const Color(0xFF43A047), const Color(0xFF1B5E20)],
+                          label: won ? 'Play Again' : 'Try Again',
+                          colors: [
+                            const Color(0xFF43A047),
+                            const Color(0xFF1B5E20)
+                          ],
                           onTap: () {
                             Navigator.of(context).popUntil((r) => r.isFirst);
-                            state.startBotMatch('classic_2p');
+                            state.startQuickMatch('classic_2p');
                           },
                         ),
                         const SizedBox(height: 10),
                         _ActionBtn(
-                          label: '🏠  Back to Lobby',
-                          colors: [const Color(0xFF0288D1), const Color(0xFF01579B)],
-                          onTap: () => Navigator.of(context).popUntil((r) => r.isFirst),
+                          label: 'Back to Lobby',
+                          colors: [
+                            const Color(0xFF0288D1),
+                            const Color(0xFF01579B)
+                          ],
+                          onTap: () =>
+                              Navigator.of(context).popUntil((r) => r.isFirst),
                         ),
                         const SizedBox(height: 10),
                         _ActionBtn(
-                          label: '📤  Share Result',
-                          colors: [const Color(0xFF8E24AA), const Color(0xFF4A148C)],
+                          label: 'Share Result',
+                          colors: [
+                            const Color(0xFF8E24AA),
+                            const Color(0xFF4A148C)
+                          ],
                           onTap: () {},
                         ),
                       ],
@@ -198,7 +218,8 @@ class _TrophyBadge extends StatelessWidget {
   final bool won;
   final AnimationController glow;
   final AnimationController shimmer;
-  const _TrophyBadge({required this.won, required this.glow, required this.shimmer});
+  const _TrophyBadge(
+      {required this.won, required this.glow, required this.shimmer});
 
   @override
   Widget build(BuildContext context) {
@@ -214,14 +235,19 @@ class _TrophyBadge extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.star_rounded,
-                  color: won ? goldColor.withAlpha((g * 180).round()) : Colors.grey.shade700,
-                  size: 28),
+                    color: won
+                        ? goldColor.withAlpha((g * 180).round())
+                        : Colors.grey.shade700,
+                    size: 28),
                 Icon(Icons.star_rounded,
-                  color: won ? goldColor.withAlpha((g * 220).round()) : Colors.grey.shade700,
-                  size: 36),
+                    color: won
+                        ? goldColor.withAlpha((g * 220).round())
+                        : Colors.grey.shade700,
+                    size: 36),
                 // Center icon
                 Container(
-                  width: 64, height: 64,
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
@@ -238,24 +264,33 @@ class _TrophyBadge extends StatelessWidget {
                           : Colors.white24,
                       width: 2,
                     ),
-                    boxShadow: won ? [
-                      BoxShadow(
-                        color: goldColor.withAlpha((g * 80).round()),
-                        blurRadius: 20,
-                      ),
-                    ] : null,
+                    boxShadow: won
+                        ? [
+                            BoxShadow(
+                              color: goldColor.withAlpha((g * 80).round()),
+                              blurRadius: 20,
+                            ),
+                          ]
+                        : null,
                   ),
                   child: Center(
-                    child: Text(won ? '🏆' : '🎮',
-                      style: const TextStyle(fontSize: 32)),
+                    child: Icon(
+                      won ? Icons.emoji_events_rounded : Icons.casino_rounded,
+                      color: won ? goldColor : Colors.white70,
+                      size: 34,
+                    ),
                   ),
                 ),
                 Icon(Icons.star_rounded,
-                  color: won ? goldColor.withAlpha((g * 220).round()) : Colors.grey.shade700,
-                  size: 36),
+                    color: won
+                        ? goldColor.withAlpha((g * 220).round())
+                        : Colors.grey.shade700,
+                    size: 36),
                 Icon(Icons.star_rounded,
-                  color: won ? goldColor.withAlpha((g * 180).round()) : Colors.grey.shade700,
-                  size: 28),
+                    color: won
+                        ? goldColor.withAlpha((g * 180).round())
+                        : Colors.grey.shade700,
+                    size: 28),
               ],
             ),
           ],
@@ -271,7 +306,8 @@ class _ResultHeadline extends StatelessWidget {
   final bool won;
   final String winnerName;
   final AppState state;
-  const _ResultHeadline({required this.won, required this.winnerName, required this.state});
+  const _ResultHeadline(
+      {required this.won, required this.winnerName, required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -292,10 +328,12 @@ class _ResultHeadline extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
-            won ? '🎉  VICTORY!' : '😔  BETTER LUCK NEXT TIME',
+            won ? 'VICTORY!' : 'BETTER LUCK NEXT TIME',
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Colors.white, fontSize: 17, fontWeight: FontWeight.w900,
+              color: Colors.white,
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
               letterSpacing: 1.5,
               shadows: [Shadow(color: Colors.black38, blurRadius: 4)],
             ),
@@ -332,21 +370,21 @@ class _RewardsRow extends StatelessWidget {
       child: Row(
         children: [
           _RewardItem(
-            emoji: '🏆',
+            icon: Icons.emoji_events_rounded,
             label: 'RATING',
-            value: won ? '+12' : '−6',
+            value: won ? '+12' : '-6',
             color: won ? boardGreen : boardRed,
           ),
           _Divider(),
           _RewardItem(
-            emoji: '🪙',
+            icon: Icons.monetization_on_rounded,
             label: 'COINS',
             value: won ? '+100' : '+15',
             color: goldColor,
           ),
           _Divider(),
           _RewardItem(
-            emoji: '⭐',
+            icon: Icons.star_rounded,
             label: 'XP',
             value: won ? '+150' : '+50',
             color: const Color(0xFFFF9A00),
@@ -364,11 +402,14 @@ class _Divider extends StatelessWidget {
 }
 
 class _RewardItem extends StatelessWidget {
-  final String emoji, label, value;
+  final IconData icon;
+  final String label, value;
   final Color color;
   const _RewardItem({
-    required this.emoji, required this.label,
-    required this.value, required this.color,
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
   });
 
   @override
@@ -376,16 +417,22 @@ class _RewardItem extends StatelessWidget {
     return Expanded(
       child: Column(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 22)),
+          Icon(icon, color: color, size: 24),
           const SizedBox(height: 4),
-          Text(value, style: TextStyle(
-            color: color, fontSize: 20, fontWeight: FontWeight.bold,
-            shadows: [Shadow(color: color.withAlpha(120), blurRadius: 6)],
-          )),
-          Text(label, style: const TextStyle(
-            color: Colors.white38,
-            fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5,
-          )),
+          Text(value,
+              style: TextStyle(
+                color: color,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                shadows: [Shadow(color: color.withAlpha(120), blurRadius: 6)],
+              )),
+          Text(label,
+              style: const TextStyle(
+                color: Colors.white38,
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              )),
         ],
       ),
     );
@@ -397,7 +444,13 @@ class _RewardItem extends StatelessWidget {
 class _PlayerList extends StatelessWidget {
   final GameSnapshot snapshot;
   final String? myId;
-  const _PlayerList({required this.snapshot, required this.myId});
+  final AppState state;
+
+  const _PlayerList({
+    required this.snapshot,
+    required this.myId,
+    required this.state,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -406,16 +459,17 @@ class _PlayerList extends StatelessWidget {
         final i = e.key;
         final s = e.value;
         final isWinner = s.playerId == snapshot.winnerPlayerId;
-        final isMe     = s.playerId == myId;
-        final color    = AppColors.seatColor(s.seat);
+        final isMe = s.playerId == myId;
+        final color = AppColors.seatColor(s.seat);
+        final publicName = state.publicSeatName(s);
 
         return Container(
-          margin: EdgeInsets.only(bottom: i < snapshot.seats.length - 1 ? 6 : 0),
+          margin:
+              EdgeInsets.only(bottom: i < snapshot.seats.length - 1 ? 6 : 0),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: isWinner
-                ? goldColor.withAlpha(20)
-                : Colors.white.withAlpha(6),
+            color:
+                isWinner ? goldColor.withAlpha(20) : Colors.white.withAlpha(6),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isWinner ? goldColor.withAlpha(80) : Colors.white12,
@@ -426,10 +480,14 @@ class _PlayerList extends StatelessWidget {
             children: [
               // Seat dot
               Container(
-                width: 12, height: 12,
+                width: 12,
+                height: 12,
                 decoration: BoxDecoration(
-                  color: color, shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: color.withAlpha(120), blurRadius: 4)],
+                  color: color,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(color: color.withAlpha(120), blurRadius: 4)
+                  ],
                 ),
               ),
               const SizedBox(width: 10),
@@ -437,7 +495,7 @@ class _PlayerList extends StatelessWidget {
               // Name
               Expanded(
                 child: Text(
-                  '${isMe ? "You" : s.displayName}${s.isBot ? " 🤖" : ""}',
+                  isMe ? 'You' : publicName,
                   style: TextStyle(
                     color: isWinner ? Colors.white : Colors.white70,
                     fontSize: 13,
@@ -449,18 +507,23 @@ class _PlayerList extends StatelessWidget {
               // Badge
               if (isWinner)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: goldColor.withAlpha(30),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: goldColor.withAlpha(100)),
                   ),
-                  child: const Text('★ Winner', style: TextStyle(
-                    color: goldColor, fontSize: 10, fontWeight: FontWeight.bold,
-                  )),
+                  child: const Text('Winner',
+                      style: TextStyle(
+                        color: goldColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      )),
                 )
               else
-                const Text('—', style: TextStyle(color: Colors.white24, fontSize: 13)),
+                const Text('-',
+                    style: TextStyle(color: Colors.white24, fontSize: 13)),
             ],
           ),
         );
@@ -475,7 +538,8 @@ class _ActionBtn extends StatefulWidget {
   final String label;
   final List<Color> colors;
   final VoidCallback onTap;
-  const _ActionBtn({required this.label, required this.colors, required this.onTap});
+  const _ActionBtn(
+      {required this.label, required this.colors, required this.onTap});
 
   @override
   State<_ActionBtn> createState() => _ActionBtnState();
@@ -489,19 +553,27 @@ class _ActionBtnState extends State<_ActionBtn>
   @override
   void initState() {
     super.initState();
-    _ctrl  = AnimationController(vsync: this, duration: const Duration(milliseconds: 100));
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 100));
     _scale = Tween<double>(begin: 1.0, end: 0.95)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
   }
 
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) => _ctrl.forward(),
-      onTapUp:   (_) { _ctrl.reverse(); widget.onTap(); },
+      onTapUp: (_) {
+        _ctrl.reverse();
+        SoundService.tap();
+        widget.onTap();
+      },
       onTapCancel: () => _ctrl.reverse(),
       child: ScaleTransition(
         scale: _scale,
@@ -524,12 +596,14 @@ class _ActionBtnState extends State<_ActionBtn>
             ],
           ),
           child: Text(widget.label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white, fontSize: 15,
-              fontWeight: FontWeight.bold, letterSpacing: 0.3,
-              shadows: [Shadow(color: Colors.black38, blurRadius: 4)],
-            )),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.3,
+                shadows: [Shadow(color: Colors.black38, blurRadius: 4)],
+              )),
         ),
       ),
     );
@@ -543,8 +617,15 @@ class _ConfettiPainter extends CustomPainter {
   _ConfettiPainter(this.t);
 
   static const _colors = [
-    goldColor, boardRed, boardGreen, boardBlue, boardYellow,
-    Color(0xFFE040FB), Color(0xFF00E5FF), Colors.white, Colors.pink,
+    goldColor,
+    boardRed,
+    boardGreen,
+    boardBlue,
+    boardYellow,
+    Color(0xFFE040FB),
+    Color(0xFF00E5FF),
+    Colors.white,
+    Colors.pink,
   ];
 
   @override
@@ -553,7 +634,9 @@ class _ConfettiPainter extends CustomPainter {
     for (int i = 0; i < 80; i++) {
       final baseX = ((i * 137 + 11) % 1000) / 1000.0 * size.width;
       final speed = 60.0 + (i % 7) * 30.0;
-      final y = (((i * 0.1) + t * (speed / size.height)) % 1.0) * (size.height + 30) - 15;
+      final y =
+          (((i * 0.1) + t * (speed / size.height)) % 1.0) * (size.height + 30) -
+              15;
       final x = baseX + math.sin(t * 5 + i * 0.4) * 22;
 
       p.color = _colors[i % _colors.length].withAlpha(180 + (i % 3) * 25);
@@ -615,7 +698,8 @@ class _ResultGlowPainter extends CustomPainter {
       Offset(size.width * 0.5, size.height),
       size.width * 0.5,
       [
-        (won ? const Color(0xFFFF6B35) : Colors.blue).withAlpha((pulse * 20).round()),
+        (won ? const Color(0xFFFF6B35) : Colors.blue)
+            .withAlpha((pulse * 20).round()),
         Colors.transparent,
       ],
     );

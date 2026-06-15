@@ -17,6 +17,7 @@ interface MatchmakingRequest {
   region?: Region;
   latencyMs?: number;
   rating?: number;
+  difficulty?: "easy" | "medium" | "hard" | "repeat";
 }
 
 interface CreatePrivateRoomRequest {
@@ -159,6 +160,7 @@ async function quickMatch(request: Request, env: Env): Promise<Response> {
   const now = Date.now();
   const region = body.region ?? DEFAULT_REGION;
   const rating = body.rating ?? 1000;
+  await ensureMatchmakingUser(env, body.playerId, body.displayName, region, rating, now);
   await expireOldTickets(env, now);
 
   const existingTicket = await env.DB.prepare(
@@ -209,6 +211,8 @@ async function createBotMatch(request: Request, env: Env): Promise<Response> {
   }
 
   const region = body.region ?? DEFAULT_REGION;
+  const rating = body.rating ?? 1000;
+  await ensureMatchmakingUser(env, body.playerId, body.displayName, region, rating, Date.now());
   const roomId = createId("room");
   await createRoom(env, roomId, body.mode, region);
 
@@ -327,6 +331,31 @@ async function createRoom(env: Env, roomId: string, mode: GameMode, region: Regi
     body: JSON.stringify({ roomId, mode, region, code }),
     headers: { "content-type": "application/json" }
   });
+}
+
+async function ensureMatchmakingUser(
+  env: Env,
+  playerId: string,
+  displayName: string,
+  region: Region,
+  rating: number,
+  now: number
+): Promise<void> {
+  const cleanName = cleanDisplayName(displayName);
+  await env.DB.batch([
+    env.DB.prepare(
+      `INSERT INTO users (id, display_name, region, rating, created_at, last_seen_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET
+         display_name = excluded.display_name,
+         region = excluded.region,
+         rating = excluded.rating,
+         last_seen_at = excluded.last_seen_at`
+    ).bind(playerId, cleanName, region, rating, now, now),
+    env.DB.prepare(
+      "INSERT INTO wallets (user_id, coins, updated_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO NOTHING"
+    ).bind(playerId, 500, now)
+  ]);
 }
 
 async function expireOldTickets(env: Env, now: number): Promise<void> {

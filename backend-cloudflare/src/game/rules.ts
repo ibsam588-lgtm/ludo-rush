@@ -21,6 +21,16 @@ export const YARD_PROGRESS = -1;
 const PIECES_PER_PLAYER = 4;
 const START_OFFSETS = [0, 13, 26, 39];
 const SAFE_TRACK_INDEXES = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
+const FALLBACK_PLAYER_NAMES = [
+  "Maya",
+  "Leo",
+  "Ava",
+  "Noah",
+  "Zara",
+  "Omar",
+  "Mia",
+  "Ethan"
+];
 
 export interface RollResult {
   snapshot: RoomSnapshot;
@@ -112,7 +122,7 @@ export function fillBotSeats(snapshot: RoomSnapshot): RoomSnapshot {
     seats.push({
       seat,
       playerId: `bot_${snapshot.roomId}_${seat}`,
-      displayName: `Rush Bot ${seat + 1}`,
+      displayName: fallbackPlayerName(seat),
       connected: true,
       isBot: true,
       joinedAt: now
@@ -281,10 +291,14 @@ export function resignPlayer(snapshot: RoomSnapshot, playerId: string, now = Dat
   return advanceTurn({
     ...snapshot,
     seats: snapshot.seats.map((roomSeat) =>
-      roomSeat.seat === seat.seat ? { ...roomSeat, connected: false, isBot: true, displayName: `${roomSeat.displayName} Bot` } : roomSeat
+      roomSeat.seat === seat.seat ? { ...roomSeat, connected: false, isBot: true } : roomSeat
     ),
     updatedAt: now
   }, now);
+}
+
+function fallbackPlayerName(seat: number): string {
+  return FALLBACK_PLAYER_NAMES[seat % FALLBACK_PLAYER_NAMES.length];
 }
 
 export function getLegalMoves(snapshot: RoomSnapshot, seat: number, diceValue: number): string[] {
