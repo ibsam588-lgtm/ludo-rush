@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../models/game_snapshot.dart';
+import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ludo_board.dart';
 import '../widgets/dice_widget.dart';
@@ -20,7 +21,7 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   final _diceKey = GlobalKey<DiceWidgetState>();
-  int  _prevDiceValue = 0;
+  int _prevDiceValue = 0;
   bool _rolling = false;
 
   late final AnimationController _bgCtrl;
@@ -29,8 +30,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    _bgCtrl    = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
-    _turnPulse = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat(reverse: true);
+    _bgCtrl =
+        AnimationController(vsync: this, duration: const Duration(seconds: 10))
+          ..repeat(reverse: true);
+    _turnPulse = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900))
+      ..repeat(reverse: true);
   }
 
   @override
@@ -61,11 +66,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           }
         }
 
-        final mySeat     = state.mySeat;
-        final myTurn     = snapshot?.currentTurnSeat == mySeat;
-        final canRoll    = myTurn && (snapshot?.diceValue ?? 0) == 0 && !_rolling;
+        final mySeat = state.mySeat;
+        final myTurn = snapshot?.currentTurnSeat == mySeat;
+        final canRoll = myTurn && (snapshot?.diceValue ?? 0) == 0 && !_rolling;
         final legalCount = snapshot?.availableMoves.length ?? 0;
-        final seatColor  = mySeat != null ? AppColors.seatColor(mySeat) : goldColor;
+        final seatColor =
+            mySeat != null ? AppColors.seatColor(mySeat) : goldColor;
 
         return PopScope(
           canPop: false,
@@ -85,87 +91,55 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
                 // ── UI ────────────────────────────────────────
                 SafeArea(
-                  child: Column(
-                    children: [
-                      // Top bar — opponents
-                      _GameTopBar(
-                        state: state,
-                        snapshot: snapshot,
-                        mySeat: mySeat,
-                        onMenu: () => _showResignDialog(context, state),
-                      ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final boardSize = math.min(
+                        constraints.maxWidth - 16,
+                        constraints.maxHeight * 0.55,
+                      );
 
-                      // Board — wrapped in AspectRatio to fix zero-size rendering bug
-                      Expanded(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                          child: Center(
-                            child: AspectRatio(
-                              aspectRatio: 1.0,
-                              child: LudoBoard(
-                                snapshot: snapshot,
-                                mySeat: mySeat,
-                                onPieceTap: (id) => state.movePiece(id),
-                              ),
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // Top bar — opponents
+                          _GameTopBar(
+                            state: state,
+                            snapshot: snapshot,
+                            mySeat: mySeat,
+                            onMenu: () => _showResignDialog(context, state),
+                          ),
+
+                          // Board — wrapped in AspectRatio to fix zero-size rendering bug
+                          SizedBox(
+                            width: boardSize,
+                            height: boardSize,
+                            child: LudoBoard(
+                              snapshot: snapshot,
+                              mySeat: mySeat,
+                              onPieceTap: (id) => state.movePiece(id),
                             ),
                           ),
-                        ),
-                      ),
+                          const SizedBox(height: 18),
 
-                      // My turn indicator
-                      if (myTurn)
-                        AnimatedBuilder(
-                          animation: _turnPulse,
-                          builder: (_, __) => Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: seatColor.withAlpha(25),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: seatColor.withAlpha(
-                                    (120 + _turnPulse.value * 80).round()),
-                                width: 1.5,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: seatColor.withAlpha(
-                                      (_turnPulse.value * 60).round()),
-                                  blurRadius: 12,
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.arrow_upward_rounded,
-                                    color: seatColor, size: 14),
-                                const SizedBox(width: 6),
-                                Text('YOUR TURN', style: TextStyle(
-                                  color: seatColor,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1,
-                                )),
-                              ],
-                            ),
+                          if (myTurn)
+                            _TurnPointer(color: seatColor, pulse: _turnPulse),
+
+                          // Player row — dice + actions
+                          _PlayerActionRow(
+                            state: state,
+                            snapshot: snapshot,
+                            mySeat: mySeat,
+                            diceKey: _diceKey,
+                            canRoll: canRoll,
+                            legalCount: legalCount,
+                            rolling: _rolling,
+                            turnPulse: _turnPulse,
                           ),
-                        ),
 
-                      // Player row — dice + actions
-                      _PlayerActionRow(
-                        state:      state,
-                        snapshot:   snapshot,
-                        mySeat:     mySeat,
-                        diceKey:    _diceKey,
-                        canRoll:    canRoll,
-                        legalCount: legalCount,
-                        rolling:    _rolling,
-                        turnPulse:  _turnPulse,
-                      ),
-
-                      const SizedBox(height: 8),
-                    ],
+                          const SizedBox(height: 8),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ],
@@ -186,9 +160,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           side: const BorderSide(color: Color(0x55FFD426)),
         ),
         title: const Text('Resign Match?',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         content: const Text('This counts as a loss and reduces your rating.',
-          style: TextStyle(color: Colors.white60)),
+            style: TextStyle(color: Colors.white60)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -268,13 +242,16 @@ class _GameTopBar extends StatelessWidget {
   final int? mySeat;
   final VoidCallback onMenu;
   const _GameTopBar({
-    required this.state, required this.snapshot,
-    required this.mySeat, required this.onMenu,
+    required this.state,
+    required this.snapshot,
+    required this.mySeat,
+    required this.onMenu,
   });
 
   @override
   Widget build(BuildContext context) {
-    final opponents  = snapshot?.seats.where((s) => s.seat != mySeat).toList() ?? [];
+    final opponents =
+        snapshot?.seats.where((s) => s.seat != mySeat).toList() ?? [];
     final activeSeat = snapshot?.currentTurnSeat;
 
     return Container(
@@ -289,13 +266,15 @@ class _GameTopBar extends StatelessWidget {
           GestureDetector(
             onTap: onMenu,
             child: Container(
-              width: 36, height: 36,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: Colors.white.withAlpha(10),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: Colors.white24),
               ),
-              child: const Icon(Icons.menu_rounded, color: Colors.white60, size: 18),
+              child: const Icon(Icons.menu_rounded,
+                  color: Colors.white60, size: 18),
             ),
           ),
           const SizedBox(width: 8),
@@ -318,7 +297,8 @@ class _GameTopBar extends StatelessWidget {
           // Opponent chips
           ...opponents.take(3).map((s) {
             final active = s.seat == activeSeat;
-            final color  = AppColors.seatColor(s.seat);
+            final color = AppColors.seatColor(s.seat);
+            final publicName = state.publicSeatName(s);
             return Container(
               margin: const EdgeInsets.only(left: 5),
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
@@ -332,19 +312,25 @@ class _GameTopBar extends StatelessWidget {
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
                 Container(
-                  width: 26, height: 26,
+                  width: 26,
+                  height: 26,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: color,
                     boxShadow: active
-                        ? [BoxShadow(color: color.withAlpha(150), blurRadius: 6)]
+                        ? [
+                            BoxShadow(
+                                color: color.withAlpha(150), blurRadius: 6)
+                          ]
                         : null,
                   ),
-                  child: Center(child: Text(
-                    s.displayName.isNotEmpty
-                        ? s.displayName[0].toUpperCase() : 'P',
+                  child: Center(
+                      child: Text(
+                    publicName.isNotEmpty ? publicName[0].toUpperCase() : 'P',
                     style: const TextStyle(
-                      color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
                     ),
                   )),
                 ),
@@ -353,17 +339,22 @@ class _GameTopBar extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(s.displayName,
-                      style: const TextStyle(
-                        color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(publicName,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
                     if (active)
-                      const Text('▶ TURN',
-                        style: TextStyle(
-                          color: goldColor, fontSize: 8,
-                          fontWeight: FontWeight.bold, letterSpacing: 0.5,
-                        )),
+                      const Text('TURN',
+                          style: TextStyle(
+                            color: goldColor,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          )),
                   ],
                 ),
               ]),
@@ -388,169 +379,309 @@ class _PlayerActionRow extends StatelessWidget {
   final AnimationController turnPulse;
 
   const _PlayerActionRow({
-    required this.state, required this.snapshot, required this.mySeat,
-    required this.diceKey, required this.canRoll, required this.legalCount,
-    required this.rolling, required this.turnPulse,
+    required this.state,
+    required this.snapshot,
+    required this.mySeat,
+    required this.diceKey,
+    required this.canRoll,
+    required this.legalCount,
+    required this.rolling,
+    required this.turnPulse,
   });
 
   @override
   Widget build(BuildContext context) {
-    final seat      = mySeat ?? 0;
+    final seat = mySeat ?? 0;
     final seatColor = AppColors.seatColor(seat);
-    final isMyTurn  = snapshot?.currentTurnSeat == mySeat;
-    final hasDice   = (snapshot?.diceValue ?? 0) > 0;
+    final isMyTurn = snapshot?.currentTurnSeat == mySeat;
+    final hasDice = (snapshot?.diceValue ?? 0) > 0;
+    final showMove = hasDice && legalCount > 0 && isMyTurn && !rolling;
+    final enabled = canRoll || showMove;
+    final playerName = state.displayName.trim().isEmpty
+        ? 'You'
+        : (state.displayName == 'Ludo Player' ? 'Ibsam' : state.displayName);
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(10, 6, 10, 0),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: const Color(0xBB2D0A35),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isMyTurn ? seatColor.withAlpha(180) : Colors.white12,
-          width: isMyTurn ? 1.5 : 1,
-        ),
-        boxShadow: isMyTurn
-            ? [BoxShadow(color: seatColor.withAlpha(40), blurRadius: 16)]
-            : null,
-      ),
-      child: Row(
+      width: double.infinity,
+      height: 136,
+      margin: const EdgeInsets.fromLTRB(8, 2, 8, 0),
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          // Avatar
-          Container(
-            width: 42, height: 42,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: seatColor,
-              border: Border.all(color: Colors.white54, width: 1.5),
-              boxShadow: [BoxShadow(color: seatColor.withAlpha(130), blurRadius: 8)],
-            ),
-            child: Center(child: Text(
-              state.displayName.isNotEmpty
-                  ? state.displayName[0].toUpperCase() : 'Y',
+          Positioned(
+            left: 14,
+            top: -3,
+            child: Text(
+              playerName,
               style: const TextStyle(
-                color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+                shadows: [Shadow(color: Colors.black87, blurRadius: 4)],
               ),
-            )),
-          ),
-          const SizedBox(width: 8),
-
-          // Player name + status
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('You', style: TextStyle(
-                  color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold,
-                )),
-                Text(
-                  isMyTurn
-                      ? (hasDice ? 'Move a piece!' : 'Roll the dice!')
-                      : 'Waiting for turn...',
-                  style: TextStyle(
-                    color: isMyTurn ? seatColor : Colors.white38,
-                    fontSize: 10, fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
             ),
           ),
-
-          // Dice widget
-          GestureDetector(
-            onTap: canRoll ? state.rollDice : null,
-            child: SizedBox(
-              width: 60, height: 60,
-              child: DiceWidget(key: diceKey),
+          Positioned(
+            left: 14,
+            top: 31,
+            child: _PlayerTimerBadge(
+              color: seatColor,
+              active: isMyTurn,
+              pulse: turnPulse,
+              label: playerName.isNotEmpty ? playerName[0].toUpperCase() : 'Y',
             ),
           ),
-
-          const SizedBox(width: 8),
-
-          // Action button (Roll / Move / Wait)
-          AnimatedBuilder(
-            animation: turnPulse,
-            builder: (_, __) {
-              final showMove = hasDice && legalCount > 0 && isMyTurn && !rolling;
-              final showRoll = canRoll;
-              final active   = showMove || showRoll;
-
-              if (!active) {
-                return Container(
-                  width: 68,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(8),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white12),
-                  ),
-                  child: const Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.hourglass_top_rounded,
-                          color: Colors.white24, size: 18),
-                      SizedBox(height: 3),
-                      Text('Wait',
-                        style: TextStyle(color: Colors.white24, fontSize: 10)),
-                    ],
-                  ),
-                );
-              }
-
-              final glow    = 0.4 + 0.6 * turnPulse.value;
-              final btnColor = showMove ? boardGreen : seatColor;
-              return GestureDetector(
-                onTap: showMove
-                    ? state.moveBestPiece
-                    : (showRoll ? state.rollDice : null),
-                child: Container(
-                  width: 68,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: showMove
-                          ? [const Color(0xFF43A047), const Color(0xFF2E7D32)]
-                          : [seatColor, seatColor.withAlpha(180)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: btnColor.withAlpha((glow * 200).round()),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: btnColor.withAlpha((glow * 90).round()),
-                        blurRadius: 14,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        showMove
-                            ? Icons.touch_app_rounded
-                            : Icons.casino_rounded,
-                        color: Colors.white, size: 20,
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        showMove ? 'Move' : 'Roll',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11, fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+          Positioned(
+            left: 96,
+            top: 24,
+            child: _DiceActionButton(
+              diceKey: diceKey,
+              enabled: enabled,
+              moving: showMove,
+              color: showMove ? boardGreen : seatColor,
+              pulse: turnPulse,
+              onTap: showMove
+                  ? state.moveBestPiece
+                  : (canRoll ? state.rollDice : null),
+            ),
+          ),
+          Positioned(
+            left: 12,
+            bottom: 9,
+            child: _ActionPill(
+              label: 'EMOJI',
+              icon: Icons.mood_rounded,
+              onTap: () => _comingSoon(context, 'Emoji'),
+            ),
+          ),
+          Positioned(
+            left: 98,
+            bottom: 9,
+            child: _ActionPill(
+              label: 'CHAT',
+              icon: Icons.chat_bubble_rounded,
+              onTap: () => _comingSoon(context, 'Chat'),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  static void _comingSoon(BuildContext context, String label) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('$label coming soon.')));
+  }
+}
+
+class _TurnPointer extends StatelessWidget {
+  final Color color;
+  final AnimationController pulse;
+
+  const _TurnPointer({required this.color, required this.pulse});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 30,
+      child: AnimatedBuilder(
+        animation: pulse,
+        builder: (_, __) => Transform.translate(
+          offset: Offset(0, 4 * pulse.value),
+          child: Icon(
+            Icons.arrow_downward_rounded,
+            color: color.withAlpha((150 + pulse.value * 90).round()),
+            size: 42,
+            shadows: [Shadow(color: color.withAlpha(120), blurRadius: 10)],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlayerTimerBadge extends StatelessWidget {
+  final Color color;
+  final bool active;
+  final AnimationController pulse;
+  final String label;
+
+  const _PlayerTimerBadge({
+    required this.color,
+    required this.active,
+    required this.pulse,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: pulse,
+      builder: (_, __) {
+        final glow = active ? (0.5 + pulse.value * 0.5) : 0.0;
+        return Container(
+          width: 58,
+          height: 58,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: SweepGradient(
+              colors: [
+                color,
+                color.withAlpha(70),
+                Colors.white.withAlpha(210),
+                color,
+              ],
+              stops: const [0.0, 0.58, 0.62, 1.0],
+            ),
+            boxShadow: active
+                ? [
+                    BoxShadow(
+                        color: color.withAlpha((90 * glow).round()),
+                        blurRadius: 14)
+                  ]
+                : null,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(4),
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color,
+                border: Border.all(color: Colors.white70, width: 2),
+              ),
+              child: Center(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _DiceActionButton extends StatelessWidget {
+  final GlobalKey<DiceWidgetState> diceKey;
+  final bool enabled;
+  final bool moving;
+  final Color color;
+  final AnimationController pulse;
+  final VoidCallback? onTap;
+
+  const _DiceActionButton({
+    required this.diceKey,
+    required this.enabled,
+    required this.moving,
+    required this.color,
+    required this.pulse,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: pulse,
+      builder: (_, __) {
+        final glow = enabled ? (0.45 + pulse.value * 0.55) : 0.0;
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Container(
+            width: 66,
+            height: 66,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              gradient: LinearGradient(
+                colors: enabled
+                    ? [
+                        color.withAlpha(240),
+                        Color.lerp(color, Colors.black, 0.22)!
+                      ]
+                    : const [Color(0xFFD9E2E8), Color(0xFFB7C1CC)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              border: Border.all(
+                color: enabled ? const Color(0xFFFFF0A0) : Colors.white,
+                width: 4,
+              ),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withAlpha(120),
+                    blurRadius: 7,
+                    offset: const Offset(0, 4)),
+                if (enabled)
+                  BoxShadow(
+                      color: color.withAlpha((120 * glow).round()),
+                      blurRadius: 16)
+              ],
+            ),
+            child: moving
+                ? const Icon(Icons.touch_app_rounded,
+                    color: Colors.white, size: 31)
+                : Center(child: DiceWidget(key: diceKey, size: 54)),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ActionPill extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _ActionPill({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        SoundService.tap();
+        onTap();
+      },
+      child: Container(
+        width: 74,
+        height: 32,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF8C7A91), Color(0xFF5A4A61)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x66000000), blurRadius: 4, offset: Offset(0, 3))
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 15),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

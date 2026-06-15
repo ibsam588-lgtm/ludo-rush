@@ -3,6 +3,7 @@
 Thumbs.db
 .idea/
 .vscode/
+.codex-remote-attachments/
 
 # Node / Cloudflare
 node_modules/
