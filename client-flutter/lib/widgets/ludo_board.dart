@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -117,7 +119,6 @@ class _BoardConsts {
     [3.9, 3.9]
   ];
   static const seatStarts = [1, 14, 27, 40];
-  static const coloredStarts = [1, 14, 27, 40];
 }
 
 // ── Tap hit record ─────────────────────────────────────────────────────────────
@@ -249,7 +250,9 @@ class _BoardPainter extends CustomPainter {
     _drawTrack(canvas, boardLeft, boardTop, cell);
     _drawHomeLanes(canvas, boardLeft, boardTop, cell);
     _drawGridLines(canvas, boardLeft, boardTop, cell, boardSize);
+    _drawSafeStars(canvas, boardLeft, boardTop, cell);
     _drawCenter(canvas, boardLeft, boardTop, cell);
+    if (snapshot == null) _drawPreviewPieces(canvas, boardLeft, boardTop, cell);
     _drawPieces(canvas, boardLeft, boardTop, cell);
     canvas.restore();
 
@@ -259,11 +262,9 @@ class _BoardPainter extends CustomPainter {
 
   // ── Color helpers ──────────────────────────────────────────────────────────
 
+  // Flutter 3.22 in GitHub Actions does not expose Color.a/r/g/b yet.
   static int _toInt(Color c) =>
-      ((c.a * 255).round() << 24) |
-      ((c.r * 255).round() << 16) |
-      ((c.g * 255).round() << 8) |
-      (c.b * 255).round();
+      (c.alpha << 24) | (c.red << 16) | (c.green << 8) | c.blue;
 
   static int _blend(int a, int b, double t) {
     final ia = 1.0 - t;
@@ -275,13 +276,6 @@ class _BoardPainter extends CustomPainter {
   }
 
   static Color _seatCol(int s) => AppColors.seatColors[s.clamp(0, 3)];
-
-  static int? _safeSeatAt(int gx, int gy) {
-    for (final safe in _BoardConsts.safeSeats) {
-      if (safe[0] == gx && safe[1] == gy) return safe[2];
-    }
-    return null;
-  }
 
   // ── Board shell ────────────────────────────────────────────────────────────
 
@@ -467,35 +461,15 @@ class _BoardPainter extends CustomPainter {
   void _drawTrack(Canvas canvas, double left, double top, double cell) {
     for (int i = 0; i < _BoardConsts.path.length; i++) {
       final p = _BoardConsts.path[i];
-      Color fill = _ivory;
-      Color stroke = const Color(0x33B8941F);
-      final safeSeat = _safeSeatAt(p[0], p[1]);
-
-      if (safeSeat != null) {
-        fill = _seatCol(safeSeat);
-        stroke = _gold;
-      } else {
-        for (int s = 0; s < _BoardConsts.coloredStarts.length; s++) {
-          if (i == _BoardConsts.coloredStarts[s]) {
-            fill = _seatCol(s);
-            stroke = _gold;
-            break;
-          }
-        }
-      }
       _drawCell(
-          canvas, left, top, cell, p[0], p[1], _toInt(fill), _toInt(stroke));
-    }
-
-    // Safe/start stars are filled with the matching player color.
-    for (final p in _BoardConsts.safeSeats) {
-      final seat = p[2];
-      _drawStar5(
         canvas,
-        left + (p[0] + 0.5) * cell,
-        top + (p[1] + 0.5) * cell,
-        cell * 0.27,
-        seat == 2 ? const Color(0xFFFFFFFF) : _gold,
+        left,
+        top,
+        cell,
+        p[0],
+        p[1],
+        _toInt(_ivory),
+        0xCC9B701F,
       );
     }
   }
@@ -507,12 +481,52 @@ class _BoardPainter extends CustomPainter {
       for (final p in _BoardConsts.homeLanes[seat]) {
         // Use vivid seat color (not semi-transparent) like Ludo Star
         _drawCell(canvas, left, top, cell, p[0], p[1], _toInt(_seatCol(seat)),
-            0xCCD4AF37);
+            0xCC9B701F);
       }
     }
   }
 
   // ── Grid lines ─────────────────────────────────────────────────────────────
+
+  void _drawSafeStars(Canvas canvas, double left, double top, double cell) {
+    for (final p in _BoardConsts.safeSeats) {
+      _drawStar5(
+        canvas,
+        left + (p[0] + 0.5) * cell,
+        top + (p[1] + 0.5) * cell,
+        cell * 0.30,
+        _gold,
+        const Color(0xFF8D6100),
+      );
+    }
+
+    const extraStars = [
+      [8, 13],
+      [1, 8],
+      [14, 8],
+      [5, 12],
+    ];
+    for (final p in extraStars) {
+      _drawStar5(
+        canvas,
+        left + (p[0] + 0.5) * cell,
+        top + (p[1] + 0.5) * cell,
+        cell * 0.30,
+        _gold,
+        const Color(0xFF8D6100),
+      );
+    }
+  }
+
+  void _drawPreviewPieces(Canvas canvas, double left, double top, double cell) {
+    for (int seat = 0; seat < 4; seat++) {
+      for (int i = 0; i < 4; i++) {
+        final pos = _yardPos(seat, i, left, top, cell);
+        _drawPiece(
+            canvas, pos.dx, pos.dy, cell * 0.38, _seatCol(seat), false, false);
+      }
+    }
+  }
 
   void _drawGridLines(
       Canvas canvas, double left, double top, double cell, double size) {
