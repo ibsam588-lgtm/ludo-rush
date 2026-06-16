@@ -44,45 +44,27 @@ This checklist targets an Android internal test first.
    https://<your-worker>.<your-account>.workers.dev/health
    ```
 
-## Unity Scene Wiring
+## Flutter Client
 
-Open `client-unity` in Unity Hub.
+Open `client-flutter` for app work. The current Android client is Flutter and uses package name:
 
-Create an internal test scene with:
+```text
+com.ludorush.game
+```
 
-- `LudoRushConfig` asset
-- `Network` GameObject with `LudoRushApiClient` and `RealtimeRoomClient`
-- `Game` GameObject with `LudoGameController`, `LudoBoardPresenter`, and `InternalTestHud`
-
-Set `LudoRushConfig.BackendBaseUrl` to either:
+For local backend testing, use:
 
 ```text
 http://localhost:8787
 ```
 
-for local testing, or your deployed Cloudflare Worker URL for tester builds.
-
-Wire serialized fields:
-
-- `LudoRushApiClient.config`
-- `LudoGameController.apiClient`
-- `LudoGameController.realtimeClient`
-- `LudoGameController.config`
-- `LudoGameController.boardPresenter`
-- `InternalTestHud.controller`
+For tester builds, point the Flutter backend URL at the deployed Cloudflare Worker URL.
 
 ## Android Build
 
-1. Set package name, for example:
-
-   ```text
-   com.ludorush.game
-   ```
-
-2. Switch platform to Android.
-3. Create a release upload keystore and keep it private.
-4. Build an Android App Bundle (`.aab`).
-5. Upload the bundle to Play Console internal testing.
+1. Create a release upload keystore and keep it private.
+2. Build an Android App Bundle (`.aab`) from `client-flutter`.
+3. Upload the bundle to Play Console internal testing.
 
 Google says internal testing supports up to 100 testers and new internal-test Android App Bundles are typically available to testers within minutes.
 
@@ -100,7 +82,7 @@ Google says internal testing supports up to 100 testers and new internal-test An
 - Real AdMob plugin and ad-unit IDs
 - Real Google Play Billing / Apple StoreKit integration
 - Privacy policy and store listing
-- Automated Unity build pipeline
+- Automated Flutter build pipeline
 - Production monitoring dashboards
 
 ## Official References
@@ -108,4 +90,4 @@ Google says internal testing supports up to 100 testers and new internal-test An
 - Google Play internal testing: https://support.google.com/googleplay/android-developer/answer/9845334
 - Android app signing: https://developer.android.com/studio/publish/app-signing
 - Android release builds: https://developer.android.com/build/build-for-release
-- Google Mobile Ads Unity plugin: https://developers.google.com/admob/unity/quick-start
+- Google Mobile Ads Flutter plugin: https://developers.google.com/admob/flutter/quick-start

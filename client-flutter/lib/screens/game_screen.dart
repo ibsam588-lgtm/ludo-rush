@@ -21,7 +21,7 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   final _diceKey = GlobalKey<DiceWidgetState>();
-  int _prevDiceValue = 0;
+  int _prevRollSequence = 0;
   bool _rolling = false;
 
   late final AnimationController _bgCtrl;
@@ -52,13 +52,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         final snapshot = state.lastSnapshot;
 
         if (snapshot != null) {
-          final dv = snapshot.diceValue;
-          if (dv > 0 && dv != _prevDiceValue) {
-            _prevDiceValue = dv;
+          final rollSequence = state.lastRollSequence;
+          final rollValue = state.lastRollValue;
+          if (rollSequence != _prevRollSequence && rollValue > 0) {
+            _prevRollSequence = rollSequence;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!_rolling) {
                 _rolling = true;
-                _diceKey.currentState?.startRoll(dv, () {
+                _diceKey.currentState?.startRoll(rollValue, () {
                   if (mounted) setState(() => _rolling = false);
                 });
               }
@@ -624,8 +625,28 @@ class _DiceActionButton extends StatelessWidget {
               ],
             ),
             child: moving
-                ? const Icon(Icons.touch_app_rounded,
-                    color: Colors.white, size: 31)
+                ? Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      DiceWidget(key: diceKey, size: 54),
+                      Positioned(
+                        right: 4,
+                        bottom: 4,
+                        child: Container(
+                          width: 23,
+                          height: 23,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.black.withAlpha(135),
+                            border: Border.all(
+                                color: Colors.white.withAlpha(180), width: 1),
+                          ),
+                          child: const Icon(Icons.touch_app_rounded,
+                              color: Colors.white, size: 15),
+                        ),
+                      ),
+                    ],
+                  )
                 : Center(child: DiceWidget(key: diceKey, size: 54)),
           ),
         );

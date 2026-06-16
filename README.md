@@ -6,8 +6,7 @@ Ludo Rush is a mobile-first multiplayer Ludo game built around fast matches, glo
 
 ```text
 backend-cloudflare/  Cloudflare Workers, Durable Objects, D1, Queues
-client-unity/        Unity project scaffold and C# client/game scripts
-client-android/      Native Android internal-test client that can build without Unity licensing
+client-flutter/      Current Flutter mobile client
 docs/                Product, architecture, and launch notes
 ```
 
@@ -49,17 +48,15 @@ Implemented now:
 - Bot match endpoint
 - Server-side Ludo dice, movement, captures, safe tiles, home path, and win detection
 - Compact match result and reward persistence
-- Unity API client
-- Unity WebSocket client
-- Unity internal-test HUD
-- Unity procedural board/token presenter
+- Flutter Android client
+- Local bot table fallback for playable internal builds
+- Polished home screen, game board, dice animation, and Android sound effects
 
 Still required before a Play Console internal test:
 
-- Open the Unity project and wire one internal test scene.
-- Add real Android package name and signing key.
+- Configure release signing for the Flutter Android app.
 - Create Cloudflare remote D1/Queue resources and update `wrangler.toml`.
-- Deploy the Worker and set the Unity backend URL to the deployed Worker.
+- Deploy the Worker and point the Flutter client at the deployed backend.
 - Add real AdMob/IAP credentials when monetization testing starts.
 
 See `docs/internal-testing-checklist.md`.

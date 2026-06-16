@@ -1,28 +1,36 @@
 import 'package:flutter/services.dart';
 
 class SoundService {
+  static const MethodChannel _channel = MethodChannel('ludo_rush/sound');
+
   static void tap() {
     HapticFeedback.selectionClick();
-    SystemSound.play(SystemSoundType.click);
+    _play('tap', SystemSoundType.click);
   }
 
   static void roll() {
     HapticFeedback.lightImpact();
-    SystemSound.play(SystemSoundType.click);
+    _play('roll', SystemSoundType.click);
   }
 
   static void move() {
     HapticFeedback.mediumImpact();
-    SystemSound.play(SystemSoundType.click);
+    _play('move', SystemSoundType.click);
   }
 
   static void success() {
     HapticFeedback.heavyImpact();
-    SystemSound.play(SystemSoundType.alert);
+    _play('success', SystemSoundType.alert);
   }
 
   static void warning() {
     HapticFeedback.vibrate();
-    SystemSound.play(SystemSoundType.alert);
+    _play('warning', SystemSoundType.alert);
+  }
+
+  static void _play(String effect, SystemSoundType fallback) {
+    _channel.invokeMethod<void>('play', effect).catchError((_) {
+      return SystemSound.play(fallback);
+    });
   }
 }

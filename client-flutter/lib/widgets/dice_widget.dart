@@ -17,6 +17,7 @@ class DiceWidgetState extends State<DiceWidget>
   int _displayValue = 0;
   late final AnimationController _bounceCtrl;
   late final Animation<double> _bounce;
+  final List<Timer> _rollTimers = [];
 
   int get displayValue => _displayValue;
 
@@ -35,6 +36,10 @@ class DiceWidgetState extends State<DiceWidget>
 
   @override
   void dispose() {
+    for (final timer in _rollTimers) {
+      timer.cancel();
+    }
+    _rollTimers.clear();
     _bounceCtrl.dispose();
     super.dispose();
   }
@@ -44,12 +49,16 @@ class DiceWidgetState extends State<DiceWidget>
   }
 
   void startRoll(int finalValue, VoidCallback onDone) {
+    for (final timer in _rollTimers) {
+      timer.cancel();
+    }
+    _rollTimers.clear();
     const seq = [3, 1, 5, 2, 6, 4, 1, 3, 5, 2, 4];
     final frames = [...seq, finalValue];
     for (int i = 0; i < frames.length; i++) {
       final face = frames[i];
       final isLast = i == frames.length - 1;
-      Timer(Duration(milliseconds: 55 * (i + 1)), () {
+      final timer = Timer(Duration(milliseconds: 55 * (i + 1)), () {
         if (!mounted) return;
         setState(() => _displayValue = face);
         if (isLast) {
@@ -57,6 +66,7 @@ class DiceWidgetState extends State<DiceWidget>
           onDone();
         }
       });
+      _rollTimers.add(timer);
     }
   }
 

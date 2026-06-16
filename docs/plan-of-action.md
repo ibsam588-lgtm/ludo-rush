@@ -2,7 +2,7 @@
 
 ## Phase 1: Foundation
 
-- Set up Unity 2D/2.5D mobile project structure.
+- Set up Flutter mobile project structure.
 - Set up Cloudflare Worker API with Durable Object room authority.
 - Add D1 schema for users, wallets, purchases, and match history.
 - Define shared gameplay message contracts.

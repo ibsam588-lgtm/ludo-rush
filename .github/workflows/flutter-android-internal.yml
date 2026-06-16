@@ -43,16 +43,14 @@ jobs:
 
       - name: Decode keystore
         run: |
-          echo "${{ secrets.UNITY_ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
 
       - name: Build release AAB
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/client-flutter/android/app/keystore.jks
-          KEY_ALIAS:    ${{ secrets.UNITY_ANDROID_KEYALIAS_NAME }}
-          KEY_PASSWORD: ${{ secrets.UNITY_ANDROID_KEYALIAS_PASS }}
-          STORE_PASSWORD: ${{ secrets.UNITY_ANDROID_KEYSTORE_PASS }}
-        # Offset by 10000 so Flutter version codes are always higher than
-        # any previous native-Android builds (which used raw run_number).
+          KEY_ALIAS:    ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASS }}
         run: flutter build appbundle --release --build-number=$((GITHUB_RUN_NUMBER + 10000))
 
       - name: Upload AAB artifact

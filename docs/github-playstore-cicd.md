@@ -18,12 +18,10 @@ Add these in GitHub:
 CLOUDFLARE_API_TOKEN
 CLOUDFLARE_ACCOUNT_ID
 CLOUDFLARE_D1_DATABASE_ID
-UNITY_LICENSE
-UNITY_EMAIL
-UNITY_ANDROID_KEYSTORE_BASE64
-UNITY_ANDROID_KEYSTORE_PASS
-UNITY_ANDROID_KEYALIAS_NAME
-UNITY_ANDROID_KEYALIAS_PASS
+ANDROID_KEYSTORE_BASE64
+ANDROID_KEYSTORE_PASS
+ANDROID_KEYALIAS_NAME
+ANDROID_KEYALIAS_PASS
 GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
 ```
 
@@ -39,7 +37,7 @@ Bootstrap Cloudflare Resources
 Deploy Backend To Cloudflare
   Applies D1 migrations and deploys the Worker.
 
-Unity Android Internal Build
+Flutter Android Internal Build
   Builds an Android App Bundle and can upload it to Google Play internal testing.
 
 Upload Play Store Metadata
@@ -47,18 +45,9 @@ Upload Play Store Metadata
 
 ```
 
-## Unity License Path
+## Android Signing
 
-If `UNITY_LICENSE` is not available yet:
-
-1. Open Unity Hub locally.
-2. Go to `Preferences -> Licenses`.
-3. Click `Add` and activate a Unity Personal license or your paid license.
-4. Copy the `.ulf` file from `C:\ProgramData\Unity\Unity_lic.ulf`.
-5. Save the `.ulf` contents as the `UNITY_LICENSE` GitHub secret.
-6. Save your Unity account email as `UNITY_EMAIL`.
-
-For SSO accounts, do not create or store a password secret. Use the activated `.ulf` license file as `UNITY_LICENSE`.
+Create a Flutter Android upload keystore and store it in GitHub secrets as `ANDROID_KEYSTORE_BASE64`, along with the store password, key alias, and key password.
 
 ## Play Store Notes
 
@@ -72,7 +61,7 @@ Free/paid: Free
 Package name: com.ludorush.game
 ```
 
-After that, the `Unity Android Internal Build` workflow can upload builds when the Google service account secret is configured.
+After that, the `Flutter Android Internal Build` workflow can upload builds when the Google service account secret is configured.
 
 ## Internal Testers
 
@@ -85,7 +74,7 @@ Testing -> Internal testing -> Testers
 Then run the GitHub workflow:
 
 ```text
-Unity Android Internal Build
+Flutter Android Internal Build
 upload_to_play = true
 ```
 
