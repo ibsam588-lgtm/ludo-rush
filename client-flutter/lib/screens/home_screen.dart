@@ -1256,11 +1256,16 @@ class _LobbyStage extends StatelessWidget {
   }
 
   static void _soon(BuildContext context, String name) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-          content: Text(
-              '$name will be enabled after backend room invites are live.')),
-    );
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xEE22082E),
+            duration: const Duration(milliseconds: 1400),
+            content: Text(
+                '$name will be enabled after backend room invites are live.')),
+      );
   }
 }
 
@@ -1516,10 +1521,17 @@ class _BottomNav extends StatelessWidget {
               onTap: () {
                 SoundService.tap();
                 if (i == 0) {
+                  ScaffoldMessenger.of(context).clearSnackBars();
                   Navigator.pushNamed(context, '/shop');
                 } else if (i != 2) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text('${items[i].label} is coming soon.')));
+                  ScaffoldMessenger.of(context)
+                    ..clearSnackBars()
+                    ..showSnackBar(SnackBar(
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: const Color(0xEE22082E),
+                      duration: const Duration(milliseconds: 1200),
+                      content: Text('${items[i].label} is coming soon.'),
+                    ));
                 }
               },
               child: AnimatedContainer(

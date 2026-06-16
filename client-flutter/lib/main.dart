@@ -38,6 +38,7 @@ class LudoRushApp extends StatelessWidget {
         title: 'Ludo Rush',
         debugShowCheckedModeBanner: false,
         navigatorKey: state.navigatorKey,
+        scaffoldMessengerKey: state.scaffoldMessengerKey,
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
         themeMode: state.isDarkMode ? ThemeMode.dark : ThemeMode.light,

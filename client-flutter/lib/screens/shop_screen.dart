@@ -80,11 +80,17 @@ class _ShopScreenState extends State<ShopScreen>
                           palette: p,
                           onBuy: () {
                             state.addCoins(100);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
+                            ScaffoldMessenger.of(context)
+                              ..clearSnackBars()
+                              ..showSnackBar(
+                                SnackBar(
+                                  behavior: SnackBarBehavior.floating,
+                                  backgroundColor: const Color(0xEE22082E),
+                                  duration: const Duration(milliseconds: 1200),
                                   content: Text(
-                                      '${_items[i].title} booster selected.')),
-                            );
+                                      '${_items[i].title} booster selected.'),
+                                ),
+                              );
                           },
                         ),
                       ),
@@ -586,11 +592,18 @@ class _ShopBottomNav extends StatelessWidget {
               onTap: () {
                 SoundService.tap();
                 if (i == 2) {
+                  ScaffoldMessenger.of(context).clearSnackBars();
                   Navigator.pushNamedAndRemoveUntil(
                       context, '/home', (_) => false);
                 } else if (i != 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text('${items[i].label} is coming soon.')));
+                  ScaffoldMessenger.of(context)
+                    ..clearSnackBars()
+                    ..showSnackBar(SnackBar(
+                      behavior: SnackBarBehavior.floating,
+                      backgroundColor: const Color(0xEE22082E),
+                      duration: const Duration(milliseconds: 1200),
+                      content: Text('${items[i].label} is coming soon.'),
+                    ));
                 }
               },
               child: Column(
