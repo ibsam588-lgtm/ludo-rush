@@ -471,7 +471,13 @@ class _PlayerActionRow extends StatelessWidget {
 
   static void _comingSoon(BuildContext context, String label) {
     ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text('$label coming soon.')));
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xEE22082E),
+        duration: const Duration(milliseconds: 1200),
+        content: Text('$label coming soon.'),
+      ));
   }
 }
 

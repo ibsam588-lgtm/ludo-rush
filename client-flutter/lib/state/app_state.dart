@@ -76,6 +76,8 @@ class AppState extends ChangeNotifier {
 
   // Navigation
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
 
   // WS message subscription
   StreamSubscription<dynamic>? _wsSub;
@@ -121,11 +123,17 @@ class AppState extends ChangeNotifier {
   // ── Navigation ─────────────────────────────────────────────────────────────
 
   void navigateTo(String route, {Object? arguments}) {
+    clearTransientUi();
     navigatorKey.currentState?.pushNamed(route, arguments: arguments);
   }
 
   void goBack() {
+    clearTransientUi();
     navigatorKey.currentState?.pop();
+  }
+
+  void clearTransientUi() {
+    scaffoldMessengerKey.currentState?.clearSnackBars();
   }
 
   // ── Game actions ───────────────────────────────────────────────────────────
@@ -470,7 +478,7 @@ class AppState extends ChangeNotifier {
 
     final snap = lastSnapshot!;
     final seat = mySeat ?? snap.currentTurnSeat;
-    final value = _nextLocalDice(snap, seat, isHuman: true);
+    final value = _nextLocalDice(snap, seat);
     final moves = _localLegalMoves(snap, seat, value);
 
     SoundService.roll();
@@ -525,7 +533,11 @@ class AppState extends ChangeNotifier {
     }
 
     final sameTurn = after.currentTurnSeat == (mySeat ?? -1);
-    _setStatus(sameTurn ? 'Moved $pieceId. Roll again.' : 'Moved $pieceId.');
+    _setStatus(
+      sameTurn
+          ? 'You moved a piece. Bonus roll.'
+          : 'You moved a piece. ${_currentTurnLabel(after)} is next.',
+    );
     _scheduleLocalBots();
   }
 
@@ -549,7 +561,7 @@ class AppState extends ChangeNotifier {
     final seat = _currentLocalSeat(snap);
     if (seat == null || !seat.isBot) return;
 
-    final value = _nextLocalDice(snap, seat.seat, isHuman: false);
+    final value = _nextLocalDice(snap, seat.seat);
     final moves = _localLegalMoves(snap, seat.seat, value);
     final name = publicSeatName(seat);
 
@@ -596,7 +608,12 @@ class AppState extends ChangeNotifier {
         return;
       }
 
-      _setStatus('$name moved a piece.');
+      final sameTurn = after.currentTurnSeat == seat.seat;
+      _setStatus(
+        sameTurn
+            ? '$name moved a piece. Bonus roll.'
+            : '$name moved a piece. ${_currentTurnLabel(after)} is next.',
+      );
       _scheduleLocalBots();
     });
   }
@@ -715,14 +732,21 @@ class AppState extends ChangeNotifier {
     return nextProgress + (captures ? 100 : 0);
   }
 
-  int _nextLocalDice(GameSnapshot snap, int seat, {required bool isHuman}) {
+  int _nextLocalDice(GameSnapshot snap, int seat) {
     final seatPieces = snap.pieces.where((piece) => piece.seat == seat);
     final allInYard =
         seatPieces.every((piece) => piece.progress == _yardProgress);
-    if (isHuman && allInYard) {
+    if (allInYard) {
       return 6;
     }
     return _rng.nextInt(6) + 1;
+  }
+
+  String _currentTurnLabel(GameSnapshot snap) {
+    final seat = _currentLocalSeat(snap);
+    if (seat == null) return 'Next player';
+    if (seat.playerId == playerId) return 'Your turn';
+    return publicSeatName(seat);
   }
 
   int? _trackIndexFor(int seat, int progress) {
