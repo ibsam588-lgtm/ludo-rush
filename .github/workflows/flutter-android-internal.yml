@@ -42,15 +42,21 @@ jobs:
         run: flutter analyze --no-fatal-infos
 
       - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || secrets.UNITY_ANDROID_KEYSTORE_BASE64 }}
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "Missing Android signing keystore secret. Set ANDROID_KEYSTORE_BASE64 or UNITY_ANDROID_KEYSTORE_BASE64."
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/keystore.jks
 
       - name: Build release AAB
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/client-flutter/android/app/keystore.jks
-          KEY_ALIAS:    ${{ secrets.ANDROID_KEYALIAS_NAME }}
-          KEY_PASSWORD: ${{ secrets.ANDROID_KEYALIAS_PASS }}
-          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEYALIAS_NAME || secrets.UNITY_ANDROID_KEYALIAS_NAME }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEYALIAS_PASS || secrets.UNITY_ANDROID_KEYALIAS_PASS }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASS || secrets.UNITY_ANDROID_KEYSTORE_PASS }}
         run: flutter build appbundle --release --build-number=$((GITHUB_RUN_NUMBER + 10000))
 
       - name: Upload AAB artifact
