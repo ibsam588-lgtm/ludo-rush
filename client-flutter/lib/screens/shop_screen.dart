@@ -53,8 +53,10 @@ class _ShopScreenState extends State<ShopScreen>
               Positioned.fill(
                 child: AnimatedBuilder(
                   animation: _bg,
-                  builder: (_, __) =>
-                      CustomPaint(painter: _ShopBackdropPainter(_bg.value, p)),
+                  builder: (_, __) => CustomPaint(
+                    painter: _ShopBackdropPainter(_bg.value, p),
+                    child: const SizedBox.expand(),
+                  ),
                 ),
               ),
               SafeArea(
@@ -65,7 +67,7 @@ class _ShopScreenState extends State<ShopScreen>
                     _BoosterBanner(palette: p),
                     Expanded(
                       child: GridView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
                         physics: const BouncingScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
@@ -254,7 +256,8 @@ class _ShopHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 166,
+      width: double.infinity,
+      height: 154,
       margin: const EdgeInsets.fromLTRB(14, 4, 14, 0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -286,46 +289,148 @@ class _ShopHero extends StatelessWidget {
                 animation: animation,
                 builder: (_, __) => CustomPaint(
                   painter: _ShopHeroPainter(palette, animation.value),
+                  child: const SizedBox.expand(),
                 ),
               ),
             ),
             Positioned(
-              right: 26,
-              top: 39,
-              child: Transform.rotate(
-                angle: -0.03,
-                child: Container(
-                  width: 158,
-                  height: 72,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                        colors: [Color(0xFFE92861), Color(0xFF92224E)]),
-                    borderRadius: BorderRadius.circular(8),
-                    border:
-                        Border.all(color: const Color(0x99FFD426), width: 2),
-                    boxShadow: const [
-                      BoxShadow(
-                          color: Color(0x66000000),
-                          blurRadius: 10,
-                          offset: Offset(0, 5))
-                    ],
-                  ),
-                  child: const Text(
-                    'SHOP',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 33,
-                      fontWeight: FontWeight.w900,
-                      shadows: [
-                        Shadow(
-                            color: Colors.black87,
-                            blurRadius: 2,
-                            offset: Offset(2, 3))
-                      ],
-                    ),
+              left: -22,
+              top: -18,
+              bottom: -18,
+              right: 88,
+              child: AnimatedBuilder(
+                animation: animation,
+                child: Opacity(
+                  opacity: 0.66,
+                  child: Image.asset(
+                    'assets/images/home_ludo_board_window.png',
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    filterQuality: FilterQuality.high,
                   ),
                 ),
+                builder: (_, child) {
+                  final wave = math.sin(animation.value * math.pi * 2);
+                  return Transform.translate(
+                    offset: Offset(0, wave * 3),
+                    child: Transform.rotate(
+                      angle: -0.035 + wave * 0.008,
+                      child: child,
+                    ),
+                  );
+                },
+              ),
+            ),
+            Positioned(
+              right: 0,
+              top: 6,
+              bottom: 20,
+              width: 245,
+              child: IgnorePointer(
+                child: AnimatedBuilder(
+                  animation: animation,
+                  builder: (_, __) => CustomPaint(
+                    painter: _ShopCoverSignArtPainter(animation.value),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+              ),
+            ),
+            _ShopCoverBubbles(animation: animation),
+            Positioned(
+              left: 72,
+              top: -42,
+              child: AnimatedBuilder(
+                animation: animation,
+                builder: (_, __) {
+                  final phase = animation.value * math.pi * 2;
+                  final bob = math.sin(phase) * 2.4;
+                  final scale =
+                      1 + (0.018 * (0.5 + math.sin(phase + 0.7) * 0.5));
+                  final glow = 74 + (math.sin(phase).abs() * 62).round();
+                  final shineX = -150 + animation.value * 320;
+
+                  return Transform.translate(
+                    offset: Offset(0, bob),
+                    child: Transform.rotate(
+                      angle: -0.035 + math.sin(phase * 1.2) * 0.014,
+                      child: Transform.scale(
+                        scale: scale,
+                        child: Container(
+                          width: 154,
+                          height: 62,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: Color.fromARGB(
+                                    178 + glow ~/ 5, 255, 212, 38),
+                                width: 2),
+                            boxShadow: [
+                              const BoxShadow(
+                                  color: Color(0x66000000),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 5)),
+                              BoxShadow(
+                                  color: Color.fromARGB(glow, 255, 212, 38),
+                                  blurRadius: 16,
+                                  spreadRadius: 1),
+                            ],
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              const DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(colors: [
+                                    Color(0xFFFF2F72),
+                                    Color(0xFF92224E),
+                                  ]),
+                                ),
+                              ),
+                              Positioned(
+                                left: shineX,
+                                top: -18,
+                                bottom: -18,
+                                width: 34,
+                                child: Transform.rotate(
+                                  angle: -0.35,
+                                  child: DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.white.withAlpha(0),
+                                          Colors.white.withAlpha(135),
+                                          Colors.white.withAlpha(0),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const Center(
+                                child: Text(
+                                  'SHOP',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 27,
+                                    fontWeight: FontWeight.w900,
+                                    shadows: [
+                                      Shadow(
+                                          color: Colors.black87,
+                                          blurRadius: 2,
+                                          offset: Offset(2, 3))
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
             Positioned(
@@ -333,14 +438,238 @@ class _ShopHero extends StatelessWidget {
               right: 0,
               bottom: 0,
               child: Container(
-                height: 36,
+                height: 22,
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                       colors: [Color(0xFF9D5528), Color(0xFF5C250E)]),
                 ),
               ),
             ),
+            Positioned(
+              left: 80,
+              top: -36,
+              child: AnimatedBuilder(
+                animation: animation,
+                builder: (_, __) {
+                  final phase = animation.value * math.pi * 2;
+                  final shineX = -120 + animation.value * 280;
+                  return Transform.translate(
+                    offset: Offset(0, math.sin(phase) * 2),
+                    child: Transform.rotate(
+                      angle: -0.035 + math.sin(phase * 1.2) * 0.012,
+                      child: Container(
+                        width: 146,
+                        height: 58,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: const Color(0xFFFFD426), width: 2),
+                          boxShadow: [
+                            const BoxShadow(
+                                color: Color(0x77000000),
+                                blurRadius: 10,
+                                offset: Offset(0, 5)),
+                            BoxShadow(
+                                color: Color.fromARGB(
+                                    88 + (math.sin(phase).abs() * 70).round(),
+                                    255,
+                                    212,
+                                    38),
+                                blurRadius: 16,
+                                spreadRadius: 1),
+                          ],
+                          gradient: const LinearGradient(colors: [
+                            Color(0xFFFF2F72),
+                            Color(0xFF92224E),
+                          ]),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Positioned(
+                              left: shineX,
+                              top: -18,
+                              bottom: -18,
+                              width: 30,
+                              child: Transform.rotate(
+                                angle: -0.35,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.white.withAlpha(0),
+                                        Colors.white.withAlpha(140),
+                                        Colors.white.withAlpha(0),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const Center(
+                              child: Text(
+                                'SHOP',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 27,
+                                  fontWeight: FontWeight.w900,
+                                  shadows: [
+                                    Shadow(
+                                        color: Colors.black87,
+                                        blurRadius: 2,
+                                        offset: Offset(2, 3))
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShopCoverBubbles extends StatelessWidget {
+  final AnimationController animation;
+
+  const _ShopCoverBubbles({required this.animation});
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      right: 8,
+      top: 4,
+      width: 292,
+      height: 128,
+      child: IgnorePointer(
+        child: AnimatedBuilder(
+          animation: animation,
+          builder: (_, __) {
+            final phase = animation.value * math.pi * 2;
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _coverBubble(
+                  left: 8,
+                  top: 7 + math.sin(phase) * 3,
+                  size: 40,
+                  color: Colors.white,
+                  icon: Icons.casino_rounded,
+                  iconColor: boardRed,
+                  tilt: -0.18 + math.sin(phase) * 0.04,
+                ),
+                _coverBubble(
+                  right: 8,
+                  top: 9 + math.cos(phase) * 3,
+                  size: 34,
+                  color: const Color(0xFF46D8FF),
+                  icon: Icons.bolt_rounded,
+                  iconColor: Colors.white,
+                  tilt: 0.16,
+                ),
+                _coverBubble(
+                  right: 12,
+                  bottom: 8 + math.sin(phase + 1.1) * 3,
+                  size: 48,
+                  color: const Color(0xFFFFC21F),
+                  icon: Icons.monetization_on_rounded,
+                  iconColor: const Color(0xFF7A4300),
+                  tilt: 0.12 + math.cos(phase) * 0.03,
+                ),
+                _coverBubble(
+                  left: 42,
+                  bottom: 13 + math.cos(phase + 0.7) * 3,
+                  size: 31,
+                  color: const Color(0xFF35DE72),
+                  icon: Icons.diamond_rounded,
+                  iconColor: Colors.white,
+                  tilt: -0.10,
+                ),
+                _spark(left: 82, top: 15, size: 9, phase: phase),
+                _spark(left: 236, top: 46, size: 8, phase: phase + 0.9),
+                _spark(left: 28, top: 78, size: 7, phase: phase + 1.7),
+                _spark(left: 212, top: 101, size: 10, phase: phase + 2.4),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _coverBubble({
+    double? left,
+    double? right,
+    double? top,
+    double? bottom,
+    required double size,
+    required Color color,
+    required IconData icon,
+    required Color iconColor,
+    required double tilt,
+  }) {
+    return Positioned(
+      left: left,
+      right: right,
+      top: top,
+      bottom: bottom,
+      child: Transform.rotate(
+        angle: tilt,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color.lerp(color, Colors.white, 0.35)!, color],
+            ),
+            border: Border.all(color: const Color(0xFFFFD426), width: 2),
+            boxShadow: const [
+              BoxShadow(
+                  color: Color(0x66000000),
+                  blurRadius: 8,
+                  offset: Offset(0, 4)),
+              BoxShadow(color: Color(0x55FFD426), blurRadius: 12),
+            ],
+          ),
+          child: Icon(icon, color: iconColor, size: size * 0.58),
+        ),
+      ),
+    );
+  }
+
+  Widget _spark({
+    required double left,
+    required double top,
+    required double size,
+    required double phase,
+  }) {
+    return Positioned(
+      left: left + math.sin(phase) * 2,
+      top: top + math.cos(phase) * 2,
+      child: Transform.rotate(
+        angle: phase * 0.25,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFF27D).withAlpha(210),
+            borderRadius: BorderRadius.circular(2),
+            boxShadow: const [
+              BoxShadow(color: Color(0x88FFD426), blurRadius: 8),
+            ],
+          ),
         ),
       ),
     );
@@ -355,8 +684,8 @@ class _BoosterBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(22, 9, 22, 2),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      margin: const EdgeInsets.fromLTRB(22, 7, 22, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: Colors.black.withAlpha(palette.dark ? 120 : 35),
@@ -666,6 +995,30 @@ class _ShopBackdropPainter extends CustomPainter {
     canvas.drawRect(Offset.zero & size, paint);
     paint.shader = null;
 
+    canvas.save();
+    canvas.translate(
+      size.width * 0.52,
+      size.height * (0.39 + math.sin(t * math.pi * 2) * 0.008),
+    );
+    canvas.rotate(-0.10);
+    _drawBackdropBoard(canvas, size.width * 0.78, paint);
+    canvas.restore();
+
+    _drawBackdropDice(
+      canvas,
+      Offset(size.width * 0.12, size.height * 0.24),
+      size.width * 0.105,
+      5,
+      paint,
+    );
+    _drawBackdropDice(
+      canvas,
+      Offset(size.width * 0.86, size.height * 0.47),
+      size.width * 0.085,
+      3,
+      paint,
+    );
+
     for (int i = 0; i < 34; i++) {
       final x = ((i * 89 + 21) % 1000) / 1000.0 * size.width;
       final y = ((i * 157 + 45) % 1000) / 1000.0 * size.height;
@@ -690,9 +1043,280 @@ class _ShopBackdropPainter extends CustomPainter {
     paint.style = PaintingStyle.fill;
   }
 
+  void _drawBackdropBoard(Canvas canvas, double s, Paint paint) {
+    final rect = Rect.fromCenter(center: Offset.zero, width: s, height: s);
+    final shell = RRect.fromRectXY(rect, s * 0.05, s * 0.05);
+    paint
+      ..style = PaintingStyle.fill
+      ..color = Colors.black.withAlpha(p.dark ? 42 : 18);
+    canvas.drawRRect(shell.shift(Offset(s * 0.025, s * 0.035)), paint);
+    paint.color = Colors.white.withAlpha(p.dark ? 18 : 70);
+    canvas.drawRRect(shell, paint);
+    paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = s * 0.012
+      ..color = p.stroke.withAlpha(p.dark ? 70 : 100);
+    canvas.drawRRect(shell.deflate(s * 0.012), paint);
+    paint.style = PaintingStyle.fill;
+
+    final colors = [boardRed, boardYellow, boardBlue, boardGreen];
+    final inset = s * 0.075;
+    final base = s * 0.29;
+    final bases = [
+      Rect.fromLTWH(rect.left + inset, rect.top + inset, base, base),
+      Rect.fromLTWH(rect.right - inset - base, rect.top + inset, base, base),
+      Rect.fromLTWH(rect.left + inset, rect.bottom - inset - base, base, base),
+      Rect.fromLTWH(
+          rect.right - inset - base, rect.bottom - inset - base, base, base),
+    ];
+    for (int i = 0; i < bases.length; i++) {
+      paint.color = colors[i].withAlpha(p.dark ? 62 : 82);
+      canvas.drawRRect(RRect.fromRectXY(bases[i], s * 0.032, s * 0.032), paint);
+    }
+
+    for (int i = -2; i <= 2; i++) {
+      paint.color = colors[(i + 2) % 4].withAlpha(p.dark ? 70 : 105);
+      canvas.drawRRect(
+        RRect.fromRectXY(
+          Rect.fromCenter(
+            center: Offset(i * s * 0.042, 0),
+            width: s * 0.032,
+            height: s * 0.46,
+          ),
+          s * 0.008,
+          s * 0.008,
+        ),
+        paint,
+      );
+      canvas.drawRRect(
+        RRect.fromRectXY(
+          Rect.fromCenter(
+            center: Offset(0, i * s * 0.042),
+            width: s * 0.46,
+            height: s * 0.032,
+          ),
+          s * 0.008,
+          s * 0.008,
+        ),
+        paint,
+      );
+    }
+
+    for (int i = 0; i < 8; i++) {
+      final a = t * math.pi * 2 + i * math.pi / 4;
+      final pos = Offset(math.cos(a) * s * 0.27, math.sin(a) * s * 0.27);
+      paint.color = colors[i % 4].withAlpha(p.dark ? 105 : 135);
+      canvas.drawCircle(pos, s * 0.032, paint);
+      paint.color = Colors.white.withAlpha(p.dark ? 58 : 120);
+      canvas.drawCircle(
+          pos.translate(-s * 0.010, -s * 0.010), s * 0.010, paint);
+    }
+  }
+
+  void _drawBackdropDice(
+      Canvas canvas, Offset c, double s, int value, Paint paint) {
+    final rect = Rect.fromCenter(center: c, width: s, height: s);
+    paint
+      ..style = PaintingStyle.fill
+      ..color = Colors.black.withAlpha(p.dark ? 42 : 24);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            rect.shift(Offset(s * 0.10, s * 0.12)), s * 0.18, s * 0.18),
+        paint);
+    paint.color = Colors.white.withAlpha(p.dark ? 42 : 130);
+    canvas.drawRRect(RRect.fromRectXY(rect, s * 0.18, s * 0.18), paint);
+    paint.color = p.dark ? const Color(0x88FFD426) : const Color(0xAA803500);
+    final dots = <Offset>[
+      if (value == 1 || value == 3 || value == 5) c,
+      if (value >= 2) Offset(rect.left + s * 0.30, rect.top + s * 0.30),
+      if (value >= 2) Offset(rect.right - s * 0.30, rect.bottom - s * 0.30),
+      if (value >= 4) Offset(rect.right - s * 0.30, rect.top + s * 0.30),
+      if (value >= 4) Offset(rect.left + s * 0.30, rect.bottom - s * 0.30),
+      if (value == 6) Offset(rect.left + s * 0.30, c.dy),
+      if (value == 6) Offset(rect.right - s * 0.30, c.dy),
+    ];
+    for (final dot in dots) {
+      canvas.drawCircle(dot, s * 0.055, paint);
+    }
+  }
+
   @override
   bool shouldRepaint(_ShopBackdropPainter oldDelegate) =>
       oldDelegate.t != t || oldDelegate.p != p;
+}
+
+class _ShopCoverSignArtPainter extends CustomPainter {
+  final double t;
+
+  _ShopCoverSignArtPainter(this.t);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..isAntiAlias = true;
+    final phase = t * math.pi * 2;
+
+    p.shader = ui.Gradient.radial(
+      Offset(size.width * 0.55, size.height * 0.50),
+      size.width * 0.48,
+      [
+        const Color(0x66FFD426),
+        const Color(0x22FF2F72),
+        Colors.transparent,
+      ],
+    );
+    canvas.drawRect(Offset.zero & size, p);
+    p.shader = null;
+
+    _drawDice(
+      canvas,
+      Offset(size.width * 0.30, size.height * (0.25 + math.sin(phase) * 0.03)),
+      size.shortestSide * 0.20,
+      4,
+      p,
+    );
+    _drawDice(
+      canvas,
+      Offset(size.width * 0.86, size.height * (0.76 + math.cos(phase) * 0.025)),
+      size.shortestSide * 0.16,
+      2,
+      p,
+    );
+
+    for (int i = 0; i < 7; i++) {
+      final x = size.width * (0.22 + i * 0.10);
+      final y = size.height * (0.70 + math.sin(phase + i) * 0.08);
+      _drawCoin(
+          canvas, Offset(x, y), size.shortestSide * (0.055 + i % 2 * 0.012), p);
+    }
+
+    _drawGem(
+      canvas,
+      Offset(size.width * 0.80, size.height * 0.23),
+      size.shortestSide * 0.075,
+      const Color(0xFF40E67C),
+      p,
+    );
+    _drawGem(
+      canvas,
+      Offset(size.width * 0.13, size.height * 0.55),
+      size.shortestSide * 0.055,
+      const Color(0xFF58D7FF),
+      p,
+    );
+
+    for (int i = 0; i < 8; i++) {
+      final a = phase + i * 0.9;
+      final c = Offset(
+        size.width * (0.18 + ((i * 29) % 70) / 100),
+        size.height * (0.18 + ((i * 43) % 62) / 100),
+      );
+      _drawSpark(canvas, c.translate(math.sin(a) * 3, math.cos(a) * 3),
+          size.shortestSide * 0.028, p);
+    }
+  }
+
+  void _drawCoin(Canvas canvas, Offset c, double r, Paint p) {
+    p
+      ..style = PaintingStyle.fill
+      ..color = Colors.black.withAlpha(60);
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: c.translate(r * 0.25, r * 0.35),
+          width: r * 1.9,
+          height: r * 0.58),
+      p,
+    );
+    p.shader = ui.Gradient.radial(
+      c.translate(-r * 0.22, -r * 0.22),
+      r * 1.25,
+      const [Color(0xFFFFF27D), Color(0xFFFFC21F), Color(0xFFE07E00)],
+    );
+    canvas.drawCircle(c, r, p);
+    p.shader = null;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = r * 0.16
+      ..color = const Color(0xFF9C5800);
+    canvas.drawCircle(c, r * 0.62, p);
+    p.style = PaintingStyle.fill;
+  }
+
+  void _drawDice(Canvas canvas, Offset c, double s, int value, Paint p) {
+    final rect = Rect.fromCenter(center: c, width: s, height: s);
+    p
+      ..style = PaintingStyle.fill
+      ..color = Colors.black.withAlpha(70);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            rect.shift(Offset(s * 0.13, s * 0.16)), s * 0.22, s * 0.22),
+        p);
+    p.shader = ui.Gradient.linear(rect.topLeft, rect.bottomRight,
+        const [Colors.white, Color(0xFFFFEFC8)]);
+    canvas.drawRRect(RRect.fromRectXY(rect, s * 0.22, s * 0.22), p);
+    p.shader = null;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = s * 0.055
+      ..color = const Color(0xFFFFD426);
+    canvas.drawRRect(
+        RRect.fromRectXY(rect.deflate(s * 0.02), s * 0.20, s * 0.20), p);
+    p
+      ..style = PaintingStyle.fill
+      ..color = const Color(0xFFE51F32);
+    final center = rect.center;
+    final dots = <Offset>[
+      if (value == 1 || value == 3 || value == 5) center,
+      if (value >= 2) Offset(rect.left + s * 0.30, rect.top + s * 0.30),
+      if (value >= 2) Offset(rect.right - s * 0.30, rect.bottom - s * 0.30),
+      if (value >= 4) Offset(rect.right - s * 0.30, rect.top + s * 0.30),
+      if (value >= 4) Offset(rect.left + s * 0.30, rect.bottom - s * 0.30),
+      if (value == 6) Offset(rect.left + s * 0.30, center.dy),
+      if (value == 6) Offset(rect.right - s * 0.30, center.dy),
+    ];
+    for (final dot in dots) {
+      canvas.drawCircle(dot, s * 0.055, p);
+    }
+  }
+
+  void _drawGem(Canvas canvas, Offset c, double r, Color color, Paint p) {
+    final path = Path()
+      ..moveTo(c.dx, c.dy - r)
+      ..lineTo(c.dx + r * 0.95, c.dy - r * 0.08)
+      ..lineTo(c.dx + r * 0.45, c.dy + r)
+      ..lineTo(c.dx - r * 0.45, c.dy + r)
+      ..lineTo(c.dx - r * 0.95, c.dy - r * 0.08)
+      ..close();
+    p.color = Colors.black.withAlpha(45);
+    canvas.drawPath(path.shift(Offset(r * 0.14, r * 0.18)), p);
+    p.shader = ui.Gradient.linear(
+      c.translate(-r, -r),
+      c.translate(r, r),
+      [Color.lerp(color, Colors.white, 0.45)!, color],
+    );
+    canvas.drawPath(path, p);
+    p.shader = null;
+    p.color = Colors.white.withAlpha(150);
+    canvas.drawCircle(c.translate(-r * 0.24, -r * 0.24), r * 0.18, p);
+  }
+
+  void _drawSpark(Canvas canvas, Offset c, double r, Paint p) {
+    final path = Path()
+      ..moveTo(c.dx, c.dy - r)
+      ..lineTo(c.dx + r * 0.24, c.dy - r * 0.24)
+      ..lineTo(c.dx + r, c.dy)
+      ..lineTo(c.dx + r * 0.24, c.dy + r * 0.24)
+      ..lineTo(c.dx, c.dy + r)
+      ..lineTo(c.dx - r * 0.24, c.dy + r * 0.24)
+      ..lineTo(c.dx - r, c.dy)
+      ..lineTo(c.dx - r * 0.24, c.dy - r * 0.24)
+      ..close();
+    p.color = const Color(0xFFFFF27D).withAlpha(190);
+    canvas.drawPath(path, p);
+  }
+
+  @override
+  bool shouldRepaint(_ShopCoverSignArtPainter oldDelegate) =>
+      oldDelegate.t != t;
 }
 
 class _ShopHeroPainter extends CustomPainter {
@@ -704,47 +1328,65 @@ class _ShopHeroPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..isAntiAlias = true;
+    final heroWidth = size.width;
+    final heroHeight = math.min(size.height, 154.0);
 
     paint.shader = ui.Gradient.radial(
-      Offset(size.width * (0.38 + 0.08 * math.sin(t * math.pi * 2)),
-          size.height * 0.45),
-      size.width * 0.72,
+      Offset(heroWidth * (0.38 + 0.08 * math.sin(t * math.pi * 2)),
+          heroHeight * 0.45),
+      heroWidth * 0.72,
       [
         const Color(0x5558D7FF),
         const Color(0x22FF38C8),
         Colors.transparent,
       ],
     );
-    canvas.drawRect(Offset.zero & size, paint);
+    canvas.drawRect(Rect.fromLTWH(0, 0, heroWidth, heroHeight), paint);
     paint.shader = null;
 
     for (int i = 0; i < 4; i++) {
-      final x = size.width * (0.08 + i * 0.25);
+      final x = heroWidth * (0.08 + i * 0.25);
       paint
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2
         ..color = Colors.white.withAlpha(28);
-      canvas.drawLine(Offset(x, 0), Offset(x - 60, size.height), paint);
+      canvas.drawLine(Offset(x, 0), Offset(x - 60, heroHeight), paint);
     }
     paint.style = PaintingStyle.fill;
 
+    final boardSize = heroHeight * 1.12;
+    final float = math.sin(t * math.pi * 2);
     canvas.save();
-    canvas.translate(size.width * 0.25, size.height * 0.50);
-    canvas.rotate(-0.10 + math.sin(t * math.pi * 2) * 0.035);
-    _drawShopBoard(canvas, size.width * 0.34, paint);
+    canvas.translate(heroWidth * 0.28, heroHeight * (0.55 + float * 0.018));
+    canvas.rotate(-0.14 + float * 0.025);
+    _drawShopBoard(canvas, boardSize, paint);
     canvas.restore();
 
-    canvas.save();
-    canvas.translate(size.width * 0.53, size.height * 0.58);
-    canvas.rotate(0.08 + math.cos(t * math.pi * 2) * 0.025);
-    _drawShopBoard(canvas, size.width * 0.22, paint);
-    canvas.restore();
+    _drawHeroDice(
+      canvas,
+      Offset(heroWidth * 0.55, heroHeight * (0.36 - float * 0.018)),
+      heroHeight * 0.33,
+      6,
+      paint,
+    );
+    _drawHeroDice(
+      canvas,
+      Offset(heroWidth * 0.64, heroHeight * (0.67 + float * 0.012)),
+      heroHeight * 0.25,
+      3,
+      paint,
+    );
 
-    _drawGem(canvas, Offset(size.width * 0.15, size.height * 0.22), 16,
+    _drawPawn(canvas, Offset(heroWidth * 0.12, heroHeight * 0.75),
+        heroHeight * 0.20, boardRed, paint);
+    _drawPawn(canvas, Offset(heroWidth * 0.41, heroHeight * 0.23),
+        heroHeight * 0.17, boardBlue, paint);
+
+    _drawGem(canvas, Offset(heroWidth * 0.15, heroHeight * 0.22), 16,
         const Color(0xFF22E66E), paint);
-    _drawCoin(canvas, Offset(size.width * 0.86, size.height * 0.78), 18, paint);
-    _drawCoin(canvas, Offset(size.width * 0.74, size.height * 0.84), 14, paint);
-    _drawGem(canvas, Offset(size.width * 0.91, size.height * 0.27), 13,
+    _drawCoin(canvas, Offset(heroWidth * 0.86, heroHeight * 0.78), 18, paint);
+    _drawCoin(canvas, Offset(heroWidth * 0.74, heroHeight * 0.84), 14, paint);
+    _drawGem(canvas, Offset(heroWidth * 0.91, heroHeight * 0.27), 13,
         const Color(0xFF4DEBFF), paint);
   }
 
@@ -824,6 +1466,93 @@ class _ShopHeroPainter extends CustomPainter {
       ..color = const Color(0xFFE88400);
     canvas.drawCircle(c, r * 0.64, paint);
     paint.style = PaintingStyle.fill;
+  }
+
+  void _drawHeroDice(
+      Canvas canvas, Offset c, double s, int value, Paint paint) {
+    final rect = Rect.fromCenter(center: c, width: s, height: s);
+    paint
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6)
+      ..color = Colors.black.withAlpha(75);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            rect.shift(Offset(s * 0.12, s * 0.16)), s * 0.20, s * 0.20),
+        paint);
+    paint.maskFilter = null;
+
+    paint.shader = ui.Gradient.linear(
+      const Offset(-30, -30),
+      const Offset(40, 40),
+      const [Color(0xFFFFFFFF), Color(0xFFFFEBD0)],
+    );
+    canvas.drawRRect(RRect.fromRectXY(rect, s * 0.20, s * 0.20), paint);
+    paint.shader = null;
+
+    paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = s * 0.055
+      ..color = const Color(0xFFFFD426);
+    canvas.drawRRect(
+        RRect.fromRectXY(rect.deflate(s * 0.02), s * 0.18, s * 0.18), paint);
+
+    paint
+      ..style = PaintingStyle.fill
+      ..color = const Color(0xFFD7192A);
+    final dots = _diceDots(rect, value);
+    for (final dot in dots) {
+      canvas.drawCircle(dot, s * 0.055, paint);
+    }
+  }
+
+  List<Offset> _diceDots(Rect rect, int value) {
+    final s = rect.width;
+    final c = rect.center;
+    return [
+      if (value == 1 || value == 3 || value == 5) c,
+      if (value >= 2) Offset(rect.left + s * 0.30, rect.top + s * 0.30),
+      if (value >= 2) Offset(rect.right - s * 0.30, rect.bottom - s * 0.30),
+      if (value >= 4) Offset(rect.right - s * 0.30, rect.top + s * 0.30),
+      if (value >= 4) Offset(rect.left + s * 0.30, rect.bottom - s * 0.30),
+      if (value == 6) Offset(rect.left + s * 0.30, c.dy),
+      if (value == 6) Offset(rect.right - s * 0.30, c.dy),
+    ];
+  }
+
+  void _drawPawn(
+      Canvas canvas, Offset base, double s, Color color, Paint paint) {
+    paint
+      ..style = PaintingStyle.fill
+      ..color = Colors.black.withAlpha(60);
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: base.translate(s * 0.10, s * 0.22),
+            width: s * 0.70,
+            height: s * 0.24),
+        paint);
+    paint.color = color;
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: base.translate(0, -s * 0.30),
+            width: s * 0.46,
+            height: s * 0.42),
+        paint);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromCenter(
+                center: base.translate(0, s * 0.08),
+                width: s * 0.46,
+                height: s * 0.58),
+            s * 0.16,
+            s * 0.16),
+        paint);
+    paint.color = Color.lerp(color, Colors.white, 0.38)!;
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: base.translate(-s * 0.10, -s * 0.40),
+            width: s * 0.14,
+            height: s * 0.10),
+        paint);
   }
 
   void _drawGem(Canvas canvas, Offset c, double r, Color color, Paint paint) {

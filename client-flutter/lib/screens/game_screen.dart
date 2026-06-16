@@ -23,6 +23,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   final _diceKey = GlobalKey<DiceWidgetState>();
   int _prevRollSequence = 0;
   bool _rolling = false;
+  bool _quitDialogOpen = false;
 
   late final AnimationController _bgCtrl;
   late final AnimationController _turnPulse;
@@ -74,8 +75,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         final seatColor =
             mySeat != null ? AppColors.seatColor(mySeat) : goldColor;
 
-        return PopScope(
+        return PopScope<void>(
           canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) _showQuitDialog(context, state);
+          },
           child: Scaffold(
             backgroundColor: const Color(0xFF1A0520),
             body: Stack(
@@ -107,7 +111,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                             state: state,
                             snapshot: snapshot,
                             mySeat: mySeat,
-                            onMenu: () => _showResignDialog(context, state),
+                            onMenu: () => _showQuitDialog(context, state),
                           ),
 
                           // Board — wrapped in AspectRatio to fix zero-size rendering bug
@@ -151,7 +155,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _showResignDialog(BuildContext context, AppState state) {
+  void _showQuitDialog(BuildContext context, AppState state) {
+    if (_quitDialogOpen) return;
+    _quitDialogOpen = true;
+    SoundService.warning();
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -160,9 +167,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: Color(0x55FFD426)),
         ),
-        title: const Text('Resign Match?',
+        title: const Text('Quit Match?',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: const Text('This counts as a loss and reduces your rating.',
+        content: const Text('Leaving now will resign this match.',
             style: TextStyle(color: Colors.white60)),
         actions: [
           TextButton(
@@ -173,13 +180,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             onPressed: () {
               Navigator.pop(context);
               state.resign();
-              Navigator.of(context).popUntil((r) => r.isFirst);
+              Navigator.of(context)
+                  .pushNamedAndRemoveUntil('/home', (_) => false);
             },
-            child: const Text('Resign', style: TextStyle(color: boardRed)),
+            child: const Text('Exit', style: TextStyle(color: boardRed)),
           ),
         ],
       ),
-    );
+    ).whenComplete(() {
+      if (mounted) _quitDialogOpen = false;
+    });
   }
 }
 

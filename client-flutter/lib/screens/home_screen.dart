@@ -143,7 +143,9 @@ class _GeneratedLobbyBackground extends StatelessWidget {
       builder: (context, box) {
         final safe = MediaQuery.paddingOf(context);
         final boardTop = safe.top + 166;
-        final boardHeight = box.maxWidth / 2.03;
+        final aspect = box.maxHeight / math.max(1, box.maxWidth);
+        final boardScale = aspect > 2.0 ? 0.84 : 0.54;
+        final boardHeight = box.maxWidth * boardScale;
         return Stack(
           fit: StackFit.expand,
           children: [
