@@ -3,7 +3,7 @@
 ## MVP Backend Flow
 
 ```text
-Unity app
+Flutter app
   -> Worker REST API
   -> Durable Object room over WebSocket
   -> D1 for permanent user/wallet/match/purchase records

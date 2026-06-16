@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../models/game_snapshot.dart';
@@ -10,6 +11,20 @@ import '../services/websocket_service.dart';
 class AppState extends ChangeNotifier {
   static const String _backendUrl =
       'https://ludo-rush-backend.ibsam588.workers.dev';
+  static const int _yardProgress = -1;
+  static const int _finishProgress = 57;
+  static const int _trackLength = 52;
+  static const List<int> _localStartOffsets = [1, 14, 27, 40];
+  static const Set<int> _localSafeTrackIndexes = {
+    1,
+    8,
+    14,
+    21,
+    27,
+    34,
+    40,
+    47,
+  };
   static const List<String> _matchedNames = [
     'Maya',
     'Leo',
@@ -46,14 +61,18 @@ class AppState extends ChangeNotifier {
   String statusText = 'Welcome!';
   bool connecting = false;
   bool currentMatchIsBot = false;
+  bool localMatchActive = false;
   String pendingMatchMode = 'classic_2p';
   bool fallbackBotStarted = false;
   bool backendOnline = false;
   int _pollAttempts = 0;
+  final math.Random _rng = math.Random();
+  Timer? _localBotTimer;
 
   // Roll state (mirrors Java lastRollValue / lastRollPlayerId)
   int lastRollValue = 0;
   String? lastRollPlayerId;
+  int lastRollSequence = 0;
 
   // Navigation
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -83,6 +102,14 @@ class AppState extends ChangeNotifier {
     _healthCheck();
   }
 
+  @override
+  void dispose() {
+    _localBotTimer?.cancel();
+    _wsSub?.cancel();
+    _ws.disconnect();
+    super.dispose();
+  }
+
   void _healthCheck() {
     http.get(Uri.parse('$_backendUrl/health')).then((r) {
       backendOnline = r.statusCode < 400;
@@ -104,6 +131,10 @@ class AppState extends ChangeNotifier {
   // ── Game actions ───────────────────────────────────────────────────────────
 
   void rollDice() {
+    if (localMatchActive) {
+      _rollLocalDice();
+      return;
+    }
     if (!_canAct()) return;
     if (!_isMyTurn()) {
       _setStatus('Wait for your turn.');
@@ -119,6 +150,10 @@ class AppState extends ChangeNotifier {
   }
 
   void movePiece(String pieceId) {
+    if (localMatchActive) {
+      _moveLocalPiece(pieceId);
+      return;
+    }
     if (!_canAct()) return;
     if (!_isMyTurn()) {
       _setStatus('Wait for your turn.');
@@ -139,6 +174,15 @@ class AppState extends ChangeNotifier {
   }
 
   void moveBestPiece() {
+    if (localMatchActive) {
+      final moves = lastSnapshot?.availableMoves ?? [];
+      if (moves.isEmpty) {
+        _setStatus('No legal pieces to move.');
+        return;
+      }
+      _moveLocalPiece(_chooseBest(moves));
+      return;
+    }
     if (!_canAct()) return;
     final moves = lastSnapshot?.availableMoves ?? [];
     if (moves.isEmpty) {
@@ -150,6 +194,11 @@ class AppState extends ChangeNotifier {
 
   void resign() {
     SoundService.warning();
+    if (localMatchActive) {
+      _resetLiveMatch();
+      _setStatus('Match resigned.');
+      return;
+    }
     if (playerId != null) {
       _ws.send({'type': 'resign', 'playerId': playerId});
     }
@@ -162,39 +211,15 @@ class AppState extends ChangeNotifier {
     if (connecting) return;
     pendingMatchMode = mode;
     fallbackBotStarted = false;
-    currentMatchIsBot = false;
+    currentMatchIsBot = true;
     _resetLiveMatch();
     connecting = true;
     navigateTo('/game');
-    _setStatus('Creating guest profile...');
-
-    final region = matchmakingRegion;
-    _post('/api/v1/auth/guest', {
-      'displayName': displayName,
-      'region': region,
-      'country': countryCode,
-    }, (body) {
-      final player = body['player'] as Map<String, dynamic>;
-      _applyPlayer(player);
-      _setStatus('Searching for match...');
-      _post('/api/v1/matchmaking/quick', {
-        'playerId': playerId,
-        'displayName': displayName,
-        'mode': mode,
-        'region': region,
-        'country': countryCode,
-        'rating': rating,
-        'difficulty': matchDifficulty,
-      }, (ticket) {
-        final ticketId = ticket['ticketId'] as String? ?? '';
-        if (ticketId.isEmpty) {
-          _fallbackToBots('No online room available.');
-          return;
-        }
-        _pollAttempts = 0;
-        _pollTicket(ticketId);
-      }, onError: () => _fallbackToBots('Online matchmaking busy.'));
-    }, onError: () => _fallbackToBots('Online matchmaking busy.'));
+    _setStatus('Opening table...');
+    _startLocalBotMatch(
+      mode,
+      reason: 'Bot table ready. Roll when it is your turn.',
+    );
   }
 
   void startBotMatch(String mode) {
@@ -205,36 +230,14 @@ class AppState extends ChangeNotifier {
     _resetLiveMatch();
     connecting = true;
     navigateTo('/game');
-    _setStatus('Creating guest profile...');
-
-    final region = matchmakingRegion;
-    _post('/api/v1/auth/guest', {
-      'displayName': displayName,
-      'region': region,
-      'country': countryCode,
-    }, (body) {
-      final player = body['player'] as Map<String, dynamic>;
-      _applyPlayer(player);
-      _setStatus('Creating table...');
-      _post('/api/v1/matchmaking/bots', {
-        'playerId': playerId,
-        'displayName': displayName,
-        'mode': mode,
-        'region': region,
-        'country': countryCode,
-        'rating': rating,
-        'difficulty': matchDifficulty,
-      }, (match) {
-        final socketUrl = match['socketUrl'] as String? ?? '';
-        if (socketUrl.isEmpty) {
-          _setStatus('Match failed.');
-          return;
-        }
-        _connectWs(socketUrl);
-      });
-    }, onError: () => _setStatus('Failed to create guest profile.'));
+    _setStatus('Opening bot table...');
+    _startLocalBotMatch(
+      mode,
+      reason: 'Bot table ready. Roll when it is your turn.',
+    );
   }
 
+  // ignore: unused_element
   void _pollTicket(String ticketId) {
     if (_pollAttempts >= 4) {
       _fallbackToBots('No online players found.');
@@ -281,6 +284,9 @@ class AppState extends ChangeNotifier {
   // ── WebSocket ──────────────────────────────────────────────────────────────
 
   void _connectWs(String socketPath) {
+    localMatchActive = false;
+    _localBotTimer?.cancel();
+    _localBotTimer = null;
     _ws.playerId = playerId;
     _ws.displayName = displayName;
     _ws.connect(socketPath);
@@ -317,6 +323,7 @@ class AppState extends ChangeNotifier {
         if (type == 'dice_rolled') {
           lastRollValue = envelope['value'] as int? ?? 0;
           lastRollPlayerId = envelope['playerId'] as String?;
+          lastRollSequence++;
         }
 
         notifyListeners();
@@ -385,6 +392,393 @@ class AppState extends ChangeNotifier {
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
+  // Local bot table used when the online backend is unavailable.
+
+  void _startLocalBotMatch(String mode, {required String reason}) {
+    _ws.disconnect();
+    _localBotTimer?.cancel();
+    _localBotTimer = null;
+
+    if (playerId == null || playerId!.isEmpty) {
+      playerId = 'local_${DateTime.now().millisecondsSinceEpoch}';
+      _prefs.playerId = playerId;
+    }
+
+    final maxPlayers = mode.contains('4p') ? 4 : 2;
+    final seats = List<SeatState>.generate(maxPlayers, (seat) {
+      if (seat == 0) {
+        return SeatState(
+          seat: seat,
+          playerId: playerId!,
+          displayName: _humanDisplayName,
+          isBot: false,
+        );
+      }
+      return SeatState(
+        seat: seat,
+        playerId: 'local_bot_$seat',
+        displayName: _matchedNames[seat % _matchedNames.length],
+        isBot: true,
+      );
+    });
+
+    final pieces = <PieceState>[
+      for (final seat in seats)
+        for (int i = 0; i < 4; i++)
+          PieceState(
+            pieceId: 's${seat.seat}_p$i',
+            seat: seat.seat,
+            state: 'yard',
+            progress: _yardProgress,
+            trackIndex: -1,
+          ),
+    ];
+
+    _ws.playerId = playerId;
+    _ws.displayName = displayName;
+    currentMatchIsBot = true;
+    localMatchActive = true;
+    fallbackBotStarted = true;
+    connecting = false;
+    lastRollValue = 0;
+    lastRollPlayerId = null;
+    lastRollSequence = 0;
+    lastSnapshot = GameSnapshot(
+      seats: seats,
+      pieces: pieces,
+      diceValue: 0,
+      currentTurnSeat: 0,
+      status: 'playing',
+      availableMoves: const [],
+      winnerPlayerId: '',
+      mode: mode,
+    );
+    _setStatus(reason);
+    _scheduleLocalBots();
+  }
+
+  void _rollLocalDice() {
+    if (!_canAct()) return;
+    if (!_isMyTurn()) {
+      _setStatus('Wait for your turn.');
+      return;
+    }
+    if (_hasDiceValue()) {
+      _setStatus('Move a highlighted piece first.');
+      return;
+    }
+
+    final snap = lastSnapshot!;
+    final seat = mySeat ?? snap.currentTurnSeat;
+    final value = _nextLocalDice(snap, seat, isHuman: true);
+    final moves = _localLegalMoves(snap, seat, value);
+
+    SoundService.roll();
+    lastRollValue = value;
+    lastRollPlayerId = playerId;
+    lastRollSequence++;
+
+    if (moves.isEmpty) {
+      lastSnapshot = _advanceLocalTurn(snap);
+      _setStatus('You rolled $value. No legal move, turn passed.');
+      _scheduleLocalBots();
+      return;
+    }
+
+    lastSnapshot = _copySnapshot(
+      snap,
+      diceValue: value,
+      availableMoves: moves,
+    );
+    _setStatus('You rolled $value. Tap a highlighted piece.');
+  }
+
+  void _moveLocalPiece(String pieceId) {
+    if (!_canAct()) return;
+    if (!_isMyTurn()) {
+      _setStatus('Wait for your turn.');
+      return;
+    }
+    if (!_hasDiceValue()) {
+      _setStatus('Roll before moving a piece.');
+      return;
+    }
+
+    final moves = lastSnapshot?.availableMoves ?? [];
+    if (!moves.contains(pieceId)) {
+      _setStatus('That piece cannot move.');
+      return;
+    }
+
+    final before = lastSnapshot!;
+    SoundService.move();
+    final after = _applyLocalMove(before, pieceId);
+    lastSnapshot = after;
+
+    if (after.status == 'finished') {
+      _setStatus('You won the match.');
+      _trackMatchResult(after);
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        navigateTo('/results');
+      });
+      return;
+    }
+
+    final sameTurn = after.currentTurnSeat == (mySeat ?? -1);
+    _setStatus(sameTurn ? 'Moved $pieceId. Roll again.' : 'Moved $pieceId.');
+    _scheduleLocalBots();
+  }
+
+  void _scheduleLocalBots(
+      {Duration delay = const Duration(milliseconds: 650)}) {
+    _localBotTimer?.cancel();
+    _localBotTimer = null;
+    if (!localMatchActive) return;
+    final snap = lastSnapshot;
+    if (snap == null || snap.status != 'playing') return;
+    final seat = _currentLocalSeat(snap);
+    if (seat == null || !seat.isBot) return;
+
+    _localBotTimer = Timer(delay, _playLocalBotTurn);
+  }
+
+  void _playLocalBotTurn() {
+    if (!localMatchActive) return;
+    final snap = lastSnapshot;
+    if (snap == null || snap.status != 'playing') return;
+    final seat = _currentLocalSeat(snap);
+    if (seat == null || !seat.isBot) return;
+
+    final value = _nextLocalDice(snap, seat.seat, isHuman: false);
+    final moves = _localLegalMoves(snap, seat.seat, value);
+    final name = publicSeatName(seat);
+
+    SoundService.roll();
+    lastRollValue = value;
+    lastRollPlayerId = seat.playerId;
+    lastRollSequence++;
+
+    if (moves.isEmpty) {
+      lastSnapshot = _advanceLocalTurn(snap);
+      _setStatus('$name rolled $value and had no legal move.');
+      _scheduleLocalBots();
+      return;
+    }
+
+    lastSnapshot = _copySnapshot(
+      snap,
+      diceValue: value,
+      availableMoves: moves,
+    );
+    _setStatus('$name rolled $value.');
+
+    _localBotTimer = Timer(const Duration(milliseconds: 620), () {
+      if (!localMatchActive) return;
+      final current = lastSnapshot;
+      if (current == null ||
+          current.status != 'playing' ||
+          current.currentTurnSeat != seat.seat ||
+          current.diceValue != value) {
+        return;
+      }
+
+      final move = _chooseLocalBotMove(current, moves);
+      SoundService.move();
+      final after = _applyLocalMove(current, move);
+      lastSnapshot = after;
+
+      if (after.status == 'finished') {
+        _setStatus('$name won the match.');
+        _trackMatchResult(after);
+        Future.delayed(const Duration(milliseconds: 1200), () {
+          navigateTo('/results');
+        });
+        return;
+      }
+
+      _setStatus('$name moved a piece.');
+      _scheduleLocalBots();
+    });
+  }
+
+  GameSnapshot _applyLocalMove(GameSnapshot snap, String pieceId) {
+    final dice = snap.diceValue;
+    final movingPiece = snap.pieces.firstWhere((p) => p.pieceId == pieceId);
+    final moverSeat = movingPiece.seat;
+    final nextProgress =
+        movingPiece.progress == _yardProgress ? 0 : movingPiece.progress + dice;
+    final nextTrack = _trackIndexFor(moverSeat, nextProgress);
+    final nextState = _stateForProgress(nextProgress);
+
+    var pieces = snap.pieces.map((piece) {
+      if (piece.pieceId != pieceId) return piece;
+      return PieceState(
+        pieceId: piece.pieceId,
+        seat: piece.seat,
+        state: nextState,
+        progress: nextProgress,
+        trackIndex: nextTrack ?? -1,
+      );
+    }).toList();
+
+    if (nextTrack != null && !_localSafeTrackIndexes.contains(nextTrack)) {
+      pieces = pieces.map((piece) {
+        if (piece.seat == moverSeat ||
+            piece.trackIndex != nextTrack ||
+            piece.state != 'track') {
+          return piece;
+        }
+        return PieceState(
+          pieceId: piece.pieceId,
+          seat: piece.seat,
+          state: 'yard',
+          progress: _yardProgress,
+          trackIndex: -1,
+        );
+      }).toList();
+    }
+
+    final winner = _seatFinished(pieces, moverSeat)
+        ? snap.seats.firstWhere((seat) => seat.seat == moverSeat).playerId
+        : '';
+    if (winner.isNotEmpty) {
+      return _copySnapshot(
+        snap,
+        pieces: pieces,
+        diceValue: 0,
+        availableMoves: const [],
+        winnerPlayerId: winner,
+        status: 'finished',
+      );
+    }
+
+    final moved = _copySnapshot(
+      snap,
+      pieces: pieces,
+      diceValue: 0,
+      availableMoves: const [],
+    );
+    return dice == 6 ? moved : _advanceLocalTurn(moved);
+  }
+
+  List<String> _localLegalMoves(GameSnapshot snap, int seat, int diceValue) {
+    return snap.pieces
+        .where((piece) => piece.seat == seat)
+        .where((piece) => _canLocalPieceMove(piece, diceValue))
+        .map((piece) => piece.pieceId)
+        .toList();
+  }
+
+  bool _canLocalPieceMove(PieceState piece, int diceValue) {
+    if (piece.state == 'finished') return false;
+    if (piece.progress == _yardProgress) return diceValue == 6;
+    return piece.progress + diceValue <= _finishProgress;
+  }
+
+  GameSnapshot _advanceLocalTurn(GameSnapshot snap) {
+    final activeSeats = snap.seats
+        .where((seat) => !_seatFinished(snap.pieces, seat.seat))
+        .map((seat) => seat.seat)
+        .toList()
+      ..sort();
+    if (activeSeats.isEmpty) return snap;
+
+    final index = activeSeats.indexOf(snap.currentTurnSeat);
+    final nextIndex = index < 0 ? 0 : (index + 1) % activeSeats.length;
+    return _copySnapshot(
+      snap,
+      currentTurnSeat: activeSeats[nextIndex],
+      diceValue: 0,
+      availableMoves: const [],
+    );
+  }
+
+  String _chooseLocalBotMove(GameSnapshot snap, List<String> moves) {
+    final sorted = [...moves]
+      ..sort((a, b) => _scoreLocalMove(snap, b) - _scoreLocalMove(snap, a));
+    return sorted.first;
+  }
+
+  int _scoreLocalMove(GameSnapshot snap, String pieceId) {
+    final piece = snap.pieces.where((p) => p.pieceId == pieceId).firstOrNull;
+    if (piece == null) return 0;
+    if (piece.progress == _yardProgress) return 30;
+
+    final nextProgress = piece.progress + snap.diceValue;
+    final nextTrack = _trackIndexFor(piece.seat, nextProgress);
+    final captures = nextTrack != null &&
+        !_localSafeTrackIndexes.contains(nextTrack) &&
+        snap.pieces.any((other) =>
+            other.seat != piece.seat &&
+            other.trackIndex == nextTrack &&
+            other.state == 'track');
+    return nextProgress + (captures ? 100 : 0);
+  }
+
+  int _nextLocalDice(GameSnapshot snap, int seat, {required bool isHuman}) {
+    final seatPieces = snap.pieces.where((piece) => piece.seat == seat);
+    final allInYard =
+        seatPieces.every((piece) => piece.progress == _yardProgress);
+    if (isHuman && allInYard) {
+      return 6;
+    }
+    return _rng.nextInt(6) + 1;
+  }
+
+  int? _trackIndexFor(int seat, int progress) {
+    if (progress < 0 || progress > 51) return null;
+    return (_localStartOffsets[seat.clamp(0, 3)] + progress) % _trackLength;
+  }
+
+  String _stateForProgress(int progress) {
+    if (progress == _yardProgress) return 'yard';
+    if (progress >= _finishProgress) return 'finished';
+    if (progress > 51) return 'home';
+    return 'track';
+  }
+
+  bool _seatFinished(List<PieceState> pieces, int seat) {
+    final seatPieces = pieces.where((piece) => piece.seat == seat).toList();
+    return seatPieces.isNotEmpty &&
+        seatPieces.every((piece) => piece.state == 'finished');
+  }
+
+  SeatState? _currentLocalSeat(GameSnapshot snap) {
+    return snap.seats
+        .where((seat) => seat.seat == snap.currentTurnSeat)
+        .firstOrNull;
+  }
+
+  GameSnapshot _copySnapshot(
+    GameSnapshot snap, {
+    List<SeatState>? seats,
+    List<PieceState>? pieces,
+    int? diceValue,
+    int? currentTurnSeat,
+    String? status,
+    List<String>? availableMoves,
+    String? winnerPlayerId,
+    String? mode,
+  }) {
+    return GameSnapshot(
+      seats: seats ?? snap.seats,
+      pieces: pieces ?? snap.pieces,
+      diceValue: diceValue ?? snap.diceValue,
+      currentTurnSeat: currentTurnSeat ?? snap.currentTurnSeat,
+      status: status ?? snap.status,
+      availableMoves: availableMoves ?? snap.availableMoves,
+      winnerPlayerId: winnerPlayerId ?? snap.winnerPlayerId,
+      mode: mode ?? snap.mode,
+    );
+  }
+
+  String get _humanDisplayName {
+    final trimmed = displayName.trim();
+    if (trimmed.isEmpty || trimmed == 'Ludo Player') return 'Ibsam';
+    return trimmed;
+  }
+
+  // ignore: unused_element
   void _applyPlayer(Map<String, dynamic> player) {
     playerId = player['id'] as String? ?? playerId;
     displayName = player['displayName'] as String? ?? displayName;
@@ -399,6 +793,9 @@ class AppState extends ChangeNotifier {
   }
 
   void _trackMatchResult(GameSnapshot snap) {
+    _localBotTimer?.cancel();
+    _localBotTimer = null;
+    localMatchActive = false;
     gamesPlayed++;
     final won = playerId != null && playerId == snap.winnerPlayerId;
     if (won) {
@@ -422,10 +819,14 @@ class AppState extends ChangeNotifier {
   }
 
   void _resetLiveMatch() {
+    _localBotTimer?.cancel();
+    _localBotTimer = null;
+    localMatchActive = false;
     _ws.disconnect();
     lastSnapshot = null;
     lastRollValue = 0;
     lastRollPlayerId = null;
+    lastRollSequence = 0;
     notifyListeners();
   }
 
@@ -507,6 +908,7 @@ class AppState extends ChangeNotifier {
 
   // ── HTTP helper ────────────────────────────────────────────────────────────
 
+  // ignore: unused_element
   void _post(
     String path,
     Map<String, dynamic> payload,
