@@ -75,9 +75,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         final seatColor =
             mySeat != null ? AppColors.seatColor(mySeat) : goldColor;
 
-        return PopScope<void>(
+        return PopScope(
           canPop: false,
-          onPopInvokedWithResult: (didPop, _) {
+          onPopInvoked: (didPop) {
             if (!didPop) _showQuitDialog(context, state);
           },
           child: Scaffold(
