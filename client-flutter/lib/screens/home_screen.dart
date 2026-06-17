@@ -60,7 +60,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           children: [
                             _LobbyStage(
                                 state: state, palette: p, pulse: _pulse),
-                            if (state.connecting) _JoiningOverlay(palette: p),
                           ],
                         ),
                       ),
@@ -142,10 +141,21 @@ class _GeneratedLobbyBackground extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, box) {
         final safe = MediaQuery.paddingOf(context);
-        final boardTop = safe.top + 166;
+        final width = box.maxWidth;
+        final height = box.maxHeight;
         final aspect = box.maxHeight / math.max(1, box.maxWidth);
-        final boardScale = aspect > 2.0 ? 0.84 : 0.54;
-        final boardHeight = box.maxWidth * boardScale;
+        final topChrome = safe.top + (width < 370 ? 154.0 : 166.0);
+        final bottomChrome = safe.bottom + 94.0;
+        final stageReserve = width < 370
+            ? (aspect > 1.9 ? 218.0 : 204.0)
+            : (aspect > 2.05 ? 270.0 : 246.0);
+        final availableForBoard =
+            math.max(0.0, height - topChrome - bottomChrome - stageReserve);
+        final minBoardHeight = width * (aspect > 2.05 ? 0.50 : 0.36);
+        final maxBoardHeight = width * (aspect > 2.05 ? 0.92 : 0.72);
+        final boardTop = topChrome;
+        final boardHeight =
+            availableForBoard.clamp(minBoardHeight, maxBoardHeight).toDouble();
         return Stack(
           fit: StackFit.expand,
           children: [
@@ -1150,14 +1160,29 @@ class _LobbyStage extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, box) {
+        final narrow = box.maxWidth < 370;
         final compact = box.maxHeight < 500;
-        final bigHeight = compact ? 116.0 : 138.0;
-        final smallHeight = compact ? 84.0 : 98.0;
+        final rowGap = compact ? 8.0 : 12.0;
+        final bottomGap = compact ? 5.0 : 8.0;
+        final baseBigHeight = (box.maxWidth * (narrow ? 0.31 : 0.34))
+            .clamp(104.0, 138.0)
+            .toDouble();
+        final baseSmallHeight = (box.maxWidth * (narrow ? 0.22 : 0.24))
+            .clamp(76.0, 98.0)
+            .toDouble();
+        final needed = baseBigHeight + rowGap + baseSmallHeight + bottomGap;
+        final scale =
+            math.min(1.0, math.max(0.82, (box.maxHeight - 8) / needed));
+        final bigHeight = baseBigHeight * scale;
+        final smallHeight = baseSmallHeight * scale;
+        final sidePadding = narrow ? 10.0 : 14.0;
+        final largeGap = narrow ? 8.0 : 12.0;
+        final smallGap = narrow ? 6.0 : 8.0;
         return Stack(
           children: [
             Positioned.fill(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
+                padding: EdgeInsets.fromLTRB(sidePadding, 0, sidePadding, 0),
                 child: Column(
                   children: [
                     const Spacer(),
@@ -1179,7 +1204,7 @@ class _LobbyStage extends StatelessWidget {
                               onTap: () => state.startQuickMatch('classic_2p'),
                             ),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: largeGap),
                           Expanded(
                             child: _ModeTile(
                               palette: palette,
@@ -1197,7 +1222,7 @@ class _LobbyStage extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: rowGap),
                     SizedBox(
                       height: smallHeight,
                       child: Row(
@@ -1215,7 +1240,7 @@ class _LobbyStage extends StatelessWidget {
                               onTap: () => _soon(context, 'Private rooms'),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: smallGap),
                           Expanded(
                             child: _ModeTile(
                               palette: palette,
@@ -1229,7 +1254,7 @@ class _LobbyStage extends StatelessWidget {
                               onTap: () => state.startQuickMatch('classic_4p'),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: smallGap),
                           Expanded(
                             child: _ModeTile(
                               palette: palette,
@@ -1246,7 +1271,7 @@ class _LobbyStage extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: bottomGap),
                   ],
                 ),
               ),
@@ -1587,58 +1612,6 @@ class _NavSpec {
   final IconData icon;
   final String label;
   const _NavSpec(this.icon, this.label);
-}
-
-class _JoiningOverlay extends StatelessWidget {
-  final _RushPalette palette;
-
-  const _JoiningOverlay({required this.palette});
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: ClipRect(
-        child: BackdropFilter(
-          filter: ui.ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Container(
-            color: Colors.black.withAlpha(125),
-            alignment: Alignment.center,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 22),
-              decoration: BoxDecoration(
-                color: palette.panel,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: palette.stroke, width: 2),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 52,
-                    height: 52,
-                    child: CircularProgressIndicator(
-                        color: palette.gold, strokeWidth: 4),
-                  ),
-                  const SizedBox(height: 17),
-                  Text('Joining...',
-                      style: TextStyle(
-                          color: palette.text,
-                          fontSize: 21,
-                          fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 6),
-                  Text('Finding the best table',
-                      style: TextStyle(
-                          color: palette.muted,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _ModePatternPainter extends CustomPainter {

@@ -6,6 +6,7 @@ import 'services/prefs_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/matchmaking_screen.dart';
 import 'screens/game_screen.dart';
 import 'screens/results_screen.dart';
 import 'screens/shop_screen.dart';
@@ -47,6 +48,7 @@ class LudoRushApp extends StatelessWidget {
           '/splash': (_) => const SplashScreen(),
           '/home': (_) => const HomeScreen(),
           '/': (_) => const HomeScreen(),
+          '/matchmaking': (_) => const MatchmakingScreen(),
           '/game': (_) => const GameScreen(),
           '/results': (_) => const ResultsScreen(),
           '/shop': (_) => const ShopScreen(),

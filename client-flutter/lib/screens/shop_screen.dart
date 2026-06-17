@@ -60,45 +60,73 @@ class _ShopScreenState extends State<ShopScreen>
                 ),
               ),
               SafeArea(
-                child: Column(
-                  children: [
-                    _ShopResources(state: state, palette: p),
-                    _ShopHero(palette: p, animation: _bg),
-                    _BoosterBanner(palette: p),
-                    Expanded(
-                      child: GridView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
-                        physics: const BouncingScrollPhysics(),
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          childAspectRatio: 0.78,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 14,
-                        ),
-                        itemCount: _items.length,
-                        itemBuilder: (context, i) => _ShopCard(
-                          product: _items[i],
+                child: LayoutBuilder(
+                  builder: (context, box) {
+                    final narrow = box.maxWidth < 370;
+                    final compactHeight = box.maxHeight < 720;
+                    final heroHeight = math
+                        .min(box.maxWidth * 0.42,
+                            box.maxHeight * (compactHeight ? 0.18 : 0.20))
+                        .clamp(narrow ? 116.0 : 128.0, 168.0)
+                        .toDouble();
+                    final columns = box.maxWidth < 360 ? 2 : 3;
+                    final cardAspect = columns == 2
+                        ? (compactHeight ? 0.82 : 0.88)
+                        : (compactHeight ? 0.74 : 0.78);
+                    final gridPad = EdgeInsets.fromLTRB(
+                      narrow ? 12 : 16,
+                      compactHeight ? 6 : 8,
+                      narrow ? 12 : 16,
+                      18,
+                    );
+
+                    return Column(
+                      children: [
+                        _ShopResources(state: state, palette: p),
+                        _ShopHero(
                           palette: p,
-                          onBuy: () {
-                            state.addCoins(100);
-                            ScaffoldMessenger.of(context)
-                              ..clearSnackBars()
-                              ..showSnackBar(
-                                SnackBar(
-                                  behavior: SnackBarBehavior.floating,
-                                  backgroundColor: const Color(0xEE22082E),
-                                  duration: const Duration(milliseconds: 1200),
-                                  content: Text(
-                                      '${_items[i].title} booster selected.'),
-                                ),
-                              );
-                          },
+                          animation: _bg,
+                          height: heroHeight,
                         ),
-                      ),
-                    ),
-                    _ShopBottomNav(palette: p),
-                  ],
+                        if (!compactHeight || box.maxWidth >= 390)
+                          _BoosterBanner(palette: p),
+                        Expanded(
+                          child: GridView.builder(
+                            padding: gridPad,
+                            physics: const BouncingScrollPhysics(),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: columns,
+                              childAspectRatio: cardAspect,
+                              crossAxisSpacing: narrow ? 8 : 10,
+                              mainAxisSpacing: compactHeight ? 10 : 14,
+                            ),
+                            itemCount: _items.length,
+                            itemBuilder: (context, i) => _ShopCard(
+                              product: _items[i],
+                              palette: p,
+                              onBuy: () {
+                                state.addCoins(100);
+                                ScaffoldMessenger.of(context)
+                                  ..clearSnackBars()
+                                  ..showSnackBar(
+                                    SnackBar(
+                                      behavior: SnackBarBehavior.floating,
+                                      backgroundColor: const Color(0xEE22082E),
+                                      duration:
+                                          const Duration(milliseconds: 1200),
+                                      content: Text(
+                                          '${_items[i].title} booster selected.'),
+                                    ),
+                                  );
+                              },
+                            ),
+                          ),
+                        ),
+                        _ShopBottomNav(palette: p),
+                      ],
+                    );
+                  },
                 ),
               ),
             ],
@@ -250,14 +278,19 @@ class _ResourceChip extends StatelessWidget {
 class _ShopHero extends StatelessWidget {
   final _ShopPalette palette;
   final AnimationController animation;
+  final double height;
 
-  const _ShopHero({required this.palette, required this.animation});
+  const _ShopHero({
+    required this.palette,
+    required this.animation,
+    required this.height,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 154,
+      height: height,
       margin: const EdgeInsets.fromLTRB(14, 4, 14, 0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -282,322 +315,300 @@ class _ShopHero extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: AnimatedBuilder(
-                animation: animation,
-                builder: (_, __) => CustomPaint(
-                  painter: _ShopHeroPainter(palette, animation.value),
-                  child: const SizedBox.expand(),
-                ),
-              ),
-            ),
-            Positioned(
-              left: -22,
-              top: -18,
-              bottom: -18,
-              right: 88,
-              child: AnimatedBuilder(
-                animation: animation,
-                child: Opacity(
-                  opacity: 0.66,
-                  child: Image.asset(
-                    'assets/images/home_ludo_board_window.png',
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                    filterQuality: FilterQuality.high,
-                  ),
-                ),
-                builder: (_, child) {
-                  final wave = math.sin(animation.value * math.pi * 2);
-                  return Transform.translate(
-                    offset: Offset(0, wave * 3),
-                    child: Transform.rotate(
-                      angle: -0.035 + wave * 0.008,
-                      child: child,
-                    ),
-                  );
-                },
-              ),
-            ),
-            Positioned(
-              right: 0,
-              top: 6,
-              bottom: 20,
-              width: 245,
-              child: IgnorePointer(
-                child: AnimatedBuilder(
-                  animation: animation,
-                  builder: (_, __) => CustomPaint(
-                    painter: _ShopCoverSignArtPainter(animation.value),
-                    child: const SizedBox.expand(),
-                  ),
-                ),
-              ),
-            ),
-            _ShopCoverBubbles(animation: animation),
-            Positioned(
-              left: 72,
-              top: -42,
-              child: AnimatedBuilder(
-                animation: animation,
-                builder: (_, __) {
-                  final phase = animation.value * math.pi * 2;
-                  final bob = math.sin(phase) * 2.4;
-                  final scale =
-                      1 + (0.018 * (0.5 + math.sin(phase + 0.7) * 0.5));
-                  final glow = 74 + (math.sin(phase).abs() * 62).round();
-                  final shineX = -150 + animation.value * 320;
+        child: LayoutBuilder(
+          builder: (context, box) {
+            final w = box.maxWidth;
+            final h = box.maxHeight;
+            final signWidth = (w * 0.36).clamp(126.0, 164.0).toDouble();
+            final signHeight = signWidth * 0.40;
+            final signLeft =
+                (w * 0.16).clamp(24.0, w - signWidth - 18).toDouble();
+            final coverWidth = (w * 0.56).clamp(184.0, 252.0).toDouble();
+            final boardRight = (w * 0.23).clamp(70.0, 116.0).toDouble();
+            final railHeight = (h * 0.14).clamp(18.0, 24.0).toDouble();
 
-                  return Transform.translate(
-                    offset: Offset(0, bob),
-                    child: Transform.rotate(
-                      angle: -0.035 + math.sin(phase * 1.2) * 0.014,
-                      child: Transform.scale(
-                        scale: scale,
-                        child: Container(
-                          width: 154,
-                          height: 62,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                                color: Color.fromARGB(
-                                    178 + glow ~/ 5, 255, 212, 38),
-                                width: 2),
-                            boxShadow: [
-                              const BoxShadow(
-                                  color: Color(0x66000000),
-                                  blurRadius: 10,
-                                  offset: Offset(0, 5)),
-                              BoxShadow(
-                                  color: Color.fromARGB(glow, 255, 212, 38),
-                                  blurRadius: 16,
-                                  spreadRadius: 1),
-                            ],
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              const DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(colors: [
-                                    Color(0xFFFF2F72),
-                                    Color(0xFF92224E),
-                                  ]),
-                                ),
-                              ),
-                              Positioned(
-                                left: shineX,
-                                top: -18,
-                                bottom: -18,
-                                width: 34,
-                                child: Transform.rotate(
-                                  angle: -0.35,
-                                  child: DecoratedBox(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.white.withAlpha(0),
-                                          Colors.white.withAlpha(135),
-                                          Colors.white.withAlpha(0),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const Center(
-                                child: Text(
-                                  'SHOP',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 27,
-                                    fontWeight: FontWeight.w900,
-                                    shadows: [
-                                      Shadow(
-                                          color: Colors.black87,
-                                          blurRadius: 2,
-                                          offset: Offset(2, 3))
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+            return Stack(
+              children: [
+                Positioned.fill(
+                  child: AnimatedBuilder(
+                    animation: animation,
+                    builder: (_, __) => CustomPaint(
+                      painter: _ShopHeroPainter(palette, animation.value),
+                      child: const SizedBox.expand(),
                     ),
-                  );
-                },
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: Container(
-                height: 22,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                      colors: [Color(0xFF9D5528), Color(0xFF5C250E)]),
+                  ),
                 ),
-              ),
-            ),
-            Positioned(
-              left: 80,
-              top: -36,
-              child: AnimatedBuilder(
-                animation: animation,
-                builder: (_, __) {
-                  final phase = animation.value * math.pi * 2;
-                  final shineX = -120 + animation.value * 280;
-                  return Transform.translate(
-                    offset: Offset(0, math.sin(phase) * 2),
-                    child: Transform.rotate(
-                      angle: -0.035 + math.sin(phase * 1.2) * 0.012,
-                      child: Container(
-                        width: 146,
-                        height: 58,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                              color: const Color(0xFFFFD426), width: 2),
-                          boxShadow: [
-                            const BoxShadow(
-                                color: Color(0x77000000),
-                                blurRadius: 10,
-                                offset: Offset(0, 5)),
-                            BoxShadow(
-                                color: Color.fromARGB(
-                                    88 + (math.sin(phase).abs() * 70).round(),
-                                    255,
-                                    212,
-                                    38),
-                                blurRadius: 16,
-                                spreadRadius: 1),
-                          ],
-                          gradient: const LinearGradient(colors: [
-                            Color(0xFFFF2F72),
-                            Color(0xFF92224E),
-                          ]),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            Positioned(
-                              left: shineX,
-                              top: -18,
-                              bottom: -18,
-                              width: 30,
-                              child: Transform.rotate(
-                                angle: -0.35,
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Colors.white.withAlpha(0),
-                                        Colors.white.withAlpha(140),
-                                        Colors.white.withAlpha(0),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const Center(
-                              child: Text(
-                                'SHOP',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 27,
-                                  fontWeight: FontWeight.w900,
-                                  shadows: [
-                                    Shadow(
-                                        color: Colors.black87,
-                                        blurRadius: 2,
-                                        offset: Offset(2, 3))
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                Positioned(
+                  left: -w * 0.07,
+                  top: -h * 0.16,
+                  bottom: -h * 0.12,
+                  right: boardRight,
+                  child: AnimatedBuilder(
+                    animation: animation,
+                    child: Opacity(
+                      opacity: 0.66,
+                      child: Image.asset(
+                        'assets/images/home_ludo_board_window.png',
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                        filterQuality: FilterQuality.high,
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
-          ],
+                    builder: (_, child) {
+                      final wave = math.sin(animation.value * math.pi * 2);
+                      return Transform.translate(
+                        offset: Offset(0, wave * 3),
+                        child: Transform.rotate(
+                          angle: -0.035 + wave * 0.008,
+                          child: child,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                Positioned(
+                  right: -w * 0.02,
+                  top: h * 0.04,
+                  bottom: h * 0.13,
+                  width: coverWidth,
+                  child: IgnorePointer(
+                    child: AnimatedBuilder(
+                      animation: animation,
+                      builder: (_, __) => CustomPaint(
+                        painter: _ShopCoverSignArtPainter(animation.value),
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
+                  ),
+                ),
+                _ShopCoverBubbles(
+                  animation: animation,
+                  width: (w * 0.70).clamp(210.0, 292.0).toDouble(),
+                  height: h * 0.84,
+                ),
+                Positioned(
+                  left: signLeft,
+                  top: -signHeight * 0.64,
+                  child: _AnimatedShopSign(
+                    animation: animation,
+                    width: signWidth,
+                    height: signHeight,
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    height: railHeight,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                          colors: [Color(0xFF9D5528), Color(0xFF5C250E)]),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 }
 
+class _AnimatedShopSign extends StatelessWidget {
+  final AnimationController animation;
+  final double width;
+  final double height;
+
+  const _AnimatedShopSign({
+    required this.animation,
+    required this.width,
+    required this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (_, __) {
+        final phase = animation.value * math.pi * 2;
+        final bob = math.sin(phase) * 2.4;
+        final scale = 1 + (0.018 * (0.5 + math.sin(phase + 0.7) * 0.5));
+        final glow = 74 + (math.sin(phase).abs() * 62).round();
+        final shineX = -width + animation.value * width * 2.2;
+
+        return Transform.translate(
+          offset: Offset(0, bob),
+          child: Transform.rotate(
+            angle: -0.035 + math.sin(phase * 1.2) * 0.014,
+            child: Transform.scale(
+              scale: scale,
+              child: Container(
+                width: width,
+                height: height,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Color.fromARGB(178 + glow ~/ 5, 255, 212, 38),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    const BoxShadow(
+                        color: Color(0x66000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 5)),
+                    BoxShadow(
+                      color: Color.fromARGB(glow, 255, 212, 38),
+                      blurRadius: 16,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [
+                          Color(0xFFFF2F72),
+                          Color(0xFF92224E),
+                        ]),
+                      ),
+                    ),
+                    Positioned(
+                      left: shineX,
+                      top: -height * 0.30,
+                      bottom: -height * 0.30,
+                      width: width * 0.22,
+                      child: Transform.rotate(
+                        angle: -0.35,
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.white.withAlpha(0),
+                                Colors.white.withAlpha(135),
+                                Colors.white.withAlpha(0),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'SHOP',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: height * 0.46,
+                            fontWeight: FontWeight.w900,
+                            shadows: const [
+                              Shadow(
+                                  color: Colors.black87,
+                                  blurRadius: 2,
+                                  offset: Offset(2, 3))
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _ShopCoverBubbles extends StatelessWidget {
   final AnimationController animation;
+  final double width;
+  final double height;
 
-  const _ShopCoverBubbles({required this.animation});
+  const _ShopCoverBubbles({
+    required this.animation,
+    required this.width,
+    required this.height,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Positioned(
       right: 8,
       top: 4,
-      width: 292,
-      height: 128,
+      width: width,
+      height: height,
       child: IgnorePointer(
         child: AnimatedBuilder(
           animation: animation,
           builder: (_, __) {
             final phase = animation.value * math.pi * 2;
+            final sx = width / 292.0;
+            final sy = height / 128.0;
+            final scale = math.min(sx, sy);
             return Stack(
               clipBehavior: Clip.none,
               children: [
                 _coverBubble(
-                  left: 8,
-                  top: 7 + math.sin(phase) * 3,
-                  size: 40,
+                  left: 8 * sx,
+                  top: (7 + math.sin(phase) * 3) * sy,
+                  size: 40 * scale,
                   color: Colors.white,
                   icon: Icons.casino_rounded,
                   iconColor: boardRed,
                   tilt: -0.18 + math.sin(phase) * 0.04,
                 ),
                 _coverBubble(
-                  right: 8,
-                  top: 9 + math.cos(phase) * 3,
-                  size: 34,
+                  right: 8 * sx,
+                  top: (9 + math.cos(phase) * 3) * sy,
+                  size: 34 * scale,
                   color: const Color(0xFF46D8FF),
                   icon: Icons.bolt_rounded,
                   iconColor: Colors.white,
                   tilt: 0.16,
                 ),
                 _coverBubble(
-                  right: 12,
-                  bottom: 8 + math.sin(phase + 1.1) * 3,
-                  size: 48,
+                  right: 12 * sx,
+                  bottom: (8 + math.sin(phase + 1.1) * 3) * sy,
+                  size: 48 * scale,
                   color: const Color(0xFFFFC21F),
                   icon: Icons.monetization_on_rounded,
                   iconColor: const Color(0xFF7A4300),
                   tilt: 0.12 + math.cos(phase) * 0.03,
                 ),
                 _coverBubble(
-                  left: 42,
-                  bottom: 13 + math.cos(phase + 0.7) * 3,
-                  size: 31,
+                  left: 42 * sx,
+                  bottom: (13 + math.cos(phase + 0.7) * 3) * sy,
+                  size: 31 * scale,
                   color: const Color(0xFF35DE72),
                   icon: Icons.diamond_rounded,
                   iconColor: Colors.white,
                   tilt: -0.10,
                 ),
-                _spark(left: 82, top: 15, size: 9, phase: phase),
-                _spark(left: 236, top: 46, size: 8, phase: phase + 0.9),
-                _spark(left: 28, top: 78, size: 7, phase: phase + 1.7),
-                _spark(left: 212, top: 101, size: 10, phase: phase + 2.4),
+                _spark(
+                    left: 82 * sx, top: 15 * sy, size: 9 * scale, phase: phase),
+                _spark(
+                    left: 236 * sx,
+                    top: 46 * sy,
+                    size: 8 * scale,
+                    phase: phase + 0.9),
+                _spark(
+                    left: 28 * sx,
+                    top: 78 * sy,
+                    size: 7 * scale,
+                    phase: phase + 1.7),
+                _spark(
+                    left: 212 * sx,
+                    top: 101 * sy,
+                    size: 10 * scale,
+                    phase: phase + 2.4),
               ],
             );
           },
