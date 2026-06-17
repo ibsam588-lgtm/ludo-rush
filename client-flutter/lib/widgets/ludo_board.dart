@@ -65,14 +65,14 @@ class _BoardConsts {
   ];
 
   static const safeSeats = [
-    [6, 13, 0],
-    [3, 8, 0],
-    [1, 6, 1],
-    [6, 3, 1],
-    [8, 1, 2],
-    [11, 6, 2],
-    [13, 8, 3],
-    [8, 11, 3],
+    [6, 12, 0],
+    [2, 8, 0],
+    [2, 6, 1],
+    [6, 2, 1],
+    [8, 2, 2],
+    [12, 6, 2],
+    [12, 8, 3],
+    [8, 12, 3],
   ];
 
   static const homeLanes = [
@@ -130,18 +130,32 @@ class _PieceHit {
   const _PieceHit(this.pieceId, this.cx, this.cy, this.r, this.legal);
 }
 
+class _PieceDraw {
+  final PieceState piece;
+  final String key;
+  final Offset center;
+
+  const _PieceDraw({
+    required this.piece,
+    required this.key,
+    required this.center,
+  });
+}
+
 // ── Public widget ──────────────────────────────────────────────────────────────
 
 class LudoBoard extends StatefulWidget {
   final GameSnapshot? snapshot;
   final int? mySeat;
   final void Function(String pieceId) onPieceTap;
+  final bool showWaitingOverlay;
 
   const LudoBoard({
     super.key,
     required this.snapshot,
     required this.mySeat,
     required this.onPieceTap,
+    this.showWaitingOverlay = true,
   });
 
   @override
@@ -201,6 +215,7 @@ class _LudoBoardState extends State<LudoBoard>
               mySeat: widget.mySeat,
               pulsePhase: _pulseAnim.value,
               hits: _hits,
+              showWaitingOverlay: widget.showWaitingOverlay,
             ),
           ),
         ),
@@ -216,6 +231,7 @@ class _BoardPainter extends CustomPainter {
   final int? mySeat;
   final double pulsePhase;
   final List<_PieceHit> hits;
+  final bool showWaitingOverlay;
 
   static const _ivory = creamCell;
   static const _gold = goldColor;
@@ -226,6 +242,7 @@ class _BoardPainter extends CustomPainter {
     required this.mySeat,
     required this.pulsePhase,
     required this.hits,
+    required this.showWaitingOverlay,
   });
 
   @override
@@ -257,7 +274,9 @@ class _BoardPainter extends CustomPainter {
     canvas.restore();
 
     _drawTopGloss(canvas, boardLeft, boardTop, boardSize);
-    if (snapshot == null) _drawEmpty(canvas, boardLeft, boardTop, boardSize);
+    if (snapshot == null && showWaitingOverlay) {
+      _drawEmpty(canvas, boardLeft, boardTop, boardSize);
+    }
   }
 
   // ── Color helpers ──────────────────────────────────────────────────────────
@@ -490,30 +509,14 @@ class _BoardPainter extends CustomPainter {
 
   void _drawSafeStars(Canvas canvas, double left, double top, double cell) {
     for (final p in _BoardConsts.safeSeats) {
+      final seatColor = _seatCol(p[2]);
       _drawStar5(
         canvas,
         left + (p[0] + 0.5) * cell,
         top + (p[1] + 0.5) * cell,
         cell * 0.30,
-        _gold,
-        const Color(0xFF8D6100),
-      );
-    }
-
-    const extraStars = [
-      [8, 13],
-      [1, 8],
-      [14, 8],
-      [5, 12],
-    ];
-    for (final p in extraStars) {
-      _drawStar5(
-        canvas,
-        left + (p[0] + 0.5) * cell,
-        top + (p[1] + 0.5) * cell,
-        cell * 0.30,
-        _gold,
-        const Color(0xFF8D6100),
+        seatColor,
+        Color(_blend(_toInt(seatColor), 0xFF000000, 0.34)),
       );
     }
   }
@@ -698,14 +701,52 @@ class _BoardPainter extends CustomPainter {
     final avail = snapshot!.availableMoves.toSet();
     final activeSeat = snapshot!.currentTurnSeat;
 
+    final groups = <String, List<_PieceDraw>>{};
     for (final piece in snapshot!.pieces) {
-      final pos = _piecePos(piece, left, top, cell);
-      final legal = avail.contains(piece.pieceId);
-      final r = cell * 0.43;
-      hits.add(_PieceHit(piece.pieceId, pos.dx, pos.dy, r, legal));
-      _drawPiece(canvas, pos.dx, pos.dy, r, _seatCol(piece.seat), legal,
-          activeSeat == piece.seat);
+      final draw = _pieceDraw(piece, left, top, cell);
+      groups.putIfAbsent(draw.key, () => []).add(draw);
     }
+
+    for (final group in groups.values) {
+      final total = group.length;
+      for (int i = 0; i < total; i++) {
+        final draw = group[i];
+        final piece = draw.piece;
+        final pos = _stackedPiecePos(draw.center, i, total, cell);
+        final r = _stackedPieceRadius(cell, total);
+        final legal = avail.contains(piece.pieceId);
+        hits.add(_PieceHit(piece.pieceId, pos.dx, pos.dy, r, legal));
+        _drawPiece(canvas, pos.dx, pos.dy, r, _seatCol(piece.seat), legal,
+            activeSeat == piece.seat);
+      }
+    }
+  }
+
+  double _stackedPieceRadius(double cell, int total) {
+    if (total <= 1) return cell * 0.43;
+    if (total == 2) return cell * 0.35;
+    if (total == 3) return cell * 0.31;
+    return cell * 0.29;
+  }
+
+  Offset _stackedPiecePos(Offset center, int index, int total, double cell) {
+    if (total <= 1) return center;
+    final d = cell * (total == 2 ? 0.19 : 0.21);
+    final offsets = switch (total) {
+      2 => [Offset(-d, 0), Offset(d, 0)],
+      3 => [
+          Offset(0, -d * 0.88),
+          Offset(-d, d * 0.74),
+          Offset(d, d * 0.74),
+        ],
+      _ => [
+          Offset(-d, -d),
+          Offset(d, -d),
+          Offset(-d, d),
+          Offset(d, d),
+        ],
+    };
+    return center + offsets[index.clamp(0, offsets.length - 1)];
   }
 
   void _drawPiece(Canvas canvas, double cx, double cy, double r, Color color,
@@ -837,25 +878,34 @@ class _BoardPainter extends CustomPainter {
 
   // ── Piece position calculation ─────────────────────────────────────────────
 
-  Offset _piecePos(PieceState piece, double left, double top, double cell) {
+  _PieceDraw _pieceDraw(
+      PieceState piece, double left, double top, double cell) {
     final seat = piece.seat;
     final pi = _pieceIdx(piece.pieceId);
     final state = piece.state;
     final progress = piece.progress;
 
     if (state == 'yard' || progress < 0) {
-      return _yardPos(seat, pi, left, top, cell);
+      return _PieceDraw(
+        piece: piece,
+        key: 'yard-$seat-$pi',
+        center: _yardPos(seat, pi, left, top, cell),
+      );
     }
     if (state == 'finished' || progress >= 57) {
-      return _offsetPos(Offset(left + 7.5 * cell, top + 7.5 * cell), pi, cell);
+      return _PieceDraw(
+        piece: piece,
+        key: 'finished',
+        center: Offset(left + 7.5 * cell, top + 7.5 * cell),
+      );
     }
     if (state == 'home' || progress > 51) {
       final li = (progress - 52).clamp(0, 4);
       final lp = _BoardConsts.homeLanes[seat.clamp(0, 3)][li];
-      return _offsetPos(
-        Offset(left + (lp[0] + 0.5) * cell, top + (lp[1] + 0.5) * cell),
-        pi,
-        cell * 0.4,
+      return _PieceDraw(
+        piece: piece,
+        key: 'home-$seat-$li',
+        center: Offset(left + (lp[0] + 0.5) * cell, top + (lp[1] + 0.5) * cell),
       );
     }
 
@@ -865,10 +915,10 @@ class _BoardPainter extends CustomPainter {
           _BoardConsts.path.length;
     }
     final tp = _BoardConsts.path[ti];
-    return _offsetPos(
-      Offset(left + (tp[0] + 0.5) * cell, top + (tp[1] + 0.5) * cell),
-      pi,
-      cell * 0.34,
+    return _PieceDraw(
+      piece: piece,
+      key: 'track-$ti',
+      center: Offset(left + (tp[0] + 0.5) * cell, top + (tp[1] + 0.5) * cell),
     );
   }
 
@@ -879,14 +929,6 @@ class _BoardPainter extends CustomPainter {
     return Offset(
       left + (base[0] + slot[0]) * cell,
       top + (base[1] + slot[1]) * cell,
-    );
-  }
-
-  Offset _offsetPos(Offset center, int idx, double amt) {
-    final d = math.max(3.0, amt * 0.16);
-    return Offset(
-      center.dx + (idx % 2 == 0 ? -d : d),
-      center.dy + (idx < 2 ? -d : d),
     );
   }
 
@@ -938,6 +980,7 @@ class _BoardPainter extends CustomPainter {
   bool shouldRepaint(_BoardPainter old) {
     return old.snapshot != snapshot ||
         old.pulsePhase != pulsePhase ||
-        old.mySeat != mySeat;
+        old.mySeat != mySeat ||
+        old.showWaitingOverlay != showWaitingOverlay;
   }
 }

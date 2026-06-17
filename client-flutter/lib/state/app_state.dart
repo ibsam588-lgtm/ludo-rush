@@ -16,14 +16,14 @@ class AppState extends ChangeNotifier {
   static const int _trackLength = 52;
   static const List<int> _localStartOffsets = [1, 14, 27, 40];
   static const Set<int> _localSafeTrackIndexes = {
-    1,
-    8,
-    14,
-    21,
-    27,
-    34,
-    40,
-    47,
+    2,
+    9,
+    15,
+    22,
+    28,
+    35,
+    41,
+    48,
   };
   static const List<String> _matchedNames = [
     'Maya',
@@ -68,6 +68,7 @@ class AppState extends ChangeNotifier {
   int _pollAttempts = 0;
   final math.Random _rng = math.Random();
   Timer? _localBotTimer;
+  Timer? _matchmakingTimer;
 
   // Roll state (mirrors Java lastRollValue / lastRollPlayerId)
   int lastRollValue = 0;
@@ -106,6 +107,7 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    _matchmakingTimer?.cancel();
     _localBotTimer?.cancel();
     _wsSub?.cancel();
     _ws.disconnect();
@@ -125,6 +127,12 @@ class AppState extends ChangeNotifier {
   void navigateTo(String route, {Object? arguments}) {
     clearTransientUi();
     navigatorKey.currentState?.pushNamed(route, arguments: arguments);
+  }
+
+  void replaceWith(String route, {Object? arguments}) {
+    clearTransientUi();
+    navigatorKey.currentState
+        ?.pushReplacementNamed(route, arguments: arguments);
   }
 
   void goBack() {
@@ -222,9 +230,9 @@ class AppState extends ChangeNotifier {
     currentMatchIsBot = true;
     _resetLiveMatch();
     connecting = true;
-    navigateTo('/game');
-    _setStatus('Opening table...');
-    _startLocalBotMatch(
+    _setStatus('Searching for match...');
+    _openMatchmakingScreen();
+    _scheduleLocalBotMatch(
       mode,
       reason: 'Bot table ready. Roll when it is your turn.',
     );
@@ -237,12 +245,38 @@ class AppState extends ChangeNotifier {
     currentMatchIsBot = true;
     _resetLiveMatch();
     connecting = true;
-    navigateTo('/game');
-    _setStatus('Opening bot table...');
-    _startLocalBotMatch(
+    _setStatus('Searching for bot table...');
+    _openMatchmakingScreen();
+    _scheduleLocalBotMatch(
       mode,
       reason: 'Bot table ready. Roll when it is your turn.',
     );
+  }
+
+  void cancelMatchmaking() {
+    _matchmakingTimer?.cancel();
+    _matchmakingTimer = null;
+    if (connecting) {
+      connecting = false;
+      pendingMatchMode = 'classic_2p';
+      _setStatus('Matchmaking cancelled.');
+    }
+  }
+
+  void _openMatchmakingScreen() {
+    clearTransientUi();
+    navigatorKey.currentState?.pushNamed('/matchmaking');
+  }
+
+  void _scheduleLocalBotMatch(String mode, {required String reason}) {
+    _matchmakingTimer?.cancel();
+    _matchmakingTimer = Timer(const Duration(milliseconds: 1700), () {
+      _matchmakingTimer = null;
+      if (!connecting || pendingMatchMode != mode) return;
+      _setStatus('Setting up your game...');
+      _startLocalBotMatch(mode, reason: reason);
+      replaceWith('/game');
+    });
   }
 
   // ignore: unused_element
@@ -843,6 +877,8 @@ class AppState extends ChangeNotifier {
   }
 
   void _resetLiveMatch() {
+    _matchmakingTimer?.cancel();
+    _matchmakingTimer = null;
     _localBotTimer?.cancel();
     _localBotTimer = null;
     localMatchActive = false;
