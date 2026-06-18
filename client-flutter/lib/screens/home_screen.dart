@@ -149,13 +149,10 @@ class _GeneratedLobbyBackground extends StatelessWidget {
         final stageReserve = width < 370
             ? (aspect > 1.9 ? 218.0 : 204.0)
             : (aspect > 2.05 ? 270.0 : 246.0);
-        final availableForBoard =
-            math.max(0.0, height - topChrome - bottomChrome - stageReserve);
-        final minBoardHeight = width * (aspect > 2.05 ? 0.50 : 0.36);
-        final maxBoardHeight = width * (aspect > 2.05 ? 0.92 : 0.72);
-        final boardTop = topChrome;
-        final boardHeight =
-            availableForBoard.clamp(minBoardHeight, maxBoardHeight).toDouble();
+        final stageTop = topChrome;
+        final stageBottom =
+            math.max(stageTop, height - bottomChrome - stageReserve);
+        final stageHeight = math.max(0.0, stageBottom - stageTop);
         return Stack(
           fit: StackFit.expand,
           children: [
@@ -173,16 +170,43 @@ class _GeneratedLobbyBackground extends StatelessWidget {
               ),
             ),
             Positioned(
-              top: boardTop,
+              top: stageTop,
               left: 0,
               right: 0,
-              height: boardHeight,
-              child: ClipRect(
-                child: Image.asset(
-                  'assets/images/home_ludo_board_window.png',
-                  fit: BoxFit.cover,
-                  alignment: Alignment.center,
-                  filterQuality: FilterQuality.high,
+              height: stageHeight,
+              child: IgnorePointer(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(
+                      'assets/images/home_ludo_board_window.png',
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      filterQuality: FilterQuality.high,
+                    ),
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: palette.dark
+                              ? const [
+                                  Color(0x33050019),
+                                  Color(0x00050019),
+                                  Color(0x11050019),
+                                  Color(0x66050019),
+                                ]
+                              : const [
+                                  Color(0x22FFFFFF),
+                                  Color(0x00FFFFFF),
+                                  Color(0x22FFFFFF),
+                                  Color(0x66FFE8F7),
+                                ],
+                          stops: const [0, 0.28, 0.72, 1],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
