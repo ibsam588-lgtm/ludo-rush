@@ -53,6 +53,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: SafeArea(
                   child: Column(
                     children: [
+                      _BrandHeader(palette: p),
                       _TopHud(state: state, palette: p, shimmer: _shimmer),
                       _RewardStrip(palette: p),
                       Expanded(
@@ -131,6 +132,239 @@ class _RushPalette {
   }
 }
 
+class _BrandHeader extends StatelessWidget {
+  final _RushPalette palette;
+
+  const _BrandHeader({required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, box) {
+        final compact = box.maxWidth < 370;
+        return SizedBox(
+          height: compact ? 70 : 82,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: palette.dark
+                          ? const [
+                              Color(0xAA050016),
+                              Color(0x22050016),
+                              Color(0x00050016),
+                            ]
+                          : const [
+                              Color(0xAAFFFFFF),
+                              Color(0x44FFFFFF),
+                              Color(0x00FFFFFF),
+                            ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: compact ? 16 : 22,
+                top: compact ? 0 : 4,
+                child: Transform.scale(
+                  scale: compact ? 0.84 : 1,
+                  alignment: Alignment.topLeft,
+                  child: const _LudoRushLogo(),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _LudoRushLogo extends StatelessWidget {
+  const _LudoRushLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 190,
+      height: 82,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 70,
+            top: -5,
+            width: 42,
+            height: 30,
+            child: CustomPaint(painter: _LogoCrownPainter()),
+          ),
+          Positioned(
+            left: 0,
+            top: 7,
+            child: ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFFFFF37D),
+                  Color(0xFFFFB000),
+                  Color(0xFFFF6A00),
+                ],
+              ).createShader(bounds),
+              child: const Text(
+                'Ludo',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 42,
+                  height: 0.9,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0,
+                  shadows: [
+                    Shadow(
+                        color: Color(0xFF7A1200),
+                        blurRadius: 0,
+                        offset: Offset(2.4, 3.2)),
+                    Shadow(
+                        color: Color(0xCC000000),
+                        blurRadius: 9,
+                        offset: Offset(0, 4)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 18,
+            top: 43,
+            child: Stack(
+              children: const [
+                Text(
+                  'Rush',
+                  style: TextStyle(
+                    color: Color(0xFF1D326A),
+                    fontSize: 34,
+                    height: 0.9,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0,
+                    shadows: [
+                      Shadow(
+                          color: Color(0xAA000000),
+                          blurRadius: 7,
+                          offset: Offset(0, 4)),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  top: -2,
+                  left: 0,
+                  child: Text(
+                    'Rush',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 34,
+                      height: 0.9,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            left: 143,
+            top: 39,
+            width: 34,
+            height: 34,
+            child: Transform.rotate(
+              angle: -0.35,
+              child: CustomPaint(painter: _LogoDicePainter()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LogoCrownPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..isAntiAlias = true;
+    final path = Path()
+      ..moveTo(size.width * 0.05, size.height * 0.82)
+      ..lineTo(size.width * 0.20, size.height * 0.34)
+      ..lineTo(size.width * 0.38, size.height * 0.66)
+      ..lineTo(size.width * 0.52, size.height * 0.10)
+      ..lineTo(size.width * 0.66, size.height * 0.66)
+      ..lineTo(size.width * 0.84, size.height * 0.34)
+      ..lineTo(size.width * 0.95, size.height * 0.82)
+      ..close();
+    p.shader = const LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [Color(0xFFFFF795), Color(0xFFFFB000), Color(0xFFD46A00)],
+    ).createShader(Offset.zero & size);
+    canvas.drawPath(path, p);
+    p
+      ..shader = null
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = Colors.white.withAlpha(210);
+    canvas.drawPath(path, p);
+    p
+      ..style = PaintingStyle.fill
+      ..color = const Color(0xFFFFF8A6);
+    for (final c in [
+      Offset(size.width * 0.20, size.height * 0.28),
+      Offset(size.width * 0.52, size.height * 0.08),
+      Offset(size.width * 0.84, size.height * 0.28),
+    ]) {
+      canvas.drawCircle(c, size.width * 0.065, p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _LogoDicePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = RRect.fromRectXY(Offset.zero & size, 8, 8);
+    final p = Paint()..isAntiAlias = true;
+    p.color = Colors.black.withAlpha(120);
+    canvas.drawRRect(r.shift(const Offset(3, 4)), p);
+    p.shader = const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Colors.white, Color(0xFFE8E4DA)],
+    ).createShader(Offset.zero & size);
+    canvas.drawRRect(r, p);
+    p
+      ..shader = null
+      ..color = const Color(0xFF170619);
+    final dots = [
+      Offset(size.width * 0.28, size.height * 0.28),
+      Offset(size.width * 0.72, size.height * 0.28),
+      Offset(size.width * 0.28, size.height * 0.72),
+      Offset(size.width * 0.72, size.height * 0.72),
+      Offset(size.width * 0.50, size.height * 0.50),
+    ];
+    for (final dot in dots) {
+      canvas.drawCircle(dot, size.width * 0.055, p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
 class _GeneratedLobbyBackground extends StatelessWidget {
   final _RushPalette palette;
 
@@ -140,24 +374,11 @@ class _GeneratedLobbyBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, box) {
-        final safe = MediaQuery.paddingOf(context);
-        final width = box.maxWidth;
-        final height = box.maxHeight;
-        final aspect = box.maxHeight / math.max(1, box.maxWidth);
-        final topChrome = safe.top + (width < 370 ? 154.0 : 166.0);
-        final bottomChrome = safe.bottom + 94.0;
-        final stageReserve = width < 370
-            ? (aspect > 1.9 ? 218.0 : 204.0)
-            : (aspect > 2.05 ? 270.0 : 246.0);
-        final stageTop = topChrome;
-        final stageBottom =
-            math.max(stageTop, height - bottomChrome - stageReserve);
-        final stageHeight = math.max(0.0, stageBottom - stageTop);
         return Stack(
           fit: StackFit.expand,
           children: [
             Image.asset(
-              'assets/images/home_ludo_backdrop.png',
+              'assets/images/home_ludo_mockup_background.png',
               fit: BoxFit.cover,
               alignment: Alignment.topCenter,
               filterQuality: FilterQuality.high,
@@ -165,49 +386,8 @@ class _GeneratedLobbyBackground extends StatelessWidget {
             Positioned.fill(
               child: ColoredBox(
                 color: palette.dark
-                    ? const Color(0xAA080015)
+                    ? const Color(0x22080015)
                     : const Color(0x55FFFFFF),
-              ),
-            ),
-            Positioned(
-              top: stageTop,
-              left: 0,
-              right: 0,
-              height: stageHeight,
-              child: IgnorePointer(
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.asset(
-                      'assets/images/home_ludo_board_window.png',
-                      fit: BoxFit.cover,
-                      alignment: Alignment.center,
-                      filterQuality: FilterQuality.high,
-                    ),
-                    DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: palette.dark
-                              ? const [
-                                  Color(0x33050019),
-                                  Color(0x00050019),
-                                  Color(0x11050019),
-                                  Color(0x66050019),
-                                ]
-                              : const [
-                                  Color(0x22FFFFFF),
-                                  Color(0x00FFFFFF),
-                                  Color(0x22FFFFFF),
-                                  Color(0x66FFE8F7),
-                                ],
-                          stops: const [0, 0.28, 0.72, 1],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
             DecoratedBox(
@@ -217,10 +397,10 @@ class _GeneratedLobbyBackground extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: palette.dark
                       ? const [
-                          Color(0x66050019),
-                          Color(0x11050019),
+                          Color(0x44050019),
                           Color(0x00050019),
-                          Color(0x77050019),
+                          Color(0x00050019),
+                          Color(0x22050019),
                         ]
                       : const [
                           Color(0x33FFFFFF),
@@ -238,7 +418,7 @@ class _GeneratedLobbyBackground extends StatelessWidget {
                   center: const Alignment(0, 0.92),
                   radius: 0.95,
                   colors: palette.dark
-                      ? const [Color(0x00FF2BC2), Color(0x99100022)]
+                      ? const [Color(0x00FF2BC2), Color(0x33100022)]
                       : const [Color(0x00FFFFFF), Color(0x99FFE0F4)],
                 ),
               ),
@@ -1058,115 +1238,182 @@ class _RewardStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 72,
-      child: Row(
-        children: [
-          const SizedBox(width: 10),
-          _SideRewardButton(palette: palette),
-          const SizedBox(width: 10),
-          Expanded(
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
+    return LayoutBuilder(
+      builder: (context, box) {
+        final compact = box.maxWidth < 370;
+        final gap = compact ? 7.0 : 10.0;
+        return SizedBox(
+          height: compact ? 76 : 84,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(12, 4, 12, compact ? 5 : 7),
+            child: Row(
               children: [
-                _RewardTile(
+                Expanded(
+                  child: _RewardTile(
                     palette: palette,
-                    level: 'Level 4',
-                    icon: Icons.shield_rounded),
-                _RewardTile(
+                    label: 'Free',
+                    icon: Icons.card_giftcard_rounded,
+                    start: const Color(0xFFE93836),
+                    end: const Color(0xFFFFB21C),
+                  ),
+                ),
+                SizedBox(width: gap),
+                Expanded(
+                  child: _RewardTile(
                     palette: palette,
-                    level: 'Level 5',
-                    icon: Icons.workspace_premium_rounded),
-                _RewardTile(
+                    label: 'Level 4',
+                    icon: Icons.shield_rounded,
+                    start: const Color(0xFFFFE066),
+                    end: const Color(0xFFD89100),
+                  ),
+                ),
+                SizedBox(width: gap),
+                Expanded(
+                  child: _RewardTile(
                     palette: palette,
-                    level: 'Locked',
-                    icon: Icons.groups_rounded),
+                    label: 'Level 5',
+                    icon: Icons.workspace_premium_rounded,
+                    start: const Color(0xFFFFD426),
+                    end: const Color(0xFFE03068),
+                  ),
+                ),
+                SizedBox(width: gap),
+                Expanded(
+                  child: _RewardTile(
+                    palette: palette,
+                    label: 'Locked',
+                    icon: Icons.lock_rounded,
+                    start: const Color(0xFFFFD35B),
+                    end: const Color(0xFF8C4B00),
+                  ),
+                ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SideRewardButton extends StatelessWidget {
-  final _RushPalette palette;
-
-  const _SideRewardButton({required this.palette});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 58,
-      decoration: BoxDecoration(
-        color: palette.panel,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: palette.stroke, width: 1.5),
-        boxShadow: [BoxShadow(color: palette.shadow, blurRadius: 8)],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.play_arrow_rounded, color: palette.gold, size: 24),
-          Text('Free',
-              style: TextStyle(
-                  color: palette.text,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900)),
-        ],
-      ),
+        );
+      },
     );
   }
 }
 
 class _RewardTile extends StatelessWidget {
   final _RushPalette palette;
-  final String level;
+  final String label;
   final IconData icon;
+  final Color start;
+  final Color end;
 
   const _RewardTile({
     required this.palette,
-    required this.level,
+    required this.label,
     required this.icon,
+    required this.start,
+    required this.end,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 92,
-      margin: const EdgeInsets.only(right: 9),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
-            colors: palette.dark
-                ? const [Color(0xFF9A3B8B), Color(0xFF49144E)]
-                : const [Color(0xFFFFF0FD), Color(0xFFFFC1E6)]),
-        border: Border.all(
-            color: palette.dark
-                ? const Color(0x77FFD426)
-                : const Color(0x66D66D00)),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: palette.gold, size: 24),
-          const SizedBox(height: 7),
-          Text(
-            level,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: palette.text,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-            ),
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: palette.dark
+              ? const [Color(0xFF8A1776), Color(0xFF421048)]
+              : const [Color(0xFFFFEFFB), Color(0xFFFFB9E3)],
+        ),
+        border: Border.all(color: palette.stroke, width: 1.6),
+        boxShadow: [
+          BoxShadow(
+            color: palette.shadow,
+            blurRadius: 9,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: palette.gold.withAlpha(45),
+            blurRadius: 12,
           ),
         ],
       ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Stack(
+          children: [
+            Positioned.fill(child: CustomPaint(painter: _RewardTilePattern())),
+            Align(
+              alignment: const Alignment(0, -0.34),
+              child: Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(colors: [start, end]),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x99000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Icon(icon, color: Colors.white, size: 22),
+              ),
+            ),
+            Positioned(
+              left: 5,
+              right: 5,
+              bottom: 9,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: palette.text,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0,
+                    shadows: palette.dark
+                        ? const [
+                            Shadow(
+                              color: Color(0xCC000000),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
+}
+
+class _RewardTilePattern extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = Colors.white.withAlpha(24);
+    for (double x = -size.height; x < size.width + size.height; x += 18) {
+      canvas.drawLine(Offset(x, 0), Offset(x + size.height, size.height), p);
+    }
+    p
+      ..style = PaintingStyle.fill
+      ..color = Colors.white.withAlpha(18);
+    canvas.drawCircle(Offset(size.width * 0.82, size.height * 0.18),
+        size.shortestSide * 0.25, p);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _LobbyStage extends StatelessWidget {
@@ -1186,13 +1433,13 @@ class _LobbyStage extends StatelessWidget {
       builder: (context, box) {
         final narrow = box.maxWidth < 370;
         final compact = box.maxHeight < 500;
-        final rowGap = compact ? 8.0 : 12.0;
-        final bottomGap = compact ? 5.0 : 8.0;
-        final baseBigHeight = (box.maxWidth * (narrow ? 0.31 : 0.34))
-            .clamp(104.0, 138.0)
+        final rowGap = compact ? 7.0 : 10.0;
+        final bottomGap = compact ? 5.0 : 9.0;
+        final baseBigHeight = (box.maxWidth * (narrow ? 0.27 : 0.285))
+            .clamp(94.0, 124.0)
             .toDouble();
-        final baseSmallHeight = (box.maxWidth * (narrow ? 0.22 : 0.24))
-            .clamp(76.0, 98.0)
+        final baseSmallHeight = (box.maxWidth * (narrow ? 0.19 : 0.205))
+            .clamp(66.0, 86.0)
             .toDouble();
         final needed = baseBigHeight + rowGap + baseSmallHeight + bottomGap;
         final scale =
