@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -64,11 +66,10 @@ class _ShopScreenState extends State<ShopScreen>
                   builder: (context, box) {
                     final narrow = box.maxWidth < 370;
                     final compactHeight = box.maxHeight < 720;
-                    final heroHeight = math
-                        .min(box.maxWidth * 0.42,
-                            box.maxHeight * (compactHeight ? 0.18 : 0.20))
-                        .clamp(narrow ? 116.0 : 128.0, 168.0)
-                        .toDouble();
+                    final heroHeight =
+                        (box.maxHeight * (compactHeight ? 0.30 : 0.34))
+                            .clamp(narrow ? 210.0 : 230.0, 330.0)
+                            .toDouble();
                     final columns = box.maxWidth < 360 ? 2 : 3;
                     final cardAspect = columns == 2
                         ? (compactHeight ? 0.82 : 0.88)
@@ -315,105 +316,68 @@ class _ShopHero extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: LayoutBuilder(
-          builder: (context, box) {
-            final w = box.maxWidth;
-            final h = box.maxHeight;
-            final signWidth = (w * 0.36).clamp(126.0, 164.0).toDouble();
-            final signHeight = signWidth * 0.40;
-            final signLeft =
-                (w * 0.16).clamp(24.0, w - signWidth - 18).toDouble();
-            final coverWidth = (w * 0.56).clamp(184.0, 252.0).toDouble();
-            final boardRight = (w * 0.23).clamp(70.0, 116.0).toDouble();
-            final railHeight = (h * 0.14).clamp(18.0, 24.0).toDouble();
-
-            return Stack(
-              children: [
-                Positioned.fill(
-                  child: AnimatedBuilder(
-                    animation: animation,
-                    builder: (_, __) => CustomPaint(
-                      painter: _ShopHeroPainter(palette, animation.value),
-                      child: const SizedBox.expand(),
-                    ),
-                  ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/images/rush/rush_shop_hero_v2.png',
+              fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
+              filterQuality: FilterQuality.high,
+            ),
+            AnimatedBuilder(
+              animation: animation,
+              builder: (_, __) => CustomPaint(
+                painter: _ShopHeroSparklePainter(animation.value),
+              ),
+            ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.transparent,
+                    palette.bg.withAlpha(215),
+                  ],
+                  stops: const [0, 0.63, 1],
                 ),
-                Positioned(
-                  left: -w * 0.07,
-                  top: -h * 0.16,
-                  bottom: -h * 0.12,
-                  right: boardRight,
-                  child: AnimatedBuilder(
-                    animation: animation,
-                    child: Opacity(
-                      opacity: 0.66,
-                      child: Image.asset(
-                        'assets/images/home_ludo_board_window.png',
-                        fit: BoxFit.cover,
-                        alignment: Alignment.center,
-                        filterQuality: FilterQuality.high,
-                      ),
-                    ),
-                    builder: (_, child) {
-                      final wave = math.sin(animation.value * math.pi * 2);
-                      return Transform.translate(
-                        offset: Offset(0, wave * 3),
-                        child: Transform.rotate(
-                          angle: -0.035 + wave * 0.008,
-                          child: child,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                Positioned(
-                  right: -w * 0.02,
-                  top: h * 0.04,
-                  bottom: h * 0.13,
-                  width: coverWidth,
-                  child: IgnorePointer(
-                    child: AnimatedBuilder(
-                      animation: animation,
-                      builder: (_, __) => CustomPaint(
-                        painter: _ShopCoverSignArtPainter(animation.value),
-                        child: const SizedBox.expand(),
-                      ),
-                    ),
-                  ),
-                ),
-                _ShopCoverBubbles(
-                  animation: animation,
-                  width: (w * 0.70).clamp(210.0, 292.0).toDouble(),
-                  height: h * 0.84,
-                ),
-                Positioned(
-                  left: signLeft,
-                  top: -signHeight * 0.64,
-                  child: _AnimatedShopSign(
-                    animation: animation,
-                    width: signWidth,
-                    height: signHeight,
-                  ),
-                ),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: Container(
-                    height: railHeight,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                          colors: [Color(0xFF9D5528), Color(0xFF5C250E)]),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+class _ShopHeroSparklePainter extends CustomPainter {
+  final double t;
+
+  const _ShopHeroSparklePainter(this.t);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..isAntiAlias = true;
+    for (int i = 0; i < 18; i++) {
+      final phase = t * math.pi * 2 + i * 0.75;
+      final x = ((i * 71.0) + t * 34) % size.width;
+      final y = size.height * (0.05 + ((i * 37) % 74) / 100);
+      final r = 1.6 + (i % 3) * 1.1 + math.sin(phase).abs() * 1.3;
+      p.color = [
+        goldColor,
+        const Color(0xFFFF4BD8),
+        const Color(0xFF48E9FF),
+        Colors.white,
+      ][i % 4]
+          .withAlpha((70 + math.sin(phase).abs() * 140).round());
+      canvas.drawCircle(Offset(x, y), r, p);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ShopHeroSparklePainter oldDelegate) => oldDelegate.t != t;
 }
 
 class _AnimatedShopSign extends StatelessWidget {
@@ -525,6 +489,509 @@ class _AnimatedShopSign extends StatelessWidget {
       },
     );
   }
+}
+
+class _ShopMascotWidget extends StatelessWidget {
+  final AnimationController animation;
+
+  const _ShopMascotWidget({required this.animation});
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (_, __) {
+          final phase = animation.value * math.pi * 2;
+          final bob = math.sin(phase) * 2.8;
+          return Transform.translate(
+            offset: Offset(0, bob),
+            child: Stack(
+              fit: StackFit.expand,
+              clipBehavior: Clip.none,
+              children: [
+                Positioned(
+                  left: 8,
+                  right: 8,
+                  bottom: 0,
+                  height: 14,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withAlpha(90),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 6,
+                  right: 6,
+                  bottom: 6,
+                  height: 18,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      gradient: const LinearGradient(
+                        colors: [
+                          Color(0xFFFFE06E),
+                          Color(0xFFD87900),
+                          Color(0xFF632800),
+                        ],
+                      ),
+                      border: Border.all(color: Color(0xFFFFF08A), width: 1.4),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x88000000), blurRadius: 8),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  top: 14,
+                  bottom: 16,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFFFFF06B),
+                          Color(0xFFFFC928),
+                          Color(0xFFE09300),
+                        ],
+                      ),
+                      border: Border.all(color: Color(0xFF8A5500), width: 1.4),
+                      boxShadow: const [
+                        BoxShadow(
+                            color: Color(0x66000000),
+                            blurRadius: 8,
+                            offset: Offset(0, 4)),
+                      ],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 21,
+                  right: 21,
+                  top: -1,
+                  height: 26,
+                  child: CustomPaint(
+                    painter: _MiniCrownPainter(boardYellow),
+                  ),
+                ),
+                Positioned(
+                  left: 23,
+                  right: 23,
+                  top: 31,
+                  height: 26,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      _MiniGoggle(),
+                      _MiniGoggle(),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  left: 25,
+                  right: 25,
+                  bottom: 19,
+                  height: 30,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(14),
+                        bottom: Radius.circular(18),
+                      ),
+                      gradient: LinearGradient(
+                        colors: [
+                          Color.lerp(boardBlue, Colors.white, 0.18)!,
+                          boardBlue,
+                          Color.lerp(boardBlue, Colors.black, 0.28)!,
+                        ],
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.star_rounded,
+                      color: boardYellow,
+                      size: 20,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: -2,
+                  bottom: 28,
+                  width: 26,
+                  height: 26,
+                  child: Transform.rotate(
+                    angle: -0.22 + math.sin(phase) * 0.08,
+                    child: const DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            Color(0xFFFFF27D),
+                            Color(0xFFFFC21F),
+                            Color(0xFFE07E00),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: -2,
+                  bottom: 32,
+                  width: 28,
+                  height: 28,
+                  child: Transform.rotate(
+                    angle: 0.16 - math.sin(phase) * 0.08,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(7),
+                        border: Border.all(
+                            color: const Color(0xFFFFD426), width: 1.4),
+                        boxShadow: const [
+                          BoxShadow(
+                              color: Color(0x66000000),
+                              blurRadius: 5,
+                              offset: Offset(1, 3)),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.casino_rounded,
+                        color: boardRed,
+                        size: 19,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _MiniGoggle extends StatelessWidget {
+  const _MiniGoggle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFF5F5871),
+        border: Border.all(color: const Color(0xFF534865), width: 2),
+      ),
+      alignment: Alignment.center,
+      child: Container(
+        width: 15,
+        height: 15,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(
+            center: Alignment(-0.45, -0.45),
+            colors: [Colors.white, Color(0xFFCDE9FF)],
+          ),
+        ),
+        alignment: Alignment.center,
+        child: Container(
+          width: 6,
+          height: 6,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Color(0xFF1A1030),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniCrownPainter extends CustomPainter {
+  final Color accent;
+
+  const _MiniCrownPainter(this.accent);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..isAntiAlias = true;
+    final path = Path()
+      ..moveTo(size.width * 0.08, size.height * 0.86)
+      ..lineTo(size.width * 0.23, size.height * 0.22)
+      ..lineTo(size.width * 0.40, size.height * 0.58)
+      ..lineTo(size.width * 0.50, size.height * 0.10)
+      ..lineTo(size.width * 0.60, size.height * 0.58)
+      ..lineTo(size.width * 0.77, size.height * 0.22)
+      ..lineTo(size.width * 0.92, size.height * 0.86)
+      ..close();
+    p.shader = LinearGradient(
+      colors: [const Color(0xFFFFF27B), goldColor, accent],
+    ).createShader(Offset.zero & size);
+    canvas.drawPath(path, p);
+    p.shader = null;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..color = const Color(0xFF9D6500);
+    canvas.drawPath(path, p);
+  }
+
+  @override
+  bool shouldRepaint(_MiniCrownPainter oldDelegate) =>
+      oldDelegate.accent != accent;
+}
+
+class _ShopMascotShelfPainter extends CustomPainter {
+  final double t;
+
+  const _ShopMascotShelfPainter(this.t);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..isAntiAlias = true;
+    final phase = t * math.pi * 2;
+    final center = Offset(size.width * 0.50, size.height * 0.55);
+    final s = math.min(size.width, size.height) * 0.44;
+
+    p.shader = ui.Gradient.radial(
+      center.translate(0, -s * 0.20),
+      s * 1.30,
+      const [Color(0x66FFD426), Color(0x00220627)],
+    );
+    canvas.drawCircle(center, s * 1.30, p);
+    p.shader = null;
+
+    final shelf = Rect.fromCenter(
+      center: Offset(size.width * 0.50, size.height * 0.82),
+      width: size.width * 0.92,
+      height: size.height * 0.22,
+    );
+    p.color = const Color(0x77000000);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(shelf.center.dx, shelf.bottom + 5),
+        width: shelf.width * 0.92,
+        height: shelf.height * 0.42,
+      ),
+      p,
+    );
+    p.shader = ui.Gradient.linear(
+      shelf.topLeft,
+      shelf.bottomRight,
+      const [Color(0xFFFFE06E), Color(0xFFD87900), Color(0xFF632800)],
+    );
+    canvas.drawRRect(RRect.fromRectXY(shelf, 14, 14), p);
+    p.shader = null;
+
+    _drawMascot(
+      canvas,
+      center.translate(0, math.sin(phase) * size.height * 0.025),
+      s,
+      boardBlue,
+      boardYellow,
+      p,
+    );
+    _drawCoin(
+      canvas,
+      Offset(size.width * 0.16, size.height * (0.70 + math.sin(phase) * 0.03)),
+      s * 0.18,
+      p,
+    );
+    _drawDice(
+      canvas,
+      Offset(size.width * 0.84, size.height * (0.70 + math.cos(phase) * 0.03)),
+      s * 0.31,
+      p,
+    );
+  }
+
+  void _drawMascot(
+      Canvas canvas, Offset c, double s, Color suit, Color accent, Paint p) {
+    canvas.save();
+    canvas.translate(c.dx, c.dy);
+
+    p.color = const Color(0x66000000);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(0, s * 0.72),
+        width: s * 1.28,
+        height: s * 0.28,
+      ),
+      p,
+    );
+
+    final body = Rect.fromCenter(
+      center: Offset.zero,
+      width: s * 0.82,
+      height: s * 1.16,
+    );
+    p.shader = ui.Gradient.linear(
+      body.topLeft,
+      body.bottomRight,
+      const [Color(0xFFFFF06B), Color(0xFFFFC928), Color(0xFFE09300)],
+      const [0.0, 0.56, 1.0],
+    );
+    canvas.drawRRect(RRect.fromRectXY(body, s * 0.34, s * 0.34), p);
+    p.shader = null;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.0, s * 0.035)
+      ..color = const Color(0xFF8A5500);
+    canvas.drawRRect(RRect.fromRectXY(body, s * 0.34, s * 0.34), p);
+    p.style = PaintingStyle.fill;
+
+    _drawCrown(canvas, Offset(0, -s * 0.62), s * 0.34, accent, p);
+    _drawGoggles(canvas, s, p);
+    _drawSmile(canvas, s, p);
+    _drawOveralls(canvas, s, suit, accent, p);
+    canvas.restore();
+  }
+
+  void _drawCrown(Canvas canvas, Offset c, double r, Color accent, Paint p) {
+    final crown = Path()
+      ..moveTo(c.dx - r, c.dy + r * 0.30)
+      ..lineTo(c.dx - r * 0.62, c.dy - r * 0.70)
+      ..lineTo(c.dx - r * 0.22, c.dy)
+      ..lineTo(c.dx, c.dy - r * 0.86)
+      ..lineTo(c.dx + r * 0.22, c.dy)
+      ..lineTo(c.dx + r * 0.62, c.dy - r * 0.70)
+      ..lineTo(c.dx + r, c.dy + r * 0.30)
+      ..close();
+    p.shader = ui.Gradient.linear(
+      c.translate(-r, -r),
+      c.translate(r, r),
+      [const Color(0xFFFFF27B), goldColor, accent],
+    );
+    canvas.drawPath(crown, p);
+    p.shader = null;
+  }
+
+  void _drawGoggles(Canvas canvas, double s, Paint p) {
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(2.0, s * 0.08)
+      ..color = const Color(0xFF534865);
+    canvas.drawLine(
+        Offset(-s * 0.32, -s * 0.25), Offset(s * 0.32, -s * 0.25), p);
+    p.style = PaintingStyle.fill;
+    for (final x in [-s * 0.17, s * 0.17]) {
+      p.color = const Color(0xFF5F5871);
+      canvas.drawCircle(Offset(x, -s * 0.25), s * 0.18, p);
+      p.shader = ui.Gradient.radial(
+        Offset(x - s * 0.04, -s * 0.30),
+        s * 0.15,
+        const [Colors.white, Color(0xFFCDE9FF)],
+      );
+      canvas.drawCircle(Offset(x, -s * 0.25), s * 0.125, p);
+      p.shader = null;
+      p.color = const Color(0xFF1A1030);
+      canvas.drawCircle(Offset(x + s * 0.02, -s * 0.24), s * 0.046, p);
+      p.color = Colors.white;
+      canvas.drawCircle(Offset(x, -s * 0.29), s * 0.022, p);
+    }
+  }
+
+  void _drawSmile(Canvas canvas, double s, Paint p) {
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = math.max(1.4, s * 0.055)
+      ..color = const Color(0xFF6D3D00);
+    canvas.drawArc(
+      Rect.fromCenter(
+          center: Offset(0, -s * 0.04), width: s * 0.38, height: s * 0.22),
+      0.2,
+      math.pi - 0.4,
+      false,
+      p,
+    );
+    p
+      ..style = PaintingStyle.fill
+      ..strokeCap = StrokeCap.butt;
+  }
+
+  void _drawOveralls(
+      Canvas canvas, double s, Color suit, Color accent, Paint p) {
+    final overalls = Path()
+      ..moveTo(-s * 0.32, s * 0.12)
+      ..lineTo(-s * 0.23, s * 0.50)
+      ..quadraticBezierTo(0, s * 0.64, s * 0.23, s * 0.50)
+      ..lineTo(s * 0.32, s * 0.12)
+      ..quadraticBezierTo(s * 0.13, s * 0.25, 0, s * 0.25)
+      ..quadraticBezierTo(-s * 0.13, s * 0.25, -s * 0.32, s * 0.12)
+      ..close();
+    p.shader = ui.Gradient.linear(
+      Offset(-s * 0.34, s * 0.10),
+      Offset(s * 0.34, s * 0.62),
+      [
+        Color.lerp(suit, Colors.white, 0.20)!,
+        suit,
+        Color.lerp(suit, Colors.black, 0.28)!,
+      ],
+    );
+    canvas.drawPath(overalls, p);
+    p.shader = null;
+    p.color = accent;
+    _drawStar(canvas, Offset(0, s * 0.38), s * 0.14, p);
+  }
+
+  void _drawCoin(Canvas canvas, Offset c, double r, Paint p) {
+    p.shader = ui.Gradient.radial(
+      c.translate(-r * 0.20, -r * 0.20),
+      r * 1.20,
+      const [Color(0xFFFFF27D), Color(0xFFFFC21F), Color(0xFFE07E00)],
+    );
+    canvas.drawCircle(c, r, p);
+    p.shader = null;
+  }
+
+  void _drawDice(Canvas canvas, Offset c, double s, Paint p) {
+    final rect = Rect.fromCenter(center: c, width: s, height: s);
+    p.shader = ui.Gradient.linear(
+      rect.topLeft,
+      rect.bottomRight,
+      const [Colors.white, Color(0xFFFFEFC8)],
+    );
+    canvas.drawRRect(RRect.fromRectXY(rect, s * 0.22, s * 0.22), p);
+    p.shader = null;
+    p.color = boardRed;
+    for (final dot in [
+      rect.center,
+      Offset(rect.left + s * 0.30, rect.top + s * 0.30),
+      Offset(rect.right - s * 0.30, rect.bottom - s * 0.30),
+      Offset(rect.right - s * 0.30, rect.top + s * 0.30),
+      Offset(rect.left + s * 0.30, rect.bottom - s * 0.30),
+    ]) {
+      canvas.drawCircle(dot, s * 0.055, p);
+    }
+  }
+
+  void _drawStar(Canvas canvas, Offset c, double r, Paint p) {
+    final path = Path();
+    for (int i = 0; i < 10; i++) {
+      final a = -math.pi / 2 + i * math.pi / 5;
+      final rr = i.isEven ? r : r * 0.45;
+      final point = c + Offset(math.cos(a) * rr, math.sin(a) * rr);
+      if (i == 0) {
+        path.moveTo(point.dx, point.dy);
+      } else {
+        path.lineTo(point.dx, point.dy);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, p);
+  }
+
+  @override
+  bool shouldRepaint(_ShopMascotShelfPainter oldDelegate) => oldDelegate.t != t;
 }
 
 class _ShopCoverBubbles extends StatelessWidget {
@@ -1178,6 +1645,27 @@ class _ShopCoverSignArtPainter extends CustomPainter {
     canvas.drawRect(Offset.zero & size, p);
     p.shader = null;
 
+    final mascotBob = math.sin(phase + 0.4) * size.shortestSide * 0.018;
+    _drawShopCounter(canvas, size, p);
+    _drawMascot(
+      canvas,
+      Offset(size.width * 0.57, size.height * 0.56 + mascotBob),
+      size.shortestSide * 0.37,
+      boardBlue,
+      boardYellow,
+      p,
+      false,
+    );
+    _drawMascot(
+      canvas,
+      Offset(size.width * 0.18, size.height * 0.72 - mascotBob * 0.7),
+      size.shortestSide * 0.22,
+      boardGreen,
+      boardRed,
+      p,
+      false,
+    );
+
     _drawDice(
       canvas,
       Offset(size.width * 0.30, size.height * (0.25 + math.sin(phase) * 0.03)),
@@ -1224,6 +1712,227 @@ class _ShopCoverSignArtPainter extends CustomPainter {
       _drawSpark(canvas, c.translate(math.sin(a) * 3, math.cos(a) * 3),
           size.shortestSide * 0.028, p);
     }
+  }
+
+  void _drawShopCounter(Canvas canvas, Size size, Paint p) {
+    final counter = Rect.fromLTWH(
+      size.width * 0.10,
+      size.height * 0.72,
+      size.width * 0.78,
+      size.height * 0.20,
+    );
+    p.color = Colors.black.withAlpha(72);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.width * 0.49, counter.bottom + size.height * 0.03),
+        width: counter.width * 0.94,
+        height: size.height * 0.09,
+      ),
+      p,
+    );
+    p.shader = ui.Gradient.linear(
+      counter.topLeft,
+      counter.bottomRight,
+      const [Color(0xFFFFD765), Color(0xFFD97800), Color(0xFF6B2B00)],
+    );
+    canvas.drawRRect(RRect.fromRectXY(counter, 16, 16), p);
+    p.shader = null;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = const Color(0xFFFFF08A);
+    canvas.drawRRect(RRect.fromRectXY(counter.deflate(2), 14, 14), p);
+    p.style = PaintingStyle.fill;
+  }
+
+  void _drawMascot(Canvas canvas, Offset base, double s, Color suit,
+      Color accent, Paint p, bool flip) {
+    canvas.save();
+    canvas.translate(base.dx, base.dy);
+    canvas.scale(flip ? -1.0 : 1.0, 1.0);
+
+    p.color = const Color(0x66000000);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(0, s * 0.70),
+        width: s * 1.28,
+        height: s * 0.28,
+      ),
+      p,
+    );
+
+    _drawMascotArm(canvas, Offset(-s * 0.36, -s * 0.02), -1, accent, p, s);
+    _drawMascotArm(canvas, Offset(s * 0.36, -s * 0.02), 1, accent, p, s);
+
+    final body = Rect.fromCenter(
+      center: Offset.zero,
+      width: s * 0.86,
+      height: s * 1.18,
+    );
+    p.shader = ui.Gradient.linear(
+      body.topLeft,
+      body.bottomRight,
+      const [Color(0xFFFFF06B), Color(0xFFFFC928), Color(0xFFE09300)],
+      const [0.0, 0.56, 1.0],
+    );
+    canvas.drawRRect(RRect.fromRectXY(body, s * 0.36, s * 0.36), p);
+    p.shader = null;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.0, s * 0.035)
+      ..color = const Color(0xFF8A5500);
+    canvas.drawRRect(RRect.fromRectXY(body, s * 0.36, s * 0.36), p);
+    p.style = PaintingStyle.fill;
+
+    _drawMascotCrown(canvas, Offset(0, -s * 0.62), s * 0.34, accent, p);
+    _drawMascotGoggles(canvas, s, p);
+    _drawMascotSmile(canvas, s, p);
+    _drawMascotOveralls(canvas, s, suit, accent, p);
+
+    p.color = Color.lerp(suit, Colors.black, 0.48)!;
+    canvas.drawRRect(
+      RRect.fromRectXY(
+        Rect.fromCenter(
+            center: Offset(-s * 0.19, s * 0.61),
+            width: s * 0.30,
+            height: s * 0.13),
+        s * 0.08,
+        s * 0.08,
+      ),
+      p,
+    );
+    canvas.drawRRect(
+      RRect.fromRectXY(
+        Rect.fromCenter(
+            center: Offset(s * 0.19, s * 0.61),
+            width: s * 0.30,
+            height: s * 0.13),
+        s * 0.08,
+        s * 0.08,
+      ),
+      p,
+    );
+    canvas.restore();
+  }
+
+  void _drawMascotArm(Canvas canvas, Offset shoulder, int side, Color accent,
+      Paint p, double s) {
+    final end = shoulder + Offset(side * s * 0.38, s * 0.24);
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = math.max(3.0, s * 0.16)
+      ..color = const Color(0xFFE09300);
+    canvas.drawLine(shoulder, end, p);
+    p
+      ..strokeWidth = math.max(2.0, s * 0.10)
+      ..color = const Color(0xFFFFF06B);
+    canvas.drawLine(shoulder.translate(side * 0.6, -0.5), end, p);
+    p.style = PaintingStyle.fill;
+    p.color = accent;
+    canvas.drawCircle(end, math.max(2.6, s * 0.11), p);
+  }
+
+  void _drawMascotCrown(
+      Canvas canvas, Offset c, double r, Color accent, Paint p) {
+    final crown = Path()
+      ..moveTo(c.dx - r, c.dy + r * 0.30)
+      ..lineTo(c.dx - r * 0.62, c.dy - r * 0.70)
+      ..lineTo(c.dx - r * 0.22, c.dy)
+      ..lineTo(c.dx, c.dy - r * 0.86)
+      ..lineTo(c.dx + r * 0.22, c.dy)
+      ..lineTo(c.dx + r * 0.62, c.dy - r * 0.70)
+      ..lineTo(c.dx + r, c.dy + r * 0.30)
+      ..close();
+    p.shader = ui.Gradient.linear(
+      c.translate(-r, -r),
+      c.translate(r, r),
+      [const Color(0xFFFFF27B), goldColor, accent],
+    );
+    canvas.drawPath(crown, p);
+    p.shader = null;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.0, r * 0.10)
+      ..color = const Color(0xFF9D6500);
+    canvas.drawPath(crown, p);
+    p.style = PaintingStyle.fill;
+  }
+
+  void _drawMascotGoggles(Canvas canvas, double s, Paint p) {
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(2.0, s * 0.08)
+      ..color = const Color(0xFF534865);
+    canvas.drawLine(
+        Offset(-s * 0.32, -s * 0.25), Offset(s * 0.32, -s * 0.25), p);
+    p.style = PaintingStyle.fill;
+
+    for (final x in [-s * 0.17, s * 0.17]) {
+      p.color = const Color(0xFF5F5871);
+      canvas.drawCircle(Offset(x, -s * 0.25), s * 0.18, p);
+      p.shader = ui.Gradient.radial(
+        Offset(x - s * 0.04, -s * 0.30),
+        s * 0.15,
+        const [Colors.white, Color(0xFFCDE9FF)],
+      );
+      canvas.drawCircle(Offset(x, -s * 0.25), s * 0.125, p);
+      p.shader = null;
+      p.color = const Color(0xFF1A1030);
+      canvas.drawCircle(Offset(x + s * 0.02, -s * 0.24), s * 0.046, p);
+      p.color = Colors.white;
+      canvas.drawCircle(Offset(x, -s * 0.29), s * 0.022, p);
+    }
+  }
+
+  void _drawMascotSmile(Canvas canvas, double s, Paint p) {
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = math.max(1.4, s * 0.055)
+      ..color = const Color(0xFF6D3D00);
+    canvas.drawArc(
+      Rect.fromCenter(
+          center: Offset(0, -s * 0.04), width: s * 0.38, height: s * 0.22),
+      0.2,
+      math.pi - 0.4,
+      false,
+      p,
+    );
+    p
+      ..style = PaintingStyle.fill
+      ..strokeCap = StrokeCap.butt;
+  }
+
+  void _drawMascotOveralls(
+      Canvas canvas, double s, Color suit, Color accent, Paint p) {
+    final overalls = Path()
+      ..moveTo(-s * 0.32, s * 0.12)
+      ..lineTo(-s * 0.23, s * 0.50)
+      ..quadraticBezierTo(0, s * 0.64, s * 0.23, s * 0.50)
+      ..lineTo(s * 0.32, s * 0.12)
+      ..quadraticBezierTo(s * 0.13, s * 0.25, 0, s * 0.25)
+      ..quadraticBezierTo(-s * 0.13, s * 0.25, -s * 0.32, s * 0.12)
+      ..close();
+    p.shader = ui.Gradient.linear(
+      Offset(-s * 0.34, s * 0.10),
+      Offset(s * 0.34, s * 0.62),
+      [
+        Color.lerp(suit, Colors.white, 0.20)!,
+        suit,
+        Color.lerp(suit, Colors.black, 0.28)!,
+      ],
+    );
+    canvas.drawPath(overalls, p);
+    p.shader = null;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.0, s * 0.032)
+      ..color = Color.lerp(suit, Colors.black, 0.42)!;
+    canvas.drawPath(overalls, p);
+    p.style = PaintingStyle.fill;
+    p.color = accent;
+    _drawSpark(canvas, Offset(0, s * 0.38), s * 0.14, p);
   }
 
   void _drawCoin(Canvas canvas, Offset c, double r, Paint p) {
@@ -1399,6 +2108,14 @@ class _ShopHeroPainter extends CustomPainter {
     _drawCoin(canvas, Offset(heroWidth * 0.74, heroHeight * 0.84), 14, paint);
     _drawGem(canvas, Offset(heroWidth * 0.91, heroHeight * 0.27), 13,
         const Color(0xFF4DEBFF), paint);
+    _drawHeroMascot(
+      canvas,
+      Offset(heroWidth * 0.88, heroHeight * (0.72 + float * 0.02)),
+      heroHeight * 0.34,
+      boardBlue,
+      boardYellow,
+      paint,
+    );
   }
 
   void _drawShopBoard(Canvas canvas, double s, Paint paint) {
@@ -1578,6 +2295,152 @@ class _ShopHeroPainter extends CustomPainter {
     paint.color = Colors.white.withAlpha(140);
     canvas.drawCircle(
         Offset(c.dx - r * 0.20, c.dy - r * 0.22), r * 0.18, paint);
+  }
+
+  void _drawHeroMascot(Canvas canvas, Offset c, double s, Color suit,
+      Color accent, Paint paint) {
+    canvas.save();
+    canvas.translate(c.dx, c.dy);
+
+    paint
+      ..style = PaintingStyle.fill
+      ..color = const Color(0x66000000);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(0, s * 0.72),
+        width: s * 1.35,
+        height: s * 0.30,
+      ),
+      paint,
+    );
+
+    final body = Rect.fromCenter(
+      center: Offset.zero,
+      width: s * 0.86,
+      height: s * 1.18,
+    );
+    paint.shader = ui.Gradient.linear(
+      body.topLeft,
+      body.bottomRight,
+      const [Color(0xFFFFF06B), Color(0xFFFFC928), Color(0xFFE09300)],
+      const [0.0, 0.56, 1.0],
+    );
+    canvas.drawRRect(RRect.fromRectXY(body, s * 0.34, s * 0.34), paint);
+    paint.shader = null;
+
+    paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.2, s * 0.035)
+      ..color = const Color(0xFF8A5500);
+    canvas.drawRRect(RRect.fromRectXY(body, s * 0.34, s * 0.34), paint);
+    paint.style = PaintingStyle.fill;
+
+    _drawHeroMascotCrown(canvas, Offset(0, -s * 0.62), s * 0.34, accent, paint);
+    _drawHeroMascotGoggles(canvas, s, paint);
+
+    paint
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = math.max(1.4, s * 0.055)
+      ..color = const Color(0xFF6D3D00);
+    canvas.drawArc(
+      Rect.fromCenter(
+        center: Offset(0, -s * 0.04),
+        width: s * 0.38,
+        height: s * 0.22,
+      ),
+      0.2,
+      math.pi - 0.4,
+      false,
+      paint,
+    );
+    paint
+      ..style = PaintingStyle.fill
+      ..strokeCap = StrokeCap.butt;
+
+    final overalls = Path()
+      ..moveTo(-s * 0.32, s * 0.12)
+      ..lineTo(-s * 0.23, s * 0.50)
+      ..quadraticBezierTo(0, s * 0.64, s * 0.23, s * 0.50)
+      ..lineTo(s * 0.32, s * 0.12)
+      ..quadraticBezierTo(s * 0.13, s * 0.25, 0, s * 0.25)
+      ..quadraticBezierTo(-s * 0.13, s * 0.25, -s * 0.32, s * 0.12)
+      ..close();
+    paint.shader = ui.Gradient.linear(
+      Offset(-s * 0.34, s * 0.10),
+      Offset(s * 0.34, s * 0.62),
+      [
+        Color.lerp(suit, Colors.white, 0.20)!,
+        suit,
+        Color.lerp(suit, Colors.black, 0.28)!,
+      ],
+    );
+    canvas.drawPath(overalls, paint);
+    paint.shader = null;
+    paint.color = accent;
+    _drawHeroStar(canvas, Offset(0, s * 0.38), s * 0.14, paint);
+    canvas.restore();
+  }
+
+  void _drawHeroMascotCrown(
+      Canvas canvas, Offset c, double r, Color accent, Paint paint) {
+    final crown = Path()
+      ..moveTo(c.dx - r, c.dy + r * 0.30)
+      ..lineTo(c.dx - r * 0.62, c.dy - r * 0.70)
+      ..lineTo(c.dx - r * 0.22, c.dy)
+      ..lineTo(c.dx, c.dy - r * 0.86)
+      ..lineTo(c.dx + r * 0.22, c.dy)
+      ..lineTo(c.dx + r * 0.62, c.dy - r * 0.70)
+      ..lineTo(c.dx + r, c.dy + r * 0.30)
+      ..close();
+    paint.shader = ui.Gradient.linear(
+      c.translate(-r, -r),
+      c.translate(r, r),
+      [const Color(0xFFFFF27B), goldColor, accent],
+    );
+    canvas.drawPath(crown, paint);
+    paint.shader = null;
+  }
+
+  void _drawHeroMascotGoggles(Canvas canvas, double s, Paint paint) {
+    paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(2.0, s * 0.08)
+      ..color = const Color(0xFF534865);
+    canvas.drawLine(
+        Offset(-s * 0.32, -s * 0.25), Offset(s * 0.32, -s * 0.25), paint);
+    paint.style = PaintingStyle.fill;
+    for (final x in [-s * 0.17, s * 0.17]) {
+      paint.color = const Color(0xFF5F5871);
+      canvas.drawCircle(Offset(x, -s * 0.25), s * 0.18, paint);
+      paint.shader = ui.Gradient.radial(
+        Offset(x - s * 0.04, -s * 0.30),
+        s * 0.15,
+        const [Colors.white, Color(0xFFCDE9FF)],
+      );
+      canvas.drawCircle(Offset(x, -s * 0.25), s * 0.125, paint);
+      paint.shader = null;
+      paint.color = const Color(0xFF1A1030);
+      canvas.drawCircle(Offset(x + s * 0.02, -s * 0.24), s * 0.046, paint);
+      paint.color = Colors.white;
+      canvas.drawCircle(Offset(x, -s * 0.29), s * 0.022, paint);
+    }
+  }
+
+  void _drawHeroStar(Canvas canvas, Offset c, double r, Paint paint) {
+    final path = Path();
+    for (int i = 0; i < 10; i++) {
+      final a = -math.pi / 2 + i * math.pi / 5;
+      final rr = i.isEven ? r : r * 0.45;
+      final point = c + Offset(math.cos(a) * rr, math.sin(a) * rr);
+      if (i == 0) {
+        path.moveTo(point.dx, point.dy);
+      } else {
+        path.lineTo(point.dx, point.dy);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, paint);
   }
 
   @override
