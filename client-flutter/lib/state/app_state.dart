@@ -19,33 +19,26 @@ class AppState extends ChangeNotifier {
   static const List<int> _localStartOffsets = [1, 14, 27, 40];
   static const Set<int> _localSafeTrackIndexes = {
     1,
-    10,
+    9,
     14,
-    23,
+    22,
     27,
-    36,
+    35,
     40,
-    49,
+    48,
   };
   static const Map<int, int> _snakeLadders = {
-    4: 14,
-    9: 31,
-    20: 38,
-    28: 84,
-    40: 59,
-    51: 67,
-    63: 81,
-    71: 91,
+    6: 26,
+    23: 37,
+    48: 68,
+    65: 85,
+    79: 99,
   };
   static const Map<int, int> _snakeDrops = {
-    17: 7,
-    54: 34,
-    62: 19,
-    64: 60,
-    87: 24,
-    93: 73,
-    95: 75,
-    99: 78,
+    47: 13,
+    57: 35,
+    84: 64,
+    93: 68,
   };
   static const List<String> _matchedNames = [
     'Maya',
