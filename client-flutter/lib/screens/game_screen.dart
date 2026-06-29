@@ -153,10 +153,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                             boardGap * 4 -
                             6.0,
                       );
-                      final boardSize = math.min(
+                      final boardAspect = snakesTable ? 1.13 : 1.0;
+                      final boardWidth = math.min(
                         constraints.maxWidth - 14,
-                        maxBoardFromHeight,
+                        maxBoardFromHeight / boardAspect,
                       );
+                      final boardHeight = boardWidth * boardAspect;
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -184,8 +186,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           ),
                           SizedBox(height: boardGap),
                           SizedBox(
-                            width: boardSize,
-                            height: boardSize,
+                            width: boardWidth,
+                            height: boardHeight,
                             child: snakesTable
                                 ? SnakesLaddersBoard(
                                     snapshot: snapshot,

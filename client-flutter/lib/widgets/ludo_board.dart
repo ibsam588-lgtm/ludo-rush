@@ -69,13 +69,13 @@ class _BoardConsts {
   // sync with AppState._localSafeTrackIndexes so captures and visuals agree.
   static const safeSeats = [
     [6, 13, 0],
-    [8, 13, 0],
+    [2, 8, 0],
     [1, 6, 1],
-    [1, 8, 1],
-    [6, 1, 2],
+    [6, 2, 1],
     [8, 1, 2],
-    [13, 6, 3],
+    [12, 6, 2],
     [13, 8, 3],
+    [8, 12, 3],
   ];
 
   static const homeLanes = [
