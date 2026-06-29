@@ -3,6 +3,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import '../models/game_snapshot.dart';
 import '../theme/app_theme.dart';
 
@@ -64,15 +65,17 @@ class _BoardConsts {
     [7, 14],
   ];
 
+  // Stop/safe stars are paired around each colored home lane. Keep this in
+  // sync with AppState._localSafeTrackIndexes so captures and visuals agree.
   static const safeSeats = [
-    [6, 12, 0],
-    [2, 8, 0],
-    [2, 6, 1],
-    [6, 2, 1],
-    [8, 2, 2],
-    [12, 6, 2],
-    [12, 8, 3],
-    [8, 12, 3],
+    [6, 13, 0],
+    [8, 13, 0],
+    [1, 6, 1],
+    [1, 8, 1],
+    [6, 1, 2],
+    [8, 1, 2],
+    [13, 6, 3],
+    [13, 8, 3],
   ];
 
   static const homeLanes = [
@@ -167,6 +170,7 @@ class _LudoBoardState extends State<LudoBoard>
   late final AnimationController _pulse;
   late final Animation<double> _pulseAnim;
   final List<_PieceHit> _hits = [];
+  Map<int, ui.Image> _pieceImages = const {};
 
   @override
   void initState() {
@@ -176,12 +180,45 @@ class _LudoBoardState extends State<LudoBoard>
       duration: const Duration(milliseconds: 600),
     )..repeat(reverse: true);
     _pulseAnim = Tween<double>(begin: 0.2, end: 1.0).animate(_pulse);
+    _loadPieceImages();
   }
 
   @override
   void dispose() {
     _pulse.dispose();
+    for (final image in _pieceImages.values) {
+      image.dispose();
+    }
     super.dispose();
+  }
+
+  Future<void> _loadPieceImages() async {
+    const paths = [
+      'assets/images/rush/rush_goti_red_v2.png',
+      'assets/images/rush/rush_goti_blue_v2.png',
+      'assets/images/rush/rush_goti_yellow_v2.png',
+      'assets/images/rush/rush_goti_green_v2.png',
+    ];
+    final loaded = <int, ui.Image>{};
+    for (int i = 0; i < paths.length; i++) {
+      final data = await rootBundle.load(paths[i]);
+      final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+      final frame = await codec.getNextFrame();
+      codec.dispose();
+      loaded[i] = frame.image;
+    }
+    if (!mounted) {
+      for (final image in loaded.values) {
+        image.dispose();
+      }
+      return;
+    }
+    setState(() {
+      for (final image in _pieceImages.values) {
+        image.dispose();
+      }
+      _pieceImages = loaded;
+    });
   }
 
   void _handleTap(Offset pos) {
@@ -216,6 +253,7 @@ class _LudoBoardState extends State<LudoBoard>
               pulsePhase: _pulseAnim.value,
               hits: _hits,
               showWaitingOverlay: widget.showWaitingOverlay,
+              pieceImages: _pieceImages,
             ),
           ),
         ),
@@ -232,7 +270,7 @@ class _BoardPainter extends CustomPainter {
   final double pulsePhase;
   final List<_PieceHit> hits;
   final bool showWaitingOverlay;
-
+  final Map<int, ui.Image> pieceImages;
   static const _ivory = creamCell;
   static const _gold = goldColor;
   static const _goldDk = goldDark;
@@ -243,6 +281,7 @@ class _BoardPainter extends CustomPainter {
     required this.pulsePhase,
     required this.hits,
     required this.showWaitingOverlay,
+    required this.pieceImages,
   });
 
   @override
@@ -267,9 +306,13 @@ class _BoardPainter extends CustomPainter {
     _drawTrack(canvas, boardLeft, boardTop, cell);
     _drawHomeLanes(canvas, boardLeft, boardTop, cell);
     _drawGridLines(canvas, boardLeft, boardTop, cell, boardSize);
+    _drawBaseNestPanels(canvas, boardLeft, boardTop, cell);
     _drawSafeStars(canvas, boardLeft, boardTop, cell);
+    _drawHomeLaneArrows(canvas, boardLeft, boardTop, cell);
     _drawCenter(canvas, boardLeft, boardTop, cell);
     if (snapshot == null) _drawPreviewPieces(canvas, boardLeft, boardTop, cell);
+    if (snapshot != null)
+      _drawMissingSeatPieces(canvas, boardLeft, boardTop, cell);
     _drawPieces(canvas, boardLeft, boardTop, cell);
     canvas.restore();
 
@@ -378,6 +421,48 @@ class _BoardPainter extends CustomPainter {
     _drawBase(canvas, left, top, cell, 9, 9, boardGreen); // Green bottom-right
   }
 
+  void _drawBaseNestPanels(
+      Canvas canvas, double left, double top, double cell) {
+    for (final base in _BoardConsts.bases) {
+      _drawBaseNestPanel(canvas, left, top, cell, base[0], base[1]);
+    }
+  }
+
+  void _drawBaseNestPanel(
+      Canvas canvas, double left, double top, double cell, int gx, int gy) {
+    final p = Paint()..isAntiAlias = true;
+    final x1 = left + gx * cell;
+    final y1 = top + gy * cell;
+    final x2 = left + (gx + 6) * cell;
+    final y2 = top + (gy + 6) * cell;
+
+    final ins = cell * 0.64;
+    final innerRect = Rect.fromLTRB(x1 + ins, y1 + ins, x2 - ins, y2 - ins);
+    final innerRR = RRect.fromRectXY(innerRect, cell * 0.35, cell * 0.35);
+    p.shader = ui.Gradient.linear(
+      innerRect.topLeft,
+      innerRect.bottomRight,
+      const [Color(0xFFFFFCF4), Color(0xFFF2E5C8)],
+    );
+    canvas.drawRRect(innerRR, p);
+    p.shader = null;
+
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = cell * 0.05
+      ..color = _gold.withAlpha(180);
+    canvas.drawRRect(innerRR, p);
+    p.style = PaintingStyle.fill;
+
+    p.shader = ui.Gradient.linear(
+      innerRect.topCenter,
+      innerRect.bottomCenter,
+      [Colors.white.withAlpha(64), Colors.white.withAlpha(0)],
+    );
+    canvas.drawRRect(innerRR.deflate(cell * 0.10), p);
+    p.shader = null;
+  }
+
   void _drawBase(Canvas canvas, double left, double top, double cell, int gx,
       int gy, Color color) {
     final p = Paint()..isAntiAlias = true;
@@ -405,7 +490,7 @@ class _BoardPainter extends CustomPainter {
     p.style = PaintingStyle.fill;
 
     // WHITE inner region for nests (Ludo Star style)
-    p.color = Colors.white.withAlpha(42);
+    p.color = Colors.white.withAlpha(48);
     p.strokeWidth = cell * 0.10;
     canvas.drawLine(
       Offset(x1 + cell * 0.35, y1 + cell * 0.35),
@@ -426,7 +511,7 @@ class _BoardPainter extends CustomPainter {
     // Subtle inner border
     p.style = PaintingStyle.stroke;
     p.strokeWidth = cell * 0.05;
-    p.color = _gold.withAlpha(125);
+    p.color = _gold.withAlpha(165);
     canvas.drawRRect(innerRR, p);
     p.style = PaintingStyle.fill;
 
@@ -448,7 +533,7 @@ class _BoardPainter extends CustomPainter {
       p.shader = ui.Gradient.radial(
         Offset(px - r * 0.25, py - r * 0.25),
         r * 1.25,
-        [Color(_blend(_toInt(color), 0xFFFFFFFF, 0.48)), color],
+        const [Color(0xFFFFFCF4), Color(0xFFF3E5C4)],
       );
       canvas.drawCircle(Offset(px, py), r, p);
       p.shader = null;
@@ -456,7 +541,7 @@ class _BoardPainter extends CustomPainter {
       // Slightly darker edge for 3D depth
       p.style = PaintingStyle.stroke;
       p.strokeWidth = cell * 0.035;
-      p.color = Color(_blend(_toInt(color), 0xFF000000, 0.22));
+      p.color = const Color(0xD6B78016);
       canvas.drawCircle(Offset(px, py), r, p);
       p.style = PaintingStyle.fill;
 
@@ -521,12 +606,79 @@ class _BoardPainter extends CustomPainter {
     }
   }
 
+  void _drawHomeLaneArrows(
+      Canvas canvas, double left, double top, double cell) {
+    for (int seat = 0; seat < 4; seat++) {
+      final p = _BoardConsts.homeLanes[seat].first;
+      _drawHomeLaneArrow(
+        canvas,
+        left + (p[0] + 0.5) * cell,
+        top + (p[1] + 0.5) * cell,
+        cell,
+        seat,
+        _seatCol(seat),
+      );
+    }
+  }
+
+  void _drawHomeLaneArrow(
+      Canvas canvas, double cx, double cy, double cell, int seat, Color color) {
+    final angle = switch (seat) {
+      0 => 0.0, // Red moves up toward center.
+      1 => math.pi / 2, // Blue moves right toward center.
+      2 => math.pi, // Yellow moves down toward center.
+      _ => -math.pi / 2, // Green moves left toward center.
+    };
+    final s = cell * 0.58;
+    final dark = Color(_blend(_toInt(color), 0xFF000000, 0.45));
+    final path = Path()
+      ..moveTo(0, -s * 0.46)
+      ..lineTo(-s * 0.30, -s * 0.08)
+      ..lineTo(-s * 0.12, -s * 0.08)
+      ..lineTo(-s * 0.12, s * 0.34)
+      ..lineTo(s * 0.12, s * 0.34)
+      ..lineTo(s * 0.12, -s * 0.08)
+      ..lineTo(s * 0.30, -s * 0.08)
+      ..close();
+
+    canvas.save();
+    canvas.translate(cx, cy);
+    canvas.rotate(angle);
+    final p = Paint()..isAntiAlias = true;
+    p.color = const Color(0x33000000);
+    canvas.drawPath(path.shift(Offset(0, cell * 0.045)), p);
+    p.color = Colors.white.withAlpha(185);
+    canvas.drawPath(path, p);
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.0, cell * 0.035)
+      ..color = dark;
+    canvas.drawPath(path, p);
+    p.style = PaintingStyle.fill;
+    canvas.restore();
+  }
+
   void _drawPreviewPieces(Canvas canvas, double left, double top, double cell) {
     for (int seat = 0; seat < 4; seat++) {
       for (int i = 0; i < 4; i++) {
         final pos = _yardPos(seat, i, left, top, cell);
         _drawPiece(
-            canvas, pos.dx, pos.dy, cell * 0.38, _seatCol(seat), false, false);
+            canvas, pos.dx, pos.dy, cell * 0.45, _seatCol(seat), false, false,
+            seat: seat);
+      }
+    }
+  }
+
+  void _drawMissingSeatPieces(
+      Canvas canvas, double left, double top, double cell) {
+    final activeSeats = snapshot!.pieces.map((piece) => piece.seat).toSet();
+    for (int seat = 0; seat < 4; seat++) {
+      if (activeSeats.contains(seat)) continue;
+      for (int i = 0; i < 4; i++) {
+        final pos = _yardPos(seat, i, left, top, cell);
+        _drawPiece(
+            canvas, pos.dx, pos.dy, cell * 0.45, _seatCol(seat), false, false,
+            seat: seat);
       }
     }
   }
@@ -717,16 +869,17 @@ class _BoardPainter extends CustomPainter {
         final legal = avail.contains(piece.pieceId);
         hits.add(_PieceHit(piece.pieceId, pos.dx, pos.dy, r, legal));
         _drawPiece(canvas, pos.dx, pos.dy, r, _seatCol(piece.seat), legal,
-            activeSeat == piece.seat);
+            activeSeat == piece.seat,
+            seat: piece.seat);
       }
     }
   }
 
   double _stackedPieceRadius(double cell, int total) {
-    if (total <= 1) return cell * 0.43;
-    if (total == 2) return cell * 0.35;
-    if (total == 3) return cell * 0.31;
-    return cell * 0.29;
+    if (total <= 1) return cell * 0.46;
+    if (total == 2) return cell * 0.38;
+    if (total == 3) return cell * 0.34;
+    return cell * 0.31;
   }
 
   Offset _stackedPiecePos(Offset center, int index, int total, double cell) {
@@ -750,7 +903,8 @@ class _BoardPainter extends CustomPainter {
   }
 
   void _drawPiece(Canvas canvas, double cx, double cy, double r, Color color,
-      bool legal, bool active) {
+      bool legal, bool active,
+      {required int seat}) {
     final p = Paint()..isAntiAlias = true;
 
     // Pulse / selection ring
@@ -764,116 +918,160 @@ class _BoardPainter extends CustomPainter {
       p.style = PaintingStyle.fill;
     }
 
-    final darkColor = Color(_blend(_toInt(color), 0xFF000000, 0.36));
-    final markColor = color == boardYellow
-        ? const Color(0xFF7A5200)
-        : const Color(0xFFFFF4A3);
+    final image = pieceImages[seat.clamp(0, 3)];
+    if (image != null) {
+      final imageH = r * 2.34;
+      final imageW = imageH * image.width / image.height;
+      final dest = Rect.fromCenter(
+        center: Offset(cx, cy - r * 0.06),
+        width: imageW,
+        height: imageH,
+      );
+      canvas.drawImageRect(
+        image,
+        Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+        dest,
+        Paint()
+          ..isAntiAlias = true
+          ..filterQuality = FilterQuality.high,
+      );
+      if (legal) {
+        _drawLegalArrow(canvas, cx, cy, r);
+      }
+      return;
+    }
+
+    final lightColor = Color(_blend(_toInt(color), 0xFFFFFFFF, 0.42));
+    final midColor = color;
+    final darkColor = Color(_blend(_toInt(color), 0xFF000000, 0.38));
+    final edgeColor = Color(_blend(_toInt(color), 0xFF000000, 0.58));
 
     p.color = const Color(0x47000000);
     canvas.drawOval(
       Rect.fromCenter(
-        center: Offset(cx, cy + r * 0.98),
-        width: r * 2.25,
-        height: r * 0.48,
+        center: Offset(cx, cy + r * 0.82),
+        width: r * 1.95,
+        height: r * 0.40,
       ),
       p,
     );
 
-    p.color = const Color(0xFF7A4A08);
-    canvas.drawCircle(Offset(cx, cy + r * 0.48), r * 1.02, p);
-
-    p.shader = ui.Gradient.radial(
-      Offset(cx - r * 0.20, cy + r * 0.10),
-      r * 1.15,
-      const [Color(0xFFE8A81A), Color(0xFFB46D05), Color(0xFF6E4100)],
-      const [0.0, 0.62, 1.0],
+    final baseRect = Rect.fromCenter(
+      center: Offset(cx, cy + r * 0.56),
+      width: r * 1.56,
+      height: r * 0.48,
     );
-    canvas.drawCircle(Offset(cx, cy + r * 0.28), r * 1.02, p);
-    p.shader = null;
-
-    p.shader = ui.Gradient.radial(
-      Offset(cx - r * 0.24, cy - r * 0.22),
-      r * 1.22,
-      const [Color(0xFFFFF4A3), goldColor, Color(0xFFB87800)],
-      const [0.0, 0.54, 1.0],
+    p
+      ..shader = null
+      ..style = PaintingStyle.fill
+      ..color = edgeColor;
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(cx, cy + r * 0.64),
+        width: r * 1.62,
+        height: r * 0.44,
+      ),
+      p,
     );
-    canvas.drawCircle(Offset(cx, cy + r * 0.04), r * 1.03, p);
+    p.shader = ui.Gradient.linear(
+      baseRect.topLeft,
+      baseRect.bottomRight,
+      [lightColor, midColor, edgeColor],
+      const [0.0, 0.48, 1.0],
+    );
+    canvas.drawOval(baseRect, p);
     p.shader = null;
-
-    p.style = PaintingStyle.stroke;
-    p.strokeWidth = math.max(1.0, r * 0.10);
-    p.color = const Color(0xFF815000);
-    canvas.drawCircle(Offset(cx, cy + r * 0.04), r * 1.03, p);
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(0.8, r * 0.08)
+      ..color = edgeColor;
+    canvas.drawOval(baseRect, p);
     p.style = PaintingStyle.fill;
 
-    p.color = darkColor;
-    canvas.drawCircle(Offset(cx, cy + r * 0.04), r * 0.78, p);
-
-    p.shader = ui.Gradient.radial(
-      Offset(cx - r * 0.24, cy - r * 0.30),
-      r * 0.92,
-      [
-        Color(_blend(_toInt(color), 0xFFFFFFFF, 0.46)),
-        color,
-        darkColor,
-      ],
-      const [0.0, 0.56, 1.0],
+    final bodyRect = Rect.fromCenter(
+      center: Offset(cx, cy + r * 0.18),
+      width: r * 1.08,
+      height: r * 1.32,
     );
-    canvas.drawCircle(Offset(cx, cy - r * 0.12), r * 0.68, p);
+    p.color = edgeColor;
+    canvas.drawOval(bodyRect.inflate(r * 0.06), p);
+    p.shader = ui.Gradient.linear(
+      bodyRect.topLeft,
+      bodyRect.bottomRight,
+      [lightColor, midColor, darkColor],
+      const [0.0, 0.48, 1.0],
+    );
+    canvas.drawOval(bodyRect, p);
     p.shader = null;
 
-    p.color = Colors.white.withAlpha(95);
-    canvas.drawCircle(Offset(cx - r * 0.32, cy - r * 0.38), r * 0.23, p);
-
-    p.color = markColor.withAlpha(235);
-    final crown = Path()
-      ..moveTo(cx - r * 0.47, cy + r * 0.18)
-      ..lineTo(cx - r * 0.35, cy - r * 0.28)
-      ..lineTo(cx - r * 0.11, cy - r * 0.06)
-      ..lineTo(cx, cy - r * 0.40)
-      ..lineTo(cx + r * 0.13, cy - r * 0.06)
-      ..lineTo(cx + r * 0.35, cy - r * 0.28)
-      ..lineTo(cx + r * 0.47, cy + r * 0.18)
-      ..close();
-    canvas.drawPath(crown, p);
+    final neckRect = Rect.fromCenter(
+      center: Offset(cx, cy - r * 0.20),
+      width: r * 0.78,
+      height: r * 0.30,
+    );
+    p.shader = ui.Gradient.linear(
+      neckRect.topLeft,
+      neckRect.bottomRight,
+      [lightColor, midColor, darkColor],
+      const [0.0, 0.52, 1.0],
+    );
+    canvas.drawOval(neckRect, p);
+    p.shader = null;
 
     p
       ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(1.4, r * 0.12)
-      ..strokeCap = StrokeCap.round
-      ..color = markColor.withAlpha(235);
-    canvas.drawLine(
-      Offset(cx - r * 0.42, cy + r * 0.30),
-      Offset(cx + r * 0.42, cy + r * 0.30),
-      p,
-    );
+      ..strokeWidth = math.max(0.8, r * 0.07)
+      ..color = edgeColor;
+    canvas.drawOval(neckRect, p);
     p.style = PaintingStyle.fill;
 
-    p
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(1.2, r * 0.10)
-      ..strokeCap = StrokeCap.round
-      ..color = Colors.black.withAlpha(44);
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset(cx, cy + r * 0.08), radius: r * 0.75),
-      0.55,
-      1.45,
-      false,
+    p.color = edgeColor;
+    canvas.drawCircle(Offset(cx, cy - r * 0.66), r * 0.52, p);
+    p.shader = ui.Gradient.radial(
+      Offset(cx - r * 0.20, cy - r * 0.86),
+      r * 0.76,
+      [lightColor, midColor, darkColor],
+      const [0.0, 0.58, 1.0],
+    );
+    canvas.drawCircle(Offset(cx, cy - r * 0.66), r * 0.46, p);
+    p.shader = null;
+
+    p.color = Colors.white.withAlpha(110);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(cx - r * 0.18, cy - r * 0.90),
+        width: r * 0.26,
+        height: r * 0.18,
+      ),
       p,
     );
-    p.style = PaintingStyle.fill;
+
+    p.color = Colors.white.withAlpha(72);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(cx - r * 0.28, cy + r * 0.16),
+        width: r * 0.20,
+        height: r * 0.62,
+      ),
+      p,
+    );
 
     // Selection arrow above
     if (legal) {
-      final ap = Paint()
-        ..color = Color(((pulsePhase * 200 + 55).round() << 24) | 0x00FFFFFF);
-      final arrowPath = Path()
-        ..moveTo(cx, cy - r * 2.1)
-        ..lineTo(cx - r * 0.38, cy - r * 1.6)
-        ..lineTo(cx + r * 0.38, cy - r * 1.6)
-        ..close();
-      canvas.drawPath(arrowPath, ap);
+      _drawLegalArrow(canvas, cx, cy, r);
     }
+  }
+
+  void _drawLegalArrow(Canvas canvas, double cx, double cy, double r) {
+    final ap = Paint()
+      ..isAntiAlias = true
+      ..color = Color(((pulsePhase * 200 + 55).round() << 24) | 0x00FFFFFF);
+    final arrowPath = Path()
+      ..moveTo(cx, cy - r * 2.1)
+      ..lineTo(cx - r * 0.38, cy - r * 1.6)
+      ..lineTo(cx + r * 0.38, cy - r * 1.6)
+      ..close();
+    canvas.drawPath(arrowPath, ap);
   }
 
   // ── Piece position calculation ─────────────────────────────────────────────
@@ -981,6 +1179,7 @@ class _BoardPainter extends CustomPainter {
     return old.snapshot != snapshot ||
         old.pulsePhase != pulsePhase ||
         old.mySeat != mySeat ||
-        old.showWaitingOverlay != showWaitingOverlay;
+        old.showWaitingOverlay != showWaitingOverlay ||
+        old.pieceImages != pieceImages;
   }
 }

@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -12,15 +14,12 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  late final AnimationController _bg;
   late final AnimationController _intro;
   late final AnimationController _progress;
 
   @override
   void initState() {
     super.initState();
-    _bg = AnimationController(vsync: this, duration: const Duration(seconds: 9))
-      ..repeat(reverse: true);
     _intro = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1400))
       ..forward();
@@ -34,7 +33,6 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _bg.dispose();
     _intro.dispose();
     _progress.dispose();
     super.dispose();
@@ -47,14 +45,30 @@ class _SplashScreenState extends State<SplashScreen>
       body: Stack(
         fit: StackFit.expand,
         children: [
-          AnimatedBuilder(
-            animation: _bg,
-            builder: (_, __) => CustomPaint(painter: _SplashPainter(_bg.value)),
+          Image.asset(
+            'assets/images/rush/rush_splash_scene_v2.png',
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+            filterQuality: FilterQuality.high,
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withAlpha(35),
+                  Colors.transparent,
+                  const Color(0xFF12001D).withAlpha(220),
+                ],
+                stops: const [0, 0.58, 1],
+              ),
+            ),
           ),
           SafeArea(
             child: Column(
               children: [
-                const Spacer(flex: 8),
+                const Spacer(flex: 3),
                 AnimatedBuilder(
                   animation: _intro,
                   builder: (context, child) {
@@ -69,18 +83,7 @@ class _SplashScreenState extends State<SplashScreen>
                   },
                   child: const _LogoBlock(),
                 ),
-                const Spacer(flex: 3),
-                Expanded(
-                  flex: 15,
-                  child: AnimatedBuilder(
-                    animation: _bg,
-                    builder: (_, __) => CustomPaint(
-                      painter: _TableScenePainter(_bg.value),
-                      child: const SizedBox.expand(),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
+                const Spacer(flex: 18),
                 AnimatedBuilder(
                   animation: _progress,
                   builder: (context, _) => Padding(
@@ -375,14 +378,43 @@ class _TableScenePainter extends CustomPainter {
     canvas.drawRRect(RRect.fromRectXY(board, 18, 18), p);
     p.style = PaintingStyle.fill;
 
-    _drawMascot(canvas, Offset(size.width * 0.20, size.height * 0.67),
-        boardBlue, p, -0.18);
-    _drawMascot(canvas, Offset(size.width * 0.40, size.height * 0.63), boardRed,
-        p, 0.04);
-    _drawMascot(canvas, Offset(size.width * 0.61, size.height * 0.63),
-        const Color(0xFFFF5BBE), p, 0.10);
-    _drawMascot(canvas, Offset(size.width * 0.80, size.height * 0.67),
-        boardGreen, p, 0.20);
+    final bob = math.sin(t * math.pi * 2);
+    _drawMascot(
+      canvas,
+      Offset(size.width * 0.18, size.height * 0.70 + bob * 4),
+      boardBlue,
+      boardYellow,
+      p,
+      -0.12,
+      false,
+    );
+    _drawMascot(
+      canvas,
+      Offset(size.width * 0.39, size.height * 0.64 - bob * 3),
+      boardRed,
+      boardGreen,
+      p,
+      0.04,
+      false,
+    );
+    _drawMascot(
+      canvas,
+      Offset(size.width * 0.61, size.height * 0.64 + bob * 3),
+      const Color(0xFFE43AB4),
+      boardYellow,
+      p,
+      -0.03,
+      true,
+    );
+    _drawMascot(
+      canvas,
+      Offset(size.width * 0.82, size.height * 0.70 - bob * 4),
+      boardGreen,
+      boardRed,
+      p,
+      0.13,
+      true,
+    );
 
     _drawDice(
         canvas,
@@ -394,39 +426,50 @@ class _TableScenePainter extends CustomPainter {
     _drawCoin(canvas, Offset(size.width * 0.83, size.height * 0.86), 15, p);
   }
 
-  void _drawMascot(Canvas canvas, Offset c, Color color, Paint p, double rot) {
+  void _drawMascot(Canvas canvas, Offset c, Color suit, Color accent, Paint p,
+      double rot, bool flip) {
     canvas.save();
     canvas.translate(c.dx, c.dy);
     canvas.rotate(rot);
-    final s = 45.0;
-    p.color = Colors.black.withAlpha(70);
+    canvas.scale(flip ? -1.0 : 1.0, 1.0);
+    final s = 48.0;
+    p.color = Colors.black.withAlpha(78);
     canvas.drawOval(
         Rect.fromCenter(
-            center: Offset(0, s * 0.52), width: s * 1.15, height: s * 0.35),
+            center: Offset(0, s * 0.72), width: s * 1.22, height: s * 0.30),
         p);
-    p.shader = ui.Gradient.linear(Offset(-s, -s), Offset(s, s),
-        [Color.lerp(color, Colors.white, 0.28)!, color]);
-    canvas.drawRRect(
-        RRect.fromRectXY(
-            Rect.fromCenter(center: Offset.zero, width: s, height: s * 0.92),
-            16,
-            16),
-        p);
+
+    _drawMascotArm(canvas, Offset(-s * 0.36, -s * 0.03), -1, accent, p);
+    _drawMascotArm(canvas, Offset(s * 0.36, -s * 0.03), 1, accent, p);
+
+    final body =
+        Rect.fromCenter(center: Offset.zero, width: s * 0.86, height: s * 1.22);
+    p.shader = ui.Gradient.linear(
+      body.topLeft,
+      body.bottomRight,
+      const [Color(0xFFFFF06B), Color(0xFFFFC928), Color(0xFFE09300)],
+      const [0.0, 0.56, 1.0],
+    );
+    canvas.drawRRect(RRect.fromRectXY(body, s * 0.36, s * 0.36), p);
     p.shader = null;
-    p.color = Colors.white;
-    canvas.drawCircle(Offset(-s * 0.18, -s * 0.10), 7, p);
-    canvas.drawCircle(Offset(s * 0.18, -s * 0.10), 7, p);
-    p.color = const Color(0xFF251021);
-    canvas.drawCircle(Offset(-s * 0.18, -s * 0.08), 3.3, p);
-    canvas.drawCircle(Offset(s * 0.18, -s * 0.08), 3.3, p);
     p
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 3.2
+      ..strokeWidth = 2
+      ..color = const Color(0xFF8A5500);
+    canvas.drawRRect(RRect.fromRectXY(body, s * 0.36, s * 0.36), p);
+    p.style = PaintingStyle.fill;
+
+    _drawMascotCrown(canvas, Offset(0, -s * 0.64), s * 0.36, accent, p);
+    _drawMascotGoggles(canvas, s, p);
+
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5
       ..strokeCap = StrokeCap.round
-      ..color = Colors.white;
+      ..color = const Color(0xFF6D3D00);
     canvas.drawArc(
         Rect.fromCenter(
-            center: Offset(0, s * 0.06), width: s * 0.36, height: s * 0.28),
+            center: Offset(0, -s * 0.06), width: s * 0.38, height: s * 0.22),
         0.2,
         math.pi - 0.4,
         false,
@@ -434,7 +477,128 @@ class _TableScenePainter extends CustomPainter {
     p
       ..style = PaintingStyle.fill
       ..strokeCap = StrokeCap.butt;
+
+    _drawMascotOveralls(canvas, s, suit, accent, p);
+    p.color = Color.lerp(suit, Colors.black, 0.45)!;
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromCenter(
+                center: Offset(-s * 0.19, s * 0.62),
+                width: s * 0.32,
+                height: s * 0.14),
+            s * 0.08,
+            s * 0.08),
+        p);
+    canvas.drawRRect(
+        RRect.fromRectXY(
+            Rect.fromCenter(
+                center: Offset(s * 0.19, s * 0.62),
+                width: s * 0.32,
+                height: s * 0.14),
+            s * 0.08,
+            s * 0.08),
+        p);
     canvas.restore();
+  }
+
+  void _drawMascotArm(
+      Canvas canvas, Offset shoulder, int side, Color accent, Paint p) {
+    final end = shoulder + Offset(side * 18, 18);
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = 9
+      ..color = const Color(0xFFE09300);
+    canvas.drawLine(shoulder, end, p);
+    p
+      ..strokeWidth = 6
+      ..color = const Color(0xFFFFF06B);
+    canvas.drawLine(shoulder.translate(side * 0.5, -0.5), end, p);
+    p.style = PaintingStyle.fill;
+    p.color = accent;
+    canvas.drawCircle(end, 6.2, p);
+  }
+
+  void _drawMascotCrown(
+      Canvas canvas, Offset c, double r, Color accent, Paint p) {
+    final crown = Path()
+      ..moveTo(c.dx - r, c.dy + r * 0.32)
+      ..lineTo(c.dx - r * 0.62, c.dy - r * 0.70)
+      ..lineTo(c.dx - r * 0.22, c.dy)
+      ..lineTo(c.dx, c.dy - r * 0.86)
+      ..lineTo(c.dx + r * 0.22, c.dy)
+      ..lineTo(c.dx + r * 0.62, c.dy - r * 0.70)
+      ..lineTo(c.dx + r, c.dy + r * 0.32)
+      ..close();
+    p.shader = ui.Gradient.linear(
+      c.translate(-r, -r),
+      c.translate(r, r),
+      [const Color(0xFFFFF27B), goldColor, accent],
+    );
+    canvas.drawPath(crown, p);
+    p.shader = null;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4
+      ..color = const Color(0xFF9D6500);
+    canvas.drawPath(crown, p);
+    p.style = PaintingStyle.fill;
+  }
+
+  void _drawMascotGoggles(Canvas canvas, double s, Paint p) {
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4
+      ..color = const Color(0xFF534865);
+    canvas.drawLine(
+        Offset(-s * 0.32, -s * 0.26), Offset(s * 0.32, -s * 0.26), p);
+    p.style = PaintingStyle.fill;
+    for (final x in [-s * 0.17, s * 0.17]) {
+      p.color = const Color(0xFF5F5871);
+      canvas.drawCircle(Offset(x, -s * 0.26), s * 0.18, p);
+      p.shader = ui.Gradient.radial(
+        Offset(x - s * 0.04, -s * 0.31),
+        s * 0.15,
+        const [Colors.white, Color(0xFFCDE9FF)],
+      );
+      canvas.drawCircle(Offset(x, -s * 0.26), s * 0.125, p);
+      p.shader = null;
+      p.color = const Color(0xFF1A1030);
+      canvas.drawCircle(Offset(x + s * 0.02, -s * 0.25), s * 0.046, p);
+      p.color = Colors.white;
+      canvas.drawCircle(Offset(x, -s * 0.30), s * 0.022, p);
+    }
+  }
+
+  void _drawMascotOveralls(
+      Canvas canvas, double s, Color suit, Color accent, Paint p) {
+    final overalls = Path()
+      ..moveTo(-s * 0.32, s * 0.12)
+      ..lineTo(-s * 0.23, s * 0.50)
+      ..quadraticBezierTo(0, s * 0.64, s * 0.23, s * 0.50)
+      ..lineTo(s * 0.32, s * 0.12)
+      ..quadraticBezierTo(s * 0.13, s * 0.25, 0, s * 0.25)
+      ..quadraticBezierTo(-s * 0.13, s * 0.25, -s * 0.32, s * 0.12)
+      ..close();
+    p.shader = ui.Gradient.linear(
+      Offset(-s * 0.34, s * 0.10),
+      Offset(s * 0.34, s * 0.62),
+      [
+        Color.lerp(suit, Colors.white, 0.20)!,
+        suit,
+        Color.lerp(suit, Colors.black, 0.28)!,
+      ],
+    );
+    canvas.drawPath(overalls, p);
+    p.shader = null;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4
+      ..color = Color.lerp(suit, Colors.black, 0.42)!;
+    canvas.drawPath(overalls, p);
+    p.style = PaintingStyle.fill;
+    p.color = accent;
+    _drawStar(canvas, Offset(0, s * 0.38), s * 0.14, p);
   }
 
   void _drawDice(Canvas canvas, Offset c, double s, Paint p) {
