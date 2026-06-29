@@ -153,6 +153,20 @@ class _PieceDraw {
   });
 }
 
+class _SnakeSample {
+  final Offset point;
+  final Offset tangent;
+  final Offset normal;
+  final double radius;
+
+  const _SnakeSample({
+    required this.point,
+    required this.tangent,
+    required this.normal,
+    required this.radius,
+  });
+}
+
 class _SnakesLaddersPainter extends CustomPainter {
   static const Map<int, int> ladders = {
     6: 26,
@@ -473,90 +487,254 @@ class _SnakesLaddersPainter extends CustomPainter {
     if (len <= 0) return;
     final unit = dir / len;
     final normal = Offset(-unit.dy, unit.dx);
-    final wave = normal * cell * 0.70;
+    final wave = normal * cell * 0.76;
     final c1 = head + dir * 0.30 + wave;
     final c2 = head + dir * 0.68 - wave;
     final path = Path()
       ..moveTo(head.dx, head.dy)
       ..cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, tail.dx, tail.dy);
-    final p = Paint()
-      ..isAntiAlias = true
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
 
-    p
-      ..strokeWidth = cell * 0.46
-      ..color = const Color(0x5E000000);
-    canvas.drawPath(path.shift(Offset(cell * 0.04, cell * 0.07)), p);
-
-    p
-      ..strokeWidth = cell * 0.40
-      ..color = Color.lerp(color, Colors.black, 0.28)!;
-    canvas.drawPath(path, p);
-    p
-      ..strokeWidth = cell * 0.33
-      ..color = color;
-    canvas.drawPath(path, p);
-    p
-      ..strokeWidth = cell * 0.13
-      ..color = Color.lerp(color, Colors.white, 0.45)!;
-    canvas.drawPath(path, p);
-
-    final spotPaint = Paint()..isAntiAlias = true;
-    for (var i = 1; i <= 7; i++) {
-      final t = i / 8.5;
+    final samples = <_SnakeSample>[];
+    const sampleCount = 34;
+    for (var i = 0; i <= sampleCount; i++) {
+      final t = i / sampleCount;
       final point = _cubicPoint(head, c1, c2, tail, t);
       final tangent = _cubicTangent(head, c1, c2, tail, t);
-      final n = Offset(-tangent.dy, tangent.dx);
-      final side = i.isEven ? 1.0 : -1.0;
-      spotPaint.color = Color.lerp(color, Colors.white, 0.36)!.withAlpha(200);
+      final side = Offset(-tangent.dy, tangent.dx);
+      final taper = math.pow(1 - t, 0.72).toDouble();
+      final pulseWidth = math.sin(t * math.pi) * 0.035;
+      samples.add(_SnakeSample(
+        point: point,
+        tangent: tangent,
+        normal: side,
+        radius: cell * (0.115 + taper * 0.165 + pulseWidth),
+      ));
+    }
+
+    final shadowPaint = Paint()
+      ..isAntiAlias = true
+      ..color = const Color(0x60000000);
+    for (var i = samples.length - 1; i >= 0; i--) {
+      final s = samples[i];
       canvas.drawCircle(
-        point + n * side * cell * 0.09,
-        cell * 0.072,
-        spotPaint,
+        s.point.translate(cell * 0.055, cell * 0.075),
+        s.radius * 1.17,
+        shadowPaint,
       );
     }
 
-    final face = -unit;
+    final outlinePaint = Paint()
+      ..isAntiAlias = true
+      ..color = Color.lerp(color, Colors.black, 0.48)!;
+    for (var i = samples.length - 1; i >= 0; i--) {
+      final s = samples[i];
+      canvas.drawCircle(s.point, s.radius * 1.08, outlinePaint);
+    }
+
+    final fillPaint = Paint()..isAntiAlias = true;
+    for (var i = samples.length - 1; i >= 0; i--) {
+      final s = samples[i];
+      final highlightCenter = s.point - s.normal * s.radius * 0.32;
+      fillPaint.shader = RadialGradient(
+        center: const Alignment(-0.38, -0.42),
+        colors: [
+          Color.lerp(color, Colors.white, 0.62)!,
+          color,
+          Color.lerp(color, Colors.black, 0.36)!,
+        ],
+        stops: const [0.0, 0.55, 1.0],
+      ).createShader(Rect.fromCircle(
+        center: highlightCenter,
+        radius: s.radius * 1.75,
+      ));
+      canvas.drawCircle(s.point, s.radius, fillPaint);
+      fillPaint.shader = null;
+    }
+
+    final linePaint = Paint()
+      ..isAntiAlias = true
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    linePaint
+      ..strokeWidth = cell * 0.065
+      ..color = Colors.white.withAlpha(76);
+    canvas.drawPath(path, linePaint);
+    linePaint
+      ..strokeWidth = cell * 0.026
+      ..color = Color.lerp(color, Colors.black, 0.28)!.withAlpha(115);
+    canvas.drawPath(path.shift(Offset(cell * 0.018, cell * 0.025)), linePaint);
+
+    final detailPaint = Paint()
+      ..isAntiAlias = true
+      ..strokeCap = StrokeCap.round;
+    for (var i = 4; i < samples.length - 3; i += 4) {
+      final s = samples[i];
+      detailPaint
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(1.0, cell * 0.030)
+        ..color = Color.lerp(color, Colors.black, 0.30)!.withAlpha(95);
+      canvas.drawLine(
+        s.point - s.normal * s.radius * 0.58,
+        s.point + s.normal * s.radius * 0.58,
+        detailPaint,
+      );
+    }
+
+    detailPaint.style = PaintingStyle.fill;
+    for (var i = 5; i < samples.length - 6; i += 5) {
+      final s = samples[i];
+      final side = i.isEven ? 1.0 : -1.0;
+      detailPaint.color = Color.lerp(color, Colors.white, 0.50)!.withAlpha(185);
+      canvas.drawCircle(
+        s.point + s.normal * side * s.radius * 0.45,
+        s.radius * 0.18,
+        detailPaint,
+      );
+    }
+
+    final tailSample = samples.last;
+    final tailPath = Path()
+      ..moveTo(
+        tailSample.point.dx - tailSample.normal.dx * tailSample.radius * 0.58,
+        tailSample.point.dy - tailSample.normal.dy * tailSample.radius * 0.58,
+      )
+      ..lineTo(
+        tailSample.point.dx + tailSample.tangent.dx * cell * 0.24,
+        tailSample.point.dy + tailSample.tangent.dy * cell * 0.24,
+      )
+      ..lineTo(
+        tailSample.point.dx + tailSample.normal.dx * tailSample.radius * 0.58,
+        tailSample.point.dy + tailSample.normal.dy * tailSample.radius * 0.58,
+      )
+      ..close();
+    detailPaint.color = Color.lerp(color, Colors.black, 0.26)!;
+    canvas.drawPath(tailPath, detailPaint);
+
+    _drawSnakeHead(
+        canvas, head, _cubicTangent(head, c1, c2, tail, 0.035), cell, color);
+  }
+
+  void _drawSnakeHead(
+    Canvas canvas,
+    Offset head,
+    Offset tangent,
+    double cell,
+    Color color,
+  ) {
+    final face = -tangent;
+    final side = Offset(-face.dy, face.dx);
+    final angle = math.atan2(face.dy, face.dx);
+    final headCenter = head + face * cell * 0.045;
     final headPaint = Paint()..isAntiAlias = true;
-    final headRadius = cell * 0.31;
+    final headRadius = cell * 0.35;
+
+    headPaint.color = const Color(0x66000000);
+    _drawRotatedOval(
+      canvas,
+      headCenter.translate(cell * 0.035, cell * 0.055),
+      angle,
+      Size(headRadius * 1.85, headRadius * 1.25),
+      headPaint,
+    );
+
     headPaint.shader = RadialGradient(
-      center: const Alignment(-0.25, -0.38),
+      center: const Alignment(-0.32, -0.42),
       colors: [
-        Color.lerp(color, Colors.white, 0.58)!,
+        Color.lerp(color, Colors.white, 0.70)!,
         color,
-        Color.lerp(color, Colors.black, 0.36)!,
+        Color.lerp(color, Colors.black, 0.42)!,
       ],
-    ).createShader(Rect.fromCircle(center: head, radius: headRadius * 1.2));
-    canvas.drawCircle(head, headRadius, headPaint);
+      stops: const [0.0, 0.55, 1.0],
+    ).createShader(
+        Rect.fromCircle(center: headCenter, radius: headRadius * 1.3));
+    _drawRotatedOval(
+      canvas,
+      headCenter,
+      angle,
+      Size(headRadius * 1.85, headRadius * 1.28),
+      headPaint,
+    );
     headPaint.shader = null;
     headPaint
       ..style = PaintingStyle.stroke
-      ..strokeWidth = cell * 0.035
-      ..color = Color.lerp(color, Colors.black, 0.45)!;
-    canvas.drawCircle(head, headRadius, headPaint);
+      ..strokeWidth = math.max(1.0, cell * 0.035)
+      ..color = Color.lerp(color, Colors.black, 0.50)!;
+    _drawRotatedOval(
+      canvas,
+      headCenter,
+      angle,
+      Size(headRadius * 1.85, headRadius * 1.28),
+      headPaint,
+    );
     headPaint.style = PaintingStyle.fill;
 
-    final eyeA = head + face * cell * 0.11 + normal * cell * 0.10;
-    final eyeB = head + face * cell * 0.11 - normal * cell * 0.10;
+    headPaint.color = Color.lerp(color, Colors.white, 0.45)!.withAlpha(135);
+    _drawRotatedOval(
+      canvas,
+      headCenter - side * cell * 0.10 - face * cell * 0.03,
+      angle,
+      Size(headRadius * 0.48, headRadius * 0.22),
+      headPaint,
+    );
+
+    final eyeA = headCenter + face * cell * 0.16 + side * cell * 0.115;
+    final eyeB = headCenter + face * cell * 0.16 - side * cell * 0.115;
     headPaint.color = Colors.white;
-    canvas.drawCircle(eyeA, cell * 0.055, headPaint);
-    canvas.drawCircle(eyeB, cell * 0.055, headPaint);
-    headPaint.color = const Color(0xFF19101D);
-    canvas.drawCircle(eyeA + face * cell * 0.012, cell * 0.026, headPaint);
-    canvas.drawCircle(eyeB + face * cell * 0.012, cell * 0.026, headPaint);
+    canvas.drawCircle(eyeA, cell * 0.070, headPaint);
+    canvas.drawCircle(eyeB, cell * 0.070, headPaint);
+    headPaint.color = const Color(0xFF130B17);
+    canvas.drawCircle(eyeA + face * cell * 0.018, cell * 0.032, headPaint);
+    canvas.drawCircle(eyeB + face * cell * 0.018, cell * 0.032, headPaint);
+    headPaint.color = Colors.white.withAlpha(190);
+    canvas.drawCircle(eyeA + face * cell * 0.030 - side * cell * 0.018,
+        cell * 0.012, headPaint);
+    canvas.drawCircle(eyeB + face * cell * 0.030 + side * cell * 0.018,
+        cell * 0.012, headPaint);
 
     headPaint
       ..style = PaintingStyle.stroke
-      ..strokeWidth = cell * 0.025
+      ..strokeWidth = math.max(1.0, cell * 0.018)
       ..strokeCap = StrokeCap.round
-      ..color = const Color(0xFFC4143E);
-    final tongueStart = head + face * cell * 0.30;
-    final tongueEnd = head + face * cell * 0.48;
+      ..color = const Color(0xFF5D171D).withAlpha(170);
+    canvas.drawArc(
+      Rect.fromCenter(
+        center: headCenter + face * cell * 0.22,
+        width: cell * 0.20,
+        height: cell * 0.12,
+      ),
+      angle + 0.22,
+      math.pi - 0.44,
+      false,
+      headPaint,
+    );
+
+    headPaint
+      ..strokeWidth = math.max(1.0, cell * 0.024)
+      ..color = const Color(0xFFE01648);
+    final tongueStart = headCenter + face * cell * 0.34;
+    final tongueEnd = headCenter + face * cell * 0.55;
     canvas.drawLine(tongueStart, tongueEnd, headPaint);
-    canvas.drawLine(tongueEnd, tongueEnd + normal * cell * 0.06, headPaint);
-    canvas.drawLine(tongueEnd, tongueEnd - normal * cell * 0.06, headPaint);
+    canvas.drawLine(tongueEnd, tongueEnd + side * cell * 0.075, headPaint);
+    canvas.drawLine(tongueEnd, tongueEnd - side * cell * 0.075, headPaint);
     headPaint.style = PaintingStyle.fill;
+  }
+
+  void _drawRotatedOval(
+    Canvas canvas,
+    Offset center,
+    double angle,
+    Size size,
+    Paint paint,
+  ) {
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(angle);
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset.zero, width: size.width, height: size.height),
+      paint,
+    );
+    canvas.restore();
   }
 
   Offset _cubicPoint(Offset a, Offset b, Offset c, Offset d, double t) {
