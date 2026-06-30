@@ -311,6 +311,9 @@ class _BoardPainter extends CustomPainter {
     _drawHomeLaneArrows(canvas, boardLeft, boardTop, cell);
     _drawCenter(canvas, boardLeft, boardTop, cell);
     if (snapshot == null) _drawPreviewPieces(canvas, boardLeft, boardTop, cell);
+    if (snapshot != null) {
+      _drawMissingSeatPieces(canvas, boardLeft, boardTop, cell);
+    }
     _drawPieces(canvas, boardLeft, boardTop, cell);
     canvas.restore();
 
@@ -658,6 +661,20 @@ class _BoardPainter extends CustomPainter {
 
   void _drawPreviewPieces(Canvas canvas, double left, double top, double cell) {
     for (int seat = 0; seat < 4; seat++) {
+      for (int i = 0; i < 4; i++) {
+        final pos = _yardPos(seat, i, left, top, cell);
+        _drawPiece(
+            canvas, pos.dx, pos.dy, cell * 0.45, _seatCol(seat), false, false,
+            seat: seat);
+      }
+    }
+  }
+
+  void _drawMissingSeatPieces(
+      Canvas canvas, double left, double top, double cell) {
+    final activeSeats = snapshot!.pieces.map((piece) => piece.seat).toSet();
+    for (int seat = 0; seat < 4; seat++) {
+      if (activeSeats.contains(seat)) continue;
       for (int i = 0; i < 4; i++) {
         final pos = _yardPos(seat, i, left, top, cell);
         _drawPiece(

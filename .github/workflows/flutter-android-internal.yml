@@ -57,7 +57,11 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEYALIAS_NAME || secrets.UNITY_ANDROID_KEYALIAS_NAME }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEYALIAS_PASS || secrets.UNITY_ANDROID_KEYALIAS_PASS }}
           STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASS || secrets.UNITY_ANDROID_KEYSTORE_PASS }}
-        run: flutter build appbundle --release --build-number=$((GITHUB_RUN_NUMBER + 10000))
+        run: |
+          BUILD_NUMBER=$((GITHUB_RUN_NUMBER + 10000))
+          BUILD_NAME="1.0.${GITHUB_RUN_NUMBER}"
+          echo "Building Play internal release ${BUILD_NAME} (${BUILD_NUMBER})"
+          flutter build appbundle --release --build-number="${BUILD_NUMBER}" --build-name="${BUILD_NAME}"
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
@@ -72,5 +76,6 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: com.ludorush.game
           releaseFiles: client-flutter/build/app/outputs/bundle/release/app-release.aab
-          track: internal
+          tracks: internal
+          releaseName: "Ludo Rush internal #${{ github.run_number }}"
           status: completed
