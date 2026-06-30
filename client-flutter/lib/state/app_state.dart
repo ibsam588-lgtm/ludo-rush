@@ -71,6 +71,7 @@ class AppState extends ChangeNotifier {
   int wins = 0;
   bool isDarkMode = true;
   String matchDifficulty = 'medium';
+  String snakesBoardTheme = 'carnival';
   bool startChoiceSeen = false;
 
   // Match state
@@ -115,6 +116,7 @@ class AppState extends ChangeNotifier {
     wins = _prefs.wins;
     isDarkMode = _prefs.isDarkMode;
     matchDifficulty = _normalizeDifficulty(_prefs.matchDifficulty);
+    snakesBoardTheme = _normalizeSnakesBoardTheme(_prefs.snakesBoardTheme);
     startChoiceSeen = _prefs.startChoiceSeen;
 
     // Shared WS service identity
@@ -295,6 +297,22 @@ class AppState extends ChangeNotifier {
           ? 'Snakes & Ladders table ready. Roll to climb.'
           : 'Bot table ready. Roll when it is your turn.',
     );
+  }
+
+  void startOfflineMatch(String mode) {
+    if (connecting) return;
+    markStartChoiceSeen();
+    pendingMatchMode = mode;
+    fallbackBotStarted = true;
+    currentMatchIsBot = true;
+    _resetLiveMatch();
+    _startLocalBotMatch(
+      mode,
+      reason: _isSnakesLaddersMode(mode)
+          ? 'Offline Snakes & Ladders ready. Roll to climb.'
+          : 'Offline table ready. Roll when it is your turn.',
+    );
+    replaceWith('/game');
   }
 
   void cancelMatchmaking() {
@@ -1290,6 +1308,15 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setSnakesBoardTheme(String value) {
+    final normalized = _normalizeSnakesBoardTheme(value);
+    if (normalized == snakesBoardTheme) return;
+    SoundService.tap();
+    snakesBoardTheme = normalized;
+    _prefs.snakesBoardTheme = snakesBoardTheme;
+    notifyListeners();
+  }
+
   String publicSeatName(SeatState seat) => publicDisplayName(
         seat.displayName,
         playerId: seat.playerId,
@@ -1329,6 +1356,18 @@ class AppState extends ChangeNotifier {
       case 'medium':
       default:
         return 'medium';
+    }
+  }
+
+  String _normalizeSnakesBoardTheme(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'royal':
+      case 'neon':
+      case 'classic':
+        return value.trim().toLowerCase();
+      case 'carnival':
+      default:
+        return 'carnival';
     }
   }
 

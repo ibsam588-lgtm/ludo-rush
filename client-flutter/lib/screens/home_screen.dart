@@ -18,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late final AnimationController _pulse;
   late final AnimationController _shimmer;
   int _tabIndex = 2;
+  bool _routeTabApplied = false;
 
   @override
   void initState() {
@@ -35,6 +36,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _pulse.dispose();
     _shimmer.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_routeTabApplied) return;
+    _routeTabApplied = true;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is int && args >= 1 && args <= 4) {
+      _tabIndex = args;
+    }
   }
 
   @override
@@ -2047,13 +2059,13 @@ class _LobbyStage extends StatelessWidget {
                       child: _ModeTile(
                         palette: palette,
                         pulse: pulse,
-                        label: 'Private',
+                        label: 'Offline',
                         headline: '',
-                        subtitle: '',
+                        subtitle: 'Bot',
                         start: const Color(0xFF8C35FF),
                         end: const Color(0xFF5010A8),
-                        art: _ModeArt.private,
-                        onTap: () => _soon(context, 'Private rooms'),
+                        art: _ModeArt.quick,
+                        onTap: () => state.startOfflineMatch('classic_2p'),
                       ),
                     ),
                     SizedBox(width: smallGap),
@@ -2098,19 +2110,6 @@ class _LobbyStage extends StatelessWidget {
       },
     );
   }
-
-  static void _soon(BuildContext context, String name) {
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: const Color(0xEE22082E),
-            duration: const Duration(milliseconds: 1400),
-            content: Text(
-                '$name will be enabled after backend room invites are live.')),
-      );
-  }
 }
 
 class _HomeTabStage extends StatelessWidget {
@@ -2141,6 +2140,7 @@ class _HomeTabStage extends StatelessWidget {
           _FeatureRow('Ava', 'Invite ready', '980'),
         ],
         actions: const ['Invite', 'Add', 'Gift'],
+        onAction: (context, action) => _handleFeatureAction(context, action),
       );
     }
     if (index == 3) {
@@ -2155,7 +2155,8 @@ class _HomeTabStage extends StatelessWidget {
           _FeatureRow('Crown League', '3 days left', '2.1K'),
           _FeatureRow('Club Chest', '8 wins needed', '850'),
         ],
-        actions: const ['Join', 'League', 'Rewards'],
+        actions: const ['Join', 'Leaders', 'Rewards'],
+        onAction: (context, action) => _handleFeatureAction(context, action),
       );
     }
     if (index == 4) {
@@ -2171,9 +2172,130 @@ class _HomeTabStage extends StatelessWidget {
           _FeatureRow('Energy Vault', 'Bonus spins', '30'),
         ],
         actions: const ['Open', 'Boost', 'History'],
+        onAction: (context, action) => _handleFeatureAction(context, action),
       );
     }
     return _LobbyStage(state: state, palette: palette, pulse: pulse);
+  }
+
+  void _handleFeatureAction(BuildContext context, String action) {
+    SoundService.tap();
+    switch (action) {
+      case 'Invite':
+        state.startOfflineMatch('classic_2p');
+        return;
+      case 'Add':
+        _showFeatureSnack(context, 'Friend request queued for nearby players.');
+        return;
+      case 'Gift':
+        state.addCoins(25);
+        _showFeatureSnack(context, 'Gift sent. +25 coins added for testing.');
+        return;
+      case 'Join':
+        _showFeatureSnack(context, 'Club join request sent.');
+        return;
+      case 'Leaders':
+        _showLeaderboardSheet(context, state);
+        return;
+      case 'Rewards':
+        state.addCoins(150);
+        _showFeatureSnack(context, 'Club reward opened. +150 coins.');
+        return;
+      case 'Open':
+        state.addCoins(500);
+        _showFeatureSnack(context, 'Gold chest opened. +500 coins.');
+        return;
+      case 'Boost':
+        state.startOfflineMatch(AppState.snakesLaddersMode);
+        return;
+      case 'History':
+        _showFeatureSnack(
+            context, 'Chest history is ready after your next win.');
+        return;
+    }
+  }
+
+  void _showFeatureSnack(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xEE22082E),
+          duration: const Duration(milliseconds: 1500),
+          content: Text(message),
+        ),
+      );
+  }
+
+  void _showLeaderboardSheet(BuildContext context, AppState state) {
+    final rows = [
+      _FeatureRow(state.displayName, 'You', state.rating.toString()),
+      const _FeatureRow('Royal Rollers', 'Club', '4.8K'),
+      const _FeatureRow('Leo', 'Weekly rival', '1.2K'),
+      const _FeatureRow('Maya', 'Hot streak', '1.1K'),
+    ];
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return SafeArea(
+          top: false,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF531060), Color(0xFF18041F)],
+              ),
+              border: Border.all(color: goldColor, width: 2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0xCC000000),
+                  blurRadius: 24,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Leaders',
+                      style: TextStyle(
+                        color: goldColor,
+                        fontSize: 23,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.close_rounded,
+                          color: Colors.white70),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                for (var i = 0; i < rows.length; i++) ...[
+                  _FeatureListTile(
+                    row: rows[i],
+                    accent: i == 0 ? goldColor : const Color(0xFFFF5D6C),
+                    index: i,
+                  ),
+                  if (i != rows.length - 1) const SizedBox(height: 8),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -2193,6 +2315,7 @@ class _FeatureTabStage extends StatelessWidget {
   final IconData icon;
   final List<_FeatureRow> rows;
   final List<String> actions;
+  final void Function(BuildContext context, String action) onAction;
 
   const _FeatureTabStage({
     required this.palette,
@@ -2202,6 +2325,7 @@ class _FeatureTabStage extends StatelessWidget {
     required this.icon,
     required this.rows,
     required this.actions,
+    required this.onAction,
   });
 
   @override
@@ -2296,6 +2420,7 @@ class _FeatureTabStage extends StatelessWidget {
                               child: _FeatureActionButton(
                                 label: actions[i],
                                 accent: accent,
+                                onTap: () => onAction(context, actions[i]),
                               ),
                             ),
                             if (i != actions.length - 1)
@@ -2429,36 +2554,45 @@ class _FeatureListTile extends StatelessWidget {
 class _FeatureActionButton extends StatelessWidget {
   final String label;
   final Color accent;
+  final VoidCallback onTap;
 
-  const _FeatureActionButton({required this.label, required this.accent});
+  const _FeatureActionButton({
+    required this.label,
+    required this.accent,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 44,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        gradient: LinearGradient(
-          colors: [Color.lerp(accent, Colors.white, 0.18)!, accent],
-        ),
-        border: Border.all(color: goldColor, width: 1.5),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x66000000),
-            blurRadius: 7,
-            offset: Offset(0, 3),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        height: 44,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: LinearGradient(
+            colors: [Color.lerp(accent, Colors.white, 0.18)!, accent],
           ),
-        ],
-      ),
-      child: Text(
-        label,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w900,
-          shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
+          border: Border.all(color: goldColor, width: 1.5),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x66000000),
+              blurRadius: 7,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
+          ),
         ),
       ),
     );
@@ -2690,12 +2824,14 @@ class _ModeTileState extends State<_ModeTile>
                         ),
                       ),
                     Positioned(
-                      left: widget.large ? 22 : 62,
+                      left: widget.large ? 22 : 8,
                       right: widget.large ? 86 : 8,
-                      bottom: widget.large ? 12 : 11,
+                      bottom: widget.large ? 12 : 9,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: widget.large
+                            ? CrossAxisAlignment.start
+                            : CrossAxisAlignment.center,
                         children: [
                           SizedBox(
                             width: double.infinity,
@@ -2708,7 +2844,10 @@ class _ModeTileState extends State<_ModeTile>
                                       large: true,
                                     ),
                                   )
-                                : _ModeLabelText(widget.label),
+                                : FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: _ModeLabelText(widget.label),
+                                  ),
                           ),
                           if (widget.subtitle.isNotEmpty) ...[
                             const SizedBox(height: 4),
@@ -2716,7 +2855,9 @@ class _ModeTileState extends State<_ModeTile>
                               widget.subtitle,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.left,
+                              textAlign: widget.large
+                                  ? TextAlign.left
+                                  : TextAlign.center,
                               style: TextStyle(
                                 color: Colors.white.withAlpha(210),
                                 fontSize: widget.large ? 12 : 11,
@@ -3062,10 +3203,10 @@ class _ModeLabelText extends StatelessWidget {
       text,
       maxLines: large ? 1 : 2,
       overflow: large ? TextOverflow.visible : TextOverflow.ellipsis,
-      textAlign: TextAlign.left,
+      textAlign: large ? TextAlign.left : TextAlign.center,
       style: TextStyle(
         color: Colors.white,
-        fontSize: large ? 25 : 14,
+        fontSize: large ? 25 : 15,
         height: 0.96,
         fontWeight: FontWeight.w900,
         shadows: const [
