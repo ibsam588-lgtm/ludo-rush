@@ -2,6 +2,7 @@ import type { GameMode, LudoPiece, RoomSeat, RoomSnapshot } from "../types";
 
 export const MAX_PLAYERS_BY_MODE: Record<GameMode, number> = {
   classic_2p: 2,
+  classic_3p: 3,
   classic_4p: 4,
   rush_2p: 2,
   rush_4p: 4
@@ -9,6 +10,7 @@ export const MAX_PLAYERS_BY_MODE: Record<GameMode, number> = {
 
 export const TURN_DURATION_MS: Record<GameMode, number> = {
   classic_2p: 30_000,
+  classic_3p: 30_000,
   classic_4p: 30_000,
   rush_2p: 15_000,
   rush_4p: 15_000

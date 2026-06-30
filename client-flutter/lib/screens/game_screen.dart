@@ -1126,6 +1126,13 @@ class _PlayerHeroBand extends StatelessWidget {
                                 ),
                               ],
                             ),
+                            if (state.privateInviteCode != null) ...[
+                              const SizedBox(height: 3),
+                              _InviteCodeChip(
+                                code: state.privateInviteCode!,
+                                compact: compact,
+                              ),
+                            ],
                           ],
                         ),
                       ),
@@ -1156,6 +1163,48 @@ class _PlayerHeroBand extends StatelessWidget {
                   compact: compact,
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InviteCodeChip extends StatelessWidget {
+  final String code;
+  final bool compact;
+
+  const _InviteCodeChip({
+    required this.code,
+    required this.compact,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: compact ? 20 : 23,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 7 : 9),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xAA140020),
+        border: Border.all(color: goldColor.withAlpha(190), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.vpn_key_rounded,
+              color: goldColor, size: compact ? 12 : 14),
+          const SizedBox(width: 4),
+          Text(
+            'Code $code',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: compact ? 10 : 11,
+              fontWeight: FontWeight.w900,
+              shadows: const [Shadow(color: Colors.black, blurRadius: 3)],
             ),
           ),
         ],

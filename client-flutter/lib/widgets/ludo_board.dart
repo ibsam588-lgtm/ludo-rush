@@ -69,13 +69,13 @@ class _BoardConsts {
   // sync with AppState._localSafeTrackIndexes so captures and visuals agree.
   static const safeSeats = [
     [6, 13, 0],
-    [2, 8, 0],
+    [8, 13, 0],
     [1, 6, 1],
-    [6, 2, 1],
+    [1, 8, 1],
+    [6, 1, 2],
     [8, 1, 2],
-    [12, 6, 2],
+    [13, 6, 3],
     [13, 8, 3],
-    [8, 12, 3],
   ];
 
   static const homeLanes = [
@@ -311,8 +311,9 @@ class _BoardPainter extends CustomPainter {
     _drawHomeLaneArrows(canvas, boardLeft, boardTop, cell);
     _drawCenter(canvas, boardLeft, boardTop, cell);
     if (snapshot == null) _drawPreviewPieces(canvas, boardLeft, boardTop, cell);
-    if (snapshot != null)
+    if (snapshot != null) {
       _drawMissingSeatPieces(canvas, boardLeft, boardTop, cell);
+    }
     _drawPieces(canvas, boardLeft, boardTop, cell);
     canvas.restore();
 

@@ -10,6 +10,7 @@ import 'screens/matchmaking_screen.dart';
 import 'screens/game_screen.dart';
 import 'screens/results_screen.dart';
 import 'screens/shop_screen.dart';
+import 'widgets/forced_update_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +44,9 @@ class LudoRushApp extends StatelessWidget {
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
         themeMode: state.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+        builder: (context, child) => ForcedUpdateGate(
+          child: child ?? const SizedBox.shrink(),
+        ),
         initialRoute: '/splash',
         routes: {
           '/splash': (_) => const SplashScreen(),

@@ -26,7 +26,7 @@ android {
     namespace "com.ludorush.game"
     // Hardcode SDK levels — flutter.compileSdkVersion / flutter.targetSdkVersion
     // can resolve to stale/wrong values depending on plugin evaluation order.
-    compileSdk 35
+    compileSdk 36
     ndkVersion "25.1.8937393"
 
     compileOptions {
@@ -45,7 +45,7 @@ android {
     defaultConfig {
         applicationId "com.ludorush.game"
         minSdkVersion flutter.minSdkVersion        // Flutter minimum; supports Android 5.0+
-        targetSdk 35     // Google Play requires 33+; Flutter 3.22 defaults to 35
+        targetSdk 35
         versionCode Integer.parseInt(flutterVersionCode)
         versionName flutterVersionName
     }

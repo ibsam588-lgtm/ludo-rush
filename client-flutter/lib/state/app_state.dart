@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../models/game_snapshot.dart';
+import '../services/app_platform_service.dart';
 import '../services/prefs_service.dart';
 import '../services/sound_service.dart';
 import '../services/websocket_service.dart';
@@ -11,6 +12,8 @@ import '../services/websocket_service.dart';
 class AppState extends ChangeNotifier {
   static const String _backendUrl =
       'https://ludo-rush-backend.ibsam588.workers.dev';
+  static const String _defaultAndroidUpdateUrl =
+      'https://play.google.com/store/apps/details?id=com.ludorush.game';
   static const String snakesLaddersMode = 'snakes_ladders';
   static const int _yardProgress = -1;
   static const int _classicFinishProgress = 57;
@@ -81,8 +84,21 @@ class AppState extends ChangeNotifier {
   bool currentMatchIsBot = false;
   bool localMatchActive = false;
   String pendingMatchMode = 'classic_2p';
+  String? privateInviteCode;
   bool fallbackBotStarted = false;
   bool backendOnline = false;
+  bool updateCheckInProgress = false;
+  bool updateCheckComplete = false;
+  bool updateCheckFailed = false;
+  bool forceUpdateRequired = false;
+  String installedVersionName = '';
+  int installedBuildNumber = 0;
+  int minimumRequiredBuildNumber = 0;
+  int latestAvailableBuildNumber = 0;
+  String latestAvailableVersionName = '';
+  String forceUpdateMessage =
+      'A newer version of Ludo Rush is required to keep matchmaking, rewards, and game rules in sync.';
+  String forceUpdateUrl = _defaultAndroidUpdateUrl;
   int _pollAttempts = 0;
   final math.Random _rng = math.Random();
   Timer? _localBotTimer;
@@ -123,6 +139,7 @@ class AppState extends ChangeNotifier {
     _ws.playerId = playerId;
     _ws.displayName = displayName;
 
+    await checkForForcedUpdate(notify: false);
     _healthCheck();
   }
 
@@ -141,6 +158,65 @@ class AppState extends ChangeNotifier {
     }).catchError((_) {
       backendOnline = false;
     });
+  }
+
+  Future<void> checkForForcedUpdate({bool notify = true}) async {
+    updateCheckInProgress = true;
+    updateCheckFailed = false;
+    if (notify) notifyListeners();
+
+    try {
+      final packageInfo = await AppPlatformService.getVersionInfo();
+      final buildNumber = packageInfo.buildNumber;
+      installedVersionName = packageInfo.versionName;
+      installedBuildNumber = buildNumber;
+
+      final uri = Uri.parse('$_backendUrl/api/v1/app/config').replace(
+        queryParameters: {
+          'platform': 'android',
+          'build': buildNumber.toString(),
+          'version': packageInfo.versionName,
+        },
+      );
+      final response = await http.get(uri).timeout(const Duration(seconds: 5));
+      if (response.statusCode >= 400) {
+        updateCheckFailed = !updateCheckComplete;
+        return;
+      }
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final minimum = _readInt(body['minimumBuildNumber'], fallback: 0);
+      final latest = _readInt(body['latestBuildNumber'], fallback: minimum);
+      final updateUrl = (body['updateUrl'] as String? ?? '').trim();
+      final message = (body['message'] as String? ?? '').trim();
+      final latestVersion = (body['latestVersionName'] as String? ?? '').trim();
+      final forceEnabled = body['forceUpdate'] != false;
+
+      minimumRequiredBuildNumber = minimum;
+      latestAvailableBuildNumber = latest;
+      latestAvailableVersionName = latestVersion;
+      forceUpdateUrl = updateUrl.isEmpty ? _defaultAndroidUpdateUrl : updateUrl;
+      if (message.isNotEmpty) forceUpdateMessage = message;
+      forceUpdateRequired =
+          forceEnabled && buildNumber > 0 && minimum > buildNumber;
+      updateCheckComplete = true;
+      updateCheckFailed = false;
+    } catch (_) {
+      updateCheckFailed = !updateCheckComplete;
+    } finally {
+      updateCheckInProgress = false;
+      if (notify) notifyListeners();
+    }
+  }
+
+  Future<void> openForcedUpdateStore() async {
+    SoundService.tap();
+    final launched = forceUpdateUrl.isNotEmpty
+        ? await AppPlatformService.openUrl(forceUpdateUrl)
+        : false;
+    if (!launched) {
+      await AppPlatformService.openUrl(_defaultAndroidUpdateUrl);
+    }
   }
 
   // ── Navigation ─────────────────────────────────────────────────────────────
@@ -261,6 +337,24 @@ class AppState extends ChangeNotifier {
     );
   }
 
+  void startFastMatch() {
+    if (connecting) return;
+    const mode = 'classic_4p';
+    pendingMatchMode = mode;
+    fallbackBotStarted = false;
+    currentMatchIsBot = true;
+    _resetLiveMatch();
+    connecting = true;
+    _setStatus('Finding the fastest table...');
+    _openMatchmakingScreen();
+    _scheduleLocalBotMatch(
+      mode,
+      reason: 'Quick match table ready. Roll when it is your turn.',
+      delay: const Duration(milliseconds: 1200),
+      setupStatus: 'Locking in your quick table...',
+    );
+  }
+
   void startGuestMatch([String mode = 'classic_2p']) {
     markStartChoiceSeen();
     startQuickMatch(mode);
@@ -315,6 +409,96 @@ class AppState extends ChangeNotifier {
     replaceWith('/game');
   }
 
+  void createPrivateRoom(String mode) {
+    if (connecting) return;
+    markStartChoiceSeen();
+    _ensurePlayerIdentity();
+    pendingMatchMode = mode;
+    fallbackBotStarted = false;
+    currentMatchIsBot = false;
+    _resetLiveMatch();
+    connecting = true;
+    privateInviteCode = null;
+    _setStatus('Creating private room...');
+    _post(
+      '/api/v1/rooms/private',
+      {
+        'playerId': playerId,
+        'displayName': _humanDisplayName,
+        'mode': mode,
+        'region': matchmakingRegion,
+      },
+      (j) {
+        final code = (j['code'] as String? ?? '').trim().toUpperCase();
+        final socketUrl = j['socketUrl'] as String? ?? '';
+        privateInviteCode = code.isEmpty ? null : code;
+        if (socketUrl.isEmpty) {
+          connecting = false;
+          _setStatus(code.isEmpty
+              ? 'Private room created.'
+              : 'Private room $code created. Share the code.');
+          return;
+        }
+        _connectWs(
+          socketUrl,
+          fillBots: false,
+          readyStatus: code.isEmpty
+              ? 'Private room ready. Waiting for players...'
+              : 'Share code $code. Waiting for players...',
+        );
+        replaceWith('/game');
+      },
+      onError: () {
+        connecting = false;
+        _setStatus('Could not create private room. Try again.');
+      },
+    );
+  }
+
+  void joinPrivateRoom(String code) {
+    if (connecting) return;
+    final cleanCode = code.trim().toUpperCase();
+    if (cleanCode.isEmpty) {
+      _setStatus('Enter a private room code.');
+      return;
+    }
+    markStartChoiceSeen();
+    _ensurePlayerIdentity();
+    fallbackBotStarted = false;
+    currentMatchIsBot = false;
+    _resetLiveMatch();
+    connecting = true;
+    privateInviteCode = cleanCode;
+    _setStatus('Joining private room $cleanCode...');
+    _post(
+      '/api/v1/rooms/private/join',
+      {
+        'playerId': playerId,
+        'displayName': _humanDisplayName,
+        'code': cleanCode,
+      },
+      (j) {
+        pendingMatchMode = j['mode'] as String? ?? pendingMatchMode;
+        final socketUrl = j['socketUrl'] as String? ?? '';
+        if (socketUrl.isEmpty) {
+          connecting = false;
+          _setStatus('Private room found, but socket was missing.');
+          return;
+        }
+        _connectWs(
+          socketUrl,
+          fillBots: false,
+          readyStatus: 'Joined room $cleanCode. Waiting for players...',
+        );
+        replaceWith('/game');
+      },
+      onError: () {
+        connecting = false;
+        _setStatus('Private room code was not found.');
+      },
+    );
+  }
+
   void cancelMatchmaking() {
     _matchmakingTimer?.cancel();
     _matchmakingTimer = null;
@@ -330,12 +514,17 @@ class AppState extends ChangeNotifier {
     navigatorKey.currentState?.pushNamed('/matchmaking');
   }
 
-  void _scheduleLocalBotMatch(String mode, {required String reason}) {
+  void _scheduleLocalBotMatch(
+    String mode, {
+    required String reason,
+    Duration delay = const Duration(milliseconds: 2500),
+    String setupStatus = 'Setting up your game...',
+  }) {
     _matchmakingTimer?.cancel();
-    _matchmakingTimer = Timer(const Duration(milliseconds: 2500), () {
+    _matchmakingTimer = Timer(delay, () {
       _matchmakingTimer = null;
       if (!connecting || pendingMatchMode != mode) return;
-      _setStatus('Setting up your game...');
+      _setStatus(setupStatus);
       _startLocalBotMatch(mode, reason: reason);
       replaceWith('/game');
     });
@@ -387,23 +576,32 @@ class AppState extends ChangeNotifier {
 
   // ── WebSocket ──────────────────────────────────────────────────────────────
 
-  void _connectWs(String socketPath) {
+  void _connectWs(
+    String socketPath, {
+    bool fillBots = true,
+    String? readyStatus,
+  }) {
     localMatchActive = false;
     _localBotTimer?.cancel();
     _localBotTimer = null;
     _ws.playerId = playerId;
-    _ws.displayName = displayName;
+    _ws.displayName = _humanDisplayName;
     _ws.connect(socketPath);
     _wsSub?.cancel();
     _wsSub = _ws.messages.listen(_handleMessage);
 
     // Send join after connect (slight delay for WS handshake)
     Future.delayed(const Duration(milliseconds: 300), () {
-      _ws.send(
-          {'type': 'join', 'playerId': playerId, 'displayName': displayName});
-      _ws.send({'type': 'fill_bots', 'playerId': playerId});
+      _ws.send({
+        'type': 'join',
+        'playerId': playerId,
+        'displayName': _humanDisplayName
+      });
+      if (fillBots) {
+        _ws.send({'type': 'fill_bots', 'playerId': playerId});
+      }
       connecting = false;
-      _setStatus('Table ready. Roll when it is your turn.');
+      _setStatus(readyStatus ?? 'Table ready. Roll when it is your turn.');
     });
   }
 
@@ -1052,6 +1250,7 @@ class AppState extends ChangeNotifier {
     final clean = mode.toLowerCase();
     if (_isSnakesLaddersMode(mode)) return 4;
     if (clean.contains('4p') || clean.contains('4_player')) return 4;
+    if (clean.contains('3p') || clean.contains('3_player')) return 3;
     return 2;
   }
 
@@ -1110,6 +1309,14 @@ class AppState extends ChangeNotifier {
     return trimmed;
   }
 
+  void _ensurePlayerIdentity() {
+    if (playerId != null && playerId!.isNotEmpty) return;
+    playerId = 'local_${DateTime.now().millisecondsSinceEpoch}';
+    _prefs.playerId = playerId;
+    _ws.playerId = playerId;
+    _ws.displayName = displayName;
+  }
+
   // ignore: unused_element
   void _applyPlayer(Map<String, dynamic> player) {
     playerId = player['id'] as String? ?? playerId;
@@ -1158,6 +1365,7 @@ class AppState extends ChangeNotifier {
     localMatchActive = false;
     _ws.disconnect();
     lastSnapshot = null;
+    privateInviteCode = null;
     lastRollValue = 0;
     lastRollPlayerId = null;
     lastRollSequence = 0;
@@ -1233,6 +1441,13 @@ class AppState extends ChangeNotifier {
       }
     }
     return 'Player';
+  }
+
+  int _readInt(dynamic value, {required int fallback}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value.trim()) ?? fallback;
+    return fallback;
   }
 
   void _setStatus(String text) {

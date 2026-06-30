@@ -1,3 +1,4 @@
+import { buildAppConfig, parsePositiveInt } from "./app-config";
 import { LudoRoom } from "./durable-objects/LudoRoom";
 import type { BackgroundJob, Env, GameMode, Region } from "./types";
 import { badRequest, json, notFound, readJson } from "./utils/http";
@@ -71,6 +72,10 @@ export default {
     }
 
     try {
+      if (request.method === "GET" && url.pathname === "/api/v1/app/config") {
+        return getAppConfig(env, url);
+      }
+
       if (request.method === "POST" && url.pathname === "/api/v1/auth/guest") {
         return createGuest(request, env);
       }
@@ -122,6 +127,12 @@ export default {
     }
   }
 };
+
+function getAppConfig(env: Env, url: URL): Response {
+  const platform = (url.searchParams.get("platform") ?? "android").toLowerCase();
+  const installedBuild = parsePositiveInt(url.searchParams.get("build"), 0);
+  return json(buildAppConfig(env, platform, installedBuild));
+}
 
 async function createGuest(request: Request, env: Env): Promise<Response> {
   const body = await readJson<GuestAuthRequest>(request);

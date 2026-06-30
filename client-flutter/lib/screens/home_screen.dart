@@ -113,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               top: brandHeight + hudHeight,
                               right: 0,
                               height: rewardHeight,
-                              child: _RewardStrip(palette: p),
+                              child: _RewardStrip(state: state, palette: p),
                             ),
                             Positioned(
                               left: 0,
@@ -149,6 +149,835 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       },
     );
   }
+}
+
+void _showHomeSnack(BuildContext context, String message) {
+  ScaffoldMessenger.of(context)
+    ..clearSnackBars()
+    ..showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xEE22082E),
+        duration: const Duration(milliseconds: 1500),
+        content: Text(message),
+      ),
+    );
+}
+
+String _privateModeForPlayers(int players) {
+  if (players == 4) return 'classic_4p';
+  if (players == 3) return 'classic_3p';
+  return 'classic_2p';
+}
+
+class _HomeBoardThemeOption {
+  final String id;
+  final String label;
+  final List<Color> colors;
+
+  const _HomeBoardThemeOption(this.id, this.label, this.colors);
+}
+
+const _homeBoardThemes = [
+  _HomeBoardThemeOption('carnival', 'Carnival', [
+    Color(0xFFFF36B8),
+    Color(0xFFFFD426),
+    Color(0xFF22B7FF),
+  ]),
+  _HomeBoardThemeOption('royal', 'Royal', [
+    Color(0xFF5B2CFF),
+    Color(0xFFFFD426),
+    Color(0xFFB145FF),
+  ]),
+  _HomeBoardThemeOption('neon', 'Neon', [
+    Color(0xFF00F5FF),
+    Color(0xFFFF35D6),
+    Color(0xFF6EFF3A),
+  ]),
+  _HomeBoardThemeOption('classic', 'Classic', [
+    Color(0xFFFF3B3F),
+    Color(0xFF2DBB52),
+    Color(0xFF1E9BFF),
+  ]),
+];
+
+void _showSnakesBoardSheet(
+  BuildContext context,
+  AppState state,
+) {
+  showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) {
+      return StatefulBuilder(
+        builder: (context, setSheetState) {
+          return _HomeActionSheet(
+            title: 'Snakes Board',
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Choose the approved board design before starting.',
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(220),
+                    fontSize: 13,
+                    height: 1.25,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final option in _homeBoardThemes)
+                      _HomeThemeButton(
+                        option: option,
+                        selected: state.snakesBoardTheme == option.id,
+                        onTap: () {
+                          state.setSnakesBoardTheme(option.id);
+                          setSheetState(() {});
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                _HomeSheetButton(
+                  label: 'Start Snakes & Ladders',
+                  icon: Icons.play_arrow_rounded,
+                  color: boardGreen,
+                  onTap: () {
+                    SoundService.tap();
+                    Navigator.pop(sheetContext);
+                    state.startQuickMatch(AppState.snakesLaddersMode);
+                  },
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+void _showPrivateRoomSheet(
+  BuildContext context,
+  AppState state,
+) {
+  final codeController = TextEditingController();
+  var players = 2;
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) {
+      final bottom = MediaQuery.of(sheetContext).viewInsets.bottom;
+      return Padding(
+        padding: EdgeInsets.only(bottom: bottom),
+        child: StatefulBuilder(
+          builder: (context, setSheetState) {
+            final mode = _privateModeForPlayers(players);
+            return _HomeActionSheet(
+              title: 'Private Room',
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Create an invite code or join a friend. The table starts when all selected seats are filled.',
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(220),
+                      fontSize: 13,
+                      height: 1.25,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      for (final count in const [2, 3, 4]) ...[
+                        Expanded(
+                          child: _PlayerCountButton(
+                            count: count,
+                            selected: players == count,
+                            onTap: () => setSheetState(() => players = count),
+                          ),
+                        ),
+                        if (count != 4) const SizedBox(width: 8),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _HomeSheetButton(
+                    label: 'Create Code',
+                    icon: Icons.add_link_rounded,
+                    color: boardGreen,
+                    onTap: () {
+                      SoundService.tap();
+                      Navigator.pop(sheetContext);
+                      state.createPrivateRoom(mode);
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: codeController,
+                    textCapitalization: TextCapitalization.characters,
+                    maxLength: 6,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    decoration: InputDecoration(
+                      counterText: '',
+                      hintText: 'Invite code',
+                      hintStyle: TextStyle(color: Colors.white.withAlpha(140)),
+                      filled: true,
+                      fillColor: const Color(0x88250631),
+                      prefixIcon:
+                          const Icon(Icons.vpn_key_rounded, color: goldColor),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: const BorderSide(color: Color(0x55FFD426)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide:
+                            const BorderSide(color: goldColor, width: 2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _HomeSheetButton(
+                          label: 'Join Code',
+                          icon: Icons.login_rounded,
+                          color: boardBlue,
+                          onTap: () {
+                            final code = codeController.text.trim();
+                            if (code.isEmpty) {
+                              _showHomeSnack(context, 'Enter an invite code.');
+                              return;
+                            }
+                            SoundService.tap();
+                            Navigator.pop(sheetContext);
+                            state.joinPrivateRoom(code);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _HomeSheetButton(
+                          label: 'Offline Bot',
+                          icon: Icons.smart_toy_rounded,
+                          color: boardPurple,
+                          onTap: () {
+                            SoundService.tap();
+                            Navigator.pop(sheetContext);
+                            state.startOfflineMatch(mode);
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+    },
+  ).whenComplete(codeController.dispose);
+}
+
+class _HomeActionSheet extends StatelessWidget {
+  final String title;
+  final Widget child;
+
+  const _HomeActionSheet({
+    required this.title,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(22),
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF531060), Color(0xFF18041F)],
+          ),
+          border: Border.all(color: goldColor, width: 2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0xCC000000),
+              blurRadius: 24,
+              offset: Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: goldColor,
+                    fontSize: 23,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: const Icon(Icons.close_rounded,
+                      color: Colors.white70, size: 24),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeSheetButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _HomeSheetButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        height: 48,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [Color.lerp(color, Colors.white, 0.24)!, color],
+          ),
+          border: Border.all(color: goldColor, width: 1.4),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x77000000),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            )
+          ],
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white, size: 20),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                maxLines: 1,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlayerCountButton extends StatelessWidget {
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PlayerCountButton({
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        height: 42,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          color: selected ? const Color(0xFF7A20C8) : const Color(0x88250631),
+          border: Border.all(
+            color: selected ? goldColor : Colors.white.withAlpha(70),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Text(
+          '$count Players',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: count == 4 ? 12 : 13,
+            fontWeight: FontWeight.w900,
+            shadows: const [Shadow(color: Colors.black87, blurRadius: 3)],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeThemeButton extends StatelessWidget {
+  final _HomeBoardThemeOption option;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _HomeThemeButton({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 154,
+        height: 118,
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              option.colors[0].withAlpha(selected ? 235 : 170),
+              option.colors[1].withAlpha(selected ? 230 : 150),
+            ],
+          ),
+          border: Border.all(
+            color: selected ? goldColor : Colors.white.withAlpha(85),
+            width: selected ? 2.2 : 1.1,
+          ),
+          boxShadow: selected
+              ? [BoxShadow(color: goldColor.withAlpha(105), blurRadius: 12)]
+              : null,
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: CustomPaint(
+                  painter: _HomeThemePreviewPainter(option),
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Text(
+                option.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black,
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeThemePreviewPainter extends CustomPainter {
+  static const Map<int, int> _ladders = {
+    6: 26,
+    23: 37,
+    48: 68,
+    65: 85,
+    79: 99,
+  };
+
+  static const Map<int, int> _snakes = {
+    47: 13,
+    57: 35,
+    84: 64,
+    93: 68,
+  };
+
+  static const Map<int, Color> _coloredCells = {
+    100: boardRed,
+    97: boardBlue,
+    94: boardGreen,
+    90: boardRed,
+    79: boardPurple,
+    67: boardRed,
+    60: boardBlue,
+    49: boardPurple,
+    36: boardGreen,
+    25: boardBlue,
+    20: boardRed,
+    9: boardPurple,
+  };
+
+  static const Set<int> _starCells = {
+    97,
+    94,
+    90,
+    79,
+    67,
+    49,
+    36,
+    25,
+    20,
+    9,
+  };
+
+  final _HomeBoardThemeOption option;
+
+  const _HomeThemePreviewPainter(this.option);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..isAntiAlias = true;
+    final shell = Offset.zero & size;
+    p.shader = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: _shellColors,
+    ).createShader(shell);
+    canvas.drawRRect(RRect.fromRectXY(shell, 8, 8), p);
+    p.shader = null;
+
+    final side = math.min(size.width, size.height) * 0.90;
+    final board = Rect.fromCenter(
+      center: shell.center,
+      width: side,
+      height: side,
+    );
+    p.color = const Color(0x66000000);
+    canvas.drawRRect(
+      RRect.fromRectXY(board.shift(const Offset(2, 2)), 8, 8),
+      p,
+    );
+    p.color = const Color(0xFFFFF5C9);
+    canvas.drawRRect(RRect.fromRectXY(board, 8, 8), p);
+
+    final inner = board.deflate(side * 0.035);
+    final cell = inner.width / 10;
+    for (var number = 1; number <= 100; number++) {
+      final rect = _cellRect(number, inner, cell);
+      final themed = _coloredCells[number];
+      p.shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: themed == null ? _plainCellColors(number) : _themeCell(themed),
+      ).createShader(rect);
+      canvas.drawRect(rect, p);
+      p.shader = null;
+      p
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.55
+        ..color = _gridColor;
+      canvas.drawRect(rect, p);
+      p.style = PaintingStyle.fill;
+      if (_starCells.contains(number)) {
+        _drawStar(canvas, rect.center, cell * 0.24, p);
+      }
+    }
+
+    _drawLadders(canvas, inner, cell, p);
+    _drawSnakes(canvas, inner, cell, p);
+
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = goldColor;
+    canvas.drawRRect(RRect.fromRectXY(board.deflate(1), 8, 8), p);
+    p.style = PaintingStyle.fill;
+  }
+
+  List<Color> get _shellColors {
+    switch (option.id) {
+      case 'royal':
+        return const [
+          Color(0xFFFFF8C9),
+          Color(0xFFD69BFF),
+          Color(0xFF4B1688),
+        ];
+      case 'neon':
+        return const [
+          Color(0xFFB9FFFF),
+          Color(0xFFFF4CE2),
+          Color(0xFF160051),
+        ];
+      case 'classic':
+        return const [
+          Color(0xFFFFF8D6),
+          Color(0xFFFFC448),
+          Color(0xFF7D430E),
+        ];
+      case 'carnival':
+      default:
+        return const [
+          Color(0xFFFFF7A6),
+          Color(0xFFFFB61C),
+          Color(0xFF713100),
+        ];
+    }
+  }
+
+  Color get _gridColor {
+    switch (option.id) {
+      case 'royal':
+        return const Color(0xD18F58C9);
+      case 'neon':
+        return const Color(0xD129BFFF);
+      case 'classic':
+        return const Color(0xD6BE8A25);
+      case 'carnival':
+      default:
+        return const Color(0xD9D8A115);
+    }
+  }
+
+  List<Color> _plainCellColors(int number) {
+    final even = (number + (number ~/ 10)).isEven;
+    switch (option.id) {
+      case 'royal':
+        return even
+            ? const [Color(0xFFFFF8FF), Color(0xFFF4DFFF)]
+            : const [Color(0xFFFFF2F8), Color(0xFFEAD8FF)];
+      case 'neon':
+        return even
+            ? const [Color(0xFFFFFFFF), Color(0xFFE1FBFF)]
+            : const [Color(0xFFFFF5FF), Color(0xFFEAF8FF)];
+      case 'classic':
+        return even
+            ? const [Color(0xFFFFFDF4), Color(0xFFFFE7B5)]
+            : const [Color(0xFFFFF7E1), Color(0xFFFFE0A0)];
+      case 'carnival':
+      default:
+        return even
+            ? const [Color(0xFFFFFDF0), Color(0xFFFFF0C7)]
+            : const [Color(0xFFFFF9E6), Color(0xFFFFEAB1)];
+    }
+  }
+
+  List<Color> _themeCell(Color color) {
+    switch (option.id) {
+      case 'royal':
+        return [Color.lerp(color, Colors.white, 0.34)!, color];
+      case 'neon':
+        return [Color.lerp(color, const Color(0xFF39F6FF), 0.24)!, color];
+      case 'classic':
+        return [Color.lerp(color, Colors.white, 0.22)!, color];
+      case 'carnival':
+      default:
+        return [Color.lerp(color, Colors.white, 0.20)!, color];
+    }
+  }
+
+  Rect _cellRect(int number, Rect board, double cell) {
+    final rowFromBottom = (number - 1) ~/ 10;
+    final rawCol = (number - 1) % 10;
+    final col = rowFromBottom.isEven ? rawCol : 9 - rawCol;
+    final row = 9 - rowFromBottom;
+    return Rect.fromLTWH(
+      board.left + col * cell,
+      board.top + row * cell,
+      cell,
+      cell,
+    );
+  }
+
+  Offset _cellCenter(int number, Rect board, double cell) =>
+      _cellRect(number, board, cell).center;
+
+  void _drawLadders(Canvas canvas, Rect board, double cell, Paint p) {
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = math.max(1.4, cell * 0.12)
+      ..color = const Color(0xFFFFD33F);
+    for (final entry in _ladders.entries) {
+      final a = _cellCenter(entry.key, board, cell);
+      final b = _cellCenter(entry.value, board, cell);
+      final dir = b - a;
+      final len = dir.distance;
+      if (len == 0) continue;
+      final unit = dir / len;
+      final normal = Offset(-unit.dy, unit.dx) * cell * 0.15;
+      canvas.drawLine(a - normal, b - normal, p);
+      canvas.drawLine(a + normal, b + normal, p);
+      p
+        ..strokeWidth = math.max(0.9, cell * 0.07)
+        ..color = const Color(0xFFFFF5A8);
+      for (var i = 1; i < 5; i++) {
+        final c = Offset.lerp(a, b, i / 5)!;
+        canvas.drawLine(c - normal * 1.15, c + normal * 1.15, p);
+      }
+      p
+        ..strokeWidth = math.max(1.4, cell * 0.12)
+        ..color = const Color(0xFFFFD33F);
+    }
+    p
+      ..style = PaintingStyle.fill
+      ..strokeCap = StrokeCap.butt;
+  }
+
+  void _drawSnakes(Canvas canvas, Rect board, double cell, Paint p) {
+    final colors = _snakeColors;
+    var i = 0;
+    for (final entry in _snakes.entries) {
+      final start = _cellCenter(entry.key, board, cell);
+      final end = _cellCenter(entry.value, board, cell);
+      final color = colors[i % colors.length];
+      final midY = (start.dy + end.dy) / 2;
+      final sway = (i.isEven ? -1 : 1) * cell * 1.15;
+      final path = Path()
+        ..moveTo(start.dx, start.dy)
+        ..cubicTo(start.dx + sway, midY, end.dx - sway, midY, end.dx, end.dy);
+      p
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = math.max(2.4, cell * 0.24)
+        ..color = Color.lerp(color, Colors.black, 0.18)!;
+      canvas.drawPath(path, p);
+      p
+        ..strokeWidth = math.max(1.5, cell * 0.14)
+        ..color = Color.lerp(color, Colors.white, 0.34)!;
+      canvas.drawPath(path, p);
+      p
+        ..style = PaintingStyle.fill
+        ..color = Color.lerp(color, Colors.white, 0.24)!;
+      canvas.drawCircle(start, cell * 0.16, p);
+      p.color = Colors.white.withAlpha(230);
+      canvas.drawCircle(
+        start.translate(-cell * 0.04, -cell * 0.03),
+        cell * 0.045,
+        p,
+      );
+      i++;
+    }
+    p
+      ..style = PaintingStyle.fill
+      ..strokeCap = StrokeCap.butt;
+  }
+
+  List<Color> get _snakeColors {
+    switch (option.id) {
+      case 'royal':
+        return const [
+          Color(0xFFFF873D),
+          Color(0xFFB85CFF),
+          Color(0xFF54DD78),
+          Color(0xFF33B9FF),
+        ];
+      case 'neon':
+        return const [
+          Color(0xFFFF7A00),
+          Color(0xFFFF4CFF),
+          Color(0xFF79FF35),
+          Color(0xFF20F0FF),
+        ];
+      case 'classic':
+        return const [
+          Color(0xFFFF8122),
+          Color(0xFFB15CE0),
+          Color(0xFF53C846),
+          Color(0xFF2AA8EA),
+        ];
+      case 'carnival':
+      default:
+        return const [
+          boardOrange,
+          boardPurple,
+          Color(0xFF56D82D),
+          Color(0xFF22B7FF),
+        ];
+    }
+  }
+
+  void _drawStar(Canvas canvas, Offset center, double radius, Paint p) {
+    final path = Path();
+    for (var i = 0; i < 10; i++) {
+      final r = i.isEven ? radius : radius * 0.43;
+      final a = -math.pi / 2 + i * math.pi / 5;
+      final point = center + Offset(math.cos(a) * r, math.sin(a) * r);
+      if (i == 0) {
+        path.moveTo(point.dx, point.dy);
+      } else {
+        path.lineTo(point.dx, point.dy);
+      }
+    }
+    path.close();
+    p
+      ..style = PaintingStyle.fill
+      ..color = Colors.white.withAlpha(235);
+    canvas.drawPath(path, p);
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(0.7, radius * 0.18)
+      ..color = const Color(0xFFFFD426);
+    canvas.drawPath(path, p);
+    p.style = PaintingStyle.fill;
+  }
+
+  @override
+  bool shouldRepaint(covariant _HomeThemePreviewPainter oldDelegate) =>
+      oldDelegate.option.id != option.id;
 }
 
 class _StartChoiceOverlay extends StatelessWidget {
@@ -1580,9 +2409,10 @@ class _ThemeToggle extends StatelessWidget {
 }
 
 class _RewardStrip extends StatelessWidget {
+  final AppState state;
   final _RushPalette palette;
 
-  const _RewardStrip({required this.palette});
+  const _RewardStrip({required this.state, required this.palette});
 
   @override
   Widget build(BuildContext context) {
@@ -1603,6 +2433,11 @@ class _RewardStrip extends StatelessWidget {
                     art: _RewardArt.gift,
                     start: const Color(0xFFE93836),
                     end: const Color(0xFFFFB21C),
+                    onTap: () {
+                      SoundService.tap();
+                      state.addCoins(100);
+                      _showHomeSnack(context, 'Free gift claimed. +100 coins.');
+                    },
                   ),
                 ),
                 SizedBox(width: gap),
@@ -1613,6 +2448,10 @@ class _RewardStrip extends StatelessWidget {
                     art: _RewardArt.shield,
                     start: const Color(0xFFFFE066),
                     end: const Color(0xFFD89100),
+                    onTap: () {
+                      SoundService.tap();
+                      state.startQuickMatch('classic_4p');
+                    },
                   ),
                 ),
                 SizedBox(width: gap),
@@ -1623,6 +2462,10 @@ class _RewardStrip extends StatelessWidget {
                     art: _RewardArt.medal,
                     start: const Color(0xFFFFD426),
                     end: const Color(0xFFE03068),
+                    onTap: () {
+                      SoundService.tap();
+                      _showSnakesBoardSheet(context, state);
+                    },
                   ),
                 ),
                 SizedBox(width: gap),
@@ -1633,6 +2476,13 @@ class _RewardStrip extends StatelessWidget {
                     art: _RewardArt.lock,
                     start: const Color(0xFFFFD35B),
                     end: const Color(0xFF8C4B00),
+                    onTap: () {
+                      SoundService.tap();
+                      _showHomeSnack(
+                        context,
+                        'Locked events unlock after more wins.',
+                      );
+                    },
                   ),
                 ),
               ],
@@ -1652,6 +2502,7 @@ class _RewardTile extends StatelessWidget {
   final _RewardArt art;
   final Color start;
   final Color end;
+  final VoidCallback onTap;
 
   const _RewardTile({
     required this.palette,
@@ -1659,76 +2510,83 @@ class _RewardTile extends StatelessWidget {
     required this.art,
     required this.start,
     required this.end,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: palette.dark
-              ? const [Color(0xFF8A1776), Color(0xFF421048)]
-              : const [Color(0xFFFFEFFB), Color(0xFFFFB9E3)],
-        ),
-        border: Border.all(color: palette.stroke, width: 1.6),
-        boxShadow: [
-          BoxShadow(
-            color: palette.shadow,
-            blurRadius: 9,
-            offset: const Offset(0, 4),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: palette.dark
+                ? const [Color(0xFF8A1776), Color(0xFF421048)]
+                : const [Color(0xFFFFEFFB), Color(0xFFFFB9E3)],
           ),
-          BoxShadow(
-            color: palette.gold.withAlpha(45),
-            blurRadius: 12,
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Stack(
-          children: [
-            Positioned.fill(child: CustomPaint(painter: _RewardTilePattern())),
-            Align(
-              alignment: const Alignment(0, -0.28),
-              child: SizedBox(
-                width: 48,
-                height: 44,
-                child: CustomPaint(
-                  painter: _RewardIconPainter(art: art, start: start, end: end),
-                ),
-              ),
+          border: Border.all(color: palette.stroke, width: 1.6),
+          boxShadow: [
+            BoxShadow(
+              color: palette.shadow,
+              blurRadius: 9,
+              offset: const Offset(0, 4),
             ),
-            Positioned(
-              left: 5,
-              right: 5,
-              bottom: 9,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: palette.text,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0,
-                    shadows: palette.dark
-                        ? const [
-                            Shadow(
-                              color: Color(0xCC000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
-                            ),
-                          ]
-                        : null,
+            BoxShadow(
+              color: palette.gold.withAlpha(45),
+              blurRadius: 12,
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                  child: CustomPaint(painter: _RewardTilePattern())),
+              Align(
+                alignment: const Alignment(0, -0.28),
+                child: SizedBox(
+                  width: 48,
+                  height: 44,
+                  child: CustomPaint(
+                    painter:
+                        _RewardIconPainter(art: art, start: start, end: end),
                   ),
                 ),
               ),
-            ),
-          ],
+              Positioned(
+                left: 5,
+                right: 5,
+                bottom: 9,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: palette.text,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0,
+                      shadows: palette.dark
+                          ? const [
+                              Shadow(
+                                color: Color(0xCC000000),
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2059,13 +2917,13 @@ class _LobbyStage extends StatelessWidget {
                       child: _ModeTile(
                         palette: palette,
                         pulse: pulse,
-                        label: 'Offline',
+                        label: 'Private',
                         headline: '',
-                        subtitle: 'Bot',
+                        subtitle: 'Code',
                         start: const Color(0xFF8C35FF),
                         end: const Color(0xFF5010A8),
-                        art: _ModeArt.quick,
-                        onTap: () => state.startOfflineMatch('classic_2p'),
+                        art: _ModeArt.private,
+                        onTap: () => _showPrivateRoomSheet(context, state),
                       ),
                     ),
                     SizedBox(width: smallGap),
@@ -2081,9 +2939,7 @@ class _LobbyStage extends StatelessWidget {
                         art: _ModeArt.snakes,
                         imageAsset:
                             'assets/images/rush/rush_snakes_ladders_mode_v1.png',
-                        onTap: () => state.startQuickMatch(
-                          AppState.snakesLaddersMode,
-                        ),
+                        onTap: () => _showSnakesBoardSheet(context, state),
                       ),
                     ),
                     SizedBox(width: smallGap),
@@ -2097,7 +2953,7 @@ class _LobbyStage extends StatelessWidget {
                         start: const Color(0xFFFFC22D),
                         end: const Color(0xFFE47B00),
                         art: _ModeArt.quick,
-                        onTap: () => state.startQuickMatch('classic_2p'),
+                        onTap: state.startFastMatch,
                       ),
                     ),
                   ],

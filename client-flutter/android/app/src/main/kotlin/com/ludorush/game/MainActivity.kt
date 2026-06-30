@@ -1,8 +1,11 @@
 package com.ludorush.game
 
+import android.content.Intent
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.net.Uri
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import io.flutter.embedding.android.FlutterActivity
@@ -20,6 +23,15 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "ludo_rush/app")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getVersionInfo" -> result.success(versionInfo())
+                    "openUrl" -> result.success(openUrl(call.argument<String>("url") ?: ""))
+                    else -> result.notImplemented()
+                }
+            }
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "ludo_rush/sound")
             .setMethodCallHandler { call, result ->
                 if (call.method != "play") {
@@ -30,6 +42,32 @@ class MainActivity : FlutterActivity() {
                 playEffect(call.arguments as? String ?: "tap")
                 result.success(null)
             }
+    }
+
+    private fun versionInfo(): Map<String, Any> {
+        val info = packageManager.getPackageInfo(packageName, 0)
+        val buildNumber = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            info.longVersionCode
+        } else {
+            @Suppress("DEPRECATION")
+            info.versionCode.toLong()
+        }
+        return mapOf(
+            "versionName" to (info.versionName ?: ""),
+            "buildNumber" to buildNumber
+        )
+    }
+
+    private fun openUrl(url: String): Boolean {
+        if (url.isBlank()) return false
+        return try {
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(intent)
+            true
+        } catch (_: RuntimeException) {
+            false
+        }
     }
 
     override fun onDestroy() {

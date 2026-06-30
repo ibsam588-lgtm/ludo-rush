@@ -45,3 +45,13 @@ sysinfo.txt
 *.xcarchive
 *.jks
 secrets/
+
+# Flutter / Android generated output
+client-flutter/.dart_tool/
+client-flutter/.flutter-plugins
+client-flutter/.flutter-plugins-dependencies
+client-flutter/build/
+client-flutter/build_stale_*/
+client-flutter/android/.gradle/
+client-flutter/android/local.properties
+client-flutter/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java

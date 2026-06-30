@@ -2,11 +2,21 @@ export interface Env {
   DB: D1Database;
   LUDO_ROOMS: DurableObjectNamespace;
   BACKGROUND_QUEUE: Queue<BackgroundJob>;
+  MIN_ANDROID_BUILD_NUMBER?: string;
+  LATEST_ANDROID_BUILD_NUMBER?: string;
+  LATEST_ANDROID_VERSION_NAME?: string;
+  ANDROID_UPDATE_URL?: string;
+  FORCE_UPDATE_MESSAGE?: string;
 }
 
 export type Region = "auto" | "us-east" | "us-west" | "europe" | "middle-east" | "south-asia" | "east-asia";
 
-export type GameMode = "classic_2p" | "classic_4p" | "rush_2p" | "rush_4p";
+export type GameMode =
+  | "classic_2p"
+  | "classic_3p"
+  | "classic_4p"
+  | "rush_2p"
+  | "rush_4p";
 
 export interface PlayerProfile {
   id: string;
