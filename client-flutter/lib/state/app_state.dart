@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../models/game_snapshot.dart';
+import '../services/app_platform_service.dart';
 import '../services/prefs_service.dart';
 import '../services/sound_service.dart';
 import '../services/websocket_service.dart';
@@ -11,19 +12,36 @@ import '../services/websocket_service.dart';
 class AppState extends ChangeNotifier {
   static const String _backendUrl =
       'https://ludo-rush-backend.ibsam588.workers.dev';
+  static const String _defaultAndroidUpdateUrl =
+      'https://play.google.com/store/apps/details?id=com.ludorush.game';
+  static const String snakesLaddersMode = 'snakes_ladders';
   static const int _yardProgress = -1;
-  static const int _finishProgress = 57;
-  static const int _trackLength = 52;
+  static const int _classicFinishProgress = 57;
+  static const int _snakeFinishProgress = 100;
+  static const int _classicTrackLength = 52;
   static const List<int> _localStartOffsets = [1, 14, 27, 40];
   static const Set<int> _localSafeTrackIndexes = {
-    2,
+    1,
     9,
-    15,
+    14,
     22,
-    28,
+    27,
     35,
-    41,
+    40,
     48,
+  };
+  static const Map<int, int> _snakeLadders = {
+    6: 26,
+    23: 37,
+    48: 68,
+    65: 85,
+    79: 99,
+  };
+  static const Map<int, int> _snakeDrops = {
+    47: 13,
+    57: 35,
+    84: 64,
+    93: 68,
   };
   static const List<String> _matchedNames = [
     'Maya',
@@ -48,6 +66,7 @@ class AppState extends ChangeNotifier {
   String displayName = 'Ludo Player';
   String countryCode = 'US';
   int avatarPreset = 0;
+  int age = 0;
   String? avatarImagePath;
   int coins = 500;
   int rating = 1000;
@@ -55,6 +74,8 @@ class AppState extends ChangeNotifier {
   int wins = 0;
   bool isDarkMode = true;
   String matchDifficulty = 'medium';
+  String snakesBoardTheme = 'carnival';
+  bool startChoiceSeen = false;
 
   // Match state
   GameSnapshot? lastSnapshot;
@@ -63,8 +84,21 @@ class AppState extends ChangeNotifier {
   bool currentMatchIsBot = false;
   bool localMatchActive = false;
   String pendingMatchMode = 'classic_2p';
+  String? privateInviteCode;
   bool fallbackBotStarted = false;
   bool backendOnline = false;
+  bool updateCheckInProgress = false;
+  bool updateCheckComplete = false;
+  bool updateCheckFailed = false;
+  bool forceUpdateRequired = false;
+  String installedVersionName = '';
+  int installedBuildNumber = 0;
+  int minimumRequiredBuildNumber = 0;
+  int latestAvailableBuildNumber = 0;
+  String latestAvailableVersionName = '';
+  String forceUpdateMessage =
+      'A newer version of Ludo Rush is required to keep matchmaking, rewards, and game rules in sync.';
+  String forceUpdateUrl = _defaultAndroidUpdateUrl;
   int _pollAttempts = 0;
   final math.Random _rng = math.Random();
   Timer? _localBotTimer;
@@ -90,6 +124,7 @@ class AppState extends ChangeNotifier {
     displayName = _prefs.displayName;
     countryCode = _prefs.countryCode;
     avatarPreset = _prefs.avatarPreset;
+    age = _prefs.age;
     avatarImagePath = _prefs.avatarImagePath;
     coins = _prefs.coins;
     rating = _prefs.rating;
@@ -97,11 +132,14 @@ class AppState extends ChangeNotifier {
     wins = _prefs.wins;
     isDarkMode = _prefs.isDarkMode;
     matchDifficulty = _normalizeDifficulty(_prefs.matchDifficulty);
+    snakesBoardTheme = _normalizeSnakesBoardTheme(_prefs.snakesBoardTheme);
+    startChoiceSeen = _prefs.startChoiceSeen;
 
     // Shared WS service identity
     _ws.playerId = playerId;
     _ws.displayName = displayName;
 
+    await checkForForcedUpdate(notify: false);
     _healthCheck();
   }
 
@@ -120,6 +158,65 @@ class AppState extends ChangeNotifier {
     }).catchError((_) {
       backendOnline = false;
     });
+  }
+
+  Future<void> checkForForcedUpdate({bool notify = true}) async {
+    updateCheckInProgress = true;
+    updateCheckFailed = false;
+    if (notify) notifyListeners();
+
+    try {
+      final packageInfo = await AppPlatformService.getVersionInfo();
+      final buildNumber = packageInfo.buildNumber;
+      installedVersionName = packageInfo.versionName;
+      installedBuildNumber = buildNumber;
+
+      final uri = Uri.parse('$_backendUrl/api/v1/app/config').replace(
+        queryParameters: {
+          'platform': 'android',
+          'build': buildNumber.toString(),
+          'version': packageInfo.versionName,
+        },
+      );
+      final response = await http.get(uri).timeout(const Duration(seconds: 5));
+      if (response.statusCode >= 400) {
+        updateCheckFailed = !updateCheckComplete;
+        return;
+      }
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final minimum = _readInt(body['minimumBuildNumber'], fallback: 0);
+      final latest = _readInt(body['latestBuildNumber'], fallback: minimum);
+      final updateUrl = (body['updateUrl'] as String? ?? '').trim();
+      final message = (body['message'] as String? ?? '').trim();
+      final latestVersion = (body['latestVersionName'] as String? ?? '').trim();
+      final forceEnabled = body['forceUpdate'] != false;
+
+      minimumRequiredBuildNumber = minimum;
+      latestAvailableBuildNumber = latest;
+      latestAvailableVersionName = latestVersion;
+      forceUpdateUrl = updateUrl.isEmpty ? _defaultAndroidUpdateUrl : updateUrl;
+      if (message.isNotEmpty) forceUpdateMessage = message;
+      forceUpdateRequired =
+          forceEnabled && buildNumber > 0 && minimum > buildNumber;
+      updateCheckComplete = true;
+      updateCheckFailed = false;
+    } catch (_) {
+      updateCheckFailed = !updateCheckComplete;
+    } finally {
+      updateCheckInProgress = false;
+      if (notify) notifyListeners();
+    }
+  }
+
+  Future<void> openForcedUpdateStore() async {
+    SoundService.tap();
+    final launched = forceUpdateUrl.isNotEmpty
+        ? await AppPlatformService.openUrl(forceUpdateUrl)
+        : false;
+    if (!launched) {
+      await AppPlatformService.openUrl(_defaultAndroidUpdateUrl);
+    }
   }
 
   // ── Navigation ─────────────────────────────────────────────────────────────
@@ -234,8 +331,49 @@ class AppState extends ChangeNotifier {
     _openMatchmakingScreen();
     _scheduleLocalBotMatch(
       mode,
-      reason: 'Bot table ready. Roll when it is your turn.',
+      reason: _isSnakesLaddersMode(mode)
+          ? 'Snakes & Ladders table ready. Roll to climb.'
+          : 'Bot table ready. Roll when it is your turn.',
     );
+  }
+
+  void startFastMatch() {
+    if (connecting) return;
+    const mode = 'classic_4p';
+    pendingMatchMode = mode;
+    fallbackBotStarted = false;
+    currentMatchIsBot = true;
+    _resetLiveMatch();
+    connecting = true;
+    _setStatus('Finding the fastest table...');
+    _openMatchmakingScreen();
+    _scheduleLocalBotMatch(
+      mode,
+      reason: 'Quick match table ready. Roll when it is your turn.',
+      delay: const Duration(milliseconds: 1200),
+      setupStatus: 'Locking in your quick table...',
+    );
+  }
+
+  void startGuestMatch([String mode = 'classic_2p']) {
+    markStartChoiceSeen();
+    startQuickMatch(mode);
+  }
+
+  void markStartChoiceSeen() {
+    if (startChoiceSeen) return;
+    startChoiceSeen = true;
+    _prefs.startChoiceSeen = true;
+    notifyListeners();
+  }
+
+  bool get shouldShowStartChoice {
+    final defaultName =
+        displayName.trim().isEmpty || displayName.trim() == 'Ludo Player';
+    return !startChoiceSeen &&
+        playerId == null &&
+        gamesPlayed == 0 &&
+        defaultName;
   }
 
   void startBotMatch(String mode) {
@@ -249,7 +387,115 @@ class AppState extends ChangeNotifier {
     _openMatchmakingScreen();
     _scheduleLocalBotMatch(
       mode,
-      reason: 'Bot table ready. Roll when it is your turn.',
+      reason: _isSnakesLaddersMode(mode)
+          ? 'Snakes & Ladders table ready. Roll to climb.'
+          : 'Bot table ready. Roll when it is your turn.',
+    );
+  }
+
+  void startOfflineMatch(String mode) {
+    if (connecting) return;
+    markStartChoiceSeen();
+    pendingMatchMode = mode;
+    fallbackBotStarted = true;
+    currentMatchIsBot = true;
+    _resetLiveMatch();
+    _startLocalBotMatch(
+      mode,
+      reason: _isSnakesLaddersMode(mode)
+          ? 'Offline Snakes & Ladders ready. Roll to climb.'
+          : 'Offline table ready. Roll when it is your turn.',
+    );
+    replaceWith('/game');
+  }
+
+  void createPrivateRoom(String mode) {
+    if (connecting) return;
+    markStartChoiceSeen();
+    _ensurePlayerIdentity();
+    pendingMatchMode = mode;
+    fallbackBotStarted = false;
+    currentMatchIsBot = false;
+    _resetLiveMatch();
+    connecting = true;
+    privateInviteCode = null;
+    _setStatus('Creating private room...');
+    _post(
+      '/api/v1/rooms/private',
+      {
+        'playerId': playerId,
+        'displayName': _humanDisplayName,
+        'mode': mode,
+        'region': matchmakingRegion,
+      },
+      (j) {
+        final code = (j['code'] as String? ?? '').trim().toUpperCase();
+        final socketUrl = j['socketUrl'] as String? ?? '';
+        privateInviteCode = code.isEmpty ? null : code;
+        if (socketUrl.isEmpty) {
+          connecting = false;
+          _setStatus(code.isEmpty
+              ? 'Private room created.'
+              : 'Private room $code created. Share the code.');
+          return;
+        }
+        _connectWs(
+          socketUrl,
+          fillBots: false,
+          readyStatus: code.isEmpty
+              ? 'Private room ready. Waiting for players...'
+              : 'Share code $code. Waiting for players...',
+        );
+        replaceWith('/game');
+      },
+      onError: () {
+        connecting = false;
+        _setStatus('Could not create private room. Try again.');
+      },
+    );
+  }
+
+  void joinPrivateRoom(String code) {
+    if (connecting) return;
+    final cleanCode = code.trim().toUpperCase();
+    if (cleanCode.isEmpty) {
+      _setStatus('Enter a private room code.');
+      return;
+    }
+    markStartChoiceSeen();
+    _ensurePlayerIdentity();
+    fallbackBotStarted = false;
+    currentMatchIsBot = false;
+    _resetLiveMatch();
+    connecting = true;
+    privateInviteCode = cleanCode;
+    _setStatus('Joining private room $cleanCode...');
+    _post(
+      '/api/v1/rooms/private/join',
+      {
+        'playerId': playerId,
+        'displayName': _humanDisplayName,
+        'code': cleanCode,
+      },
+      (j) {
+        pendingMatchMode = j['mode'] as String? ?? pendingMatchMode;
+        final socketUrl = j['socketUrl'] as String? ?? '';
+        if (socketUrl.isEmpty) {
+          connecting = false;
+          _setStatus('Private room found, but socket was missing.');
+          return;
+        }
+        _connectWs(
+          socketUrl,
+          fillBots: false,
+          readyStatus: 'Joined room $cleanCode. Waiting for players...',
+        );
+        replaceWith('/game');
+      },
+      onError: () {
+        connecting = false;
+        _setStatus('Private room code was not found.');
+      },
     );
   }
 
@@ -268,12 +514,17 @@ class AppState extends ChangeNotifier {
     navigatorKey.currentState?.pushNamed('/matchmaking');
   }
 
-  void _scheduleLocalBotMatch(String mode, {required String reason}) {
+  void _scheduleLocalBotMatch(
+    String mode, {
+    required String reason,
+    Duration delay = const Duration(milliseconds: 2500),
+    String setupStatus = 'Setting up your game...',
+  }) {
     _matchmakingTimer?.cancel();
-    _matchmakingTimer = Timer(const Duration(milliseconds: 1700), () {
+    _matchmakingTimer = Timer(delay, () {
       _matchmakingTimer = null;
       if (!connecting || pendingMatchMode != mode) return;
-      _setStatus('Setting up your game...');
+      _setStatus(setupStatus);
       _startLocalBotMatch(mode, reason: reason);
       replaceWith('/game');
     });
@@ -325,23 +576,32 @@ class AppState extends ChangeNotifier {
 
   // ── WebSocket ──────────────────────────────────────────────────────────────
 
-  void _connectWs(String socketPath) {
+  void _connectWs(
+    String socketPath, {
+    bool fillBots = true,
+    String? readyStatus,
+  }) {
     localMatchActive = false;
     _localBotTimer?.cancel();
     _localBotTimer = null;
     _ws.playerId = playerId;
-    _ws.displayName = displayName;
+    _ws.displayName = _humanDisplayName;
     _ws.connect(socketPath);
     _wsSub?.cancel();
     _wsSub = _ws.messages.listen(_handleMessage);
 
     // Send join after connect (slight delay for WS handshake)
     Future.delayed(const Duration(milliseconds: 300), () {
-      _ws.send(
-          {'type': 'join', 'playerId': playerId, 'displayName': displayName});
-      _ws.send({'type': 'fill_bots', 'playerId': playerId});
+      _ws.send({
+        'type': 'join',
+        'playerId': playerId,
+        'displayName': _humanDisplayName
+      });
+      if (fillBots) {
+        _ws.send({'type': 'fill_bots', 'playerId': playerId});
+      }
       connecting = false;
-      _setStatus('Table ready. Roll when it is your turn.');
+      _setStatus(readyStatus ?? 'Table ready. Roll when it is your turn.');
     });
   }
 
@@ -446,7 +706,8 @@ class AppState extends ChangeNotifier {
       _prefs.playerId = playerId;
     }
 
-    final maxPlayers = mode.contains('4p') ? 4 : 2;
+    final snakeMode = _isSnakesLaddersMode(mode);
+    final maxPlayers = snakeMode ? 4 : _playersForMode(mode);
     final seats = List<SeatState>.generate(maxPlayers, (seat) {
       if (seat == 0) {
         return SeatState(
@@ -464,17 +725,28 @@ class AppState extends ChangeNotifier {
       );
     });
 
-    final pieces = <PieceState>[
-      for (final seat in seats)
-        for (int i = 0; i < 4; i++)
-          PieceState(
-            pieceId: 's${seat.seat}_p$i',
-            seat: seat.seat,
-            state: 'yard',
-            progress: _yardProgress,
-            trackIndex: -1,
-          ),
-    ];
+    final pieces = snakeMode
+        ? <PieceState>[
+            for (final seat in seats)
+              PieceState(
+                pieceId: 's${seat.seat}_snake',
+                seat: seat.seat,
+                state: 'track',
+                progress: 1,
+                trackIndex: 1,
+              ),
+          ]
+        : <PieceState>[
+            for (final seat in seats)
+              for (int i = 0; i < 4; i++)
+                PieceState(
+                  pieceId: 's${seat.seat}_p$i',
+                  seat: seat.seat,
+                  state: 'yard',
+                  progress: _yardProgress,
+                  trackIndex: -1,
+                ),
+          ];
 
     _ws.playerId = playerId;
     _ws.displayName = displayName;
@@ -511,6 +783,11 @@ class AppState extends ChangeNotifier {
     }
 
     final snap = lastSnapshot!;
+    if (_isSnakesLaddersMode(snap.mode)) {
+      _rollSnakesLaddersDice(snap);
+      return;
+    }
+
     final seat = mySeat ?? snap.currentTurnSeat;
     final value = _nextLocalDice(snap, seat);
     final moves = _localLegalMoves(snap, seat, value);
@@ -535,6 +812,31 @@ class AppState extends ChangeNotifier {
     _setStatus('You rolled $value. Tap a highlighted piece.');
   }
 
+  void _rollSnakesLaddersDice(GameSnapshot snap) {
+    final seat = mySeat ?? snap.currentTurnSeat;
+    final value = _rng.nextInt(6) + 1;
+    final moves = _snakesLaddersLegalMoves(snap, seat, value);
+
+    SoundService.roll();
+    lastRollValue = value;
+    lastRollPlayerId = playerId;
+    lastRollSequence++;
+
+    if (moves.isEmpty) {
+      lastSnapshot = _advanceLocalTurn(snap);
+      _setStatus('You rolled $value. Need exact roll to reach 100.');
+      _scheduleLocalBots();
+      return;
+    }
+
+    lastSnapshot = _copySnapshot(
+      snap,
+      diceValue: value,
+      availableMoves: moves,
+    );
+    _setStatus('You rolled $value. Tap to move.');
+  }
+
   void _moveLocalPiece(String pieceId) {
     if (!_canAct()) return;
     if (!_isMyTurn()) {
@@ -554,11 +856,17 @@ class AppState extends ChangeNotifier {
 
     final before = lastSnapshot!;
     SoundService.move();
-    final after = _applyLocalMove(before, pieceId);
+    final after = _isSnakesLaddersMode(before.mode)
+        ? _applySnakesLaddersMove(before, pieceId)
+        : _applyLocalMove(before, pieceId);
     lastSnapshot = after;
 
     if (after.status == 'finished') {
-      _setStatus('You won the match.');
+      _setStatus(
+        _isSnakesLaddersMode(after.mode)
+            ? 'You reached 100 and won.'
+            : 'You won the match.',
+      );
       _trackMatchResult(after);
       Future.delayed(const Duration(milliseconds: 1200), () {
         navigateTo('/results');
@@ -567,6 +875,11 @@ class AppState extends ChangeNotifier {
     }
 
     final sameTurn = after.currentTurnSeat == (mySeat ?? -1);
+    if (_isSnakesLaddersMode(after.mode)) {
+      _setStatus('You moved. ${_currentTurnLabel(after)} is next.');
+      _scheduleLocalBots();
+      return;
+    }
     _setStatus(
       sameTurn
           ? 'You moved a piece. Bonus roll.'
@@ -592,6 +905,10 @@ class AppState extends ChangeNotifier {
     if (!localMatchActive) return;
     final snap = lastSnapshot;
     if (snap == null || snap.status != 'playing') return;
+    if (_isSnakesLaddersMode(snap.mode)) {
+      _playSnakesLaddersBotTurn(snap);
+      return;
+    }
     final seat = _currentLocalSeat(snap);
     if (seat == null || !seat.isBot) return;
 
@@ -652,14 +969,116 @@ class AppState extends ChangeNotifier {
     });
   }
 
+  void _playSnakesLaddersBotTurn(GameSnapshot snap) {
+    final seat = _currentLocalSeat(snap);
+    if (seat == null || !seat.isBot) return;
+
+    final value = _rng.nextInt(6) + 1;
+    final moves = _snakesLaddersLegalMoves(snap, seat.seat, value);
+    final name = publicSeatName(seat);
+
+    SoundService.roll();
+    lastRollValue = value;
+    lastRollPlayerId = seat.playerId;
+    lastRollSequence++;
+
+    if (moves.isEmpty) {
+      lastSnapshot = _advanceLocalTurn(snap);
+      _setStatus('$name rolled $value and needs exact roll for 100.');
+      _scheduleLocalBots();
+      return;
+    }
+
+    lastSnapshot = _copySnapshot(
+      snap,
+      diceValue: value,
+      availableMoves: moves,
+    );
+    _setStatus('$name rolled $value.');
+
+    _localBotTimer = Timer(const Duration(milliseconds: 620), () {
+      if (!localMatchActive) return;
+      final current = lastSnapshot;
+      if (current == null ||
+          current.status != 'playing' ||
+          current.currentTurnSeat != seat.seat ||
+          current.diceValue != value) {
+        return;
+      }
+
+      final move = moves.first;
+      SoundService.move();
+      final after = _applySnakesLaddersMove(current, move);
+      lastSnapshot = after;
+
+      if (after.status == 'finished') {
+        _setStatus('$name reached 100 and won.');
+        _trackMatchResult(after);
+        Future.delayed(const Duration(milliseconds: 1200), () {
+          navigateTo('/results');
+        });
+        return;
+      }
+
+      _setStatus('$name moved. ${_currentTurnLabel(after)} is next.');
+      _scheduleLocalBots();
+    });
+  }
+
+  GameSnapshot _applySnakesLaddersMove(GameSnapshot snap, String pieceId) {
+    final dice = snap.diceValue;
+    final movingPiece = snap.pieces.firstWhere((p) => p.pieceId == pieceId);
+    final moverSeat = movingPiece.seat;
+    final rolledProgress = movingPiece.progress + dice;
+    final nextProgress = _snakeLadders[rolledProgress] ??
+        _snakeDrops[rolledProgress] ??
+        rolledProgress;
+    final nextState =
+        nextProgress >= _snakeFinishProgress ? 'finished' : 'track';
+
+    final pieces = snap.pieces.map((piece) {
+      if (piece.pieceId != pieceId) return piece;
+      return PieceState(
+        pieceId: piece.pieceId,
+        seat: piece.seat,
+        state: nextState,
+        progress: nextProgress,
+        trackIndex: nextProgress,
+      );
+    }).toList();
+
+    final winner = nextProgress >= _snakeFinishProgress
+        ? snap.seats.firstWhere((seat) => seat.seat == moverSeat).playerId
+        : '';
+    if (winner.isNotEmpty) {
+      return _copySnapshot(
+        snap,
+        pieces: pieces,
+        diceValue: 0,
+        availableMoves: const [],
+        winnerPlayerId: winner,
+        status: 'finished',
+      );
+    }
+
+    return _advanceLocalTurn(
+      _copySnapshot(
+        snap,
+        pieces: pieces,
+        diceValue: 0,
+        availableMoves: const [],
+      ),
+    );
+  }
+
   GameSnapshot _applyLocalMove(GameSnapshot snap, String pieceId) {
     final dice = snap.diceValue;
     final movingPiece = snap.pieces.firstWhere((p) => p.pieceId == pieceId);
     final moverSeat = movingPiece.seat;
     final nextProgress =
         movingPiece.progress == _yardProgress ? 0 : movingPiece.progress + dice;
-    final nextTrack = _trackIndexFor(moverSeat, nextProgress);
-    final nextState = _stateForProgress(nextProgress);
+    final nextTrack = _trackIndexFor(moverSeat, nextProgress, snap.mode);
+    final nextState = _stateForProgress(nextProgress, snap.mode);
 
     var pieces = snap.pieces.map((piece) {
       if (piece.pieceId != pieceId) return piece;
@@ -672,7 +1091,8 @@ class AppState extends ChangeNotifier {
       );
     }).toList();
 
-    if (nextTrack != null && !_localSafeTrackIndexes.contains(nextTrack)) {
+    if (nextTrack != null &&
+        !_safeTrackIndexesForMode(snap.mode).contains(nextTrack)) {
       pieces = pieces.map((piece) {
         if (piece.seat == moverSeat ||
             piece.trackIndex != nextTrack ||
@@ -713,17 +1133,31 @@ class AppState extends ChangeNotifier {
   }
 
   List<String> _localLegalMoves(GameSnapshot snap, int seat, int diceValue) {
+    if (_isSnakesLaddersMode(snap.mode)) {
+      return _snakesLaddersLegalMoves(snap, seat, diceValue);
+    }
     return snap.pieces
         .where((piece) => piece.seat == seat)
-        .where((piece) => _canLocalPieceMove(piece, diceValue))
+        .where((piece) => _canLocalPieceMove(piece, diceValue, snap.mode))
         .map((piece) => piece.pieceId)
         .toList();
   }
 
-  bool _canLocalPieceMove(PieceState piece, int diceValue) {
+  List<String> _snakesLaddersLegalMoves(
+      GameSnapshot snap, int seat, int diceValue) {
+    return snap.pieces
+        .where((piece) => piece.seat == seat)
+        .where((piece) =>
+            piece.state != 'finished' &&
+            piece.progress + diceValue <= _snakeFinishProgress)
+        .map((piece) => piece.pieceId)
+        .toList();
+  }
+
+  bool _canLocalPieceMove(PieceState piece, int diceValue, String mode) {
     if (piece.state == 'finished') return false;
     if (piece.progress == _yardProgress) return diceValue == 6;
-    return piece.progress + diceValue <= _finishProgress;
+    return piece.progress + diceValue <= _finishProgressForMode(mode);
   }
 
   GameSnapshot _advanceLocalTurn(GameSnapshot snap) {
@@ -753,12 +1187,17 @@ class AppState extends ChangeNotifier {
   int _scoreLocalMove(GameSnapshot snap, String pieceId) {
     final piece = snap.pieces.where((p) => p.pieceId == pieceId).firstOrNull;
     if (piece == null) return 0;
+    if (_isSnakesLaddersMode(snap.mode)) {
+      final rolled = piece.progress + snap.diceValue;
+      final landed = _snakeLadders[rolled] ?? _snakeDrops[rolled] ?? rolled;
+      return landed + (_snakeLadders.containsKey(rolled) ? 60 : 0);
+    }
     if (piece.progress == _yardProgress) return 30;
 
     final nextProgress = piece.progress + snap.diceValue;
-    final nextTrack = _trackIndexFor(piece.seat, nextProgress);
+    final nextTrack = _trackIndexFor(piece.seat, nextProgress, snap.mode);
     final captures = nextTrack != null &&
-        !_localSafeTrackIndexes.contains(nextTrack) &&
+        !_safeTrackIndexesForMode(snap.mode).contains(nextTrack) &&
         snap.pieces.any((other) =>
             other.seat != piece.seat &&
             other.trackIndex == nextTrack &&
@@ -767,6 +1206,9 @@ class AppState extends ChangeNotifier {
   }
 
   int _nextLocalDice(GameSnapshot snap, int seat) {
+    if (_isSnakesLaddersMode(snap.mode)) {
+      return _rng.nextInt(6) + 1;
+    }
     final seatPieces = snap.pieces.where((piece) => piece.seat == seat);
     final allInYard =
         seatPieces.every((piece) => piece.progress == _yardProgress);
@@ -783,17 +1225,48 @@ class AppState extends ChangeNotifier {
     return publicSeatName(seat);
   }
 
-  int? _trackIndexFor(int seat, int progress) {
-    if (progress < 0 || progress > 51) return null;
-    return (_localStartOffsets[seat.clamp(0, 3)] + progress) % _trackLength;
+  int? _trackIndexFor(int seat, int progress, String mode) {
+    if (_isSnakesLaddersMode(mode)) {
+      if (progress < 1 || progress > _snakeFinishProgress) return null;
+      return progress;
+    }
+    final trackLength = _trackLengthForMode(mode);
+    final starts = _startOffsetsForMode(mode);
+    if (progress < 0 || progress >= trackLength) return null;
+    return (starts[seat.clamp(0, starts.length - 1)] + progress) % trackLength;
   }
 
-  String _stateForProgress(int progress) {
+  String _stateForProgress(int progress, String mode) {
+    if (_isSnakesLaddersMode(mode)) {
+      return progress >= _snakeFinishProgress ? 'finished' : 'track';
+    }
     if (progress == _yardProgress) return 'yard';
-    if (progress >= _finishProgress) return 'finished';
-    if (progress > 51) return 'home';
+    if (progress >= _finishProgressForMode(mode)) return 'finished';
+    if (progress >= _trackLengthForMode(mode)) return 'home';
     return 'track';
   }
+
+  int _playersForMode(String mode) {
+    final clean = mode.toLowerCase();
+    if (_isSnakesLaddersMode(mode)) return 4;
+    if (clean.contains('4p') || clean.contains('4_player')) return 4;
+    if (clean.contains('3p') || clean.contains('3_player')) return 3;
+    return 2;
+  }
+
+  bool _isSnakesLaddersMode(String mode) =>
+      mode.toLowerCase() == snakesLaddersMode;
+
+  int _trackLengthForMode(String mode) =>
+      _isSnakesLaddersMode(mode) ? _snakeFinishProgress : _classicTrackLength;
+
+  int _finishProgressForMode(String mode) => _isSnakesLaddersMode(mode)
+      ? _snakeFinishProgress
+      : _classicFinishProgress;
+
+  List<int> _startOffsetsForMode(String mode) => _localStartOffsets;
+
+  Set<int> _safeTrackIndexesForMode(String mode) => _localSafeTrackIndexes;
 
   bool _seatFinished(List<PieceState> pieces, int seat) {
     final seatPieces = pieces.where((piece) => piece.seat == seat).toList();
@@ -834,6 +1307,14 @@ class AppState extends ChangeNotifier {
     final trimmed = displayName.trim();
     if (trimmed.isEmpty || trimmed == 'Ludo Player') return 'Ibsam';
     return trimmed;
+  }
+
+  void _ensurePlayerIdentity() {
+    if (playerId != null && playerId!.isNotEmpty) return;
+    playerId = 'local_${DateTime.now().millisecondsSinceEpoch}';
+    _prefs.playerId = playerId;
+    _ws.playerId = playerId;
+    _ws.displayName = displayName;
   }
 
   // ignore: unused_element
@@ -884,6 +1365,7 @@ class AppState extends ChangeNotifier {
     localMatchActive = false;
     _ws.disconnect();
     lastSnapshot = null;
+    privateInviteCode = null;
     lastRollValue = 0;
     lastRollPlayerId = null;
     lastRollSequence = 0;
@@ -961,6 +1443,13 @@ class AppState extends ChangeNotifier {
     return 'Player';
   }
 
+  int _readInt(dynamic value, {required int fallback}) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value.trim()) ?? fallback;
+    return fallback;
+  }
+
   void _setStatus(String text) {
     statusText = text;
     notifyListeners();
@@ -1023,12 +1512,23 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  bool get canUseChat => age >= 13;
+
   void setMatchDifficulty(String value) {
     final normalized = _normalizeDifficulty(value);
     if (normalized == matchDifficulty) return;
     SoundService.tap();
     matchDifficulty = normalized;
     _prefs.matchDifficulty = matchDifficulty;
+    notifyListeners();
+  }
+
+  void setSnakesBoardTheme(String value) {
+    final normalized = _normalizeSnakesBoardTheme(value);
+    if (normalized == snakesBoardTheme) return;
+    SoundService.tap();
+    snakesBoardTheme = normalized;
+    _prefs.snakesBoardTheme = snakesBoardTheme;
     notifyListeners();
   }
 
@@ -1074,6 +1574,18 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  String _normalizeSnakesBoardTheme(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'royal':
+      case 'neon':
+      case 'classic':
+        return value.trim().toLowerCase();
+      case 'carnival':
+      default:
+        return 'carnival';
+    }
+  }
+
   String get matchmakingRegion {
     switch (countryCode.toUpperCase()) {
       case 'IN':
@@ -1104,6 +1616,7 @@ class AppState extends ChangeNotifier {
     String? name,
     String? country,
     int? avatar,
+    int? age,
     String? imagePath,
     bool clearImage = false,
   }) {
@@ -1125,6 +1638,10 @@ class AppState extends ChangeNotifier {
         avatarImagePath = null;
         _prefs.avatarImagePath = null;
       }
+    }
+    if (age != null) {
+      this.age = age.clamp(0, 120);
+      _prefs.age = this.age;
     }
     if (imagePath != null && imagePath.trim().isNotEmpty) {
       avatarImagePath = imagePath;

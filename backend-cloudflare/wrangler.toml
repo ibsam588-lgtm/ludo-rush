@@ -2,6 +2,13 @@ name = "ludo-rush-backend"
 main = "src/index.ts"
 compatibility_date = "2026-06-07"
 
+[vars]
+MIN_ANDROID_BUILD_NUMBER = "1"
+LATEST_ANDROID_BUILD_NUMBER = "1"
+LATEST_ANDROID_VERSION_NAME = "1.0.0"
+ANDROID_UPDATE_URL = "https://play.google.com/store/apps/details?id=com.ludorush.game"
+FORCE_UPDATE_MESSAGE = "A newer version of Ludo Rush is required to keep matchmaking, rewards, and game rules in sync."
+
 [[durable_objects.bindings]]
 name = "LUDO_ROOMS"
 class_name = "LudoRoom"
@@ -13,7 +20,7 @@ new_sqlite_classes = ["LudoRoom"]
 [[d1_databases]]
 binding = "DB"
 database_name = "ludo-rush-db"
-database_id = "REPLACE_WITH_CLOUDFLARE_D1_DATABASE_ID"
+database_id = "628511d4-d4c0-496b-9c94-54f7a33ca608"
 
 [[queues.producers]]
 binding = "BACKGROUND_QUEUE"

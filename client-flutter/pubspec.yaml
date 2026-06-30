@@ -14,7 +14,6 @@ dependencies:
   provider: ^6.1.0
   http: ^1.2.0
   image_picker: ^1.1.2
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -27,3 +26,4 @@ flutter:
     - assets/images/home_ludo_backdrop.png
     - assets/images/home_ludo_board_window.png
     - assets/images/home_ludo_mockup_background.png
+    - assets/images/rush/
