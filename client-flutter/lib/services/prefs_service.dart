@@ -56,6 +56,10 @@ class PrefsService {
       _prefs?.getString('match_difficulty') ?? 'medium';
   set matchDifficulty(String v) => _prefs?.setString('match_difficulty', v);
 
+  String get snakesBoardTheme =>
+      _prefs?.getString('snakes_board_theme') ?? 'carnival';
+  set snakesBoardTheme(String v) => _prefs?.setString('snakes_board_theme', v);
+
   bool get startChoiceSeen => _prefs?.getBool('start_choice_seen') ?? false;
   set startChoiceSeen(bool v) => _prefs?.setBool('start_choice_seen', v);
 }

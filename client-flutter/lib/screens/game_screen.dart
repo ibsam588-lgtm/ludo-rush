@@ -192,6 +192,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                 ? SnakesLaddersBoard(
                                     snapshot: snapshot,
                                     mySeat: mySeat,
+                                    boardTheme: state.snakesBoardTheme,
                                     onPieceTap: (id) => state.movePiece(id),
                                   )
                                 : LudoBoard(
@@ -312,20 +313,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void _showChatPicker(BuildContext context) {
     final state = context.read<AppState>();
     if (!state.canUseChat) {
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          SnackBar(
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: const Color(0xEE22082E),
-            duration: const Duration(milliseconds: 1800),
-            content: Text(
-              state.age == 0
-                  ? 'Add your age in profile to unlock chat. Chat is 13+.'
-                  : 'Chat is available for players 13 and older.',
-            ),
-          ),
-        );
+      _showChatUnlockSheet(context, state);
       return;
     }
 
@@ -456,6 +444,80 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     ).whenComplete(controller.dispose);
   }
 
+  void _showChatUnlockSheet(BuildContext context, AppState state) {
+    final needsAge = state.age == 0;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _GameActionSheet(
+          title: needsAge ? 'Chat 13+' : 'Chat Locked',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                needsAge
+                    ? 'Set your age to unlock table chat. Players under 13 can still use emoji.'
+                    : 'Table chat is available for players 13 and older. Emoji is still enabled.',
+                style: TextStyle(
+                  color: Colors.white.withAlpha(220),
+                  height: 1.25,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              if (needsAge) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: _SheetButton(
+                        label: 'I am 13+',
+                        color: boardGreen,
+                        onTap: () {
+                          SoundService.tap();
+                          state.updateProfile(age: 13);
+                          Navigator.pop(sheetContext);
+                          Future.microtask(() {
+                            if (mounted) _showChatPicker(context);
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _SheetButton(
+                        label: 'Under 13',
+                        color: boardBlue,
+                        onTap: () {
+                          SoundService.tap();
+                          state.updateProfile(age: 12);
+                          Navigator.pop(sheetContext);
+                          _showQuickBubble('Emoji only account');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                _SheetButton(
+                  label: 'Use Emoji',
+                  color: boardBlue,
+                  onTap: () {
+                    SoundService.tap();
+                    Navigator.pop(sheetContext);
+                    _showEmojiPicker(context);
+                  },
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   void _showQuitDialog(BuildContext context, AppState state) {
     if (_quitDialogOpen) return;
     _quitDialogOpen = true;
@@ -555,6 +617,57 @@ class _GameActionSheet extends StatelessWidget {
             const SizedBox(height: 12),
             child,
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SheetButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _SheetButton({
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        height: 46,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color.lerp(color, Colors.white, 0.28)!, color],
+          ),
+          border: Border.all(color: goldColor, width: 1.4),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x77000000),
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+            shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
+          ),
         ),
       ),
     );

@@ -18,12 +18,14 @@ const _snakePieceAssets = [
 class SnakesLaddersBoard extends StatefulWidget {
   final GameSnapshot? snapshot;
   final int? mySeat;
+  final String boardTheme;
   final void Function(String pieceId) onPieceTap;
 
   const SnakesLaddersBoard({
     super.key,
     required this.snapshot,
     required this.mySeat,
+    this.boardTheme = 'carnival',
     required this.onPieceTap,
   });
 
@@ -123,6 +125,7 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
             hits: _hits,
             titlePlaque: _titlePlaque,
             pieceImages: _pieceImages,
+            boardTheme: widget.boardTheme,
           ),
         ),
       ),
@@ -224,6 +227,7 @@ class _SnakesLaddersPainter extends CustomPainter {
   final List<_SnakeHit> hits;
   final ui.Image? titlePlaque;
   final Map<int, ui.Image> pieceImages;
+  final String boardTheme;
 
   _SnakesLaddersPainter({
     required this.snapshot,
@@ -232,7 +236,143 @@ class _SnakesLaddersPainter extends CustomPainter {
     required this.hits,
     required this.titlePlaque,
     required this.pieceImages,
+    required this.boardTheme,
   });
+
+  String get _theme {
+    final value = boardTheme.trim().toLowerCase();
+    if (value == 'royal' || value == 'neon' || value == 'classic') {
+      return value;
+    }
+    return 'carnival';
+  }
+
+  List<Color> get _shellColors {
+    switch (_theme) {
+      case 'royal':
+        return const [Color(0xFFFFF8C9), Color(0xFFD69BFF), Color(0xFF4B1688)];
+      case 'neon':
+        return const [Color(0xFFB9FFFF), Color(0xFFFF4CE2), Color(0xFF160051)];
+      case 'classic':
+        return const [Color(0xFFFFF8D6), Color(0xFFFFC448), Color(0xFF7D430E)];
+      case 'carnival':
+      default:
+        return const [Color(0xFFFFF7A6), Color(0xFFFFB61C), Color(0xFF713100)];
+    }
+  }
+
+  Color get _innerShellColor {
+    switch (_theme) {
+      case 'royal':
+        return const Color(0xFFFFECFF);
+      case 'neon':
+        return const Color(0xFFF2FBFF);
+      case 'classic':
+        return const Color(0xFFFFF5D6);
+      case 'carnival':
+      default:
+        return const Color(0xFFFFF1C4);
+    }
+  }
+
+  Color get _gridColor {
+    switch (_theme) {
+      case 'royal':
+        return const Color(0xD18F58C9);
+      case 'neon':
+        return const Color(0xD129BFFF);
+      case 'classic':
+        return const Color(0xD6BE8A25);
+      case 'carnival':
+      default:
+        return const Color(0xD9D8A115);
+    }
+  }
+
+  Color get _outerGridColor {
+    switch (_theme) {
+      case 'royal':
+        return const Color(0xFFE7B7FF);
+      case 'neon':
+        return const Color(0xFF15DFFF);
+      case 'classic':
+        return const Color(0xFFB77B1A);
+      case 'carnival':
+      default:
+        return const Color(0xFFE5A716);
+    }
+  }
+
+  List<Color> _plainCellColors(int number) {
+    final even = (number + (number ~/ 10)).isEven;
+    switch (_theme) {
+      case 'royal':
+        return even
+            ? const [Color(0xFFFFF8FF), Color(0xFFF4DFFF)]
+            : const [Color(0xFFFFF2F8), Color(0xFFEAD8FF)];
+      case 'neon':
+        return even
+            ? const [Color(0xFFFFFFFF), Color(0xFFE1FBFF)]
+            : const [Color(0xFFFFF5FF), Color(0xFFEAF8FF)];
+      case 'classic':
+        return even
+            ? const [Color(0xFFFFFDF4), Color(0xFFFFE7B5)]
+            : const [Color(0xFFFFF7E1), Color(0xFFFFE0A0)];
+      case 'carnival':
+      default:
+        return even
+            ? const [Color(0xFFFFFDF0), Color(0xFFFFF0C7)]
+            : const [Color(0xFFFFF9E6), Color(0xFFFFEAB1)];
+    }
+  }
+
+  List<Color> get _snakePalette {
+    switch (_theme) {
+      case 'royal':
+        return const [
+          Color(0xFFFF873D),
+          Color(0xFFB85CFF),
+          Color(0xFF54DD78),
+          Color(0xFF33B9FF),
+        ];
+      case 'neon':
+        return const [
+          Color(0xFFFF7A00),
+          Color(0xFFFF4CFF),
+          Color(0xFF79FF35),
+          Color(0xFF20F0FF),
+        ];
+      case 'classic':
+        return const [
+          Color(0xFFFF8122),
+          Color(0xFFB15CE0),
+          Color(0xFF53C846),
+          Color(0xFF2AA8EA),
+        ];
+      case 'carnival':
+      default:
+        return const [
+          boardOrange,
+          boardPurple,
+          Color(0xFF56D82D),
+          Color(0xFF22B7FF),
+        ];
+    }
+  }
+
+  Color _themedCellColor(Color color) {
+    switch (_theme) {
+      case 'royal':
+        return Color.lerp(color, const Color(0xFFD886FF), 0.10)!;
+      case 'neon':
+        return Color.lerp(color, const Color(0xFF39F6FF), 0.12)!;
+      case 'classic':
+        return Color.lerp(color, Colors.white, 0.04)!;
+      case 'carnival':
+      default:
+        return color;
+    }
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -314,21 +454,21 @@ class _SnakesLaddersPainter extends CustomPainter {
     p.color = const Color(0x99000000);
     canvas.drawRRect(RRect.fromRectXY(shadow, 28, 28), p);
 
-    p.shader = const LinearGradient(
+    p.shader = LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [Color(0xFFFFF7A6), Color(0xFFFFB61C), Color(0xFF713100)],
+      colors: _shellColors,
     ).createShader(rect);
     canvas.drawRRect(RRect.fromRectXY(rect, 24, 24), p);
     p.shader = null;
 
     final inner = rect.deflate(rect.width * 0.018);
-    p.color = const Color(0xFFFFF1C4);
+    p.color = _innerShellColor;
     canvas.drawRRect(RRect.fromRectXY(inner, 18, 18), p);
     p
       ..style = PaintingStyle.stroke
       ..strokeWidth = rect.width * 0.006
-      ..color = const Color(0xFFFFF2A8);
+      ..color = Color.lerp(_outerGridColor, Colors.white, 0.34)!;
     canvas.drawRRect(RRect.fromRectXY(rect.deflate(4), 22, 22), p);
     p.style = PaintingStyle.fill;
   }
@@ -339,13 +479,14 @@ class _SnakesLaddersPainter extends CustomPainter {
       final r = _cellRect(rect, cell, n);
       final cellColor = _coloredCells[n];
       if (cellColor != null) {
+        final themedCellColor = _themedCellColor(cellColor);
         p.shader = LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color.lerp(cellColor, Colors.white, 0.20)!,
-            cellColor,
-            Color.lerp(cellColor, Colors.black, 0.12)!,
+            Color.lerp(themedCellColor, Colors.white, 0.20)!,
+            themedCellColor,
+            Color.lerp(themedCellColor, Colors.black, 0.12)!,
           ],
         ).createShader(r);
         canvas.drawRect(r, p);
@@ -354,9 +495,7 @@ class _SnakesLaddersPainter extends CustomPainter {
         p.shader = LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: (n + (n ~/ 10)).isEven
-              ? const [Color(0xFFFFFDF0), Color(0xFFFFF0C7)]
-              : const [Color(0xFFFFF9E6), Color(0xFFFFEAB1)],
+          colors: _plainCellColors(n),
         ).createShader(r);
         canvas.drawRect(r, p);
         p.shader = null;
@@ -365,7 +504,7 @@ class _SnakesLaddersPainter extends CustomPainter {
       p
         ..style = PaintingStyle.stroke
         ..strokeWidth = math.max(1.0, cell * 0.025)
-        ..color = const Color(0xD9D8A115);
+        ..color = _gridColor;
       canvas.drawRect(r, p);
       p.style = PaintingStyle.fill;
 
@@ -383,7 +522,7 @@ class _SnakesLaddersPainter extends CustomPainter {
     p
       ..style = PaintingStyle.stroke
       ..strokeWidth = math.max(2.0, cell * 0.055)
-      ..color = const Color(0xFFE5A716);
+      ..color = _outerGridColor;
     canvas.drawRect(rect, p);
     p.style = PaintingStyle.fill;
   }
@@ -456,12 +595,7 @@ class _SnakesLaddersPainter extends CustomPainter {
   }
 
   void _drawSnakes(Canvas canvas, Rect rect, double cell) {
-    const colors = [
-      boardOrange,
-      boardPurple,
-      Color(0xFF56D82D),
-      Color(0xFF22B7FF),
-    ];
+    final colors = _snakePalette;
     var i = 0;
     for (final entry in snakes.entries) {
       _drawSnake(
@@ -1053,7 +1187,8 @@ class _SnakesLaddersPainter extends CustomPainter {
         oldDelegate.mySeat != mySeat ||
         oldDelegate.pulse != pulse ||
         oldDelegate.titlePlaque != titlePlaque ||
-        oldDelegate.pieceImages != pieceImages;
+        oldDelegate.pieceImages != pieceImages ||
+        oldDelegate.boardTheme != boardTheme;
   }
 }
 

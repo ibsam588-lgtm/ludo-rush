@@ -20,12 +20,24 @@ class _ShopScreenState extends State<ShopScreen>
   late final AnimationController _bg;
 
   static const _items = [
-    _ShopProduct('1 day', '0.99 USD', _ProductArt.energy, false),
-    _ShopProduct('4 days', '2.99 USD', _ProductArt.energyPile, false),
-    _ShopProduct('14 days', '9.99 USD', _ProductArt.pouch, false),
-    _ShopProduct('30 days', '19.99 USD', _ProductArt.pouchBig, false),
-    _ShopProduct('100 days', '54.99 USD', _ProductArt.chest, false),
-    _ShopProduct('200 days', '99.99 USD', _ProductArt.chestPouch, true),
+    _ShopProduct(
+        '1 day', '0.99 USD', '80 energy', _ProductArt.energy, false, 100),
+    _ShopProduct(
+        '4 days', '2.99 USD', '240 energy', _ProductArt.energyPile, false, 300),
+    _ShopProduct(
+        '14 days', '9.99 USD', 'gem pod', _ProductArt.pouch, false, 900),
+    _ShopProduct(
+        '30 days', '19.99 USD', 'mega pod', _ProductArt.pouchBig, false, 1800),
+    _ShopProduct('Coin Stack', '1.99 USD', '1,200 coins', _ProductArt.pouch,
+        false, 1200),
+    _ShopProduct(
+        'Gem Chest', '7.99 USD', '3,500 coins', _ProductArt.chest, false, 3500),
+    _ShopProduct(
+        'Board Pass', '4.99 USD', 'themes', _ProductArt.chestPouch, false, 700),
+    _ShopProduct('Royal Chest', '14.99 USD', '7,500 coins',
+        _ProductArt.chestPouch, true, 7500),
+    _ShopProduct('200 days', '99.99 USD', 'best value', _ProductArt.chestPouch,
+        true, 12000),
   ];
 
   @override
@@ -91,6 +103,10 @@ class _ShopScreenState extends State<ShopScreen>
                         ),
                         if (!compactHeight || box.maxWidth >= 390)
                           _BoosterBanner(palette: p),
+                        _BoardThemeStrip(
+                          palette: p,
+                          state: state,
+                        ),
                         Expanded(
                           child: GridView.builder(
                             padding: gridPad,
@@ -107,7 +123,8 @@ class _ShopScreenState extends State<ShopScreen>
                               product: _items[i],
                               palette: p,
                               onBuy: () {
-                                state.addCoins(100);
+                                final product = _items[i];
+                                state.addCoins(product.coinReward);
                                 ScaffoldMessenger.of(context)
                                   ..clearSnackBars()
                                   ..showSnackBar(
@@ -117,7 +134,8 @@ class _ShopScreenState extends State<ShopScreen>
                                       duration:
                                           const Duration(milliseconds: 1200),
                                       content: Text(
-                                          '${_items[i].title} booster selected.'),
+                                        '${product.title} selected. +${product.coinReward} coins added for testing.',
+                                      ),
                                     ),
                                   );
                               },
@@ -1187,15 +1205,278 @@ class _BoosterBanner extends StatelessWidget {
   }
 }
 
+class _BoardThemeOption {
+  final String id;
+  final String label;
+  final List<Color> colors;
+
+  const _BoardThemeOption(this.id, this.label, this.colors);
+}
+
+class _BoardThemeStrip extends StatelessWidget {
+  final _ShopPalette palette;
+  final AppState state;
+
+  const _BoardThemeStrip({
+    required this.palette,
+    required this.state,
+  });
+
+  static const _options = [
+    _BoardThemeOption('carnival', 'Carnival', [
+      Color(0xFFFF36B8),
+      Color(0xFFFFD426),
+      Color(0xFF22B7FF),
+    ]),
+    _BoardThemeOption('royal', 'Royal', [
+      Color(0xFF5B2CFF),
+      Color(0xFFFFD426),
+      Color(0xFFB145FF),
+    ]),
+    _BoardThemeOption('neon', 'Neon', [
+      Color(0xFF00F5FF),
+      Color(0xFFFF35D6),
+      Color(0xFF6EFF3A),
+    ]),
+    _BoardThemeOption('classic', 'Classic', [
+      Color(0xFFFF3B3F),
+      Color(0xFF2DBB52),
+      Color(0xFF1E9BFF),
+    ]),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 78,
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0x8420062C),
+        border: Border.all(color: palette.stroke.withAlpha(165), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x66000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 78,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'Board',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: goldColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    shadows: [Shadow(color: Colors.black, blurRadius: 3)],
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Designs',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: _options.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, i) {
+                final option = _options[i];
+                return _BoardThemeButton(
+                  option: option,
+                  selected: state.snakesBoardTheme == option.id,
+                  onTap: () {
+                    state.setSnakesBoardTheme(option.id);
+                    ScaffoldMessenger.of(context)
+                      ..clearSnackBars()
+                      ..showSnackBar(
+                        SnackBar(
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: const Color(0xEE22082E),
+                          duration: const Duration(milliseconds: 1100),
+                          content: Text('${option.label} board selected.'),
+                        ),
+                      );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BoardThemeButton extends StatelessWidget {
+  final _BoardThemeOption option;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _BoardThemeButton({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 86,
+        padding: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              option.colors[0].withAlpha(selected ? 245 : 180),
+              option.colors[1].withAlpha(selected ? 235 : 155),
+            ],
+          ),
+          border: Border.all(
+            color: selected ? goldColor : Colors.white.withAlpha(80),
+            width: selected ? 2.2 : 1.1,
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: goldColor.withAlpha(105),
+                    blurRadius: 12,
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: CustomPaint(
+                painter: _ThemePreviewPainter(option.colors),
+                child: const SizedBox.expand(),
+              ),
+            ),
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                option.label,
+                maxLines: 1,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  shadows: [Shadow(color: Colors.black, blurRadius: 3)],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemePreviewPainter extends CustomPainter {
+  final List<Color> colors;
+
+  const _ThemePreviewPainter(this.colors);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..isAntiAlias = true;
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    p.color = const Color(0xFFFFF6CE);
+    canvas.drawRRect(RRect.fromRectXY(rect, 8, 8), p);
+    final cell = size.shortestSide / 4.6;
+    for (var i = 0; i < 3; i++) {
+      p.color = colors[i % colors.length].withAlpha(225);
+      canvas.drawRRect(
+        RRect.fromRectXY(
+          Rect.fromLTWH(
+            size.width * (0.18 + i * 0.22),
+            size.height * (0.18 + (i.isEven ? 0.04 : 0.26)),
+            cell,
+            cell,
+          ),
+          4,
+          4,
+        ),
+        p,
+      );
+    }
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = math.max(2.2, size.width * 0.07)
+      ..color = colors.last;
+    final path = Path()
+      ..moveTo(size.width * 0.17, size.height * 0.78)
+      ..cubicTo(
+        size.width * 0.45,
+        size.height * 0.08,
+        size.width * 0.50,
+        size.height * 0.88,
+        size.width * 0.84,
+        size.height * 0.22,
+      );
+    canvas.drawPath(path, p);
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1
+      ..color = const Color(0x99A46C00);
+    canvas.drawRRect(RRect.fromRectXY(rect.deflate(0.5), 8, 8), p);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ThemePreviewPainter oldDelegate) =>
+      oldDelegate.colors != colors;
+}
+
 enum _ProductArt { energy, energyPile, pouch, pouchBig, chest, chestPouch }
 
 class _ShopProduct {
   final String title;
   final String price;
+  final String description;
   final _ProductArt art;
   final bool best;
+  final int coinReward;
 
-  const _ShopProduct(this.title, this.price, this.art, this.best);
+  const _ShopProduct(
+    this.title,
+    this.price,
+    this.description,
+    this.art,
+    this.best,
+    this.coinReward,
+  );
 }
 
 class _ShopCard extends StatefulWidget {
@@ -1288,6 +1569,23 @@ class _ShopCardState extends State<_ShopCard>
                                   color: Color(0xAA5A2100),
                                   blurRadius: 2,
                                   offset: Offset(1, 2))
+                            ],
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Text(
+                          widget.product.description,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white.withAlpha(218),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            shadows: const [
+                              Shadow(color: Colors.black54, blurRadius: 2)
                             ],
                           ),
                         ),
@@ -1398,19 +1696,23 @@ class _ShopBottomNav extends StatelessWidget {
             child: GestureDetector(
               onTap: () {
                 SoundService.tap();
+                if (i == 0) {
+                  return;
+                }
                 if (i == 2) {
                   ScaffoldMessenger.of(context).clearSnackBars();
                   Navigator.pushNamedAndRemoveUntil(
-                      context, '/home', (_) => false);
-                } else if (i != 0) {
-                  ScaffoldMessenger.of(context)
-                    ..clearSnackBars()
-                    ..showSnackBar(SnackBar(
-                      behavior: SnackBarBehavior.floating,
-                      backgroundColor: const Color(0xEE22082E),
-                      duration: const Duration(milliseconds: 1200),
-                      content: Text('${items[i].label} is coming soon.'),
-                    ));
+                    context,
+                    '/home',
+                    (_) => false,
+                  );
+                } else {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/home',
+                    (_) => false,
+                    arguments: i,
+                  );
                 }
               },
               child: Column(
