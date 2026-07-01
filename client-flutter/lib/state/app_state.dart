@@ -75,6 +75,8 @@ class AppState extends ChangeNotifier {
   bool isDarkMode = true;
   String matchDifficulty = 'medium';
   String snakesBoardTheme = 'carnival';
+  String diceSkin = 'classic';
+  String lastDailyRewardDate = '';
   bool startChoiceSeen = false;
 
   // Match state
@@ -133,6 +135,8 @@ class AppState extends ChangeNotifier {
     isDarkMode = _prefs.isDarkMode;
     matchDifficulty = _normalizeDifficulty(_prefs.matchDifficulty);
     snakesBoardTheme = _normalizeSnakesBoardTheme(_prefs.snakesBoardTheme);
+    diceSkin = _normalizeDiceSkin(_prefs.diceSkin);
+    lastDailyRewardDate = _prefs.lastDailyRewardDate;
     startChoiceSeen = _prefs.startChoiceSeen;
 
     // Shared WS service identity
@@ -1532,6 +1536,30 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool get canClaimDailyReward => lastDailyRewardDate != _todayKey();
+
+  int get dailyRewardAmount => 150;
+
+  bool claimDailyReward() {
+    if (!canClaimDailyReward) return false;
+    SoundService.tap();
+    coins = (coins + dailyRewardAmount).clamp(0, 99999999);
+    lastDailyRewardDate = _todayKey();
+    _prefs.coins = coins;
+    _prefs.lastDailyRewardDate = lastDailyRewardDate;
+    notifyListeners();
+    return true;
+  }
+
+  void setDiceSkin(String value) {
+    final normalized = _normalizeDiceSkin(value);
+    if (normalized == diceSkin) return;
+    SoundService.tap();
+    diceSkin = normalized;
+    _prefs.diceSkin = diceSkin;
+    notifyListeners();
+  }
+
   String publicSeatName(SeatState seat) => publicDisplayName(
         seat.displayName,
         playerId: seat.playerId,
@@ -1584,6 +1612,27 @@ class AppState extends ChangeNotifier {
       default:
         return 'carnival';
     }
+  }
+
+  String _normalizeDiceSkin(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'royal':
+      case 'neon':
+      case 'ruby':
+      case 'emerald':
+      case 'cosmic':
+      case 'classic':
+        return value.trim().toLowerCase();
+      default:
+        return 'classic';
+    }
+  }
+
+  String _todayKey() {
+    final now = DateTime.now();
+    return '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}-'
+        '${now.day.toString().padLeft(2, '0')}';
   }
 
   String get matchmakingRegion {

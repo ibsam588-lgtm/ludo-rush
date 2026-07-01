@@ -60,6 +60,14 @@ class PrefsService {
       _prefs?.getString('snakes_board_theme') ?? 'carnival';
   set snakesBoardTheme(String v) => _prefs?.setString('snakes_board_theme', v);
 
+  String get diceSkin => _prefs?.getString('dice_skin') ?? 'classic';
+  set diceSkin(String v) => _prefs?.setString('dice_skin', v);
+
+  String get lastDailyRewardDate =>
+      _prefs?.getString('last_daily_reward_date') ?? '';
+  set lastDailyRewardDate(String v) =>
+      _prefs?.setString('last_daily_reward_date', v);
+
   bool get startChoiceSeen => _prefs?.getBool('start_choice_seen') ?? false;
   set startChoiceSeen(bool v) => _prefs?.setBool('start_choice_seen', v);
 }

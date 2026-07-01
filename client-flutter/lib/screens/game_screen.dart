@@ -913,7 +913,10 @@ class _GameLogo extends StatelessWidget {
             top: compact ? 7 : 5,
             child: Transform.rotate(
               angle: -0.38,
-              child: DiceWidget(value: 5, size: compact ? 20 : 25),
+              child: DiceWidget(
+                value: 5,
+                size: compact ? 20 : 25,
+              ),
             ),
           ),
         ],
@@ -1472,10 +1475,6 @@ class _PlayerActionRow extends StatelessWidget {
                     : 'Wait Turn';
     final opponents =
         snapshot?.seats.where((s) => s.seat != mySeat).toList() ?? const [];
-    final rightOpponent = opponents.isNotEmpty ? opponents.first : null;
-    final lowerOpponents = opponents.length > 1
-        ? opponents.sublist(1, math.min(opponents.length, 3))
-        : const <SeatState>[];
 
     return Container(
       width: double.infinity,
@@ -1484,12 +1483,29 @@ class _PlayerActionRow extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxHeight < 184;
-          final diceSize = compact ? 92.0 : 116.0;
+          final opponentDockHeight =
+              opponents.isEmpty ? 0.0 : (compact ? 38.0 : 44.0);
+          final diceSize = opponents.isEmpty
+              ? (compact ? 92.0 : 116.0)
+              : (compact ? 80.0 : 104.0);
           final mascotWidth = compact ? 118.0 : 154.0;
-          final diceTop = compact ? 9.0 : 7.0;
+          final diceTop = opponentDockHeight + (compact ? 4.0 : 6.0);
           return Stack(
             clipBehavior: Clip.none,
             children: [
+              if (opponents.isNotEmpty)
+                Positioned(
+                  left: compact ? 2 : 6,
+                  right: compact ? 2 : 6,
+                  top: 0,
+                  height: opponentDockHeight,
+                  child: _OpponentDock(
+                    seats: opponents,
+                    state: state,
+                    activeSeat: snapshot?.currentTurnSeat,
+                    compact: compact,
+                  ),
+                ),
               Positioned(
                 left: -8,
                 bottom: compact ? 22 : 8,
@@ -1501,18 +1517,6 @@ class _PlayerActionRow extends StatelessWidget {
                   ),
                 ),
               ),
-              if (lowerOpponents.isNotEmpty)
-                Positioned(
-                  left: compact ? 5 : 10,
-                  bottom: compact ? 20 : 22,
-                  width: compact ? 136 : 158,
-                  child: _OpponentRoster(
-                    seats: lowerOpponents,
-                    state: state,
-                    activeSeat: snapshot?.currentTurnSeat,
-                    compact: compact,
-                  ),
-                ),
               Positioned(
                 top: diceTop,
                 left: (constraints.maxWidth - diceSize) / 2,
@@ -1523,6 +1527,7 @@ class _PlayerActionRow extends StatelessWidget {
                   color: showMove ? boardGreen : seatColor,
                   pulse: turnPulse,
                   size: diceSize,
+                  skin: state.diceSkin,
                   onTap: action,
                 ),
               ),
@@ -1566,18 +1571,6 @@ class _PlayerActionRow extends StatelessWidget {
                   ),
                 ),
               ),
-              if (rightOpponent != null)
-                Positioned(
-                  right: compact ? 4 : 10,
-                  top: compact ? 24 : 42,
-                  width: compact ? 126 : 152,
-                  child: _OpponentChip(
-                    seat: rightOpponent,
-                    state: state,
-                    active: rightOpponent.seat == snapshot?.currentTurnSeat,
-                    compact: compact,
-                  ),
-                ),
               Positioned(
                 right: compact ? 8 : 14,
                 bottom: compact ? 22 : 24,
@@ -1605,13 +1598,13 @@ class _PlayerActionRow extends StatelessWidget {
   }
 }
 
-class _OpponentRoster extends StatelessWidget {
+class _OpponentDock extends StatelessWidget {
   final List<SeatState> seats;
   final AppState state;
   final int? activeSeat;
   final bool compact;
 
-  const _OpponentRoster({
+  const _OpponentDock({
     required this.seats,
     required this.state,
     required this.activeSeat,
@@ -1620,19 +1613,20 @@ class _OpponentRoster extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    return Row(
       children: [
-        for (final seat in seats)
-          Padding(
-            padding: const EdgeInsets.only(top: 5),
+        for (int i = 0; i < seats.length; i++) ...[
+          Expanded(
             child: _OpponentChip(
-              seat: seat,
+              seat: seats[i],
               state: state,
-              active: seat.seat == activeSeat,
-              compact: compact,
+              active: seats[i].seat == activeSeat,
+              compact: true,
+              dense: compact,
             ),
           ),
+          if (i != seats.length - 1) SizedBox(width: compact ? 5 : 7),
+        ],
       ],
     );
   }
@@ -1643,12 +1637,14 @@ class _OpponentChip extends StatelessWidget {
   final AppState state;
   final bool active;
   final bool compact;
+  final bool dense;
 
   const _OpponentChip({
     required this.seat,
     required this.state,
     required this.active,
     required this.compact,
+    this.dense = false,
   });
 
   @override
@@ -1658,8 +1654,13 @@ class _OpponentChip extends StatelessWidget {
     final score = 620 + seat.seat * 170;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
-      height: compact ? 43 : 50,
-      padding: EdgeInsets.fromLTRB(5, compact ? 4 : 5, 8, compact ? 4 : 5),
+      height: dense ? 36 : (compact ? 43 : 50),
+      padding: EdgeInsets.fromLTRB(
+        dense ? 4 : 5,
+        dense ? 3 : (compact ? 4 : 5),
+        dense ? 5 : 8,
+        dense ? 3 : (compact ? 4 : 5),
+      ),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         gradient: LinearGradient(
@@ -1683,8 +1684,8 @@ class _OpponentChip extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: compact ? 31 : 37,
-            height: compact ? 31 : 37,
+            width: dense ? 27 : (compact ? 31 : 37),
+            height: dense ? 27 : (compact ? 31 : 37),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: RadialGradient(
@@ -1693,9 +1694,9 @@ class _OpponentChip extends StatelessWidget {
               border: Border.all(color: goldColor, width: 1.4),
             ),
             child: Icon(Icons.person_pin_circle_rounded,
-                color: Colors.white, size: compact ? 20 : 24),
+                color: Colors.white, size: dense ? 18 : (compact ? 20 : 24)),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: dense ? 4 : 6),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -1707,7 +1708,7 @@ class _OpponentChip extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: compact ? 11 : 13,
+                    fontSize: dense ? 10 : (compact ? 11 : 13),
                     height: 1,
                     fontWeight: FontWeight.w900,
                     shadows: const [Shadow(color: Colors.black, blurRadius: 3)],
@@ -1723,7 +1724,7 @@ class _OpponentChip extends StatelessWidget {
                       score.toString(),
                       style: TextStyle(
                         color: goldColor,
-                        fontSize: compact ? 10 : 12,
+                        fontSize: dense ? 9 : (compact ? 10 : 12),
                         height: 1,
                         fontWeight: FontWeight.w900,
                         shadows: const [
@@ -1749,6 +1750,7 @@ class _DiceActionButton extends StatelessWidget {
   final Color color;
   final AnimationController pulse;
   final double size;
+  final String skin;
   final VoidCallback? onTap;
 
   const _DiceActionButton({
@@ -1757,6 +1759,7 @@ class _DiceActionButton extends StatelessWidget {
     required this.moving,
     required this.color,
     required this.pulse,
+    required this.skin,
     this.size = 66,
     required this.onTap,
   });
@@ -1816,7 +1819,7 @@ class _DiceActionButton extends StatelessWidget {
                     ),
                   ),
                 ),
-                DiceWidget(key: diceKey, size: size * 0.72),
+                DiceWidget(key: diceKey, size: size * 0.72, skin: skin),
                 if (moving)
                   Positioned(
                     right: size * 0.14,
