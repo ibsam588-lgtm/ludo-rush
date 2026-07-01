@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/dice_widget.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -21,23 +22,29 @@ class _ShopScreenState extends State<ShopScreen>
 
   static const _items = [
     _ShopProduct(
-        '1 day', '0.99 USD', '80 energy', _ProductArt.energy, false, 100),
+        'Daily Coins', 'FREE', '150 coins', _ProductArt.daily, false, 150,
+        dailyReward: true),
     _ShopProduct(
-        '4 days', '2.99 USD', '240 energy', _ProductArt.energyPile, false, 300),
+        'Royal Dice', '2,000', 'gold skin', _ProductArt.royalDice, false, 0,
+        diceSkin: 'royal'),
     _ShopProduct(
-        '14 days', '9.99 USD', 'gem pod', _ProductArt.pouch, false, 900),
+        'Neon Dice', '2,000', 'blue glow', _ProductArt.neonDice, false, 0,
+        diceSkin: 'neon'),
     _ShopProduct(
-        '30 days', '19.99 USD', 'mega pod', _ProductArt.pouchBig, false, 1800),
-    _ShopProduct('Coin Stack', '1.99 USD', '1,200 coins', _ProductArt.pouch,
+        'Ruby Dice', '2,000', 'red gem', _ProductArt.rubyDice, false, 0,
+        diceSkin: 'ruby'),
+    _ShopProduct(
+        'Emerald Dice', '2,000', 'green gem', _ProductArt.emeraldDice, false, 0,
+        diceSkin: 'emerald'),
+    _ShopProduct(
+        'Cosmic Dice', '3,500', 'star glow', _ProductArt.cosmicDice, true, 0,
+        diceSkin: 'cosmic'),
+    _ShopProduct('Coin Stack', '1.99 USD', '1,200 coins', _ProductArt.coinPack,
         false, 1200),
-    _ShopProduct(
-        'Gem Chest', '7.99 USD', '3,500 coins', _ProductArt.chest, false, 3500),
-    _ShopProduct(
-        'Board Pass', '4.99 USD', 'themes', _ProductArt.chestPouch, false, 700),
-    _ShopProduct('Royal Chest', '14.99 USD', '7,500 coins',
-        _ProductArt.chestPouch, true, 7500),
-    _ShopProduct('200 days', '99.99 USD', 'best value', _ProductArt.chestPouch,
-        true, 12000),
+    _ShopProduct('Club Chest', '7.99 USD', '3,500 coins', _ProductArt.clubChest,
+        false, 3500),
+    _ShopProduct('Royal Vault', '14.99 USD', '7,500 coins',
+        _ProductArt.royalVault, true, 7500),
   ];
 
   @override
@@ -103,7 +110,7 @@ class _ShopScreenState extends State<ShopScreen>
                         ),
                         if (!compactHeight || box.maxWidth >= 390)
                           _BoosterBanner(palette: p),
-                        _BoardThemeStrip(
+                        _DiceSkinStrip(
                           palette: p,
                           state: state,
                         ),
@@ -124,7 +131,21 @@ class _ShopScreenState extends State<ShopScreen>
                               palette: p,
                               onBuy: () {
                                 final product = _items[i];
-                                state.addCoins(product.coinReward);
+                                var message = '${product.title} selected.';
+                                if (product.dailyReward) {
+                                  final claimed = state.claimDailyReward();
+                                  message = claimed
+                                      ? 'Daily coins claimed. +${state.dailyRewardAmount} coins.'
+                                      : 'Daily coins already claimed. Come back tomorrow.';
+                                } else if (product.diceSkin != null) {
+                                  state.setDiceSkin(product.diceSkin!);
+                                  message =
+                                      '${product.title} equipped for your dice.';
+                                } else {
+                                  state.addCoins(product.coinReward);
+                                  message =
+                                      '${product.title} selected. +${product.coinReward} coins added for testing.';
+                                }
                                 ScaffoldMessenger.of(context)
                                   ..clearSnackBars()
                                   ..showSnackBar(
@@ -133,9 +154,7 @@ class _ShopScreenState extends State<ShopScreen>
                                       backgroundColor: const Color(0xEE22082E),
                                       duration:
                                           const Duration(milliseconds: 1200),
-                                      content: Text(
-                                        '${product.title} selected. +${product.coinReward} coins added for testing.',
-                                      ),
+                                      content: Text(message),
                                     ),
                                   );
                               },
@@ -338,7 +357,7 @@ class _ShopHero extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Image.asset(
-              'assets/images/rush/rush_shop_hero_v2.png',
+              'assets/images/rush/rush_shop_hero_v3.png',
               fit: BoxFit.cover,
               alignment: Alignment.topCenter,
               filterQuality: FilterQuality.high,
@@ -361,6 +380,61 @@ class _ShopHero extends StatelessWidget {
                   ],
                   stops: const [0, 0.63, 1],
                 ),
+              ),
+            ),
+            Positioned(
+              left: 18,
+              top: 16,
+              child: _ShopHeroCopy(palette: palette),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShopHeroCopy extends StatelessWidget {
+  final _ShopPalette palette;
+
+  const _ShopHeroCopy({required this.palette});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: Colors.black.withAlpha(palette.dark ? 86 : 36),
+        border: Border.all(color: goldColor.withAlpha(150), width: 1),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.fromLTRB(12, 8, 12, 9),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Dice Shop',
+              style: TextStyle(
+                color: goldColor,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                shadows: [
+                  Shadow(
+                    color: Colors.black,
+                    blurRadius: 3,
+                    offset: Offset(1, 2),
+                  )
+                ],
+              ),
+            ),
+            SizedBox(height: 1),
+            Text(
+              'Daily coins and custom rolls',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                shadows: [Shadow(color: Colors.black, blurRadius: 3)],
               ),
             ),
           ],
@@ -1459,7 +1533,251 @@ class _ThemePreviewPainter extends CustomPainter {
       oldDelegate.colors != colors;
 }
 
-enum _ProductArt { energy, energyPile, pouch, pouchBig, chest, chestPouch }
+class _DiceSkinOption {
+  final String id;
+  final String label;
+  final int value;
+  final List<Color> colors;
+
+  const _DiceSkinOption(this.id, this.label, this.value, this.colors);
+}
+
+class _DiceSkinStrip extends StatelessWidget {
+  final _ShopPalette palette;
+  final AppState state;
+
+  const _DiceSkinStrip({
+    required this.palette,
+    required this.state,
+  });
+
+  static const _options = [
+    _DiceSkinOption('classic', 'Classic', 5, [
+      Color(0xFFFFFDF4),
+      goldColor,
+    ]),
+    _DiceSkinOption('royal', 'Royal', 6, [
+      Color(0xFFFFE26A),
+      Color(0xFFE58A00),
+    ]),
+    _DiceSkinOption('neon', 'Neon', 4, [
+      Color(0xFF162A72),
+      Color(0xFF42F3FF),
+    ]),
+    _DiceSkinOption('ruby', 'Ruby', 3, [
+      Color(0xFFFF4055),
+      Color(0xFFFFD866),
+    ]),
+    _DiceSkinOption('emerald', 'Emerald', 2, [
+      Color(0xFF18C94B),
+      Color(0xFFFFD866),
+    ]),
+    _DiceSkinOption('cosmic', 'Cosmic', 6, [
+      Color(0xFF7A25FF),
+      Color(0xFFFF54FF),
+    ]),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 112,
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: palette.stroke.withAlpha(175), width: 1.4),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x66000000),
+            blurRadius: 12,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/images/rush/rush_shop_dice_showcase_v1.png',
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            filterQuality: FilterQuality.high,
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [
+                  const Color(0xF02B0537),
+                  const Color(0xD0350842),
+                  const Color(0x88350842),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 9, 10, 9),
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: 88,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Dice',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: goldColor,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          shadows: [Shadow(color: Colors.black, blurRadius: 3)],
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Skins',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          shadows: [Shadow(color: Colors.black, blurRadius: 3)],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _options.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, i) {
+                      final option = _options[i];
+                      return _DiceSkinButton(
+                        option: option,
+                        selected: state.diceSkin == option.id,
+                        onTap: () {
+                          state.setDiceSkin(option.id);
+                          ScaffoldMessenger.of(context)
+                            ..clearSnackBars()
+                            ..showSnackBar(
+                              SnackBar(
+                                behavior: SnackBarBehavior.floating,
+                                backgroundColor: const Color(0xEE22082E),
+                                duration: const Duration(milliseconds: 1100),
+                                content: Text('${option.label} dice equipped.'),
+                              ),
+                            );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DiceSkinButton extends StatelessWidget {
+  final _DiceSkinOption option;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _DiceSkinButton({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 76,
+        padding: const EdgeInsets.fromLTRB(6, 7, 6, 5),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              option.colors.first.withAlpha(selected ? 245 : 180),
+              option.colors.last.withAlpha(selected ? 238 : 150),
+            ],
+          ),
+          border: Border.all(
+            color: selected ? goldColor : Colors.white.withAlpha(95),
+            width: selected ? 2.4 : 1.1,
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: goldColor.withAlpha(115),
+                    blurRadius: 14,
+                    spreadRadius: 1,
+                  ),
+                ]
+              : null,
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: DiceWidget(
+                  value: option.value,
+                  size: 42,
+                  skin: option.id,
+                ),
+              ),
+            ),
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                option.label,
+                maxLines: 1,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  shadows: [Shadow(color: Colors.black, blurRadius: 3)],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+enum _ProductArt {
+  daily,
+  coinPack,
+  clubChest,
+  royalVault,
+  royalDice,
+  neonDice,
+  rubyDice,
+  emeraldDice,
+  cosmicDice,
+}
 
 class _ShopProduct {
   final String title;
@@ -1468,6 +1786,8 @@ class _ShopProduct {
   final _ProductArt art;
   final bool best;
   final int coinReward;
+  final String? diceSkin;
+  final bool dailyReward;
 
   const _ShopProduct(
     this.title,
@@ -1475,8 +1795,10 @@ class _ShopProduct {
     this.description,
     this.art,
     this.best,
-    this.coinReward,
-  );
+    this.coinReward, {
+    this.diceSkin,
+    this.dailyReward = false,
+  });
 }
 
 class _ShopCard extends StatefulWidget {
@@ -2759,110 +3081,352 @@ class _ProductPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final p = Paint()..isAntiAlias = true;
     final center = Offset(size.width / 2, size.height * 0.54);
-    if (art == _ProductArt.energy) {
-      _drawCapsule(canvas, center, size.shortestSide * 0.28, p);
-      _drawCapsule(
-          canvas, center.translate(-16, 10), size.shortestSide * 0.22, p);
-      _drawCapsule(
-          canvas, center.translate(18, 12), size.shortestSide * 0.22, p);
-    } else if (art == _ProductArt.energyPile) {
-      for (int i = 0; i < 6; i++) {
-        _drawCapsule(canvas, center.translate((i - 2.5) * 12, (i % 2) * 12),
-            size.shortestSide * 0.20, p);
-      }
-    } else if (art == _ProductArt.pouch || art == _ProductArt.pouchBig) {
-      _drawPouch(canvas, center, art == _ProductArt.pouchBig ? 1.10 : 0.92, p);
-    } else if (art == _ProductArt.chest || art == _ProductArt.chestPouch) {
-      _drawChest(canvas, center.translate(0, 8), p);
-      if (art == _ProductArt.chestPouch)
-        _drawPouch(canvas, center.translate(-20, 8), 0.65, p);
+    final s = size.shortestSide;
+    switch (art) {
+      case _ProductArt.daily:
+        _drawGift(canvas, center.translate(0, 3), s * 0.68, p);
+        _drawCoin(canvas, center.translate(34, 19), s * 0.085, p);
+        _drawCoin(canvas, center.translate(44, 7), s * 0.075, p);
+        break;
+      case _ProductArt.coinPack:
+        for (var i = 0; i < 8; i++) {
+          final row = i ~/ 4;
+          _drawCoin(
+            canvas,
+            center.translate((i % 4 - 1.5) * 17, row * 11 - 5),
+            s * 0.085,
+            p,
+          );
+        }
+        _drawPouch(canvas, center.translate(0, 12), 0.70, p);
+        break;
+      case _ProductArt.clubChest:
+        _drawChest(canvas, center.translate(0, 10), p);
+        _drawShieldBadge(canvas, center.translate(-34, -19), s * 0.18, p);
+        break;
+      case _ProductArt.royalVault:
+        _drawChest(canvas, center.translate(8, 9), p);
+        _drawChest(canvas, center.translate(-17, 17), p, scale: 0.68);
+        for (var i = 0; i < 5; i++) {
+          _drawGem(
+            canvas,
+            center.translate((i - 2) * 15, -26 + (i.isEven ? 0 : 8)),
+            s * 0.055,
+            p,
+          );
+        }
+        break;
+      case _ProductArt.royalDice:
+        _drawProductDice(
+          canvas,
+          center,
+          s * 0.60,
+          const [Color(0xFFFFF08A), Color(0xFFFFB11B), Color(0xFFB86100)],
+          const Color(0xFFFFF2A4),
+          const Color(0xFF714000),
+          p,
+        );
+        break;
+      case _ProductArt.neonDice:
+        _drawProductDice(
+          canvas,
+          center,
+          s * 0.60,
+          const [Color(0xFF10205E), Color(0xFF07102D), Color(0xFF00C9FF)],
+          const Color(0xFF43F4FF),
+          const Color(0xFF7DFFFF),
+          p,
+        );
+        break;
+      case _ProductArt.rubyDice:
+        _drawProductDice(
+          canvas,
+          center,
+          s * 0.60,
+          const [Color(0xFFFF7272), Color(0xFFD31622), Color(0xFF6A0612)],
+          const Color(0xFFFFD866),
+          const Color(0xFFFFE17C),
+          p,
+        );
+        break;
+      case _ProductArt.emeraldDice:
+        _drawProductDice(
+          canvas,
+          center,
+          s * 0.60,
+          const [Color(0xFF70FF90), Color(0xFF0EA63D), Color(0xFF064B21)],
+          const Color(0xFFFFD866),
+          const Color(0xFFFFEA7A),
+          p,
+        );
+        break;
+      case _ProductArt.cosmicDice:
+        _drawProductDice(
+          canvas,
+          center,
+          s * 0.60,
+          const [Color(0xFFB95DFF), Color(0xFF48109A), Color(0xFF13072C)],
+          const Color(0xFFFF5CFF),
+          const Color(0xFFFFD866),
+          p,
+        );
+        break;
     }
   }
 
-  void _drawCapsule(Canvas canvas, Offset c, double r, Paint p) {
+  void _drawGift(Canvas canvas, Offset c, double s, Paint p) {
     p.color = Colors.black.withAlpha(50);
     canvas.drawOval(
+      Rect.fromCenter(
+          center: c.translate(0, s * 0.34), width: s, height: s * 0.22),
+      p,
+    );
+    final box = Rect.fromCenter(
+        center: c.translate(0, s * 0.12), width: s * 0.70, height: s * 0.56);
+    final lid = Rect.fromCenter(
+        center: c.translate(0, -s * 0.21), width: s * 0.82, height: s * 0.22);
+    p.shader = const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFFFFF07A), Color(0xFFFF2E4C), Color(0xFFC5112D)],
+    ).createShader(box);
+    canvas.drawRRect(RRect.fromRectXY(box, s * 0.07, s * 0.07), p);
+    canvas.drawRRect(RRect.fromRectXY(lid, s * 0.07, s * 0.07), p);
+    p.shader = null;
+    p.color = const Color(0xFFFFD426);
+    canvas.drawRect(
         Rect.fromCenter(
-            center: c.translate(3, 8), width: r * 1.9, height: r * 0.55),
+            center: box.center, width: s * 0.13, height: box.height),
         p);
-    p.shader = const LinearGradient(colors: [
-      Color(0xFF55F4FF),
-      Color(0xFF087FC9)
-    ]).createShader(Rect.fromCenter(center: c, width: r * 1.4, height: r * 2));
-    canvas.drawRRect(
-        RRect.fromRectXY(
-            Rect.fromCenter(center: c, width: r * 1.1, height: r * 1.6),
-            r * 0.42,
-            r * 0.42),
+    canvas.drawRect(
+        Rect.fromCenter(center: box.center, width: box.width, height: s * 0.12),
+        p);
+    p.color = Colors.white.withAlpha(170);
+    canvas.drawCircle(c.translate(-s * 0.21, -s * 0.30), s * 0.07, p);
+    _drawBow(canvas, c.translate(0, -s * 0.36), s * 0.28, p);
+  }
+
+  void _drawBow(Canvas canvas, Offset c, double s, Paint p) {
+    p.shader = const LinearGradient(
+      colors: [Color(0xFFFFF188), Color(0xFFFFB300), Color(0xFFFF5A24)],
+    ).createShader(Rect.fromCenter(center: c, width: s * 2.0, height: s));
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: c.translate(-s * 0.35, 0),
+            width: s * 0.78,
+            height: s * 0.52),
+        p);
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: c.translate(s * 0.35, 0),
+            width: s * 0.78,
+            height: s * 0.52),
         p);
     p.shader = null;
-    p.color = Colors.white.withAlpha(140);
-    canvas.drawCircle(c.translate(-r * 0.16, -r * 0.26), r * 0.16, p);
-    p.color = const Color(0xFFFFF06B);
-    canvas.drawPath(
-        Path()
-          ..moveTo(c.dx + r * 0.05, c.dy - r * 0.35)
-          ..lineTo(c.dx - r * 0.12, c.dy + r * 0.05)
-          ..lineTo(c.dx + r * 0.08, c.dy + r * 0.05)
-          ..lineTo(c.dx - r * 0.02, c.dy + r * 0.42)
-          ..lineTo(c.dx + r * 0.26, c.dy - r * 0.08)
-          ..lineTo(c.dx + r * 0.06, c.dy - r * 0.08)
-          ..close(),
-        p);
+    p.color = const Color(0xFFFFE46A);
+    canvas.drawCircle(c, s * 0.18, p);
+  }
+
+  void _drawProductDice(Canvas canvas, Offset c, double s, List<Color> face,
+      Color rim, Color pip, Paint p) {
+    final rect = Rect.fromCenter(center: c, width: s, height: s);
+    p.color = Colors.black.withAlpha(60);
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: c.translate(0, s * 0.48), width: s * 0.92, height: s * 0.22),
+      p,
+    );
+    p.shader = ui.Gradient.radial(c, s * 0.95, [
+      rim.withAlpha(105),
+      Colors.transparent,
+    ]);
+    canvas.drawCircle(c, s * 0.65, p);
+    p.shader = null;
+
+    p.shader = ui.Gradient.linear(rect.topLeft, rect.bottomRight, face);
+    canvas.drawRRect(RRect.fromRectXY(rect, s * 0.22, s * 0.22), p);
+    p.shader = null;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = s * 0.055
+      ..color = rim;
+    canvas.drawRRect(
+        RRect.fromRectXY(rect.deflate(s * 0.035), s * 0.19, s * 0.19), p);
+    p.style = PaintingStyle.fill;
+    p.color = Colors.white.withAlpha(135);
+    canvas.drawCircle(c.translate(-s * 0.23, -s * 0.24), s * 0.09, p);
+    for (final dot in [
+      c,
+      c.translate(-s * 0.24, -s * 0.24),
+      c.translate(s * 0.24, s * 0.24),
+      c.translate(s * 0.24, -s * 0.24),
+      c.translate(-s * 0.24, s * 0.24),
+    ]) {
+      p.color = Colors.black.withAlpha(70);
+      canvas.drawCircle(dot.translate(s * 0.018, s * 0.026), s * 0.055, p);
+      p.color = pip;
+      canvas.drawCircle(dot, s * 0.052, p);
+    }
+  }
+
+  void _drawShieldBadge(Canvas canvas, Offset c, double s, Paint p) {
+    final shield = Path()
+      ..moveTo(c.dx, c.dy - s)
+      ..lineTo(c.dx + s * 0.72, c.dy - s * 0.62)
+      ..lineTo(c.dx + s * 0.55, c.dy + s * 0.34)
+      ..quadraticBezierTo(c.dx, c.dy + s, c.dx - s * 0.55, c.dy + s * 0.34)
+      ..lineTo(c.dx - s * 0.72, c.dy - s * 0.62)
+      ..close();
+    p.shader = ui.Gradient.linear(
+      c.translate(-s, -s),
+      c.translate(s, s),
+      const [Color(0xFF45D8FF), Color(0xFF0E75FF), Color(0xFF103978)],
+    );
+    canvas.drawPath(shield, p);
+    p.shader = null;
+    p.color = goldColor;
+    _drawStar(canvas, c.translate(0, -s * 0.02), s * 0.34, p);
+  }
+
+  void _drawGem(Canvas canvas, Offset c, double r, Paint p) {
+    final gem = Path()
+      ..moveTo(c.dx, c.dy - r)
+      ..lineTo(c.dx + r * 0.85, c.dy - r * 0.10)
+      ..lineTo(c.dx + r * 0.45, c.dy + r)
+      ..lineTo(c.dx - r * 0.45, c.dy + r)
+      ..lineTo(c.dx - r * 0.85, c.dy - r * 0.10)
+      ..close();
+    p.shader = ui.Gradient.linear(
+      c.translate(-r, -r),
+      c.translate(r, r),
+      const [Color(0xFFB6FFF6), Color(0xFF20E48A), Color(0xFF067B70)],
+    );
+    canvas.drawPath(gem, p);
+    p.shader = null;
+    p.color = Colors.white.withAlpha(170);
+    canvas.drawCircle(c.translate(-r * 0.22, -r * 0.32), r * 0.16, p);
   }
 
   void _drawPouch(Canvas canvas, Offset c, double scale, Paint p) {
-    final w = 64 * scale;
-    final h = 58 * scale;
+    final w = 62 * scale;
+    final h = 54 * scale;
     p.color = Colors.black.withAlpha(55);
     canvas.drawOval(
-        Rect.fromCenter(
-            center: c.translate(0, h * 0.45), width: w, height: h * 0.23),
-        p);
-    p.shader =
-        const LinearGradient(colors: [Color(0xFF9B4CDA), Color(0xFF5A189A)])
-            .createShader(Rect.fromCenter(center: c, width: w, height: h));
+      Rect.fromCenter(
+          center: c.translate(0, h * 0.44), width: w, height: h * 0.23),
+      p,
+    );
+    p.shader = const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFFB94CFF), Color(0xFF5A189A), Color(0xFF2A063C)],
+    ).createShader(Rect.fromCenter(center: c, width: w, height: h));
     canvas.drawRRect(
-        RRect.fromRectXY(Rect.fromCenter(center: c, width: w, height: h),
-            14 * scale, 18 * scale),
-        p);
+      RRect.fromRectXY(Rect.fromCenter(center: c, width: w, height: h),
+          14 * scale, 18 * scale),
+      p,
+    );
     p.shader = null;
     p.color = const Color(0xFFFFC64E);
     canvas.drawRRect(
-        RRect.fromRectXY(
-            Rect.fromCenter(
-                center: c.translate(0, -h * 0.34),
-                width: w * 0.72,
-                height: h * 0.18),
-            8 * scale,
-            8 * scale),
-        p);
-    for (int i = 0; i < 7; i++) {
-      _drawCapsule(
-          canvas,
-          c.translate((i - 3) * 7 * scale, -8 * scale + (i % 2) * 8 * scale),
-          10 * scale,
-          p);
-    }
+      RRect.fromRectXY(
+        Rect.fromCenter(
+            center: c.translate(0, -h * 0.34),
+            width: w * 0.72,
+            height: h * 0.18),
+        8 * scale,
+        8 * scale,
+      ),
+      p,
+    );
   }
 
-  void _drawChest(Canvas canvas, Offset c, Paint p) {
-    final rect = Rect.fromCenter(center: c, width: 78, height: 58);
+  void _drawCoin(Canvas canvas, Offset c, double r, Paint p) {
+    p.color = Colors.black.withAlpha(45);
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: c.translate(2, r * 0.42), width: r * 2.0, height: r * 0.68),
+      p,
+    );
+    p.shader = ui.Gradient.radial(
+      c.translate(-r * 0.26, -r * 0.28),
+      r * 1.2,
+      const [Color(0xFFFFF6A6), Color(0xFFFFC21F), Color(0xFFD87800)],
+    );
+    canvas.drawCircle(c, r, p);
+    p.shader = null;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.0, r * 0.12)
+      ..color = const Color(0xFF9C5600);
+    canvas.drawCircle(c, r * 0.70, p);
+    p.style = PaintingStyle.fill;
+    p.color = const Color(0xFFFFF0A0);
+    canvas.drawPath(
+      Path()
+        ..moveTo(c.dx, c.dy - r * 0.48)
+        ..lineTo(c.dx + r * 0.14, c.dy - r * 0.08)
+        ..lineTo(c.dx + r * 0.48, c.dy - r * 0.08)
+        ..lineTo(c.dx + r * 0.20, c.dy + r * 0.12)
+        ..lineTo(c.dx + r * 0.31, c.dy + r * 0.52)
+        ..lineTo(c.dx, c.dy + r * 0.28)
+        ..lineTo(c.dx - r * 0.31, c.dy + r * 0.52)
+        ..lineTo(c.dx - r * 0.20, c.dy + r * 0.12)
+        ..lineTo(c.dx - r * 0.48, c.dy - r * 0.08)
+        ..lineTo(c.dx - r * 0.14, c.dy - r * 0.08)
+        ..close(),
+      p,
+    );
+  }
+
+  void _drawChest(Canvas canvas, Offset c, Paint p, {double scale = 1.0}) {
+    final w = 78.0 * scale;
+    final h = 58.0 * scale;
+    final rect = Rect.fromCenter(center: c, width: w, height: h);
     p.color = Colors.black.withAlpha(55);
     canvas.drawOval(
-        Rect.fromCenter(center: c.translate(0, 34), width: 80, height: 18), p);
-    p.shader =
-        const LinearGradient(colors: [Color(0xFFFFC257), Color(0xFFB66A14)])
-            .createShader(rect);
-    canvas.drawRRect(RRect.fromRectXY(rect, 8, 8), p);
+      Rect.fromCenter(
+          center: c.translate(0, h * 0.58), width: w * 1.03, height: h * 0.30),
+      p,
+    );
+    p.shader = const LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [Color(0xFFFFD966), Color(0xFFD78713), Color(0xFF733A07)],
+    ).createShader(rect);
+    canvas.drawRRect(
+      RRect.fromRectXY(rect, 8 * scale, 8 * scale),
+      p,
+    );
     p.shader = null;
     p.color = const Color(0xFF7A3B12);
-    canvas.drawRect(Rect.fromLTWH(rect.left, rect.center.dy, rect.width, 6), p);
+    canvas.drawRect(
+        Rect.fromLTWH(rect.left, rect.center.dy, rect.width, 6 * scale), p);
     p.color = const Color(0xFFFFF0A0);
     canvas.drawRRect(
-        RRect.fromRectXY(
-            Rect.fromCenter(center: c, width: 22, height: 24), 5, 5),
-        p);
+      RRect.fromRectXY(
+        Rect.fromCenter(center: c, width: 22 * scale, height: 24 * scale),
+        5 * scale,
+        5 * scale,
+      ),
+      p,
+    );
+  }
+
+  void _drawStar(Canvas canvas, Offset c, double r, Paint p) {
+    final path = Path();
+    for (int i = 0; i < 10; i++) {
+      final a = -math.pi / 2 + i * math.pi / 5;
+      final rr = i.isEven ? r : r * 0.45;
+      final point = c + Offset(math.cos(a) * rr, math.sin(a) * rr);
+      if (i == 0) {
+        path.moveTo(point.dx, point.dy);
+      } else {
+        path.lineTo(point.dx, point.dy);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, p);
   }
 
   @override

@@ -2429,14 +2429,18 @@ class _RewardStrip extends StatelessWidget {
                 Expanded(
                   child: _RewardTile(
                     palette: palette,
-                    label: 'Free',
+                    label: state.canClaimDailyReward ? 'Daily +150' : 'Claimed',
                     art: _RewardArt.gift,
                     start: const Color(0xFFE93836),
                     end: const Color(0xFFFFB21C),
                     onTap: () {
-                      SoundService.tap();
-                      state.addCoins(100);
-                      _showHomeSnack(context, 'Free gift claimed. +100 coins.');
+                      final claimed = state.claimDailyReward();
+                      _showHomeSnack(
+                        context,
+                        claimed
+                            ? 'Daily points claimed. +${state.dailyRewardAmount} coins.'
+                            : 'Daily points already claimed. Come back tomorrow.',
+                      );
                     },
                   ),
                 ),
@@ -2444,13 +2448,13 @@ class _RewardStrip extends StatelessWidget {
                 Expanded(
                   child: _RewardTile(
                     palette: palette,
-                    label: 'Level 4',
+                    label: '2 Player',
                     art: _RewardArt.shield,
                     start: const Color(0xFFFFE066),
                     end: const Color(0xFFD89100),
                     onTap: () {
                       SoundService.tap();
-                      state.startQuickMatch('classic_4p');
+                      state.startQuickMatch('classic_2p');
                     },
                   ),
                 ),
@@ -2458,13 +2462,13 @@ class _RewardStrip extends StatelessWidget {
                 Expanded(
                   child: _RewardTile(
                     palette: palette,
-                    label: 'Level 5',
+                    label: '4 Player',
                     art: _RewardArt.medal,
                     start: const Color(0xFFFFD426),
                     end: const Color(0xFFE03068),
                     onTap: () {
                       SoundService.tap();
-                      _showSnakesBoardSheet(context, state);
+                      state.startFastMatch();
                     },
                   ),
                 ),
@@ -2472,16 +2476,13 @@ class _RewardStrip extends StatelessWidget {
                 Expanded(
                   child: _RewardTile(
                     palette: palette,
-                    label: 'Locked',
-                    art: _RewardArt.lock,
+                    label: 'Snakes',
+                    art: _RewardArt.snakes,
                     start: const Color(0xFFFFD35B),
                     end: const Color(0xFF8C4B00),
                     onTap: () {
                       SoundService.tap();
-                      _showHomeSnack(
-                        context,
-                        'Locked events unlock after more wins.',
-                      );
+                      _showSnakesBoardSheet(context, state);
                     },
                   ),
                 ),
@@ -2494,7 +2495,7 @@ class _RewardStrip extends StatelessWidget {
   }
 }
 
-enum _RewardArt { gift, shield, medal, lock }
+enum _RewardArt { gift, shield, medal, lock, snakes }
 
 class _RewardTile extends StatelessWidget {
   final _RushPalette palette;
@@ -2630,6 +2631,9 @@ class _RewardIconPainter extends CustomPainter {
         break;
       case _RewardArt.lock:
         _drawLock(canvas, size, p);
+        break;
+      case _RewardArt.snakes:
+        _drawSnake(canvas, size, p);
         break;
     }
   }
@@ -2767,6 +2771,51 @@ class _RewardIconPainter extends CustomPainter {
             width: size.width * 0.045,
             height: size.height * 0.13),
         p);
+  }
+
+  void _drawSnake(Canvas canvas, Size size, Paint p) {
+    final path = Path()
+      ..moveTo(size.width * 0.24, size.height * 0.66)
+      ..cubicTo(size.width * 0.38, size.height * 0.35, size.width * 0.62,
+          size.height * 0.82, size.width * 0.76, size.height * 0.28);
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = size.shortestSide * 0.18
+      ..shader = LinearGradient(colors: [start, end])
+          .createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    canvas.drawPath(path, p);
+    p
+      ..shader = null
+      ..strokeWidth = size.shortestSide * 0.06
+      ..color = const Color(0xFFFFF1A6);
+    for (int i = 0; i < 5; i++) {
+      final t = i / 4;
+      final x = size.width * (0.29 + t * 0.40);
+      final y =
+          size.height * (0.62 + math.sin(t * math.pi * 2.2) * 0.12 - t * 0.18);
+      canvas.drawLine(
+        Offset(x - size.width * 0.025, y - size.height * 0.025),
+        Offset(x + size.width * 0.025, y + size.height * 0.025),
+        p,
+      );
+    }
+    p
+      ..style = PaintingStyle.fill
+      ..strokeCap = StrokeCap.butt
+      ..color = end;
+    final head = Offset(size.width * 0.76, size.height * 0.28);
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: head, width: size.width * 0.24, height: size.height * 0.18),
+      p,
+    );
+    p.color = Colors.white;
+    canvas.drawCircle(head.translate(-size.width * 0.03, -size.height * 0.025),
+        size.shortestSide * 0.025, p);
+    p.color = const Color(0xFF280019);
+    canvas.drawCircle(head.translate(-size.width * 0.022, -size.height * 0.02),
+        size.shortestSide * 0.012, p);
   }
 
   void _drawStar(Canvas canvas, Offset c, double r, Color color, Paint p) {
@@ -3012,6 +3061,7 @@ class _HomeTabStage extends StatelessWidget {
           _FeatureRow('Club Chest', '8 wins needed', '850'),
         ],
         actions: const ['Join', 'Leaders', 'Rewards'],
+        bannerAsset: 'assets/images/rush/rush_club_rewards_banner_v1.png',
         onAction: (context, action) => _handleFeatureAction(context, action),
       );
     }
@@ -3028,6 +3078,7 @@ class _HomeTabStage extends StatelessWidget {
           _FeatureRow('Energy Vault', 'Bonus spins', '30'),
         ],
         actions: const ['Open', 'Boost', 'History'],
+        bannerAsset: 'assets/images/rush/rush_club_rewards_banner_v1.png',
         onAction: (context, action) => _handleFeatureAction(context, action),
       );
     }
@@ -3048,7 +3099,7 @@ class _HomeTabStage extends StatelessWidget {
         _showFeatureSnack(context, 'Gift sent. +25 coins added for testing.');
         return;
       case 'Join':
-        _showFeatureSnack(context, 'Club join request sent.');
+        _showClubJoinSheet(context, state);
         return;
       case 'Leaders':
         _showLeaderboardSheet(context, state);
@@ -3153,6 +3204,117 @@ class _HomeTabStage extends StatelessWidget {
       },
     );
   }
+
+  void _showClubJoinSheet(BuildContext context, AppState state) {
+    const clubs = [
+      _FeatureRow('Royal Rollers', 'Open club', '4.8K'),
+      _FeatureRow('Dice Dynasty', '2 seats left', '3.6K'),
+      _FeatureRow('Carnival Kings', 'New players', '2.9K'),
+    ];
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return SafeArea(
+          top: false,
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF5A1164), Color(0xFF190421)],
+              ),
+              border: Border.all(color: goldColor, width: 2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0xCC000000),
+                  blurRadius: 24,
+                  offset: Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.shield_rounded,
+                        color: goldColor, size: 28),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Join a Club',
+                        style: TextStyle(
+                          color: goldColor,
+                          fontSize: 23,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.close_rounded,
+                          color: Colors.white70),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    'assets/images/rush/rush_club_rewards_banner_v1.png',
+                    height: 96,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                for (var i = 0; i < clubs.length; i++) ...[
+                  _FeatureListTile(
+                    row: clubs[i],
+                    accent: const Color(0xFFFF5D6C),
+                    index: i,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                Row(
+                  children: [
+                    Expanded(
+                      child: _FeatureActionButton(
+                        label: 'Use Invite Code',
+                        accent: boardBlue,
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showFeatureSnack(
+                              context, 'Invite codes open from Private Room.');
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _FeatureActionButton(
+                        label: 'Join Royal',
+                        accent: const Color(0xFFFF5D6C),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _showFeatureSnack(context,
+                              'Joined Royal Rollers. Club rewards are active.');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _FeatureRow {
@@ -3171,6 +3333,7 @@ class _FeatureTabStage extends StatelessWidget {
   final IconData icon;
   final List<_FeatureRow> rows;
   final List<String> actions;
+  final String? bannerAsset;
   final void Function(BuildContext context, String action) onAction;
 
   const _FeatureTabStage({
@@ -3181,6 +3344,7 @@ class _FeatureTabStage extends StatelessWidget {
     required this.icon,
     required this.rows,
     required this.actions,
+    this.bannerAsset,
     required this.onAction,
   });
 
@@ -3260,6 +3424,19 @@ class _FeatureTabStage extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 14),
+                      if (bannerAsset != null) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.asset(
+                            bannerAsset!,
+                            height: narrow ? 82 : 96,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                      ],
                       for (int i = 0; i < rows.length; i++) ...[
                         _FeatureListTile(
                           row: rows[i],
