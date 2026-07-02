@@ -2987,7 +2987,7 @@ class _LobbyStage extends StatelessWidget {
                         end: const Color(0xFF087C3C),
                         art: _ModeArt.snakes,
                         imageAsset:
-                            'assets/images/rush/rush_snakes_ladders_mode_v1.png',
+                            'assets/images/rush/rush_snakes_ladders_mode_v2.png',
                         onTap: () => _showSnakesBoardSheet(context, state),
                       ),
                     ),
@@ -3089,14 +3089,13 @@ class _HomeTabStage extends StatelessWidget {
     SoundService.tap();
     switch (action) {
       case 'Invite':
-        state.startOfflineMatch('classic_2p');
+        _showFriendInviteSheet(context, state);
         return;
       case 'Add':
-        _showFeatureSnack(context, 'Friend request queued for nearby players.');
+        _showFriendAddSheet(context);
         return;
       case 'Gift':
-        state.addCoins(25);
-        _showFeatureSnack(context, 'Gift sent. +25 coins added for testing.');
+        _showFriendGiftSheet(context, state);
         return;
       case 'Join':
         _showClubJoinSheet(context, state);
@@ -3109,17 +3108,242 @@ class _HomeTabStage extends StatelessWidget {
         _showFeatureSnack(context, 'Club reward opened. +150 coins.');
         return;
       case 'Open':
-        state.addCoins(500);
-        _showFeatureSnack(context, 'Gold chest opened. +500 coins.');
+        _showChestOpenSheet(context, state);
         return;
       case 'Boost':
-        state.startOfflineMatch(AppState.snakesLaddersMode);
+        _showBoostSheet(context);
         return;
       case 'History':
-        _showFeatureSnack(
-            context, 'Chest history is ready after your next win.');
+        _showHistorySheet(context);
         return;
     }
+  }
+
+  void _showFriendInviteSheet(BuildContext context, AppState state) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return _HomeActionSheet(
+          title: 'Invite Friends',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _FeatureListTile(
+                row: _FeatureRow('Leo', 'Online now', '790'),
+                accent: boardBlue,
+                index: 0,
+              ),
+              const SizedBox(height: 8),
+              const _FeatureListTile(
+                row: _FeatureRow('Ava', 'Invite ready', '980'),
+                accent: boardGreen,
+                index: 1,
+              ),
+              const SizedBox(height: 12),
+              _HomeSheetButton(
+                label: 'Create Private Code',
+                icon: Icons.add_link_rounded,
+                color: boardBlue,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showPrivateRoomSheet(context, state);
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showFriendAddSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return _HomeActionSheet(
+          title: 'Add Friend',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _FeatureListTile(
+                row: _FeatureRow('Maya', 'Recent opponent', '1120'),
+                accent: goldColor,
+                index: 0,
+              ),
+              const SizedBox(height: 8),
+              const _FeatureListTile(
+                row: _FeatureRow('Noah', 'Nearby table', '870'),
+                accent: boardPurple,
+                index: 1,
+              ),
+              const SizedBox(height: 12),
+              _FeatureActionButton(
+                label: 'Send Requests',
+                accent: boardGreen,
+                onTap: () {
+                  Navigator.pop(context);
+                  _showFeatureSnack(context, 'Friend requests sent.');
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showFriendGiftSheet(BuildContext context, AppState state) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return _HomeActionSheet(
+          title: 'Send Gift',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _FeatureListTile(
+                row: _FeatureRow('Ava', 'Send lucky dice', '25'),
+                accent: boardGreen,
+                index: 0,
+              ),
+              const SizedBox(height: 8),
+              const _FeatureListTile(
+                row: _FeatureRow('Leo', 'Send coin pack', '50'),
+                accent: boardBlue,
+                index: 1,
+              ),
+              const SizedBox(height: 12),
+              _FeatureActionButton(
+                label: 'Send Gift',
+                accent: goldColor,
+                onTap: () {
+                  Navigator.pop(context);
+                  state.addCoins(25);
+                  _showFeatureSnack(
+                      context, 'Gift sent. +25 coins added for preview.');
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showChestOpenSheet(BuildContext context, AppState state) {
+    state.addCoins(500);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return _HomeActionSheet(
+          title: 'Gold Chest',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.inventory_2_rounded, color: goldColor, size: 56),
+              const SizedBox(height: 8),
+              const Text(
+                '+500 coins added',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                ),
+              ),
+              const SizedBox(height: 12),
+              _FeatureActionButton(
+                label: 'Collect',
+                accent: boardGreen,
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showBoostSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return _HomeActionSheet(
+          title: 'Boosts',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _FeatureListTile(
+                row: _FeatureRow('Rush Boost', 'Extra XP next match', '1'),
+                accent: boardRed,
+                index: 0,
+              ),
+              const SizedBox(height: 8),
+              const _FeatureListTile(
+                row: _FeatureRow('Leader Glow', 'Crown aura on board', '1'),
+                accent: goldColor,
+                index: 1,
+              ),
+              const SizedBox(height: 8),
+              const _FeatureListTile(
+                row: _FeatureRow('Shield', 'Safe from one snake', '1'),
+                accent: boardBlue,
+                index: 2,
+              ),
+              const SizedBox(height: 12),
+              _FeatureActionButton(
+                label: 'Activate Boost',
+                accent: boardPurple,
+                onTap: () {
+                  Navigator.pop(context);
+                  _showFeatureSnack(context, 'Boost activated for next match.');
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showHistorySheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return _HomeActionSheet(
+          title: 'Reward History',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              _FeatureListTile(
+                row: _FeatureRow('Gold Chest', 'Claimed today', '500'),
+                accent: goldColor,
+                index: 0,
+              ),
+              SizedBox(height: 8),
+              _FeatureListTile(
+                row: _FeatureRow('Daily Gift', 'Claimed', '150'),
+                accent: boardGreen,
+                index: 1,
+              ),
+              SizedBox(height: 8),
+              _FeatureListTile(
+                row: _FeatureRow('Match Win', 'Preview reward', '100'),
+                accent: boardBlue,
+                index: 2,
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _showFeatureSnack(BuildContext context, String message) {
@@ -3822,16 +4046,17 @@ class _ModeTileState extends State<_ModeTile>
                     Positioned.fill(
                         child: CustomPaint(
                             painter: _ModePatternPainter(widget.palette.dark))),
-                    Positioned(
-                      left: widget.large ? 18 : 10,
-                      top: widget.large ? 13 : 10,
-                      width: widget.large ? 78 : 38,
-                      height: widget.large ? 70 : 38,
-                      child: _ModeGlyph(
-                        art: widget.art,
-                        large: widget.large,
+                    if (widget.imageAsset == null)
+                      Positioned(
+                        left: widget.large ? 18 : 10,
+                        top: widget.large ? 13 : 10,
+                        width: widget.large ? 78 : 38,
+                        height: widget.large ? 70 : 38,
+                        child: _ModeGlyph(
+                          art: widget.art,
+                          large: widget.large,
+                        ),
                       ),
-                    ),
                     if (widget.headline.isNotEmpty)
                       Positioned(
                         right: widget.large ? 15 : 10,

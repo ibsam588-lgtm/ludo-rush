@@ -65,17 +65,13 @@ class _BoardConsts {
     [7, 14],
   ];
 
-  // Stop/safe stars are paired around each colored home lane. Keep this in
+  // Stop/safe stars sit at the 6+2 track point for each color. Keep this in
   // sync with AppState._localSafeTrackIndexes so captures and visuals agree.
   static const safeSeats = [
-    [6, 13, 0],
-    [8, 13, 0],
-    [1, 6, 1],
-    [1, 8, 1],
-    [6, 1, 2],
-    [8, 1, 2],
-    [13, 6, 3],
-    [13, 8, 3],
+    [2, 8, 0],
+    [6, 2, 1],
+    [12, 6, 2],
+    [8, 12, 3],
   ];
 
   static const homeLanes = [
