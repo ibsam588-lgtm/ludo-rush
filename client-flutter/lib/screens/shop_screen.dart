@@ -39,6 +39,18 @@ class _ShopScreenState extends State<ShopScreen>
     _ShopProduct(
         'Cosmic Dice', '3,500', 'star glow', _ProductArt.cosmicDice, true, 0,
         diceSkin: 'cosmic'),
+    _ShopProduct('Carnival Board', 'EQUIP', 'approved theme',
+        _ProductArt.carnivalBoard, false, 0,
+        boardTheme: 'carnival'),
+    _ShopProduct(
+        'Royal Board', 'EQUIP', 'gold palace', _ProductArt.royalBoard, false, 0,
+        boardTheme: 'royal'),
+    _ShopProduct(
+        'Neon Board', 'EQUIP', 'arcade glow', _ProductArt.neonBoard, false, 0,
+        boardTheme: 'neon'),
+    _ShopProduct('Classic Board', 'EQUIP', 'clean table',
+        _ProductArt.classicBoard, false, 0,
+        boardTheme: 'classic'),
     _ShopProduct('Coin Stack', '1.99 USD', '1,200 coins', _ProductArt.coinPack,
         false, 1200),
     _ShopProduct('Club Chest', '7.99 USD', '3,500 coins', _ProductArt.clubChest,
@@ -91,8 +103,8 @@ class _ShopScreenState extends State<ShopScreen>
                             .toDouble();
                     final columns = box.maxWidth < 360 ? 2 : 3;
                     final cardAspect = columns == 2
-                        ? (compactHeight ? 0.82 : 0.88)
-                        : (compactHeight ? 0.74 : 0.78);
+                        ? (compactHeight ? 0.76 : 0.82)
+                        : (compactHeight ? 0.66 : 0.70);
                     final gridPad = EdgeInsets.fromLTRB(
                       narrow ? 12 : 16,
                       compactHeight ? 6 : 8,
@@ -111,6 +123,10 @@ class _ShopScreenState extends State<ShopScreen>
                         if (!compactHeight || box.maxWidth >= 390)
                           _BoosterBanner(palette: p),
                         _DiceSkinStrip(
+                          palette: p,
+                          state: state,
+                        ),
+                        _BoardThemeStrip(
                           palette: p,
                           state: state,
                         ),
@@ -141,6 +157,11 @@ class _ShopScreenState extends State<ShopScreen>
                                   state.setDiceSkin(product.diceSkin!);
                                   message =
                                       '${product.title} equipped for your dice.';
+                                } else if (product.boardTheme != null) {
+                                  state
+                                      .setSnakesBoardTheme(product.boardTheme!);
+                                  message =
+                                      '${product.title} equipped for Snakes & Ladders.';
                                 } else {
                                   state.addCoins(product.coinReward);
                                   message =
@@ -879,6 +900,7 @@ class _ShopMascotShelfPainter extends CustomPainter {
       shelf.topLeft,
       shelf.bottomRight,
       const [Color(0xFFFFE06E), Color(0xFFD87900), Color(0xFF632800)],
+      const [0.0, 0.55, 1.0],
     );
     canvas.drawRRect(RRect.fromRectXY(shelf, 14, 14), p);
     p.shader = null;
@@ -961,6 +983,7 @@ class _ShopMascotShelfPainter extends CustomPainter {
       c.translate(-r, -r),
       c.translate(r, r),
       [const Color(0xFFFFF27B), goldColor, accent],
+      const [0.0, 0.55, 1.0],
     );
     canvas.drawPath(crown, p);
     p.shader = null;
@@ -1028,6 +1051,7 @@ class _ShopMascotShelfPainter extends CustomPainter {
         suit,
         Color.lerp(suit, Colors.black, 0.28)!,
       ],
+      const [0.0, 0.55, 1.0],
     );
     canvas.drawPath(overalls, p);
     p.shader = null;
@@ -1040,6 +1064,7 @@ class _ShopMascotShelfPainter extends CustomPainter {
       c.translate(-r * 0.20, -r * 0.20),
       r * 1.20,
       const [Color(0xFFFFF27D), Color(0xFFFFC21F), Color(0xFFE07E00)],
+      const [0.0, 0.58, 1.0],
     );
     canvas.drawCircle(c, r, p);
     p.shader = null;
@@ -1777,6 +1802,15 @@ enum _ProductArt {
   rubyDice,
   emeraldDice,
   cosmicDice,
+  carnivalBoard,
+  royalBoard,
+  neonBoard,
+  classicBoard,
+}
+
+List<double> _evenColorStops(int count) {
+  if (count <= 1) return const [0.0];
+  return List<double>.generate(count, (i) => i / (count - 1));
 }
 
 class _ShopProduct {
@@ -1787,6 +1821,7 @@ class _ShopProduct {
   final bool best;
   final int coinReward;
   final String? diceSkin;
+  final String? boardTheme;
   final bool dailyReward;
 
   const _ShopProduct(
@@ -1797,6 +1832,7 @@ class _ShopProduct {
     this.best,
     this.coinReward, {
     this.diceSkin,
+    this.boardTheme,
     this.dailyReward = false,
   });
 }
@@ -1914,10 +1950,8 @@ class _ShopCardState extends State<_ShopCard>
                       ),
                       Expanded(
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: CustomPaint(
-                              painter: _ProductPainter(widget.product.art),
-                              child: const SizedBox.expand()),
+                          padding: const EdgeInsets.fromLTRB(5, 2, 5, 3),
+                          child: _ShopProductVisual(product: widget.product),
                         ),
                       ),
                       Container(
@@ -1983,6 +2017,32 @@ class _ShopCardState extends State<_ShopCard>
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _ShopProductVisual extends StatelessWidget {
+  final _ShopProduct product;
+
+  const _ShopProductVisual({required this.product});
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(
+          colors: [
+            Colors.white.withAlpha(78),
+            goldColor.withAlpha(42),
+            Colors.transparent,
+          ],
+        ),
+      ),
+      child: CustomPaint(
+        painter: _ProductPainter(product.art),
+        child: const SizedBox.expand(),
       ),
     );
   }
@@ -2093,6 +2153,7 @@ class _ShopBackdropPainter extends CustomPainter {
               const Color(0xFFFFC4E3),
               const Color(0xFFFFF0B8)
             ],
+      const [0.0, 0.58, 1.0],
     );
     canvas.drawRect(Offset.zero & size, paint);
     paint.shader = null;
@@ -2265,6 +2326,7 @@ class _ShopCoverSignArtPainter extends CustomPainter {
         const Color(0x22FF2F72),
         Colors.transparent,
       ],
+      const [0.0, 0.52, 1.0],
     );
     canvas.drawRect(Offset.zero & size, p);
     p.shader = null;
@@ -2358,6 +2420,7 @@ class _ShopCoverSignArtPainter extends CustomPainter {
       counter.topLeft,
       counter.bottomRight,
       const [Color(0xFFFFD765), Color(0xFFD97800), Color(0xFF6B2B00)],
+      const [0.0, 0.55, 1.0],
     );
     canvas.drawRRect(RRect.fromRectXY(counter, 16, 16), p);
     p.shader = null;
@@ -2472,6 +2535,7 @@ class _ShopCoverSignArtPainter extends CustomPainter {
       c.translate(-r, -r),
       c.translate(r, r),
       [const Color(0xFFFFF27B), goldColor, accent],
+      const [0.0, 0.55, 1.0],
     );
     canvas.drawPath(crown, p);
     p.shader = null;
@@ -2546,6 +2610,7 @@ class _ShopCoverSignArtPainter extends CustomPainter {
         suit,
         Color.lerp(suit, Colors.black, 0.28)!,
       ],
+      const [0.0, 0.55, 1.0],
     );
     canvas.drawPath(overalls, p);
     p.shader = null;
@@ -2574,6 +2639,7 @@ class _ShopCoverSignArtPainter extends CustomPainter {
       c.translate(-r * 0.22, -r * 0.22),
       r * 1.25,
       const [Color(0xFFFFF27D), Color(0xFFFFC21F), Color(0xFFE07E00)],
+      const [0.0, 0.58, 1.0],
     );
     canvas.drawCircle(c, r, p);
     p.shader = null;
@@ -2684,6 +2750,7 @@ class _ShopHeroPainter extends CustomPainter {
         const Color(0x22FF38C8),
         Colors.transparent,
       ],
+      const [0.0, 0.50, 1.0],
     );
     canvas.drawRect(Rect.fromLTWH(0, 0, heroWidth, heroHeight), paint);
     paint.shader = null;
@@ -2998,6 +3065,7 @@ class _ShopHeroPainter extends CustomPainter {
         suit,
         Color.lerp(suit, Colors.black, 0.28)!,
       ],
+      const [0.0, 0.55, 1.0],
     );
     canvas.drawPath(overalls, paint);
     paint.shader = null;
@@ -3021,6 +3089,7 @@ class _ShopHeroPainter extends CustomPainter {
       c.translate(-r, -r),
       c.translate(r, r),
       [const Color(0xFFFFF27B), goldColor, accent],
+      const [0.0, 0.55, 1.0],
     );
     canvas.drawPath(crown, paint);
     paint.shader = null;
@@ -3082,36 +3151,41 @@ class _ProductPainter extends CustomPainter {
     final p = Paint()..isAntiAlias = true;
     final center = Offset(size.width / 2, size.height * 0.54);
     final s = size.shortestSide;
+    final scale = (s / 72).clamp(0.86, 1.22).toDouble();
     switch (art) {
       case _ProductArt.daily:
-        _drawGift(canvas, center.translate(0, 3), s * 0.68, p);
-        _drawCoin(canvas, center.translate(34, 19), s * 0.085, p);
-        _drawCoin(canvas, center.translate(44, 7), s * 0.075, p);
+        _drawGift(canvas, center.translate(-s * 0.04, 1), s * 0.78, p);
+        _drawCoin(canvas, center.translate(s * 0.36, s * 0.23), s * 0.10, p);
+        _drawCoin(canvas, center.translate(s * 0.46, s * 0.06), s * 0.09, p);
         break;
       case _ProductArt.coinPack:
         for (var i = 0; i < 8; i++) {
           final row = i ~/ 4;
           _drawCoin(
             canvas,
-            center.translate((i % 4 - 1.5) * 17, row * 11 - 5),
-            s * 0.085,
+            center.translate((i % 4 - 1.5) * s * 0.22, row * s * 0.15 - 5),
+            s * 0.10,
             p,
           );
         }
-        _drawPouch(canvas, center.translate(0, 12), 0.70, p);
+        _drawPouch(canvas, center.translate(0, s * 0.18), scale, p);
         break;
       case _ProductArt.clubChest:
-        _drawChest(canvas, center.translate(0, 10), p);
-        _drawShieldBadge(canvas, center.translate(-34, -19), s * 0.18, p);
+        _drawChest(canvas, center.translate(0, s * 0.13), p, scale: scale);
+        _drawShieldBadge(
+            canvas, center.translate(-s * 0.42, -s * 0.26), s * 0.20, p);
         break;
       case _ProductArt.royalVault:
-        _drawChest(canvas, center.translate(8, 9), p);
-        _drawChest(canvas, center.translate(-17, 17), p, scale: 0.68);
+        _drawChest(canvas, center.translate(s * 0.10, s * 0.11), p,
+            scale: scale);
+        _drawChest(canvas, center.translate(-s * 0.23, s * 0.21), p,
+            scale: scale * 0.68);
         for (var i = 0; i < 5; i++) {
           _drawGem(
             canvas,
-            center.translate((i - 2) * 15, -26 + (i.isEven ? 0 : 8)),
-            s * 0.055,
+            center.translate(
+                (i - 2) * s * 0.20, -s * 0.35 + (i.isEven ? 0 : s * 0.11)),
+            s * 0.065,
             p,
           );
         }
@@ -3120,7 +3194,7 @@ class _ProductPainter extends CustomPainter {
         _drawProductDice(
           canvas,
           center,
-          s * 0.60,
+          s * 0.82,
           const [Color(0xFFFFF08A), Color(0xFFFFB11B), Color(0xFFB86100)],
           const Color(0xFFFFF2A4),
           const Color(0xFF714000),
@@ -3131,7 +3205,7 @@ class _ProductPainter extends CustomPainter {
         _drawProductDice(
           canvas,
           center,
-          s * 0.60,
+          s * 0.82,
           const [Color(0xFF10205E), Color(0xFF07102D), Color(0xFF00C9FF)],
           const Color(0xFF43F4FF),
           const Color(0xFF7DFFFF),
@@ -3142,7 +3216,7 @@ class _ProductPainter extends CustomPainter {
         _drawProductDice(
           canvas,
           center,
-          s * 0.60,
+          s * 0.82,
           const [Color(0xFFFF7272), Color(0xFFD31622), Color(0xFF6A0612)],
           const Color(0xFFFFD866),
           const Color(0xFFFFE17C),
@@ -3153,7 +3227,7 @@ class _ProductPainter extends CustomPainter {
         _drawProductDice(
           canvas,
           center,
-          s * 0.60,
+          s * 0.82,
           const [Color(0xFF70FF90), Color(0xFF0EA63D), Color(0xFF064B21)],
           const Color(0xFFFFD866),
           const Color(0xFFFFEA7A),
@@ -3164,14 +3238,179 @@ class _ProductPainter extends CustomPainter {
         _drawProductDice(
           canvas,
           center,
-          s * 0.60,
+          s * 0.82,
           const [Color(0xFFB95DFF), Color(0xFF48109A), Color(0xFF13072C)],
           const Color(0xFFFF5CFF),
           const Color(0xFFFFD866),
           p,
         );
         break;
+      case _ProductArt.carnivalBoard:
+        _drawBoardTheme(
+          canvas,
+          center,
+          s * 0.86,
+          const [boardRed, boardBlue, boardGreen, boardYellow],
+          p,
+        );
+        break;
+      case _ProductArt.royalBoard:
+        _drawBoardTheme(
+          canvas,
+          center,
+          s * 0.86,
+          const [
+            Color(0xFF7D35FF),
+            Color(0xFFFFD426),
+            Color(0xFFCA48FF),
+            Color(0xFF2FE8FF),
+          ],
+          p,
+        );
+        break;
+      case _ProductArt.neonBoard:
+        _drawBoardTheme(
+          canvas,
+          center,
+          s * 0.86,
+          const [
+            Color(0xFF00E7FF),
+            Color(0xFFFF35D6),
+            Color(0xFF6BFF39),
+            Color(0xFFFFEA31),
+          ],
+          p,
+        );
+        break;
+      case _ProductArt.classicBoard:
+        _drawBoardTheme(
+          canvas,
+          center,
+          s * 0.86,
+          const [boardRed, boardYellow, boardBlue, boardGreen],
+          p,
+        );
+        break;
     }
+  }
+
+  void _drawBoardTheme(
+      Canvas canvas, Offset c, double s, List<Color> colors, Paint p) {
+    final shadow = Rect.fromCenter(
+      center: c.translate(0, s * 0.08),
+      width: s * 1.05,
+      height: s * 0.92,
+    );
+    p.color = Colors.black.withAlpha(58);
+    canvas.drawOval(shadow, p);
+
+    final board = Rect.fromCenter(center: c, width: s, height: s * 0.82);
+    p.shader = ui.Gradient.linear(
+      board.topLeft,
+      board.bottomRight,
+      const [Color(0xFFFFF7D7), Color(0xFFFFD36A), Color(0xFFAC6414)],
+      const [0.0, 0.62, 1.0],
+    );
+    canvas.drawRRect(RRect.fromRectXY(board, s * 0.10, s * 0.10), p);
+    p.shader = null;
+
+    final inner = board.deflate(s * 0.075);
+    p.color = const Color(0xFFFFF9DF);
+    canvas.drawRRect(RRect.fromRectXY(inner, s * 0.045, s * 0.045), p);
+
+    final quadW = inner.width * 0.34;
+    final quadH = inner.height * 0.34;
+    final quads = [
+      Rect.fromLTWH(inner.left, inner.top, quadW, quadH),
+      Rect.fromLTWH(inner.right - quadW, inner.top, quadW, quadH),
+      Rect.fromLTWH(inner.left, inner.bottom - quadH, quadW, quadH),
+      Rect.fromLTWH(inner.right - quadW, inner.bottom - quadH, quadW, quadH),
+    ];
+    for (var i = 0; i < quads.length; i++) {
+      p.shader = ui.Gradient.linear(
+        quads[i].topLeft,
+        quads[i].bottomRight,
+        [Color.lerp(colors[i], Colors.white, 0.28)!, colors[i]],
+      );
+      canvas.drawRRect(RRect.fromRectXY(quads[i], s * 0.035, s * 0.035), p);
+      p.shader = null;
+      p.color = Colors.white.withAlpha(120);
+      canvas.drawRRect(
+          RRect.fromRectXY(quads[i].deflate(s * 0.026), s * 0.025, s * 0.025),
+          p);
+    }
+
+    final laneW = inner.width * 0.11;
+    for (var i = 0; i < 4; i++) {
+      p.color = colors[i].withAlpha(235);
+      if (i < 2) {
+        final x = i == 0 ? inner.center.dx - laneW * 1.2 : inner.center.dx;
+        canvas.drawRRect(
+          RRect.fromRectXY(
+            Rect.fromLTWH(
+                x, inner.top + inner.height * 0.11, laneW, inner.height * 0.78),
+            s * 0.015,
+            s * 0.015,
+          ),
+          p,
+        );
+      } else {
+        final y = i == 2 ? inner.center.dy - laneW * 1.2 : inner.center.dy;
+        canvas.drawRRect(
+          RRect.fromRectXY(
+            Rect.fromLTWH(
+                inner.left + inner.width * 0.11, y, inner.width * 0.78, laneW),
+            s * 0.015,
+            s * 0.015,
+          ),
+          p,
+        );
+      }
+    }
+
+    final starPaint = Paint()
+      ..isAntiAlias = true
+      ..style = PaintingStyle.fill;
+    for (var i = 0; i < 4; i++) {
+      final angle = i * math.pi / 2 + math.pi / 4;
+      final pos = inner.center +
+          Offset(math.cos(angle) * inner.width * 0.28,
+              math.sin(angle) * inner.height * 0.28);
+      _drawMiniStar(canvas, pos, s * 0.055, colors[i], starPaint);
+    }
+
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.0, s * 0.025)
+      ..color = const Color(0xFFFFF2A4);
+    canvas.drawRRect(RRect.fromRectXY(board.deflate(1), s * 0.10, s * 0.10), p);
+    p.style = PaintingStyle.fill;
+  }
+
+  void _drawMiniStar(
+      Canvas canvas, Offset c, double r, Color color, Paint paint) {
+    final path = Path();
+    for (int i = 0; i < 10; i++) {
+      final rr = i.isEven ? r : r * 0.46;
+      final a = -math.pi / 2 + i * math.pi / 5;
+      final point = c + Offset(math.cos(a) * rr, math.sin(a) * rr);
+      if (i == 0) {
+        path.moveTo(point.dx, point.dy);
+      } else {
+        path.lineTo(point.dx, point.dy);
+      }
+    }
+    path.close();
+    paint.color = Colors.black.withAlpha(62);
+    canvas.drawPath(path.shift(Offset(r * 0.10, r * 0.12)), paint);
+    paint.color = color;
+    canvas.drawPath(path, paint);
+    paint
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.0, r * 0.14)
+      ..color = const Color(0xFFFFF2A4);
+    canvas.drawPath(path, paint);
+    paint.style = PaintingStyle.fill;
   }
 
   void _drawGift(Canvas canvas, Offset c, double s, Paint p) {
@@ -3243,7 +3482,12 @@ class _ProductPainter extends CustomPainter {
     canvas.drawCircle(c, s * 0.65, p);
     p.shader = null;
 
-    p.shader = ui.Gradient.linear(rect.topLeft, rect.bottomRight, face);
+    p.shader = ui.Gradient.linear(
+      rect.topLeft,
+      rect.bottomRight,
+      face,
+      _evenColorStops(face.length),
+    );
     canvas.drawRRect(RRect.fromRectXY(rect, s * 0.22, s * 0.22), p);
     p.shader = null;
     p
@@ -3281,6 +3525,7 @@ class _ProductPainter extends CustomPainter {
       c.translate(-s, -s),
       c.translate(s, s),
       const [Color(0xFF45D8FF), Color(0xFF0E75FF), Color(0xFF103978)],
+      const [0.0, 0.55, 1.0],
     );
     canvas.drawPath(shield, p);
     p.shader = null;
@@ -3300,6 +3545,7 @@ class _ProductPainter extends CustomPainter {
       c.translate(-r, -r),
       c.translate(r, r),
       const [Color(0xFFB6FFF6), Color(0xFF20E48A), Color(0xFF067B70)],
+      const [0.0, 0.55, 1.0],
     );
     canvas.drawPath(gem, p);
     p.shader = null;
@@ -3352,6 +3598,7 @@ class _ProductPainter extends CustomPainter {
       c.translate(-r * 0.26, -r * 0.28),
       r * 1.2,
       const [Color(0xFFFFF6A6), Color(0xFFFFC21F), Color(0xFFD87800)],
+      const [0.0, 0.58, 1.0],
     );
     canvas.drawCircle(c, r, p);
     p.shader = null;

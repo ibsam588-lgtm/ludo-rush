@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../models/game_snapshot.dart';
@@ -20,16 +21,7 @@ class AppState extends ChangeNotifier {
   static const int _snakeFinishProgress = 100;
   static const int _classicTrackLength = 52;
   static const List<int> _localStartOffsets = [1, 14, 27, 40];
-  static const Set<int> _localSafeTrackIndexes = {
-    1,
-    9,
-    14,
-    22,
-    27,
-    35,
-    40,
-    48,
-  };
+  static const Set<int> _localSafeTrackIndexes = {9, 22, 35, 48};
   static const Map<int, int> _snakeLadders = {
     6: 26,
     23: 37,
@@ -76,6 +68,7 @@ class AppState extends ChangeNotifier {
   String matchDifficulty = 'medium';
   String snakesBoardTheme = 'carnival';
   String diceSkin = 'classic';
+  bool autoRollEnabled = false;
   String lastDailyRewardDate = '';
   bool startChoiceSeen = false;
 
@@ -98,6 +91,10 @@ class AppState extends ChangeNotifier {
   int minimumRequiredBuildNumber = 0;
   int latestAvailableBuildNumber = 0;
   String latestAvailableVersionName = '';
+  String? lastReactionText;
+  bool lastReactionIsEmoji = false;
+  String? lastReactionPlayerId;
+  int reactionSequence = 0;
   String forceUpdateMessage =
       'A newer version of Ludo Rush is required to keep matchmaking, rewards, and game rules in sync.';
   String forceUpdateUrl = _defaultAndroidUpdateUrl;
@@ -105,6 +102,7 @@ class AppState extends ChangeNotifier {
   final math.Random _rng = math.Random();
   Timer? _localBotTimer;
   Timer? _matchmakingTimer;
+  Timer? _autoRollTimer;
 
   // Roll state (mirrors Java lastRollValue / lastRollPlayerId)
   int lastRollValue = 0;
@@ -151,6 +149,7 @@ class AppState extends ChangeNotifier {
   void dispose() {
     _matchmakingTimer?.cancel();
     _localBotTimer?.cancel();
+    _autoRollTimer?.cancel();
     _wsSub?.cancel();
     _ws.disconnect();
     super.dispose();
@@ -170,6 +169,18 @@ class AppState extends ChangeNotifier {
     if (notify) notifyListeners();
 
     try {
+      if (kIsWeb) {
+        installedVersionName = 'web-preview';
+        installedBuildNumber = 1;
+        minimumRequiredBuildNumber = 1;
+        latestAvailableBuildNumber = 1;
+        latestAvailableVersionName = 'web-preview';
+        forceUpdateRequired = false;
+        updateCheckComplete = true;
+        updateCheckFailed = false;
+        return;
+      }
+
       final packageInfo = await AppPlatformService.getVersionInfo();
       final buildNumber = packageInfo.buildNumber;
       installedVersionName = packageInfo.versionName;
@@ -307,6 +318,20 @@ class AppState extends ChangeNotifier {
       return;
     }
     movePiece(_chooseBest(moves));
+  }
+
+  void sendReaction(String text, {bool isEmoji = true}) {
+    final clean = text.trim();
+    if (clean.isEmpty) return;
+    if (!localMatchActive && _ws.isConnected) {
+      _ws.send({
+        'type': 'reaction',
+        'playerId': playerId,
+        'displayName': _humanDisplayName,
+        'text': clean,
+        'isEmoji': isEmoji,
+      });
+    }
   }
 
   void resign() {
@@ -453,8 +478,12 @@ class AppState extends ChangeNotifier {
         replaceWith('/game');
       },
       onError: () {
-        connecting = false;
-        _setStatus('Could not create private room. Try again.');
+        final code = _generatePrivateCode();
+        _startLocalPrivateRoom(
+          mode,
+          code,
+          reason: 'Private room $code ready locally. Share the code to test.',
+        );
       },
     );
   }
@@ -497,8 +526,11 @@ class AppState extends ChangeNotifier {
         replaceWith('/game');
       },
       onError: () {
-        connecting = false;
-        _setStatus('Private room code was not found.');
+        _startLocalPrivateRoom(
+          pendingMatchMode,
+          cleanCode,
+          reason: 'Joined private room $cleanCode locally for testing.',
+        );
       },
     );
   }
@@ -619,6 +651,11 @@ class AppState extends ChangeNotifier {
         return;
       }
 
+      if (type == 'reaction') {
+        _rememberReaction(envelope);
+        return;
+      }
+
       final snapRaw = envelope['snapshot'] as Map<String, dynamic>?;
       final eventStatus = _rememberRoomEvent(type, envelope, snapRaw);
 
@@ -696,6 +733,16 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
+  void _rememberReaction(Map<String, dynamic> e) {
+    final text = (e['text'] as String? ?? '').trim();
+    if (text.isEmpty) return;
+    lastReactionText = text;
+    lastReactionIsEmoji = e['isEmoji'] != false;
+    lastReactionPlayerId = e['playerId'] as String?;
+    reactionSequence++;
+    notifyListeners();
+  }
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   // Local bot table used when the online backend is unavailable.
@@ -704,6 +751,8 @@ class AppState extends ChangeNotifier {
     _ws.disconnect();
     _localBotTimer?.cancel();
     _localBotTimer = null;
+    _autoRollTimer?.cancel();
+    _autoRollTimer = null;
 
     if (playerId == null || playerId!.isEmpty) {
       playerId = 'local_${DateTime.now().millisecondsSinceEpoch}';
@@ -775,7 +824,21 @@ class AppState extends ChangeNotifier {
     _scheduleLocalBots();
   }
 
+  void _startLocalPrivateRoom(
+    String mode,
+    String code, {
+    required String reason,
+  }) {
+    connecting = false;
+    _startLocalBotMatch(mode, reason: reason);
+    privateInviteCode = code;
+    notifyListeners();
+    replaceWith('/game');
+  }
+
   void _rollLocalDice() {
+    _autoRollTimer?.cancel();
+    _autoRollTimer = null;
     if (!_canAct()) return;
     if (!_isMyTurn()) {
       _setStatus('Wait for your turn.');
@@ -814,6 +877,9 @@ class AppState extends ChangeNotifier {
       availableMoves: moves,
     );
     _setStatus('You rolled $value. Tap a highlighted piece.');
+    if (autoRollEnabled && moves.length == 1) {
+      _scheduleAutoMove(moves.single);
+    }
   }
 
   void _rollSnakesLaddersDice(GameSnapshot snap) {
@@ -839,9 +905,14 @@ class AppState extends ChangeNotifier {
       availableMoves: moves,
     );
     _setStatus('You rolled $value. Tap to move.');
+    if (autoRollEnabled && moves.length == 1) {
+      _scheduleAutoMove(moves.single);
+    }
   }
 
   void _moveLocalPiece(String pieceId) {
+    _autoRollTimer?.cancel();
+    _autoRollTimer = null;
     if (!_canAct()) return;
     if (!_isMyTurn()) {
       _setStatus('Wait for your turn.');
@@ -900,9 +971,58 @@ class AppState extends ChangeNotifier {
     final snap = lastSnapshot;
     if (snap == null || snap.status != 'playing') return;
     final seat = _currentLocalSeat(snap);
-    if (seat == null || !seat.isBot) return;
+    if (seat == null) return;
+    if (!seat.isBot) {
+      _scheduleAutoRoll(delay: delay);
+      return;
+    }
 
     _localBotTimer = Timer(delay, _playLocalBotTurn);
+  }
+
+  void _scheduleAutoRoll({
+    Duration delay = const Duration(milliseconds: 520),
+  }) {
+    _autoRollTimer?.cancel();
+    _autoRollTimer = null;
+    if (!_canAutoRollNow) return;
+    _autoRollTimer = Timer(delay, () {
+      _autoRollTimer = null;
+      if (_canAutoRollNow) _rollLocalDice();
+    });
+  }
+
+  void _scheduleAutoMove(
+    String pieceId, {
+    Duration delay = const Duration(milliseconds: 520),
+  }) {
+    _autoRollTimer?.cancel();
+    _autoRollTimer = null;
+    if (!autoRollEnabled || !localMatchActive) return;
+    _autoRollTimer = Timer(delay, () {
+      _autoRollTimer = null;
+      final snap = lastSnapshot;
+      if (snap == null ||
+          snap.status != 'playing' ||
+          snap.availableMoves.length != 1 ||
+          !snap.availableMoves.contains(pieceId) ||
+          !_isMyTurn() ||
+          !_hasDiceValue()) {
+        return;
+      }
+      _moveLocalPiece(pieceId);
+    });
+  }
+
+  bool get _canAutoRollNow {
+    if (!autoRollEnabled || !localMatchActive) return false;
+    final snap = lastSnapshot;
+    final seat = mySeat;
+    return snap != null &&
+        seat != null &&
+        snap.status == 'playing' &&
+        snap.currentTurnSeat == seat &&
+        snap.diceValue == 0;
   }
 
   void _playLocalBotTurn() {
@@ -1366,6 +1486,8 @@ class AppState extends ChangeNotifier {
     _matchmakingTimer = null;
     _localBotTimer?.cancel();
     _localBotTimer = null;
+    _autoRollTimer?.cancel();
+    _autoRollTimer = null;
     localMatchActive = false;
     _ws.disconnect();
     lastSnapshot = null;
@@ -1373,6 +1495,9 @@ class AppState extends ChangeNotifier {
     lastRollValue = 0;
     lastRollPlayerId = null;
     lastRollSequence = 0;
+    lastReactionText = null;
+    lastReactionPlayerId = null;
+    reactionSequence = 0;
     notifyListeners();
   }
 
@@ -1470,10 +1595,11 @@ class AppState extends ChangeNotifier {
   }) {
     http
         .post(
-      Uri.parse('$_backendUrl$path'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(payload),
-    )
+          Uri.parse('$_backendUrl$path'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(payload),
+        )
+        .timeout(const Duration(seconds: 6))
         .then((r) {
       if (r.statusCode >= 400) {
         connecting = false;
@@ -1560,6 +1686,21 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setAutoRollEnabled(bool value) {
+    if (autoRollEnabled == value) return;
+    SoundService.tap();
+    autoRollEnabled = value;
+    _autoRollTimer?.cancel();
+    _autoRollTimer = null;
+    if (value) {
+      _scheduleAutoRoll(delay: const Duration(milliseconds: 220));
+      _setStatus(
+          'Auto roll enabled. Choose a goti when more than one can move.');
+    } else {
+      _setStatus('Auto roll disabled.');
+    }
+  }
+
   String publicSeatName(SeatState seat) => publicDisplayName(
         seat.displayName,
         playerId: seat.playerId,
@@ -1633,6 +1774,14 @@ class AppState extends ChangeNotifier {
     return '${now.year.toString().padLeft(4, '0')}-'
         '${now.month.toString().padLeft(2, '0')}-'
         '${now.day.toString().padLeft(2, '0')}';
+  }
+
+  String _generatePrivateCode() {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    return List<String>.generate(
+      6,
+      (_) => alphabet[_rng.nextInt(alphabet.length)],
+    ).join();
   }
 
   String get matchmakingRegion {

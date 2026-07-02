@@ -123,6 +123,7 @@ class _DicePainter extends CustomPainter {
       Offset(left, top),
       Offset(right, bottom),
       palette.face,
+      _evenColorStops(palette.face.length),
     );
     canvas.drawRRect(RRect.fromRectXY(r, rad, rad), paint);
     paint.shader = null;
@@ -210,6 +211,11 @@ class _DicePainter extends CustomPainter {
   @override
   bool shouldRepaint(_DicePainter old) =>
       old.value != value || old.skin != skin;
+}
+
+List<double> _evenColorStops(int count) {
+  if (count <= 1) return const [0.0];
+  return List<double>.generate(count, (i) => i / (count - 1));
 }
 
 class _DiceSkinPalette {

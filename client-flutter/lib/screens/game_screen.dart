@@ -41,6 +41,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Timer? _quickBubbleTimer;
   String? _quickBubbleText;
   bool _quickBubbleIsEmoji = false;
+  int _prevReactionSequence = 0;
 
   late final AnimationController _bgCtrl;
   late final AnimationController _turnPulse;
@@ -81,6 +82,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 _diceKey.currentState?.startRoll(rollValue, () {
                   if (mounted) setState(() => _rolling = false);
                 });
+              }
+            });
+          }
+          final reactionSequence = state.reactionSequence;
+          if (reactionSequence != _prevReactionSequence &&
+              state.lastReactionText != null &&
+              state.lastReactionPlayerId != state.playerId) {
+            _prevReactionSequence = reactionSequence;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _showQuickBubble(
+                  state.lastReactionText!,
+                  isEmoji: state.lastReactionIsEmoji,
+                );
               }
             });
           }
@@ -259,15 +274,24 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _showEmojiPicker(BuildContext context) {
+    final state = context.read<AppState>();
     final emojis = <String>[
       String.fromCharCode(0x1F600),
       String.fromCharCode(0x1F602),
       String.fromCharCode(0x1F62E),
+      String.fromCharCode(0x1F622),
+      String.fromCharCode(0x1F62D),
+      String.fromCharCode(0x1F62C),
+      String.fromCharCode(0x1F621),
+      String.fromCharCode(0x1F60E),
       String.fromCharCode(0x1F44D),
+      String.fromCharCode(0x1F44E),
       String.fromCharCode(0x1F525),
       String.fromCharCode(0x1F3B2),
       String.fromCharCode(0x1F451),
       String.fromCharCode(0x1F44F),
+      String.fromCharCode(0x1F494),
+      String.fromCharCode(0x1F64F),
     ];
     showModalBottomSheet<void>(
       context: context,
@@ -288,6 +312,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   onTap: () {
                     SoundService.tap();
                     Navigator.pop(sheetContext);
+                    state.sendReaction(emoji);
                     _showQuickBubble(emoji, isEmoji: true);
                   },
                   child: Container(
@@ -334,6 +359,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       if (message.isEmpty) return;
       SoundService.tap();
       Navigator.pop(sheetContext);
+      state.sendReaction(message, isEmoji: false);
       _showQuickBubble(message);
     }
 
@@ -687,9 +713,17 @@ class _QuickBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      opacity: 1,
-      duration: const Duration(milliseconds: 160),
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 360),
+      curve: Curves.elasticOut,
+      builder: (context, value, child) {
+        final scale = 0.70 + value * 0.30;
+        return Opacity(
+          opacity: value.clamp(0.0, 1.0).toDouble(),
+          child: Transform.scale(scale: scale, child: child),
+        );
+      },
       child: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 280),
@@ -824,27 +858,40 @@ class _GameTopBar extends StatelessWidget {
               ),
               SizedBox(width: compact ? 5 : 8),
               _GameLogo(compact: compact),
-              const Spacer(),
-              _CurrencyChip(
-                icon: Icons.monetization_on_rounded,
-                value: state.coins,
-                color: const Color(0xFFFFBA24),
-                compact: compact,
-              ),
-              SizedBox(width: compact ? 4 : 6),
-              _CurrencyChip(
-                icon: Icons.diamond_rounded,
-                value: 30,
-                color: const Color(0xFF27E99C),
-                compact: compact,
-              ),
-              SizedBox(width: compact ? 4 : 6),
-              _CurrencyChip(
-                icon: Icons.bolt_rounded,
-                value: 12,
-                color: const Color(0xFF38C8FF),
-                plus: true,
-                compact: compact,
+              SizedBox(width: compact ? 4 : 8),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerRight,
+                    child: Row(
+                      children: [
+                        _CurrencyChip(
+                          icon: Icons.monetization_on_rounded,
+                          value: state.coins,
+                          color: const Color(0xFFFFBA24),
+                          compact: compact,
+                        ),
+                        SizedBox(width: compact ? 4 : 6),
+                        _CurrencyChip(
+                          icon: Icons.diamond_rounded,
+                          value: 30,
+                          color: const Color(0xFF27E99C),
+                          compact: compact,
+                        ),
+                        SizedBox(width: compact ? 4 : 6),
+                        _CurrencyChip(
+                          icon: Icons.bolt_rounded,
+                          value: 12,
+                          color: const Color(0xFF38C8FF),
+                          plus: true,
+                          compact: compact,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -1093,41 +1140,51 @@ class _PlayerHeroBand extends StatelessWidget {
                               ],
                             ),
                             const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(Icons.emoji_events_rounded,
-                                    color: goldColor, size: 20),
-                                const SizedBox(width: 5),
-                                Text(
-                                  _shortNumber(state.rating),
-                                  style: TextStyle(
-                                    color: goldColor,
-                                    fontSize: compact ? 16 : 18,
-                                    fontWeight: FontWeight.w900,
-                                    shadows: const [
-                                      Shadow(color: Colors.black, blurRadius: 4)
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Container(
-                                  width: compact ? 28 : 32,
-                                  height: compact ? 28 : 32,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFF4AA3FF),
-                                        Color(0xFF2246A6)
-                                      ],
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.emoji_events_rounded,
+                                        color: goldColor, size: 20),
+                                    const SizedBox(width: 5),
+                                    Text(
+                                      _shortNumber(state.rating),
+                                      style: TextStyle(
+                                        color: goldColor,
+                                        fontSize: compact ? 16 : 18,
+                                        fontWeight: FontWeight.w900,
+                                        shadows: const [
+                                          Shadow(
+                                              color: Colors.black,
+                                              blurRadius: 4)
+                                        ],
+                                      ),
                                     ),
-                                    border: Border.all(
-                                        color: goldColor, width: 1.5),
-                                  ),
-                                  child: const Icon(Icons.shield_rounded,
-                                      color: goldColor, size: 18),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      width: compact ? 26 : 32,
+                                      height: compact ? 26 : 32,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Color(0xFF4AA3FF),
+                                            Color(0xFF2246A6)
+                                          ],
+                                        ),
+                                        border: Border.all(
+                                            color: goldColor, width: 1.5),
+                                      ),
+                                      child: const Icon(Icons.shield_rounded,
+                                          color: goldColor, size: 17),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
                             if (state.privateInviteCode != null) ...[
                               const SizedBox(height: 3),
@@ -1145,9 +1202,9 @@ class _PlayerHeroBand extends StatelessWidget {
               },
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: compact ? 5 : 8),
           SizedBox(
-            width: compact ? 116 : 134,
+            width: compact ? 106 : 124,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1532,6 +1589,15 @@ class _PlayerActionRow extends StatelessWidget {
                 ),
               ),
               Positioned(
+                top: diceTop + (compact ? 2 : 4),
+                right: compact ? 8 : 14,
+                child: _AutoRollChip(
+                  enabled: state.autoRollEnabled,
+                  compact: compact,
+                  onChanged: state.setAutoRollEnabled,
+                ),
+              ),
+              Positioned(
                 top: diceTop + diceSize + (compact ? 4 : 8),
                 left: (constraints.maxWidth - (compact ? 132 : 154)) / 2,
                 width: compact ? 132 : 154,
@@ -1842,6 +1908,96 @@ class _DiceActionButton extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _AutoRollChip extends StatelessWidget {
+  final bool enabled;
+  final bool compact;
+  final ValueChanged<bool> onChanged;
+
+  const _AutoRollChip({
+    required this.enabled,
+    required this.compact,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Auto roll',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => onChanged(!enabled),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: compact ? 94 : 108,
+          height: compact ? 30 : 34,
+          padding: EdgeInsets.symmetric(horizontal: compact ? 7 : 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            gradient: LinearGradient(
+              colors: enabled
+                  ? const [Color(0xFF51EA6A), Color(0xFF168E36)]
+                  : const [Color(0xFF54205D), Color(0xFF21062B)],
+            ),
+            border: Border.all(
+              color: enabled ? const Color(0xFFFFFFAA) : goldColor,
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: (enabled ? boardGreen : Colors.black).withAlpha(95),
+                blurRadius: 10,
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  'Auto',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: compact ? 11 : 12,
+                    fontWeight: FontWeight.w900,
+                    shadows: const [
+                      Shadow(color: Colors.black, blurRadius: 3),
+                    ],
+                  ),
+                ),
+              ),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: compact ? 33 : 38,
+                height: compact ? 18 : 20,
+                padding: const EdgeInsets.all(2),
+                alignment:
+                    enabled ? Alignment.centerRight : Alignment.centerLeft,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  color: const Color(0xAA140020),
+                ),
+                child: Container(
+                  width: compact ? 14 : 16,
+                  height: compact ? 14 : 16,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: enabled ? goldColor : Colors.white70,
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x99000000), blurRadius: 4),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
