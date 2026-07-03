@@ -20,8 +20,11 @@ class AppState extends ChangeNotifier {
   static const int _classicFinishProgress = 57;
   static const int _snakeFinishProgress = 100;
   static const int _classicTrackLength = 52;
-  static const List<int> _localStartOffsets = [1, 14, 27, 40];
-  static const Set<int> _localSafeTrackIndexes = {9, 22, 35, 48};
+  // Must match the backend rules (rules.ts): START_OFFSETS and
+  // SAFE_TRACK_INDEXES, so online and offline games agree on where pieces
+  // stand and which cells are capture-safe.
+  static const List<int> _localStartOffsets = [0, 13, 26, 39];
+  static const Set<int> _localSafeTrackIndexes = {0, 8, 13, 21, 26, 34, 39, 47};
   static const Map<int, int> _snakeLadders = {
     6: 26,
     23: 37,
@@ -108,6 +111,7 @@ class AppState extends ChangeNotifier {
   int lastRollValue = 0;
   String? lastRollPlayerId;
   int lastRollSequence = 0;
+  bool _matchResultTracked = false;
 
   // Navigation
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -336,7 +340,9 @@ class AppState extends ChangeNotifier {
 
   void resign() {
     SoundService.warning();
+    final wasPlaying = lastSnapshot?.status == 'playing';
     if (localMatchActive) {
+      if (wasPlaying) _trackResignedMatch();
       _resetLiveMatch();
       _setStatus('Match resigned.');
       return;
@@ -344,7 +350,17 @@ class AppState extends ChangeNotifier {
     if (playerId != null) {
       _ws.send({'type': 'resign', 'playerId': playerId});
     }
+    if (wasPlaying) _trackResignedMatch();
     _resetLiveMatch();
+  }
+
+  void _trackResignedMatch() {
+    if (_matchResultTracked) return;
+    _matchResultTracked = true;
+    gamesPlayed++;
+    rating = (rating - 6).clamp(0, 9999);
+    _prefs.gamesPlayed = gamesPlayed;
+    _prefs.rating = rating;
   }
 
   // ── Matchmaking ────────────────────────────────────────────────────────────
@@ -706,6 +722,12 @@ class AppState extends ChangeNotifier {
     if (type == 'turn_skipped') {
       final pid = e['playerId'] as String? ?? '';
       final mine = playerId == pid;
+      final reason = e['reason'] as String? ?? '';
+      if (reason == 'turn_timeout') {
+        return mine
+            ? 'You ran out of time. Turn passed.'
+            : '${_playerName(snap, pid)} ran out of time.';
+      }
       final roll = (lastRollValue > 0 && pid == lastRollPlayerId)
           ? ' rolled $lastRollValue'
           : '';
@@ -810,6 +832,7 @@ class AppState extends ChangeNotifier {
     lastRollValue = 0;
     lastRollPlayerId = null;
     lastRollSequence = 0;
+    _matchResultTracked = false;
     lastSnapshot = GameSnapshot(
       seats: seats,
       pieces: pieces,
@@ -1456,6 +1479,8 @@ class AppState extends ChangeNotifier {
   }
 
   void _trackMatchResult(GameSnapshot snap) {
+    if (_matchResultTracked) return;
+    _matchResultTracked = true;
     _localBotTimer?.cancel();
     _localBotTimer = null;
     localMatchActive = false;
@@ -1498,6 +1523,7 @@ class AppState extends ChangeNotifier {
     lastReactionText = null;
     lastReactionPlayerId = null;
     reactionSequence = 0;
+    _matchResultTracked = false;
     notifyListeners();
   }
 

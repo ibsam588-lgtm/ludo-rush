@@ -3,7 +3,7 @@ import 'dart:convert';
 class PieceState {
   final String pieceId;
   final int seat;
-  final String state; // "yard", "active", "home", "finished"
+  final String state; // "yard", "track", "home", "finished"
   final int progress; // -1=yard, 0-51=track, 52-56=home lane, >=57=finished
   final int trackIndex; // explicit PATH index (-1 if not set)
 

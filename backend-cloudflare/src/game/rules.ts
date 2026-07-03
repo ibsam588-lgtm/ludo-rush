@@ -80,7 +80,16 @@ export function upsertSeat(
       ...snapshot,
       seats: snapshot.seats.map((seat) =>
         seat.playerId === player.playerId
-          ? { ...seat, displayName: player.displayName, connected: true, disconnectedAt: undefined }
+          ? {
+              ...seat,
+              displayName: player.displayName,
+              connected: true,
+              disconnectedAt: undefined,
+              // A player converted to a bot by turn timeouts regains control on
+              // rejoin; a resigned player stays a bot.
+              isBot: seat.resigned ? seat.isBot : false,
+              missedTurns: 0
+            }
           : seat
       ),
       updatedAt: now
@@ -154,8 +163,15 @@ export function canAct(snapshot: RoomSnapshot, playerId: string): boolean {
 }
 
 export function rollDice(): number {
-  const value = crypto.getRandomValues(new Uint32Array(1))[0] % 6;
-  return value + 1;
+  // Rejection sampling keeps every face equally likely (2^32 is not a
+  // multiple of 6, so a bare modulo slightly favours faces 1-4).
+  const limit = 4294967292; // largest multiple of 6 below 2^32
+  let value = crypto.getRandomValues(new Uint32Array(1))[0];
+  while (value >= limit) {
+    value = crypto.getRandomValues(new Uint32Array(1))[0];
+  }
+
+  return (value % 6) + 1;
 }
 
 export function applyRoll(snapshot: RoomSnapshot, playerId: string, diceValue: number, now = Date.now()): RollResult {
@@ -171,6 +187,7 @@ export function applyRoll(snapshot: RoomSnapshot, playerId: string, diceValue: n
   const availableMoves = getLegalMoves(snapshot, seat.seat, diceValue);
   const rolled = {
     ...snapshot,
+    seats: clearMissedTurns(snapshot.seats, seat.seat),
     diceValue,
     availableMoves,
     updatedAt: now
@@ -265,6 +282,20 @@ export function applyMove(snapshot: RoomSnapshot, playerId: string, pieceId: str
 
 export function resignPlayer(snapshot: RoomSnapshot, playerId: string, now = Date.now()): RoomSnapshot {
   const seat = getSeatForPlayer(snapshot, playerId);
+
+  if (snapshot.status === "finished") {
+    return snapshot;
+  }
+
+  if (snapshot.status === "waiting") {
+    // Leaving before the match starts frees the seat for someone else.
+    return {
+      ...snapshot,
+      seats: snapshot.seats.filter((roomSeat) => roomSeat.playerId !== playerId),
+      updatedAt: now
+    };
+  }
+
   const remainingHumanSeats = snapshot.seats.filter((roomSeat) => roomSeat.playerId !== playerId && !roomSeat.isBot);
 
   if (remainingHumanSeats.length <= 1) {
@@ -272,16 +303,20 @@ export function resignPlayer(snapshot: RoomSnapshot, playerId: string, now = Dat
       ? remainingHumanSeats[0]
       : snapshot.seats.find((roomSeat) => roomSeat.playerId !== playerId);
 
+    const finishOrder = winner && !snapshot.finishOrder.includes(winner.playerId)
+      ? [...snapshot.finishOrder, winner.playerId]
+      : snapshot.finishOrder;
+
     return {
       ...snapshot,
       status: "finished",
       winnerPlayerId: winner?.playerId,
-      finishOrder: winner ? [winner.playerId] : [],
+      finishOrder,
       seats: snapshot.seats.map((roomSeat) =>
         roomSeat.playerId === winner?.playerId
           ? { ...roomSeat, finishRank: 1 }
           : roomSeat.seat === seat.seat
-            ? { ...roomSeat, connected: false, finishRank: snapshot.seats.length }
+            ? { ...roomSeat, connected: false, resigned: true, finishRank: snapshot.seats.length }
             : roomSeat
       ),
       diceValue: undefined,
@@ -290,13 +325,109 @@ export function resignPlayer(snapshot: RoomSnapshot, playerId: string, now = Dat
     };
   }
 
+  const seats = snapshot.seats.map((roomSeat) =>
+    roomSeat.seat === seat.seat
+      ? { ...roomSeat, connected: false, isBot: true, resigned: true }
+      : roomSeat
+  );
+
+  if (snapshot.currentTurnSeat !== seat.seat) {
+    // Someone else holds the turn: leave their turn and any rolled dice intact.
+    return { ...snapshot, seats, updatedAt: now };
+  }
+
   return advanceTurn({
     ...snapshot,
-    seats: snapshot.seats.map((roomSeat) =>
-      roomSeat.seat === seat.seat ? { ...roomSeat, connected: false, isBot: true } : roomSeat
-    ),
+    seats,
+    diceValue: undefined,
+    availableMoves: [],
     updatedAt: now
   }, now);
+}
+
+export const MAX_MISSED_TURNS = 3;
+
+export interface TimeoutResult {
+  snapshot: RoomSnapshot;
+  timedOut: boolean;
+  timedOutPlayerId?: string;
+  movedPieceId?: string;
+}
+
+export function timeoutTurn(snapshot: RoomSnapshot, now = Date.now()): TimeoutResult {
+  if (snapshot.status !== "playing") {
+    return { snapshot, timedOut: false };
+  }
+
+  const seat = getCurrentSeat(snapshot);
+  if (!seat) {
+    return { snapshot, timedOut: false };
+  }
+
+  const missedTurns = (seat.missedTurns ?? 0) + 1;
+  const seats = snapshot.seats.map((roomSeat) =>
+    roomSeat.seat === seat.seat
+      ? {
+          ...roomSeat,
+          missedTurns,
+          // After too many consecutive missed turns a bot takes over so the
+          // match keeps moving; rejoining restores control (see upsertSeat).
+          isBot: roomSeat.isBot || missedTurns >= MAX_MISSED_TURNS
+        }
+      : roomSeat
+  );
+
+  const withSeats: RoomSnapshot = { ...snapshot, seats, updatedAt: now };
+
+  if (withSeats.diceValue !== undefined) {
+    const pieceId = chooseBotMove(withSeats);
+    if (pieceId) {
+      const moved = applyMove(withSeats, seat.playerId, pieceId, now);
+      return {
+        snapshot: moved.snapshot,
+        timedOut: true,
+        timedOutPlayerId: seat.playerId,
+        movedPieceId: pieceId
+      };
+    }
+  }
+
+  return {
+    snapshot: advanceTurn({ ...withSeats, diceValue: undefined, availableMoves: [] }, now),
+    timedOut: true,
+    timedOutPlayerId: seat.playerId
+  };
+}
+
+export function computeFinishRanks(snapshot: RoomSnapshot): Map<string, number> {
+  const ranks = new Map<string, number>();
+  snapshot.finishOrder.forEach((finishedPlayerId, index) => {
+    ranks.set(finishedPlayerId, index + 1);
+  });
+
+  const remaining = snapshot.seats
+    .filter((seat) => !ranks.has(seat.playerId))
+    .map((seat) => ({
+      seat,
+      progress: snapshot.pieces
+        .filter((piece) => piece.seat === seat.seat)
+        .reduce((total, piece) => total + Math.max(piece.progress, 0), 0)
+    }))
+    .sort((a, b) => b.progress - a.progress || a.seat.seat - b.seat.seat);
+
+  let nextRank = ranks.size + 1;
+  for (const entry of remaining) {
+    ranks.set(entry.seat.playerId, nextRank);
+    nextRank += 1;
+  }
+
+  return ranks;
+}
+
+function clearMissedTurns(seats: RoomSeat[], seat: number): RoomSeat[] {
+  return seats.map((roomSeat) =>
+    roomSeat.seat === seat && roomSeat.missedTurns ? { ...roomSeat, missedTurns: 0 } : roomSeat
+  );
 }
 
 function fallbackPlayerName(seat: number): string {
