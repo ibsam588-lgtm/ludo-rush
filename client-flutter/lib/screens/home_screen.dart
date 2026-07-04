@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/snakes_ladders_board.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -178,6 +179,33 @@ class _HomeBoardThemeOption {
   const _HomeBoardThemeOption(this.id, this.label, this.colors);
 }
 
+class _GiftShopItem {
+  final String id;
+  final String title;
+  final String subtitle;
+  final String cost;
+  final String rarity;
+  final IconData icon;
+  final List<Color> colors;
+
+  const _GiftShopItem({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.cost,
+    required this.rarity,
+    required this.icon,
+    required this.colors,
+  });
+
+  bool get premium => rarity == 'PREMIUM';
+
+  int get coinCost {
+    final value = int.tryParse(cost.replaceAll(RegExp(r'[^0-9]'), ''));
+    return cost.contains('coin') || cost.contains('Coin') ? value ?? 0 : 0;
+  }
+}
+
 const _homeBoardThemes = [
   _HomeBoardThemeOption('carnival', 'Carnival', [
     Color(0xFFFF36B8),
@@ -201,16 +229,83 @@ const _homeBoardThemes = [
   ]),
 ];
 
+const _giftShopItems = [
+  _GiftShopItem(
+    id: 'lucky_dice',
+    title: 'Lucky Dice',
+    subtitle: 'One bright dice reaction',
+    cost: '25 coins',
+    rarity: 'COMMON',
+    icon: Icons.casino_rounded,
+    colors: [Color(0xFFFFF4AF), Color(0xFFFFB22D), Color(0xFFE85A00)],
+  ),
+  _GiftShopItem(
+    id: 'coin_ship',
+    title: 'Coin Ship',
+    subtitle: 'Gift boat with coins',
+    cost: '50 coins',
+    rarity: 'COMMON',
+    icon: Icons.sailing_rounded,
+    colors: [Color(0xFF5CEBFF), Color(0xFF2E7CFF), Color(0xFFFFD426)],
+  ),
+  _GiftShopItem(
+    id: 'crown_chest',
+    title: 'Crown Chest',
+    subtitle: 'Rare chest animation',
+    cost: '125 coins',
+    rarity: 'RARE',
+    icon: Icons.workspace_premium_rounded,
+    colors: [Color(0xFFFFD426), Color(0xFFFF5D6C), Color(0xFF7A20C8)],
+  ),
+  _GiftShopItem(
+    id: 'royal_crown',
+    title: 'Royal Crown',
+    subtitle: 'Premium friend gift',
+    cost: '0.99 USD',
+    rarity: 'PREMIUM',
+    icon: Icons.diamond_rounded,
+    colors: [Color(0xFFFFF2A3), Color(0xFFFF36B8), Color(0xFF5B2CFF)],
+  ),
+];
+
+const _recentOpponentRows = [
+  _FeatureRow('Maya', 'Recent opponent', '1120'),
+  _FeatureRow('Noah', 'Recent opponent', '870'),
+  _FeatureRow('Omar', 'Recent opponent', '930'),
+];
+
+const _acceptedFriendRows = [
+  _FeatureRow('Leo', 'Friend online', '790'),
+  _FeatureRow('Ava', 'Friend accepted', '980'),
+  _FeatureRow('Maya', 'Friend request pending', '1120'),
+];
+
+void _showFeatureSnack(BuildContext context, String message) {
+  ScaffoldMessenger.of(context)
+    ..clearSnackBars()
+    ..showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: const Color(0xEE22082E),
+        duration: const Duration(milliseconds: 1500),
+        content: Text(message),
+      ),
+    );
+}
+
 void _showSnakesBoardSheet(
   BuildContext context,
   AppState state,
 ) {
+  var selectedTheme = state.snakesBoardTheme;
   showModalBottomSheet<void>(
     context: context,
+    isScrollControlled: true,
     backgroundColor: Colors.transparent,
     builder: (sheetContext) {
       return StatefulBuilder(
         builder: (context, setSheetState) {
+          final unlocked = state.isBoardThemeUnlocked(selectedTheme);
           return _HomeActionSheet(
             title: 'Snakes Board',
             child: Column(
@@ -227,6 +322,32 @@ void _showSnakesBoardSheet(
                   ),
                 ),
                 const SizedBox(height: 12),
+                AspectRatio(
+                  aspectRatio: 0.86,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: goldColor, width: 2),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x99000000),
+                          blurRadius: 16,
+                          offset: Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: SnakesLaddersBoard(
+                        snapshot: null,
+                        mySeat: null,
+                        boardTheme: selectedTheme,
+                        onPieceTap: (_) {},
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -234,23 +355,225 @@ void _showSnakesBoardSheet(
                     for (final option in _homeBoardThemes)
                       _HomeThemeButton(
                         option: option,
-                        selected: state.snakesBoardTheme == option.id,
+                        selected: selectedTheme == option.id,
                         onTap: () {
-                          state.setSnakesBoardTheme(option.id);
+                          selectedTheme = option.id;
+                          if (state.isBoardThemeUnlocked(option.id)) {
+                            state.setSnakesBoardTheme(option.id);
+                          }
                           setSheetState(() {});
+                          if (!state.isBoardThemeUnlocked(option.id)) {
+                            _showFeatureSnack(
+                              context,
+                              state.boardThemeUnlockLabel(option.id),
+                            );
+                          }
                         },
                       ),
                   ],
                 ),
+                if (!unlocked) ...[
+                  const SizedBox(height: 10),
+                  _EconomyHint(
+                    icon: state.isBoardThemePremium(selectedTheme)
+                        ? Icons.workspace_premium_rounded
+                        : Icons.lock_rounded,
+                    text: state.boardThemeUnlockLabel(selectedTheme),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 _HomeSheetButton(
-                  label: 'Start Snakes & Ladders',
-                  icon: Icons.play_arrow_rounded,
-                  color: boardGreen,
+                  label: unlocked ? 'Play This Board' : 'Locked Board',
+                  icon:
+                      unlocked ? Icons.play_arrow_rounded : Icons.lock_rounded,
+                  color: unlocked ? boardGreen : boardPurple,
                   onTap: () {
                     SoundService.tap();
+                    if (!unlocked) {
+                      _showFeatureSnack(
+                        context,
+                        state.boardThemeUnlockLabel(selectedTheme),
+                      );
+                      return;
+                    }
                     Navigator.pop(sheetContext);
+                    state.setSnakesBoardTheme(selectedTheme);
                     state.startQuickMatch(AppState.snakesLaddersMode);
+                  },
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+void _showRewardsEconomySheet(BuildContext context, AppState state) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (_) {
+      return _HomeActionSheet(
+        title: 'Rewards',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _EconomyHint(
+              icon: Icons.emoji_events_rounded,
+              text: state.rewardEconomySummary(),
+            ),
+            const SizedBox(height: 10),
+            const _EconomyTierCard(
+              title: 'Common',
+              subtitle: 'Daily coins, carnival board, basic dice, small gifts.',
+              accent: boardGreen,
+              icon: Icons.card_giftcard_rounded,
+            ),
+            const SizedBox(height: 8),
+            const _EconomyTierCard(
+              title: 'Rare',
+              subtitle: 'Unlocked by wins: royal dice, neon dice, royal board.',
+              accent: boardBlue,
+              icon: Icons.workspace_premium_rounded,
+            ),
+            const SizedBox(height: 8),
+            const _EconomyTierCard(
+              title: 'Premium',
+              subtitle: 'Optional cosmetics and gifts from 0.99 to 1.99 USD.',
+              accent: boardPurple,
+              icon: Icons.diamond_rounded,
+            ),
+            const SizedBox(height: 12),
+            _HomeSheetButton(
+              label: 'Open Shop',
+              icon: Icons.storefront_rounded,
+              color: goldColor,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/shop');
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+void _showGiftShopSheet(
+  BuildContext context,
+  AppState state, {
+  _FeatureRow? initialFriend,
+}) {
+  var selectedFriend = initialFriend?.title ?? _acceptedFriendRows.first.title;
+  var selectedGift = _giftShopItems.first.id;
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheetContext) {
+      return StatefulBuilder(
+        builder: (context, setSheetState) {
+          final gift =
+              _giftShopItems.firstWhere((item) => item.id == selectedGift);
+          return _HomeActionSheet(
+            title: 'Gift Shop',
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  height: 96,
+                  child: CustomPaint(
+                    painter: _GiftShopHeroPainter(gift.colors),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Pick a friend, choose a gift, then send it.',
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(220),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  height: 48,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _acceptedFriendRows.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final friend = _acceptedFriendRows[index];
+                      final selected = friend.title == selectedFriend;
+                      return _ChoiceChipButton(
+                        label: friend.title,
+                        subtitle: friend.subtitle,
+                        selected: selected,
+                        accent: index.isEven ? boardBlue : boardGreen,
+                        onTap: () =>
+                            setSheetState(() => selectedFriend = friend.title),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _giftShopItems.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisExtent: 132,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemBuilder: (context, index) {
+                    final item = _giftShopItems[index];
+                    return _GiftShopCard(
+                      item: item,
+                      selected: selectedGift == item.id,
+                      onTap: () => setSheetState(() => selectedGift = item.id),
+                    );
+                  },
+                ),
+                const SizedBox(height: 12),
+                _HomeSheetButton(
+                  label: gift.premium
+                      ? 'Buy & Send ${gift.cost}'
+                      : 'Send ${gift.cost}',
+                  icon: gift.premium
+                      ? Icons.workspace_premium_rounded
+                      : Icons.send_rounded,
+                  color: gift.premium ? boardPurple : goldColor,
+                  onTap: () {
+                    SoundService.tap();
+                    if (gift.premium) {
+                      _showFeatureSnack(
+                        context,
+                        '${gift.title} will open Play Billing for ${gift.cost}.',
+                      );
+                      return;
+                    }
+                    if (!state.spendCoins(gift.coinCost)) {
+                      _showFeatureSnack(
+                        context,
+                        'Not enough coins for ${gift.title}.',
+                      );
+                      return;
+                    }
+                    Navigator.pop(sheetContext);
+                    _showFeatureSnack(
+                      context,
+                      '${gift.title} sent to $selectedFriend.',
+                    );
                   },
                 ),
               ],
@@ -404,11 +727,13 @@ class _HomeActionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final maxHeight = MediaQuery.of(context).size.height * 0.9;
     return SafeArea(
       top: false,
       child: Container(
         margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        constraints: BoxConstraints(maxHeight: maxHeight),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(22),
           gradient: const LinearGradient(
@@ -448,7 +773,12 @@ class _HomeActionSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            child,
+            Flexible(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: child,
+              ),
+            ),
           ],
         ),
       ),
@@ -514,6 +844,534 @@ class _HomeSheetButton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _EconomyHint extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _EconomyHint({
+    required this.icon,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: const Color(0x8A19031F),
+        border: Border.all(color: goldColor.withAlpha(150)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: goldColor, size: 24),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: Colors.white.withAlpha(225),
+                fontSize: 12.5,
+                height: 1.2,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EconomyTierCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Color accent;
+  final IconData icon;
+
+  const _EconomyTierCard({
+    required this.title,
+    required this.subtitle,
+    required this.accent,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [
+            Color.lerp(accent, Colors.white, 0.15)!.withAlpha(190),
+            accent.withAlpha(120),
+          ],
+        ),
+        border: Border.all(color: goldColor.withAlpha(135)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xAA25042F),
+              border: Border.all(color: goldColor, width: 1.4),
+            ),
+            child: Icon(icon, color: Colors.white, size: 25),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                    shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withAlpha(215),
+                    fontSize: 11,
+                    height: 1.15,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChoiceChipButton extends StatelessWidget {
+  final String label;
+  final String subtitle;
+  final bool selected;
+  final Color accent;
+  final VoidCallback onTap;
+
+  const _ChoiceChipButton({
+    required this.label,
+    required this.subtitle,
+    required this.selected,
+    required this.accent,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 128,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+          gradient: LinearGradient(
+            colors: [
+              Color.lerp(accent, Colors.white, selected ? 0.25 : 0.08)!,
+              accent.withAlpha(selected ? 230 : 145),
+            ],
+          ),
+          border: Border.all(
+            color: selected ? goldColor : Colors.white.withAlpha(80),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 15,
+              backgroundColor: goldColor,
+              child: Text(
+                label.substring(0, 1),
+                style: const TextStyle(
+                  color: Color(0xFF3A0430),
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      shadows: [Shadow(color: Colors.black, blurRadius: 2)],
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(205),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GiftShopCard extends StatelessWidget {
+  final _GiftShopItem item;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _GiftShopCard({
+    required this.item,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(17),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              item.colors[0].withAlpha(selected ? 240 : 185),
+              item.colors[1].withAlpha(selected ? 225 : 150),
+              item.colors[2].withAlpha(selected ? 215 : 145),
+            ],
+          ),
+          border: Border.all(
+            color: selected ? goldColor : Colors.white.withAlpha(85),
+            width: selected ? 2.4 : 1.1,
+          ),
+          boxShadow: selected
+              ? [BoxShadow(color: goldColor.withAlpha(110), blurRadius: 14)]
+              : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Center(
+                child: CustomPaint(
+                  painter: _GiftAssetPainter(item),
+                  child: const SizedBox(width: 72, height: 54),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      shadows: [Shadow(color: Colors.black, blurRadius: 3)],
+                    ),
+                  ),
+                ),
+                Icon(
+                  item.premium
+                      ? Icons.workspace_premium_rounded
+                      : Icons.monetization_on_rounded,
+                  color: goldColor,
+                  size: 16,
+                ),
+              ],
+            ),
+            const SizedBox(height: 2),
+            Text(
+              item.subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white.withAlpha(210),
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              '${item.rarity}  •  ${item.cost}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFFFFF18F),
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                shadows: [Shadow(color: Colors.black, blurRadius: 2)],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GiftShopHeroPainter extends CustomPainter {
+  final List<Color> colors;
+
+  const _GiftShopHeroPainter(this.colors);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..isAntiAlias = true;
+    final rect = Offset.zero & size;
+    p.shader = LinearGradient(
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+      colors: [
+        colors.first.withAlpha(220),
+        colors[1].withAlpha(160),
+        const Color(0xFF25042F),
+      ],
+    ).createShader(rect);
+    canvas.drawRRect(RRect.fromRectXY(rect, 18, 18), p);
+    p.shader = null;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6
+      ..color = goldColor.withAlpha(190);
+    canvas.drawRRect(RRect.fromRectXY(rect.deflate(1), 17, 17), p);
+    p.style = PaintingStyle.fill;
+
+    final hull = Path()
+      ..moveTo(size.width * 0.15, size.height * 0.62)
+      ..lineTo(size.width * 0.82, size.height * 0.62)
+      ..quadraticBezierTo(
+        size.width * 0.72,
+        size.height * 0.84,
+        size.width * 0.26,
+        size.height * 0.83,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.16,
+        size.height * 0.75,
+        size.width * 0.15,
+        size.height * 0.62,
+      );
+    p.color = const Color(0xFF8B38FF);
+    canvas.drawPath(hull.shift(const Offset(0, 3)), p);
+    p.shader = const LinearGradient(
+      colors: [Color(0xFFFFD426), Color(0xFFFF7D21)],
+    ).createShader(rect);
+    canvas.drawPath(hull, p);
+    p.shader = null;
+
+    final sail = Path()
+      ..moveTo(size.width * 0.45, size.height * 0.18)
+      ..lineTo(size.width * 0.45, size.height * 0.62)
+      ..lineTo(size.width * 0.72, size.height * 0.55)
+      ..close();
+    p.color = const Color(0xFFFF36B8);
+    canvas.drawPath(sail, p);
+    p.color = Colors.white.withAlpha(210);
+    canvas.drawCircle(Offset(size.width * 0.25, size.height * 0.28), 8, p);
+    canvas.drawCircle(Offset(size.width * 0.78, size.height * 0.25), 6, p);
+    p.color = goldColor;
+    for (var i = 0; i < 5; i++) {
+      canvas.drawCircle(
+        Offset(size.width * (0.22 + i * 0.11), size.height * 0.58),
+        4,
+        p,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _GiftShopHeroPainter oldDelegate) =>
+      oldDelegate.colors != colors;
+}
+
+class _GiftAssetPainter extends CustomPainter {
+  final _GiftShopItem item;
+
+  const _GiftAssetPainter(this.item);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final p = Paint()..isAntiAlias = true;
+    final rect = Offset.zero & size;
+    p.color = const Color(0x55000000);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.width * 0.5, size.height * 0.88),
+        width: size.width * 0.72,
+        height: size.height * 0.18,
+      ),
+      p,
+    );
+
+    if (item.id == 'coin_ship') {
+      final hull = Path()
+        ..moveTo(size.width * 0.12, size.height * 0.58)
+        ..lineTo(size.width * 0.82, size.height * 0.58)
+        ..quadraticBezierTo(
+          size.width * 0.70,
+          size.height * 0.86,
+          size.width * 0.28,
+          size.height * 0.82,
+        )
+        ..quadraticBezierTo(
+          size.width * 0.15,
+          size.height * 0.75,
+          size.width * 0.12,
+          size.height * 0.58,
+        );
+      p.shader = const LinearGradient(
+        colors: [Color(0xFFFFD426), Color(0xFFE85A00)],
+      ).createShader(rect);
+      canvas.drawPath(hull, p);
+      p.shader = null;
+      p.color = const Color(0xFF2E7CFF);
+      canvas.drawPath(
+        Path()
+          ..moveTo(size.width * 0.45, size.height * 0.12)
+          ..lineTo(size.width * 0.45, size.height * 0.58)
+          ..lineTo(size.width * 0.73, size.height * 0.52)
+          ..close(),
+        p,
+      );
+      p.color = goldColor;
+      for (var i = 0; i < 4; i++) {
+        canvas.drawCircle(
+          Offset(size.width * (0.28 + i * 0.12), size.height * 0.52),
+          5,
+          p,
+        );
+      }
+      return;
+    }
+
+    if (item.id == 'crown_chest') {
+      final chest = Rect.fromLTWH(
+        size.width * 0.16,
+        size.height * 0.38,
+        size.width * 0.68,
+        size.height * 0.38,
+      );
+      p.shader = const LinearGradient(
+        colors: [Color(0xFFFFD426), Color(0xFF9B46FF)],
+      ).createShader(chest);
+      canvas.drawRRect(RRect.fromRectXY(chest, 8, 8), p);
+      p.shader = null;
+      p.color = const Color(0xFF5B1B84);
+      canvas.drawRect(
+        Rect.fromLTWH(chest.left, chest.center.dy - 3, chest.width, 6),
+        p,
+      );
+      p.color = goldColor;
+      canvas.drawCircle(chest.center, 8, p);
+      _drawTinyCrown(canvas, Offset(size.width * 0.50, size.height * 0.22),
+          size.width * 0.32, p);
+      return;
+    }
+
+    if (item.id == 'royal_crown') {
+      _drawTinyCrown(canvas, Offset(size.width * 0.50, size.height * 0.46),
+          size.width * 0.62, p);
+      p.color = const Color(0xFFFF36B8);
+      canvas.drawCircle(Offset(size.width * 0.24, size.height * 0.40), 6, p);
+      p.color = const Color(0xFF22B7FF);
+      canvas.drawCircle(Offset(size.width * 0.78, size.height * 0.36), 5, p);
+      return;
+    }
+
+    final dice = Rect.fromCenter(
+      center: Offset(size.width * 0.47, size.height * 0.45),
+      width: size.width * 0.50,
+      height: size.width * 0.50,
+    );
+    p.shader = const LinearGradient(
+      colors: [Colors.white, Color(0xFFFFE2C4)],
+    ).createShader(dice);
+    canvas.drawRRect(RRect.fromRectXY(dice, 10, 10), p);
+    p.shader = null;
+    p.color = const Color(0xFF3A0430);
+    for (final o in const [
+      Offset(0.35, 0.35),
+      Offset(0.50, 0.50),
+      Offset(0.65, 0.65),
+    ]) {
+      canvas.drawCircle(
+        Offset(dice.left + dice.width * o.dx, dice.top + dice.height * o.dy),
+        3.4,
+        p,
+      );
+    }
+    p.color = goldColor;
+    canvas.drawCircle(Offset(size.width * 0.72, size.height * 0.24), 8, p);
+  }
+
+  void _drawTinyCrown(Canvas canvas, Offset center, double width, Paint p) {
+    final height = width * 0.48;
+    final left = center.dx - width / 2;
+    final top = center.dy - height / 2;
+    final crown = Path()
+      ..moveTo(left, top + height)
+      ..lineTo(left + width * 0.12, top + height * 0.30)
+      ..lineTo(left + width * 0.34, top + height * 0.62)
+      ..lineTo(left + width * 0.50, top)
+      ..lineTo(left + width * 0.66, top + height * 0.62)
+      ..lineTo(left + width * 0.88, top + height * 0.30)
+      ..lineTo(left + width, top + height)
+      ..close();
+    p.shader = null;
+    p.color = const Color(0xAA5A2100);
+    canvas.drawPath(crown.shift(const Offset(0, 2)), p);
+    p.shader = const LinearGradient(
+      colors: [Color(0xFFFFF1A1), Color(0xFFFFB22D), Color(0xFFE85A00)],
+    ).createShader(Rect.fromLTWH(left, top, width, height));
+    canvas.drawPath(crown, p);
+    p.shader = null;
+  }
+
+  @override
+  bool shouldRepaint(covariant _GiftAssetPainter oldDelegate) =>
+      oldDelegate.item != item;
 }
 
 class _PlayerCountButton extends StatelessWidget {
@@ -2448,42 +3306,22 @@ class _RewardStrip extends StatelessWidget {
                 Expanded(
                   child: _RewardTile(
                     palette: palette,
-                    label: '2 Player',
-                    art: _RewardArt.shield,
-                    start: const Color(0xFFFFE066),
-                    end: const Color(0xFFD89100),
-                    onTap: () {
-                      SoundService.tap();
-                      state.startQuickMatch('classic_2p');
-                    },
+                    label: 'Gift Shop',
+                    art: _RewardArt.giftShip,
+                    start: const Color(0xFF33D2FF),
+                    end: const Color(0xFF1450D4),
+                    onTap: () => _showGiftShopSheet(context, state),
                   ),
                 ),
                 SizedBox(width: gap),
                 Expanded(
                   child: _RewardTile(
                     palette: palette,
-                    label: '4 Player',
+                    label: 'Rewards',
                     art: _RewardArt.medal,
                     start: const Color(0xFFFFD426),
                     end: const Color(0xFFE03068),
-                    onTap: () {
-                      SoundService.tap();
-                      state.startFastMatch();
-                    },
-                  ),
-                ),
-                SizedBox(width: gap),
-                Expanded(
-                  child: _RewardTile(
-                    palette: palette,
-                    label: 'Snakes',
-                    art: _RewardArt.snakes,
-                    start: const Color(0xFFFFD35B),
-                    end: const Color(0xFF8C4B00),
-                    onTap: () {
-                      SoundService.tap();
-                      _showSnakesBoardSheet(context, state);
-                    },
+                    onTap: () => _showRewardsEconomySheet(context, state),
                   ),
                 ),
               ],
@@ -2495,7 +3333,7 @@ class _RewardStrip extends StatelessWidget {
   }
 }
 
-enum _RewardArt { gift, shield, medal, lock, snakes }
+enum _RewardArt { gift, giftShip, shield, medal, lock, snakes }
 
 class _RewardTile extends StatelessWidget {
   final _RushPalette palette;
@@ -2623,6 +3461,9 @@ class _RewardIconPainter extends CustomPainter {
       case _RewardArt.gift:
         _drawGift(canvas, size, p);
         break;
+      case _RewardArt.giftShip:
+        _drawGiftShip(canvas, size, p);
+        break;
       case _RewardArt.shield:
         _drawShield(canvas, size, p);
         break;
@@ -2674,6 +3515,67 @@ class _RewardIconPainter extends CustomPainter {
       ..color = Colors.white.withAlpha(210);
     canvas.drawRRect(RRect.fromRectXY(box, 5, 5), p);
     p.style = PaintingStyle.fill;
+  }
+
+  void _drawGiftShip(Canvas canvas, Size size, Paint p) {
+    final hull = Path()
+      ..moveTo(size.width * 0.13, size.height * 0.62)
+      ..quadraticBezierTo(size.width * 0.50, size.height * 0.86,
+          size.width * 0.87, size.height * 0.62)
+      ..lineTo(size.width * 0.78, size.height * 0.45)
+      ..lineTo(size.width * 0.22, size.height * 0.45)
+      ..close();
+    p.shader = LinearGradient(
+      colors: [Color.lerp(start, Colors.white, 0.28)!, start, end],
+    ).createShader(Offset.zero & size);
+    canvas.drawPath(hull, p);
+    p.shader = null;
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..color = const Color(0xFFFFF08A);
+    canvas.drawPath(hull, p);
+    p.style = PaintingStyle.fill;
+
+    final gift = Rect.fromCenter(
+      center: Offset(size.width * 0.50, size.height * 0.34),
+      width: size.width * 0.38,
+      height: size.height * 0.28,
+    );
+    p.color = const Color(0xFFFF2E4C);
+    canvas.drawRRect(RRect.fromRectXY(gift, 5, 5), p);
+    p.color = goldColor;
+    canvas.drawRect(
+        Rect.fromCenter(
+            center: gift.center, width: gift.width * 0.18, height: gift.height),
+        p);
+    canvas.drawRect(
+        Rect.fromCenter(
+            center: gift.center, width: gift.width, height: gift.height * 0.18),
+        p);
+    p.color = const Color(0xFFFFF8C8);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.width * 0.38, size.height * 0.18),
+        width: size.width * 0.18,
+        height: size.height * 0.12,
+      ),
+      p,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.width * 0.62, size.height * 0.18),
+        width: size.width * 0.18,
+        height: size.height * 0.12,
+      ),
+      p,
+    );
+
+    for (final dx in [0.28, 0.50, 0.72]) {
+      p.color = const Color(0xFFFFF3A6);
+      canvas.drawCircle(Offset(size.width * dx, size.height * 0.61),
+          size.shortestSide * 0.035, p);
+    }
   }
 
   void _drawShield(Canvas canvas, Size size, Paint p) {
@@ -3039,12 +3941,8 @@ class _HomeTabStage extends StatelessWidget {
         subtitle: 'Online rivals and quick invites',
         accent: const Color(0xFFFFD426),
         icon: Icons.groups_rounded,
-        rows: const [
-          _FeatureRow('Leo', 'Online', '790'),
-          _FeatureRow('Maya', 'In match', '1120'),
-          _FeatureRow('Ava', 'Invite ready', '980'),
-        ],
-        actions: const ['Invite', 'Add', 'Gift'],
+        rows: _acceptedFriendRows,
+        actions: const ['Invite', 'Add', 'Gift', 'Chat', 'Remove'],
         onAction: (context, action) => _handleFeatureAction(context, action),
       );
     }
@@ -3097,6 +3995,12 @@ class _HomeTabStage extends StatelessWidget {
       case 'Gift':
         _showFriendGiftSheet(context, state);
         return;
+      case 'Chat':
+        _showFriendChatSheet(context, state);
+        return;
+      case 'Remove':
+        _showFriendRemoveSheet(context);
+        return;
       case 'Join':
         _showClubJoinSheet(context, state);
         return;
@@ -3140,6 +4044,16 @@ class _HomeTabStage extends StatelessWidget {
                 accent: boardGreen,
                 index: 1,
               ),
+              const SizedBox(height: 10),
+              Text(
+                'Invites create a private room code so friends land on the same table.',
+                style: TextStyle(
+                  color: Colors.white.withAlpha(215),
+                  fontSize: 12,
+                  height: 1.25,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const SizedBox(height: 12),
               _HomeSheetButton(
                 label: 'Create Private Code',
@@ -3163,21 +4077,19 @@ class _HomeTabStage extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (_) {
         return _HomeActionSheet(
-          title: 'Add Friend',
+          title: 'Recent Opponents',
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const _FeatureListTile(
-                row: _FeatureRow('Maya', 'Recent opponent', '1120'),
-                accent: goldColor,
-                index: 0,
-              ),
-              const SizedBox(height: 8),
-              const _FeatureListTile(
-                row: _FeatureRow('Noah', 'Nearby table', '870'),
-                accent: boardPurple,
-                index: 1,
-              ),
+              for (var i = 0; i < _recentOpponentRows.length; i++) ...[
+                _FeatureListTile(
+                  row: _recentOpponentRows[i],
+                  accent: i.isEven ? goldColor : boardPurple,
+                  index: i,
+                ),
+                if (i != _recentOpponentRows.length - 1)
+                  const SizedBox(height: 8),
+              ],
               const SizedBox(height: 12),
               _FeatureActionButton(
                 label: 'Send Requests',
@@ -3195,35 +4107,93 @@ class _HomeTabStage extends StatelessWidget {
   }
 
   void _showFriendGiftSheet(BuildContext context, AppState state) {
+    _showGiftShopSheet(context, state);
+  }
+
+  void _showFriendChatSheet(BuildContext context, AppState state) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) {
         return _HomeActionSheet(
-          title: 'Send Gift',
+          title: 'Friends Chat',
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              _EconomyHint(
+                icon:
+                    state.canUseChat ? Icons.forum_rounded : Icons.lock_rounded,
+                text: state.canUseChat
+                    ? 'Group chat includes accepted friends only. Recent opponents join after they accept a friend request.'
+                    : 'Chat unlocks for players age 13 and older.',
+              ),
+              const SizedBox(height: 8),
               const _FeatureListTile(
-                row: _FeatureRow('Ava', 'Send lucky dice', '25'),
-                accent: boardGreen,
+                row: _FeatureRow('Accepted Friends', 'Leo and Ava', '2'),
+                accent: boardBlue,
                 index: 0,
               ),
               const SizedBox(height: 8),
               const _FeatureListTile(
-                row: _FeatureRow('Leo', 'Send coin pack', '50'),
-                accent: boardBlue,
+                row: _FeatureRow(
+                    'Pending Invites', 'Maya can join after accepting', '1'),
+                accent: goldColor,
                 index: 1,
               ),
               const SizedBox(height: 12),
-              _FeatureActionButton(
-                label: 'Send Gift',
-                accent: goldColor,
+              _HomeSheetButton(
+                label: state.canUseChat ? 'Open Group Chat' : 'Chat Locked',
+                icon: state.canUseChat
+                    ? Icons.chat_bubble_rounded
+                    : Icons.lock_rounded,
+                color: state.canUseChat ? boardGreen : boardPurple,
                 onTap: () {
                   Navigator.pop(context);
-                  state.addCoins(25);
                   _showFeatureSnack(
-                      context, 'Gift sent. +25 coins added for preview.');
+                    context,
+                    state.canUseChat
+                        ? 'Friends group chat opened for accepted friends.'
+                        : 'Chat is available for 13+ accounts.',
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showFriendRemoveSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return _HomeActionSheet(
+          title: 'Remove Friend',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var i = 0; i < _acceptedFriendRows.length; i++) ...[
+                _FeatureListTile(
+                  row: _acceptedFriendRows[i],
+                  accent: i.isEven ? boardBlue : boardGreen,
+                  index: i,
+                ),
+                if (i != _acceptedFriendRows.length - 1)
+                  const SizedBox(height: 8),
+              ],
+              const SizedBox(height: 12),
+              _FeatureActionButton(
+                label: 'Remove Selected',
+                accent: boardRed,
+                onTap: () {
+                  Navigator.pop(context);
+                  _showFeatureSnack(
+                    context,
+                    'Friend removed from preview list.',
+                  );
                 },
               ),
             ],
@@ -3344,19 +4314,6 @@ class _HomeTabStage extends StatelessWidget {
         );
       },
     );
-  }
-
-  void _showFeatureSnack(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-      ..clearSnackBars()
-      ..showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: const Color(0xEE22082E),
-          duration: const Duration(milliseconds: 1500),
-          content: Text(message),
-        ),
-      );
   }
 
   void _showLeaderboardSheet(BuildContext context, AppState state) {
@@ -3670,20 +4627,32 @@ class _FeatureTabStage extends StatelessWidget {
                         if (i != rows.length - 1) const SizedBox(height: 8),
                       ],
                       const Spacer(),
-                      Row(
-                        children: [
-                          for (int i = 0; i < actions.length; i++) ...[
-                            Expanded(
-                              child: _FeatureActionButton(
-                                label: actions[i],
-                                accent: accent,
-                                onTap: () => onAction(context, actions[i]),
-                              ),
-                            ),
-                            if (i != actions.length - 1)
-                              const SizedBox(width: 8),
-                          ],
-                        ],
+                      LayoutBuilder(
+                        builder: (context, actionBox) {
+                          final columns =
+                              actions.length > 3 ? 3 : actions.length;
+                          final spacing = columns > 1 ? 8.0 : 0.0;
+                          final width = columns == 0
+                              ? actionBox.maxWidth
+                              : (actionBox.maxWidth - spacing * (columns - 1)) /
+                                  columns;
+                          return Wrap(
+                            spacing: spacing,
+                            runSpacing: 8,
+                            children: [
+                              for (final action in actions)
+                                SizedBox(
+                                  width: width,
+                                  child: _FeatureActionButton(
+                                    label: action,
+                                    accent: accent,
+                                    compact: actions.length > 3,
+                                    onTap: () => onAction(context, action),
+                                  ),
+                                ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -3812,11 +4781,13 @@ class _FeatureActionButton extends StatelessWidget {
   final String label;
   final Color accent;
   final VoidCallback onTap;
+  final bool compact;
 
   const _FeatureActionButton({
     required this.label,
     required this.accent,
     required this.onTap,
+    this.compact = false,
   });
 
   @override
@@ -3825,7 +4796,7 @@ class _FeatureActionButton extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        height: 44,
+        height: compact ? 38 : 44,
         alignment: Alignment.center,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
@@ -3845,10 +4816,11 @@ class _FeatureActionButton extends StatelessWidget {
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
+            fontSize: compact ? 12 : 14,
             fontWeight: FontWeight.w900,
-            shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
+            shadows: const [Shadow(color: Colors.black87, blurRadius: 3)],
           ),
         ),
       ),

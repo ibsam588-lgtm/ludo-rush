@@ -5,6 +5,7 @@ export interface Env {
   MIN_ANDROID_BUILD_NUMBER?: string;
   LATEST_ANDROID_BUILD_NUMBER?: string;
   LATEST_ANDROID_VERSION_NAME?: string;
+  FORCE_LATEST_ANDROID_BUILD?: string;
   ANDROID_UPDATE_URL?: string;
   FORCE_UPDATE_MESSAGE?: string;
 }
