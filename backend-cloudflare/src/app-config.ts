@@ -18,6 +18,7 @@ export function buildAppConfig(
     | "MIN_ANDROID_BUILD_NUMBER"
     | "LATEST_ANDROID_BUILD_NUMBER"
     | "LATEST_ANDROID_VERSION_NAME"
+    | "FORCE_LATEST_ANDROID_BUILD"
     | "ANDROID_UPDATE_URL"
     | "FORCE_UPDATE_MESSAGE"
   >,
@@ -26,10 +27,16 @@ export function buildAppConfig(
 ): AppConfigResponse {
   const normalizedPlatform = platform.toLowerCase();
   const latestBuildNumber = parsePositiveInt(env.LATEST_ANDROID_BUILD_NUMBER, 1);
-  const minimumBuildNumber = parsePositiveInt(env.MIN_ANDROID_BUILD_NUMBER, latestBuildNumber);
+  const forceLatestBuild = env.FORCE_LATEST_ANDROID_BUILD !== "false";
+  const configuredMinimum = parsePositiveInt(env.MIN_ANDROID_BUILD_NUMBER, latestBuildNumber);
+  const minimumBuildNumber = forceLatestBuild
+    ? Math.max(latestBuildNumber, configuredMinimum)
+    : configuredMinimum;
   const latestVersionName = env.LATEST_ANDROID_VERSION_NAME || "1.0.0";
   const forceUpdate =
-    normalizedPlatform === "android" && installedBuild > 0 && installedBuild < minimumBuildNumber;
+    normalizedPlatform === "android" &&
+    installedBuild > 0 &&
+    installedBuild < minimumBuildNumber;
 
   return {
     platform: normalizedPlatform,

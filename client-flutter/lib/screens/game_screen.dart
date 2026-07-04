@@ -111,7 +111,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
         return PopScope(
           canPop: false,
-          onPopInvoked: (didPop) {
+          onPopInvokedWithResult: (didPop, _) {
             if (!didPop) _showQuitDialog(context, state);
           },
           child: Scaffold(

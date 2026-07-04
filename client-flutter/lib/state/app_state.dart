@@ -38,6 +38,24 @@ class AppState extends ChangeNotifier {
     84: 64,
     93: 68,
   };
+  static const Map<String, int> _diceUnlockWins = {
+    'classic': 0,
+    'royal': 3,
+    'neon': 5,
+    'emerald': 8,
+  };
+  static const Map<String, int> _boardUnlockWins = {
+    'carnival': 0,
+    'classic': 2,
+    'royal': 6,
+  };
+  static const Map<String, String> _premiumDicePrices = {
+    'ruby': '0.99 USD',
+    'cosmic': '1.99 USD',
+  };
+  static const Map<String, String> _premiumBoardPrices = {
+    'neon': '1.99 USD',
+  };
   static const List<String> _matchedNames = [
     'Maya',
     'Leo',
@@ -138,6 +156,14 @@ class AppState extends ChangeNotifier {
     matchDifficulty = _normalizeDifficulty(_prefs.matchDifficulty);
     snakesBoardTheme = _normalizeSnakesBoardTheme(_prefs.snakesBoardTheme);
     diceSkin = _normalizeDiceSkin(_prefs.diceSkin);
+    if (!isBoardThemeUnlocked(snakesBoardTheme)) {
+      snakesBoardTheme = 'carnival';
+      _prefs.snakesBoardTheme = snakesBoardTheme;
+    }
+    if (!isDiceSkinUnlocked(diceSkin)) {
+      diceSkin = 'classic';
+      _prefs.diceSkin = diceSkin;
+    }
     lastDailyRewardDate = _prefs.lastDailyRewardDate;
     startChoiceSeen = _prefs.startChoiceSeen;
 
@@ -209,15 +235,14 @@ class AppState extends ChangeNotifier {
       final updateUrl = (body['updateUrl'] as String? ?? '').trim();
       final message = (body['message'] as String? ?? '').trim();
       final latestVersion = (body['latestVersionName'] as String? ?? '').trim();
-      final forceEnabled = body['forceUpdate'] != false;
+      final forceEnabled = body['forceUpdate'] == true;
 
       minimumRequiredBuildNumber = minimum;
       latestAvailableBuildNumber = latest;
       latestAvailableVersionName = latestVersion;
       forceUpdateUrl = updateUrl.isEmpty ? _defaultAndroidUpdateUrl : updateUrl;
       if (message.isNotEmpty) forceUpdateMessage = message;
-      forceUpdateRequired =
-          forceEnabled && buildNumber > 0 && minimum > buildNumber;
+      forceUpdateRequired = forceEnabled && buildNumber > 0;
       updateCheckComplete = true;
       updateCheckFailed = false;
     } catch (_) {
@@ -1681,6 +1706,10 @@ class AppState extends ChangeNotifier {
 
   void setSnakesBoardTheme(String value) {
     final normalized = _normalizeSnakesBoardTheme(value);
+    if (!isBoardThemeUnlocked(normalized)) {
+      _setStatus(boardThemeUnlockLabel(normalized));
+      return;
+    }
     if (normalized == snakesBoardTheme) return;
     SoundService.tap();
     snakesBoardTheme = normalized;
@@ -1705,11 +1734,80 @@ class AppState extends ChangeNotifier {
 
   void setDiceSkin(String value) {
     final normalized = _normalizeDiceSkin(value);
+    if (!isDiceSkinUnlocked(normalized)) {
+      _setStatus(diceSkinUnlockLabel(normalized));
+      return;
+    }
     if (normalized == diceSkin) return;
     SoundService.tap();
     diceSkin = normalized;
     _prefs.diceSkin = diceSkin;
     notifyListeners();
+  }
+
+  bool isDiceSkinPremium(String value) =>
+      _premiumDicePrices.containsKey(_normalizeDiceSkin(value));
+
+  bool isBoardThemePremium(String value) =>
+      _premiumBoardPrices.containsKey(_normalizeSnakesBoardTheme(value));
+
+  String? diceSkinPremiumPrice(String value) =>
+      _premiumDicePrices[_normalizeDiceSkin(value)];
+
+  String? boardThemePremiumPrice(String value) =>
+      _premiumBoardPrices[_normalizeSnakesBoardTheme(value)];
+
+  int diceSkinRequiredWins(String value) =>
+      _diceUnlockWins[_normalizeDiceSkin(value)] ?? 0;
+
+  int boardThemeRequiredWins(String value) =>
+      _boardUnlockWins[_normalizeSnakesBoardTheme(value)] ?? 0;
+
+  bool isDiceSkinUnlocked(String value) {
+    final normalized = _normalizeDiceSkin(value);
+    if (isDiceSkinPremium(normalized)) return false;
+    return wins >= diceSkinRequiredWins(normalized);
+  }
+
+  bool isBoardThemeUnlocked(String value) {
+    final normalized = _normalizeSnakesBoardTheme(value);
+    if (isBoardThemePremium(normalized)) return false;
+    return wins >= boardThemeRequiredWins(normalized);
+  }
+
+  String diceSkinUnlockLabel(String value) {
+    final normalized = _normalizeDiceSkin(value);
+    final premium = diceSkinPremiumPrice(normalized);
+    if (premium != null) return 'Premium dice unlocks with $premium.';
+    final needed = diceSkinRequiredWins(normalized);
+    final left = math.max(0, needed - wins);
+    return left == 0
+        ? 'Dice unlocked.'
+        : 'Win $left more ${left == 1 ? 'game' : 'games'} to unlock this dice.';
+  }
+
+  String boardThemeUnlockLabel(String value) {
+    final normalized = _normalizeSnakesBoardTheme(value);
+    final premium = boardThemePremiumPrice(normalized);
+    if (premium != null) return 'Premium board unlocks with $premium.';
+    final needed = boardThemeRequiredWins(normalized);
+    final left = math.max(0, needed - wins);
+    return left == 0
+        ? 'Board unlocked.'
+        : 'Win $left more ${left == 1 ? 'game' : 'games'} to unlock this board.';
+  }
+
+  String rewardEconomySummary() {
+    final nextDice = _diceUnlockWins.entries
+        .where((entry) => entry.value > wins)
+        .toList()
+      ..sort((a, b) => a.value.compareTo(b.value));
+    if (nextDice.isEmpty) {
+      return 'Common and rare win rewards unlocked. Premium cosmetics stay optional.';
+    }
+    final next = nextDice.first;
+    final left = next.value - wins;
+    return 'Next unlock: ${next.key} dice in $left ${left == 1 ? 'win' : 'wins'}.';
   }
 
   void setAutoRollEnabled(bool value) {
@@ -1881,5 +1979,14 @@ class AppState extends ChangeNotifier {
     coins = (coins + amount).clamp(0, 99999999);
     _prefs.coins = coins;
     notifyListeners();
+  }
+
+  bool spendCoins(int amount) {
+    if (amount <= 0) return true;
+    if (coins < amount) return false;
+    coins = (coins - amount).clamp(0, 99999999);
+    _prefs.coins = coins;
+    notifyListeners();
+    return true;
   }
 }

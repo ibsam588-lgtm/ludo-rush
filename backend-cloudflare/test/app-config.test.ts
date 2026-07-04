@@ -31,4 +31,34 @@ describe("app config", () => {
     expect(body.minimumBuildNumber).toBe(7);
     expect(body.latestBuildNumber).toBe(7);
   });
+
+  it("requires the latest Play Store build even when minimum is lower by default", async () => {
+    const body = buildAppConfig(
+      {
+        MIN_ANDROID_BUILD_NUMBER: "3",
+        LATEST_ANDROID_BUILD_NUMBER: "9"
+      },
+      "android",
+      8
+    );
+
+    expect(body.forceUpdate).toBe(true);
+    expect(body.minimumBuildNumber).toBe(9);
+  });
+
+  it("can opt out of latest-only enforcement for staged rollouts", async () => {
+    const body = buildAppConfig(
+      {
+        FORCE_LATEST_ANDROID_BUILD: "false",
+        MIN_ANDROID_BUILD_NUMBER: "3",
+        LATEST_ANDROID_BUILD_NUMBER: "9"
+      },
+      "android",
+      8
+    );
+
+    expect(body.forceUpdate).toBe(false);
+    expect(body.minimumBuildNumber).toBe(3);
+    expect(body.latestBuildNumber).toBe(9);
+  });
 });

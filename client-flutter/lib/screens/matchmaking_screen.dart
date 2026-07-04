@@ -38,7 +38,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen>
       builder: (context, state, _) {
         return PopScope(
           canPop: false,
-          onPopInvoked: (didPop) {
+          onPopInvokedWithResult: (didPop, _) {
             if (!didPop) _cancel(context, state);
           },
           child: Scaffold(

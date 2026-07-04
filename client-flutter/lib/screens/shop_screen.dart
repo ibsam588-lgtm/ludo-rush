@@ -24,39 +24,42 @@ class _ShopScreenState extends State<ShopScreen>
     _ShopProduct(
         'Daily Coins', 'FREE', '150 coins', _ProductArt.daily, false, 150,
         dailyReward: true),
+    _ShopProduct('Royal Dice', '3 WINS', 'rare win reward',
+        _ProductArt.royalDice, false, 0,
+        diceSkin: 'royal', rarity: 'RARE'),
     _ShopProduct(
-        'Royal Dice', '2,000', 'gold skin', _ProductArt.royalDice, false, 0,
-        diceSkin: 'royal'),
-    _ShopProduct(
-        'Neon Dice', '2,000', 'blue glow', _ProductArt.neonDice, false, 0,
-        diceSkin: 'neon'),
-    _ShopProduct(
-        'Ruby Dice', '2,000', 'red gem', _ProductArt.rubyDice, false, 0,
-        diceSkin: 'ruby'),
-    _ShopProduct(
-        'Emerald Dice', '2,000', 'green gem', _ProductArt.emeraldDice, false, 0,
-        diceSkin: 'emerald'),
-    _ShopProduct(
-        'Cosmic Dice', '3,500', 'star glow', _ProductArt.cosmicDice, true, 0,
-        diceSkin: 'cosmic'),
+        'Neon Dice', '5 WINS', 'arcade reward', _ProductArt.neonDice, false, 0,
+        diceSkin: 'neon', rarity: 'RARE'),
+    _ShopProduct('Ruby Dice', '0.99 USD', 'premium red gem',
+        _ProductArt.rubyDice, false, 0,
+        diceSkin: 'ruby', rarity: 'PREMIUM'),
+    _ShopProduct('Emerald Dice', '8 WINS', 'rare green gem',
+        _ProductArt.emeraldDice, false, 0,
+        diceSkin: 'emerald', rarity: 'RARE'),
+    _ShopProduct('Cosmic Dice', '1.99 USD', 'premium star glow',
+        _ProductArt.cosmicDice, true, 0,
+        diceSkin: 'cosmic', rarity: 'PREMIUM'),
     _ShopProduct('Carnival Board', 'EQUIP', 'approved theme',
         _ProductArt.carnivalBoard, false, 0,
-        boardTheme: 'carnival'),
-    _ShopProduct(
-        'Royal Board', 'EQUIP', 'gold palace', _ProductArt.royalBoard, false, 0,
-        boardTheme: 'royal'),
-    _ShopProduct(
-        'Neon Board', 'EQUIP', 'arcade glow', _ProductArt.neonBoard, false, 0,
-        boardTheme: 'neon'),
+        boardTheme: 'carnival', rarity: 'COMMON'),
+    _ShopProduct('Royal Board', '6 WINS', 'gold palace', _ProductArt.royalBoard,
+        false, 0,
+        boardTheme: 'royal', rarity: 'RARE'),
+    _ShopProduct('Neon Board', '1.99 USD', 'premium arcade board',
+        _ProductArt.neonBoard, false, 0,
+        boardTheme: 'neon', rarity: 'PREMIUM'),
     _ShopProduct('Classic Board', 'EQUIP', 'clean table',
         _ProductArt.classicBoard, false, 0,
-        boardTheme: 'classic'),
-    _ShopProduct('Coin Stack', '1.99 USD', '1,200 coins', _ProductArt.coinPack,
-        false, 1200),
-    _ShopProduct('Club Chest', '7.99 USD', '3,500 coins', _ProductArt.clubChest,
-        false, 3500),
-    _ShopProduct('Royal Vault', '14.99 USD', '7,500 coins',
-        _ProductArt.royalVault, true, 7500),
+        boardTheme: 'classic', rarity: 'COMMON'),
+    _ShopProduct('Coin Stack', '0.99 USD', '1,200 coins', _ProductArt.coinPack,
+        false, 1200,
+        rarity: 'PREMIUM'),
+    _ShopProduct('Club Chest', '1.49 USD', '3,500 coins', _ProductArt.clubChest,
+        false, 3500,
+        rarity: 'PREMIUM'),
+    _ShopProduct('Royal Vault', '1.99 USD', '7,500 coins',
+        _ProductArt.royalVault, true, 7500,
+        rarity: 'PREMIUM'),
   ];
 
   @override
@@ -145,6 +148,8 @@ class _ShopScreenState extends State<ShopScreen>
                             itemBuilder: (context, i) => _ShopCard(
                               product: _items[i],
                               palette: p,
+                              locked: _items[i].isLocked(state),
+                              actionLabel: _items[i].actionLabel(state),
                               onBuy: () {
                                 final product = _items[i];
                                 var message = '${product.title} selected.';
@@ -154,18 +159,30 @@ class _ShopScreenState extends State<ShopScreen>
                                       ? 'Daily coins claimed. +${state.dailyRewardAmount} coins.'
                                       : 'Daily coins already claimed. Come back tomorrow.';
                                 } else if (product.diceSkin != null) {
-                                  state.setDiceSkin(product.diceSkin!);
-                                  message =
-                                      '${product.title} equipped for your dice.';
+                                  if (state
+                                      .isDiceSkinUnlocked(product.diceSkin!)) {
+                                    state.setDiceSkin(product.diceSkin!);
+                                    message =
+                                        '${product.title} equipped for your dice.';
+                                  } else {
+                                    message = state
+                                        .diceSkinUnlockLabel(product.diceSkin!);
+                                  }
                                 } else if (product.boardTheme != null) {
-                                  state
-                                      .setSnakesBoardTheme(product.boardTheme!);
-                                  message =
-                                      '${product.title} equipped for Snakes & Ladders.';
+                                  if (state.isBoardThemeUnlocked(
+                                      product.boardTheme!)) {
+                                    state.setSnakesBoardTheme(
+                                        product.boardTheme!);
+                                    message =
+                                        '${product.title} equipped for Snakes & Ladders.';
+                                  } else {
+                                    message = state.boardThemeUnlockLabel(
+                                        product.boardTheme!);
+                                  }
                                 } else {
                                   state.addCoins(product.coinReward);
                                   message =
-                                      '${product.title} selected. +${product.coinReward} coins added for testing.';
+                                      '${product.title} purchase preview. +${product.coinReward} coins added.';
                                 }
                                 ScaffoldMessenger.of(context)
                                   ..clearSnackBars()
@@ -1308,8 +1325,10 @@ class _BoardThemeOption {
   final String id;
   final String label;
   final List<Color> colors;
+  final String rarity;
 
-  const _BoardThemeOption(this.id, this.label, this.colors);
+  const _BoardThemeOption(this.id, this.label, this.colors,
+      {this.rarity = 'COMMON'});
 }
 
 class _BoardThemeStrip extends StatelessWidget {
@@ -1327,16 +1346,24 @@ class _BoardThemeStrip extends StatelessWidget {
       Color(0xFFFFD426),
       Color(0xFF22B7FF),
     ]),
-    _BoardThemeOption('royal', 'Royal', [
-      Color(0xFF5B2CFF),
-      Color(0xFFFFD426),
-      Color(0xFFB145FF),
-    ]),
-    _BoardThemeOption('neon', 'Neon', [
-      Color(0xFF00F5FF),
-      Color(0xFFFF35D6),
-      Color(0xFF6EFF3A),
-    ]),
+    _BoardThemeOption(
+        'royal',
+        'Royal',
+        [
+          Color(0xFF5B2CFF),
+          Color(0xFFFFD426),
+          Color(0xFFB145FF),
+        ],
+        rarity: 'RARE'),
+    _BoardThemeOption(
+        'neon',
+        'Neon',
+        [
+          Color(0xFF00F5FF),
+          Color(0xFFFF35D6),
+          Color(0xFF6EFF3A),
+        ],
+        rarity: 'PREMIUM'),
     _BoardThemeOption('classic', 'Classic', [
       Color(0xFFFF3B3F),
       Color(0xFF2DBB52),
@@ -1347,7 +1374,7 @@ class _BoardThemeStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 78,
+      height: 122,
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       decoration: BoxDecoration(
@@ -1365,7 +1392,7 @@ class _BoardThemeStrip extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 78,
+            width: 84,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1407,8 +1434,15 @@ class _BoardThemeStrip extends StatelessWidget {
                 return _BoardThemeButton(
                   option: option,
                   selected: state.snakesBoardTheme == option.id,
+                  locked: !state.isBoardThemeUnlocked(option.id),
+                  actionLabel: state.boardThemePremiumPrice(option.id) ??
+                      (state.isBoardThemeUnlocked(option.id)
+                          ? 'Owned'
+                          : '${state.boardThemeRequiredWins(option.id)} wins'),
                   onTap: () {
-                    state.setSnakesBoardTheme(option.id);
+                    if (state.isBoardThemeUnlocked(option.id)) {
+                      state.setSnakesBoardTheme(option.id);
+                    }
                     ScaffoldMessenger.of(context)
                       ..clearSnackBars()
                       ..showSnackBar(
@@ -1416,7 +1450,9 @@ class _BoardThemeStrip extends StatelessWidget {
                           behavior: SnackBarBehavior.floating,
                           backgroundColor: const Color(0xEE22082E),
                           duration: const Duration(milliseconds: 1100),
-                          content: Text('${option.label} board selected.'),
+                          content: Text(state.isBoardThemeUnlocked(option.id)
+                              ? '${option.label} board selected.'
+                              : state.boardThemeUnlockLabel(option.id)),
                         ),
                       );
                   },
@@ -1433,11 +1469,15 @@ class _BoardThemeStrip extends StatelessWidget {
 class _BoardThemeButton extends StatelessWidget {
   final _BoardThemeOption option;
   final bool selected;
+  final bool locked;
+  final String actionLabel;
   final VoidCallback onTap;
 
   const _BoardThemeButton({
     required this.option,
     required this.selected,
+    required this.locked,
+    required this.actionLabel,
     required this.onTap,
   });
 
@@ -1448,7 +1488,7 @@ class _BoardThemeButton extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        width: 86,
+        width: 124,
         padding: const EdgeInsets.all(5),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
@@ -1476,23 +1516,60 @@ class _BoardThemeButton extends StatelessWidget {
         child: Column(
           children: [
             Expanded(
-              child: CustomPaint(
-                painter: _ThemePreviewPainter(option.colors),
-                child: const SizedBox.expand(),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  CustomPaint(
+                    painter: _ThemePreviewPainter(option.colors),
+                    child: const SizedBox.expand(),
+                  ),
+                  if (locked)
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: const Color(0x77000000),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        option.rarity == 'PREMIUM'
+                            ? Icons.workspace_premium_rounded
+                            : Icons.lock_rounded,
+                        color: goldColor,
+                        size: 20,
+                      ),
+                    ),
+                ],
               ),
             ),
             const SizedBox(height: 2),
             FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text(
-                option.label,
-                maxLines: 1,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  shadows: [Shadow(color: Colors.black, blurRadius: 3)],
-                ),
+              child: Column(
+                children: [
+                  Text(
+                    option.label,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                      shadows: [Shadow(color: Colors.black, blurRadius: 3)],
+                    ),
+                  ),
+                  Text(
+                    actionLabel,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: option.rarity == 'PREMIUM'
+                          ? const Color(0xFFFFF08A)
+                          : Colors.white.withAlpha(210),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      shadows: const [
+                        Shadow(color: Colors.black, blurRadius: 3)
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1511,41 +1588,70 @@ class _ThemePreviewPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final p = Paint()..isAntiAlias = true;
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    p.color = const Color(0xFFFFF6CE);
-    canvas.drawRRect(RRect.fromRectXY(rect, 8, 8), p);
-    final cell = size.shortestSide / 4.6;
-    for (var i = 0; i < 3; i++) {
-      p.color = colors[i % colors.length].withAlpha(225);
-      canvas.drawRRect(
-        RRect.fromRectXY(
-          Rect.fromLTWH(
-            size.width * (0.18 + i * 0.22),
-            size.height * (0.18 + (i.isEven ? 0.04 : 0.26)),
-            cell,
-            cell,
-          ),
-          4,
-          4,
-        ),
-        p,
-      );
+    p.shader = ui.Gradient.linear(
+      rect.topLeft,
+      rect.bottomRight,
+      const [Color(0xFFFFF8DD), Color(0xFFFFD46A), Color(0xFF9B5A13)],
+      const [0, 0.65, 1],
+    );
+    canvas.drawRRect(RRect.fromRectXY(rect, 10, 10), p);
+    p.shader = null;
+
+    final board = rect.deflate(size.shortestSide * 0.10);
+    p.color = const Color(0xFFFFF9E8);
+    canvas.drawRRect(RRect.fromRectXY(board, 6, 6), p);
+    final cell = board.shortestSide / 15;
+    final ox = board.center.dx - cell * 7.5;
+    final oy = board.center.dy - cell * 7.5;
+
+    final bases = [
+      Rect.fromLTWH(ox, oy, cell * 6, cell * 6),
+      Rect.fromLTWH(ox + cell * 9, oy, cell * 6, cell * 6),
+      Rect.fromLTWH(ox, oy + cell * 9, cell * 6, cell * 6),
+      Rect.fromLTWH(ox + cell * 9, oy + cell * 9, cell * 6, cell * 6),
+    ];
+    for (var i = 0; i < bases.length; i++) {
+      p.color = colors[i % colors.length].withAlpha(235);
+      canvas.drawRRect(RRect.fromRectXY(bases[i], 5, 5), p);
+      p.color = Colors.white.withAlpha(170);
+      canvas.drawRRect(RRect.fromRectXY(bases[i].deflate(cell), 4, 4), p);
     }
+
+    for (var i = 0; i < 15; i++) {
+      p.color = const Color(0xFFFFF9E8);
+      canvas.drawRect(
+          Rect.fromLTWH(ox + cell * 6, oy + i * cell, cell, cell), p);
+      canvas.drawRect(
+          Rect.fromLTWH(ox + cell * 8, oy + i * cell, cell, cell), p);
+      canvas.drawRect(
+          Rect.fromLTWH(ox + i * cell, oy + cell * 6, cell, cell), p);
+      canvas.drawRect(
+          Rect.fromLTWH(ox + i * cell, oy + cell * 8, cell, cell), p);
+    }
+    final lanes = [
+      Rect.fromLTWH(ox + cell * 7, oy + cell * 9, cell, cell * 5),
+      Rect.fromLTWH(ox + cell, oy + cell * 7, cell * 5, cell),
+      Rect.fromLTWH(ox + cell * 7, oy + cell, cell, cell * 5),
+      Rect.fromLTWH(ox + cell * 9, oy + cell * 7, cell * 5, cell),
+    ];
+    for (var i = 0; i < lanes.length; i++) {
+      p.color = colors[i % colors.length].withAlpha(245);
+      canvas.drawRect(lanes[i], p);
+    }
+    p.color = goldColor;
+    canvas.drawCircle(board.center, cell * 1.2, p);
+    p.color = Colors.white;
+    canvas.drawCircle(board.center, cell * 0.72, p);
     p
       ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = math.max(2.2, size.width * 0.07)
-      ..color = colors.last;
-    final path = Path()
-      ..moveTo(size.width * 0.17, size.height * 0.78)
-      ..cubicTo(
-        size.width * 0.45,
-        size.height * 0.08,
-        size.width * 0.50,
-        size.height * 0.88,
-        size.width * 0.84,
-        size.height * 0.22,
-      );
-    canvas.drawPath(path, p);
+      ..strokeWidth = 0.7
+      ..color = const Color(0xAA9B701F);
+    for (var i = 0; i <= 15; i++) {
+      canvas.drawLine(
+          Offset(ox, oy + i * cell), Offset(ox + cell * 15, oy + i * cell), p);
+      canvas.drawLine(
+          Offset(ox + i * cell, oy), Offset(ox + i * cell, oy + cell * 15), p);
+    }
     p
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1
@@ -1563,8 +1669,10 @@ class _DiceSkinOption {
   final String label;
   final int value;
   final List<Color> colors;
+  final String rarity;
 
-  const _DiceSkinOption(this.id, this.label, this.value, this.colors);
+  const _DiceSkinOption(this.id, this.label, this.value, this.colors,
+      {this.rarity = 'COMMON'});
 }
 
 class _DiceSkinStrip extends StatelessWidget {
@@ -1581,26 +1689,51 @@ class _DiceSkinStrip extends StatelessWidget {
       Color(0xFFFFFDF4),
       goldColor,
     ]),
-    _DiceSkinOption('royal', 'Royal', 6, [
-      Color(0xFFFFE26A),
-      Color(0xFFE58A00),
-    ]),
-    _DiceSkinOption('neon', 'Neon', 4, [
-      Color(0xFF162A72),
-      Color(0xFF42F3FF),
-    ]),
-    _DiceSkinOption('ruby', 'Ruby', 3, [
-      Color(0xFFFF4055),
-      Color(0xFFFFD866),
-    ]),
-    _DiceSkinOption('emerald', 'Emerald', 2, [
-      Color(0xFF18C94B),
-      Color(0xFFFFD866),
-    ]),
-    _DiceSkinOption('cosmic', 'Cosmic', 6, [
-      Color(0xFF7A25FF),
-      Color(0xFFFF54FF),
-    ]),
+    _DiceSkinOption(
+        'royal',
+        'Royal',
+        6,
+        [
+          Color(0xFFFFE26A),
+          Color(0xFFE58A00),
+        ],
+        rarity: 'RARE'),
+    _DiceSkinOption(
+        'neon',
+        'Neon',
+        4,
+        [
+          Color(0xFF162A72),
+          Color(0xFF42F3FF),
+        ],
+        rarity: 'RARE'),
+    _DiceSkinOption(
+        'ruby',
+        'Ruby',
+        3,
+        [
+          Color(0xFFFF4055),
+          Color(0xFFFFD866),
+        ],
+        rarity: 'PREMIUM'),
+    _DiceSkinOption(
+        'emerald',
+        'Emerald',
+        2,
+        [
+          Color(0xFF18C94B),
+          Color(0xFFFFD866),
+        ],
+        rarity: 'RARE'),
+    _DiceSkinOption(
+        'cosmic',
+        'Cosmic',
+        6,
+        [
+          Color(0xFF7A25FF),
+          Color(0xFFFF54FF),
+        ],
+        rarity: 'PREMIUM'),
   ];
 
   @override
@@ -1690,8 +1823,15 @@ class _DiceSkinStrip extends StatelessWidget {
                       return _DiceSkinButton(
                         option: option,
                         selected: state.diceSkin == option.id,
+                        locked: !state.isDiceSkinUnlocked(option.id),
+                        actionLabel: state.diceSkinPremiumPrice(option.id) ??
+                            (state.isDiceSkinUnlocked(option.id)
+                                ? 'Owned'
+                                : '${state.diceSkinRequiredWins(option.id)} wins'),
                         onTap: () {
-                          state.setDiceSkin(option.id);
+                          if (state.isDiceSkinUnlocked(option.id)) {
+                            state.setDiceSkin(option.id);
+                          }
                           ScaffoldMessenger.of(context)
                             ..clearSnackBars()
                             ..showSnackBar(
@@ -1699,7 +1839,10 @@ class _DiceSkinStrip extends StatelessWidget {
                                 behavior: SnackBarBehavior.floating,
                                 backgroundColor: const Color(0xEE22082E),
                                 duration: const Duration(milliseconds: 1100),
-                                content: Text('${option.label} dice equipped.'),
+                                content: Text(
+                                    state.isDiceSkinUnlocked(option.id)
+                                        ? '${option.label} dice equipped.'
+                                        : state.diceSkinUnlockLabel(option.id)),
                               ),
                             );
                         },
@@ -1719,11 +1862,15 @@ class _DiceSkinStrip extends StatelessWidget {
 class _DiceSkinButton extends StatelessWidget {
   final _DiceSkinOption option;
   final bool selected;
+  final bool locked;
+  final String actionLabel;
   final VoidCallback onTap;
 
   const _DiceSkinButton({
     required this.option,
     required this.selected,
+    required this.locked,
+    required this.actionLabel,
     required this.onTap,
   });
 
@@ -1764,10 +1911,32 @@ class _DiceSkinButton extends StatelessWidget {
           children: [
             Expanded(
               child: Center(
-                child: DiceWidget(
-                  value: option.value,
-                  size: 42,
-                  skin: option.id,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    DiceWidget(
+                      value: option.value,
+                      size: 42,
+                      skin: option.id,
+                    ),
+                    if (locked)
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0x99000000),
+                          border: Border.all(color: goldColor, width: 1.3),
+                        ),
+                        child: Icon(
+                          option.rarity == 'PREMIUM'
+                              ? Icons.workspace_premium_rounded
+                              : Icons.lock_rounded,
+                          color: goldColor,
+                          size: 20,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -1782,6 +1951,21 @@ class _DiceSkinButton extends StatelessWidget {
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                   shadows: [Shadow(color: Colors.black, blurRadius: 3)],
+                ),
+              ),
+            ),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                actionLabel,
+                maxLines: 1,
+                style: TextStyle(
+                  color: option.rarity == 'PREMIUM'
+                      ? const Color(0xFFFFF08A)
+                      : Colors.white.withAlpha(210),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  shadows: const [Shadow(color: Colors.black, blurRadius: 3)],
                 ),
               ),
             ),
@@ -1823,6 +2007,7 @@ class _ShopProduct {
   final String? diceSkin;
   final String? boardTheme;
   final bool dailyReward;
+  final String rarity;
 
   const _ShopProduct(
     this.title,
@@ -1834,18 +2019,52 @@ class _ShopProduct {
     this.diceSkin,
     this.boardTheme,
     this.dailyReward = false,
+    this.rarity = 'COMMON',
   });
+
+  bool isLocked(AppState state) {
+    if (diceSkin != null) return !state.isDiceSkinUnlocked(diceSkin!);
+    if (boardTheme != null) return !state.isBoardThemeUnlocked(boardTheme!);
+    return false;
+  }
+
+  bool isEquipped(AppState state) {
+    if (diceSkin != null) return state.diceSkin == diceSkin;
+    if (boardTheme != null) return state.snakesBoardTheme == boardTheme;
+    return false;
+  }
+
+  bool get premium => rarity == 'PREMIUM';
+
+  String actionLabel(AppState state) {
+    if (dailyReward) {
+      return state.canClaimDailyReward ? 'FREE' : 'CLAIMED';
+    }
+    if (isEquipped(state)) return 'EQUIPPED';
+    if (diceSkin != null && !state.isDiceSkinUnlocked(diceSkin!)) {
+      return state.diceSkinPremiumPrice(diceSkin!) ?? price;
+    }
+    if (boardTheme != null && !state.isBoardThemeUnlocked(boardTheme!)) {
+      return state.boardThemePremiumPrice(boardTheme!) ?? price;
+    }
+    if (diceSkin != null || boardTheme != null) return 'EQUIP';
+    return price;
+  }
 }
 
 class _ShopCard extends StatefulWidget {
   final _ShopProduct product;
   final _ShopPalette palette;
   final VoidCallback onBuy;
+  final bool locked;
+  final String actionLabel;
 
   const _ShopCard({
     required this.product,
     required this.palette,
     required this.onBuy,
+    required this.locked,
+    required this.actionLabel,
   });
 
   @override
@@ -1948,6 +2167,13 @@ class _ShopCardState extends State<_ShopCard>
                           ),
                         ),
                       ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: _RarityPill(
+                          label: widget.product.rarity,
+                          premium: widget.product.premium,
+                        ),
+                      ),
                       Expanded(
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(5, 2, 5, 3),
@@ -1972,7 +2198,7 @@ class _ShopCardState extends State<_ShopCard>
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
-                            widget.product.price,
+                            widget.actionLabel,
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 14,
@@ -2013,10 +2239,71 @@ class _ShopCardState extends State<_ShopCard>
                       ),
                     ),
                   ),
+                if (widget.locked && !widget.product.dailyReward)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          color: const Color(0x66000000),
+                        ),
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(14),
+                              color: const Color(0xCC250631),
+                              border: Border.all(color: goldColor, width: 1.4),
+                            ),
+                            child: Icon(
+                              widget.product.premium
+                                  ? Icons.workspace_premium_rounded
+                                  : Icons.lock_rounded,
+                              color: goldColor,
+                              size: 24,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _RarityPill extends StatelessWidget {
+  final String label;
+  final bool premium;
+
+  const _RarityPill({required this.label, required this.premium});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(10),
+        color: premium ? const Color(0xFFE61D7A) : const Color(0x66250631),
+        border: Border.all(
+          color: premium ? const Color(0xFFFFF08A) : const Color(0x55FFD426),
+        ),
+      ),
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 8,
+          fontWeight: FontWeight.w900,
+          shadows: [Shadow(color: Colors.black, blurRadius: 2)],
+        ),
       ),
     );
   }
