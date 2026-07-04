@@ -48,6 +48,8 @@ export interface RoomSeat {
   joinedAt: number;
   disconnectedAt?: number;
   finishRank?: number;
+  missedTurns?: number;
+  resigned?: boolean;
 }
 
 export interface LudoPiece {
@@ -83,6 +85,7 @@ export type ClientRoomMessage =
   | { type: "move_piece"; playerId: string; pieceId: string }
   | { type: "fill_bots"; playerId: string }
   | { type: "resign"; playerId: string }
+  | { type: "reaction"; playerId: string; displayName?: string; text: string; isEmoji?: boolean }
   | { type: "heartbeat"; playerId: string };
 
 export type ServerRoomMessage =
@@ -92,6 +95,7 @@ export type ServerRoomMessage =
   | { type: "turn_skipped"; playerId: string; reason: string; snapshot: RoomSnapshot }
   | { type: "bots_filled"; snapshot: RoomSnapshot }
   | { type: "match_finished"; winnerPlayerId: string; snapshot: RoomSnapshot }
+  | { type: "reaction"; playerId: string; displayName?: string; text: string; isEmoji: boolean }
   | { type: "error"; code: string; message: string };
 
 export type BackgroundJob =

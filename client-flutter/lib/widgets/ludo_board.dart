@@ -65,13 +65,24 @@ class _BoardConsts {
     [7, 14],
   ];
 
-  // Stop/safe stars sit at the 6+2 track point for each color. Keep this in
-  // sync with AppState._localSafeTrackIndexes so captures and visuals agree.
+  // Safe cells must match the server rules (rules.ts SAFE_TRACK_INDEXES
+  // {0,8,13,21,26,34,39,47}) and AppState._localSafeTrackIndexes so captures
+  // and visuals agree. Stars sit 8 steps past each color's start cell
+  // (path indexes 8, 21, 34, 47).
   static const safeSeats = [
-    [2, 8, 0],
-    [6, 2, 1],
-    [12, 6, 2],
-    [8, 12, 3],
+    [3, 8, 0],
+    [6, 3, 1],
+    [11, 6, 2],
+    [8, 11, 3],
+  ];
+
+  // Entry cells (path indexes 0, 13, 26, 39) are also capture-safe and are
+  // tinted in the owning seat's color.
+  static const startCells = [
+    [6, 14, 0],
+    [0, 6, 1],
+    [8, 0, 2],
+    [14, 8, 3],
   ];
 
   static const homeLanes = [
@@ -117,7 +128,9 @@ class _BoardConsts {
     [2.1, 3.9],
     [3.9, 3.9]
   ];
-  static const seatStarts = [1, 14, 27, 40];
+  // Track index of each seat's entry cell — must match the backend
+  // START_OFFSETS in rules.ts and AppState._localStartOffsets.
+  static const seatStarts = [0, 13, 26, 39];
 }
 
 // ── Tap hit record ─────────────────────────────────────────────────────────────
@@ -562,6 +575,7 @@ class _BoardPainter extends CustomPainter {
   void _drawTrack(Canvas canvas, double left, double top, double cell) {
     for (int i = 0; i < _BoardConsts.path.length; i++) {
       final p = _BoardConsts.path[i];
+      final ownerSeat = _BoardConsts.seatStarts.indexOf(i);
       _drawCell(
         canvas,
         left,
@@ -569,7 +583,7 @@ class _BoardPainter extends CustomPainter {
         cell,
         p[0],
         p[1],
-        _toInt(_ivory),
+        ownerSeat >= 0 ? _toInt(_seatCol(ownerSeat)) : _toInt(_ivory),
         0xCC9B701F,
       );
     }
@@ -599,6 +613,19 @@ class _BoardPainter extends CustomPainter {
         cell * 0.30,
         seatColor,
         Color(_blend(_toInt(seatColor), 0xFF000000, 0.34)),
+      );
+    }
+
+    // Entry cells are safe too; a white star on the tinted cell signals it.
+    for (final p in _BoardConsts.startCells) {
+      final seatColor = _seatCol(p[2]);
+      _drawStar5(
+        canvas,
+        left + (p[0] + 0.5) * cell,
+        top + (p[1] + 0.5) * cell,
+        cell * 0.28,
+        Colors.white.withAlpha(235),
+        Color(_blend(_toInt(seatColor), 0xFF000000, 0.42)),
       );
     }
   }
