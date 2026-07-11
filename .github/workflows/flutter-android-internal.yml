@@ -8,6 +8,10 @@ on:
       - '.github/workflows/flutter-android-internal.yml'
   workflow_dispatch:
 
+concurrency:
+  group: cloudflare-deploy-main
+  cancel-in-progress: false
+
 jobs:
   build:
     name: Build & Upload Flutter AAB
@@ -79,3 +83,20 @@ jobs:
           tracks: internal
           releaseName: "Ludo Rush internal #${{ github.run_number }}"
           status: completed
+
+      - name: Install backend release tools
+        working-directory: backend-cloudflare
+        run: npm ci
+
+      - name: Publish forced-update build
+        working-directory: backend-cloudflare
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          BUILD_NUMBER=$((GITHUB_RUN_NUMBER + 10000))
+          BUILD_NAME="1.0.${GITHUB_RUN_NUMBER}"
+          NOW_MS=$(date +%s000)
+          npx wrangler d1 migrations apply ludo-rush-db --remote
+          npx wrangler d1 execute ludo-rush-db --remote --command \
+            "INSERT INTO app_release_config (platform, minimum_build_number, latest_build_number, latest_version_name, force_latest, update_url, message, updated_at) VALUES ('android', ${BUILD_NUMBER}, ${BUILD_NUMBER}, '${BUILD_NAME}', 1, 'https://play.google.com/store/apps/details?id=com.ludorush.game', 'A newer version of Ludo Rush is required to keep matchmaking, rewards, and game rules in sync.', ${NOW_MS}) ON CONFLICT(platform) DO UPDATE SET minimum_build_number = excluded.minimum_build_number, latest_build_number = excluded.latest_build_number, latest_version_name = excluded.latest_version_name, force_latest = 1, update_url = excluded.update_url, message = excluded.message, updated_at = excluded.updated_at;"

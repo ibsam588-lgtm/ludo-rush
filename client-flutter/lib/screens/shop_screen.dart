@@ -8,6 +8,7 @@ import '../state/app_state.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dice_widget.dart';
+import '../widgets/snakes_ladders_board.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -118,85 +119,112 @@ class _ShopScreenState extends State<ShopScreen>
                     return Column(
                       children: [
                         _ShopResources(state: state, palette: p),
-                        _ShopHero(
-                          palette: p,
-                          animation: _bg,
-                          height: heroHeight,
-                        ),
-                        if (!compactHeight || box.maxWidth >= 390)
-                          _BoosterBanner(palette: p),
-                        _DiceSkinStrip(
-                          palette: p,
-                          state: state,
-                        ),
-                        _BoardThemeStrip(
-                          palette: p,
-                          state: state,
-                        ),
                         Expanded(
-                          child: GridView.builder(
-                            padding: gridPad,
+                          child: CustomScrollView(
                             physics: const BouncingScrollPhysics(),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: columns,
-                              childAspectRatio: cardAspect,
-                              crossAxisSpacing: narrow ? 8 : 10,
-                              mainAxisSpacing: compactHeight ? 10 : 14,
-                            ),
-                            itemCount: _items.length,
-                            itemBuilder: (context, i) => _ShopCard(
-                              product: _items[i],
-                              palette: p,
-                              locked: _items[i].isLocked(state),
-                              actionLabel: _items[i].actionLabel(state),
-                              onBuy: () {
-                                final product = _items[i];
-                                var message = '${product.title} selected.';
-                                if (product.dailyReward) {
-                                  final claimed = state.claimDailyReward();
-                                  message = claimed
-                                      ? 'Daily coins claimed. +${state.dailyRewardAmount} coins.'
-                                      : 'Daily coins already claimed. Come back tomorrow.';
-                                } else if (product.diceSkin != null) {
-                                  if (state
-                                      .isDiceSkinUnlocked(product.diceSkin!)) {
-                                    state.setDiceSkin(product.diceSkin!);
-                                    message =
-                                        '${product.title} equipped for your dice.';
-                                  } else {
-                                    message = state
-                                        .diceSkinUnlockLabel(product.diceSkin!);
-                                  }
-                                } else if (product.boardTheme != null) {
-                                  if (state.isBoardThemeUnlocked(
-                                      product.boardTheme!)) {
-                                    state.setSnakesBoardTheme(
-                                        product.boardTheme!);
-                                    message =
-                                        '${product.title} equipped for Snakes & Ladders.';
-                                  } else {
-                                    message = state.boardThemeUnlockLabel(
-                                        product.boardTheme!);
-                                  }
-                                } else {
-                                  state.addCoins(product.coinReward);
-                                  message =
-                                      '${product.title} purchase preview. +${product.coinReward} coins added.';
-                                }
-                                ScaffoldMessenger.of(context)
-                                  ..clearSnackBars()
-                                  ..showSnackBar(
-                                    SnackBar(
-                                      behavior: SnackBarBehavior.floating,
-                                      backgroundColor: const Color(0xEE22082E),
-                                      duration:
-                                          const Duration(milliseconds: 1200),
-                                      content: Text(message),
+                            slivers: [
+                              SliverToBoxAdapter(
+                                child: _ShopHero(
+                                  palette: p,
+                                  animation: _bg,
+                                  height: heroHeight,
+                                ),
+                              ),
+                              if (!compactHeight || box.maxWidth >= 390)
+                                SliverToBoxAdapter(
+                                  child: _BoosterBanner(palette: p),
+                                ),
+                              SliverToBoxAdapter(
+                                child: _DiceSkinStrip(
+                                  palette: p,
+                                  state: state,
+                                ),
+                              ),
+                              SliverToBoxAdapter(
+                                child: _BoardThemeStrip(
+                                  palette: p,
+                                  state: state,
+                                ),
+                              ),
+                              SliverPadding(
+                                padding: gridPad,
+                                sliver: SliverGrid(
+                                  gridDelegate:
+                                      SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: columns,
+                                    childAspectRatio: cardAspect,
+                                    crossAxisSpacing: narrow ? 8 : 10,
+                                    mainAxisSpacing: compactHeight ? 10 : 14,
+                                  ),
+                                  delegate: SliverChildBuilderDelegate(
+                                    (context, i) => _ShopCard(
+                                      product: _items[i],
+                                      palette: p,
+                                      locked: _items[i].isLocked(state),
+                                      actionLabel: _items[i].actionLabel(state),
+                                      onBuy: () async {
+                                        final product = _items[i];
+                                        var message =
+                                            '${product.title} selected.';
+                                        if (product.dailyReward) {
+                                          final claimed =
+                                              await state.claimDailyReward();
+                                          if (!context.mounted) return;
+                                          message = claimed
+                                              ? 'Daily coins claimed. +${state.dailyRewardAmount} coins.'
+                                              : (state.socialError.isNotEmpty
+                                                  ? state.socialError
+                                                  : 'Daily coins already claimed. Come back tomorrow.');
+                                        } else if (product.diceSkin != null) {
+                                          if (state.isDiceSkinUnlocked(
+                                              product.diceSkin!)) {
+                                            state
+                                                .setDiceSkin(product.diceSkin!);
+                                            message =
+                                                '${product.title} equipped for your dice.';
+                                          } else {
+                                            message = state.diceSkinUnlockLabel(
+                                                product.diceSkin!);
+                                          }
+                                        } else if (product.boardTheme != null) {
+                                          if (state.isBoardThemeUnlocked(
+                                              product.boardTheme!)) {
+                                            state.setSnakesBoardTheme(
+                                                product.boardTheme!);
+                                            message =
+                                                '${product.title} equipped for Snakes & Ladders.';
+                                          } else {
+                                            message =
+                                                state.boardThemeUnlockLabel(
+                                                    product.boardTheme!);
+                                          }
+                                        } else if (product.premium) {
+                                          message =
+                                              '${product.title} requires a verified Google Play purchase. No coins were added.';
+                                        } else if (product.coinReward > 0) {
+                                          message =
+                                              '${product.title} is unavailable until its reward source is earned.';
+                                        }
+                                        ScaffoldMessenger.of(context)
+                                          ..clearSnackBars()
+                                          ..showSnackBar(
+                                            SnackBar(
+                                              behavior:
+                                                  SnackBarBehavior.floating,
+                                              backgroundColor:
+                                                  const Color(0xEE22082E),
+                                              duration: const Duration(
+                                                  milliseconds: 1200),
+                                              content: Text(message),
+                                            ),
+                                          );
+                                      },
                                     ),
-                                  );
-                              },
-                            ),
+                                    childCount: _items.length,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         _ShopBottomNav(palette: p),
@@ -1398,7 +1426,7 @@ class _BoardThemeStrip extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
                 Text(
-                  'Board',
+                  'Snakes',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -1410,7 +1438,7 @@ class _BoardThemeStrip extends StatelessWidget {
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'Designs',
+                  'Boards',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -1519,9 +1547,16 @@ class _BoardThemeButton extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  CustomPaint(
-                    painter: _ThemePreviewPainter(option.colors),
-                    child: const SizedBox.expand(),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: IgnorePointer(
+                      child: SnakesLaddersBoard(
+                        snapshot: null,
+                        mySeat: null,
+                        boardTheme: option.id,
+                        onPieceTap: (_) {},
+                      ),
+                    ),
                   ),
                   if (locked)
                     DecoratedBox(
@@ -2316,6 +2351,19 @@ class _ShopProductVisual extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (product.boardTheme != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: IgnorePointer(
+          child: SnakesLaddersBoard(
+            snapshot: null,
+            mySeat: null,
+            boardTheme: product.boardTheme!,
+            onPieceTap: (_) {},
+          ),
+        ),
+      );
+    }
     return DecoratedBox(
       decoration: BoxDecoration(
         shape: BoxShape.circle,

@@ -7,7 +7,8 @@ class WebSocketService {
   factory WebSocketService() => _instance;
   WebSocketService._();
 
-  static const String _backendWss = 'wss://ludo-rush-backend.ibsam588.workers.dev';
+  static const String _backendWss =
+      'wss://ludo-rush-backend.ibsam588.workers.dev';
 
   WebSocketChannel? _channel;
   StreamSubscription<dynamic>? _sub;
@@ -15,6 +16,7 @@ class WebSocketService {
   String? _socketPath;
   String? playerId;
   String? displayName;
+  String? authToken;
 
   final StreamController<dynamic> _msgController = StreamController.broadcast();
   Stream<dynamic> get messages => _msgController.stream;
@@ -30,7 +32,9 @@ class WebSocketService {
   void _doConnect() {
     if (_socketPath == null || playerId == null) return;
     final encoded = Uri.encodeComponent(displayName ?? '');
-    final url = '$_backendWss$_socketPath?playerId=$playerId&displayName=$encoded';
+    final token = Uri.encodeComponent(authToken ?? '');
+    final url =
+        '$_backendWss$_socketPath?playerId=$playerId&displayName=$encoded&token=$token';
     try {
       _channel = WebSocketChannel.connect(Uri.parse(url));
       _sub = _channel!.stream.listen(

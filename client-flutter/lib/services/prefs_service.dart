@@ -16,6 +16,15 @@ class PrefsService {
     }
   }
 
+  String? get authToken => _prefs?.getString('auth_token');
+  set authToken(String? v) {
+    if (v == null || v.isEmpty) {
+      _prefs?.remove('auth_token');
+    } else {
+      _prefs?.setString('auth_token', v);
+    }
+  }
+
   String get displayName => _prefs?.getString('display_name') ?? 'Ludo Player';
   set displayName(String v) => _prefs?.setString('display_name', v);
 
@@ -49,6 +58,9 @@ class PrefsService {
   int get wins => _prefs?.getInt('wins') ?? 0;
   set wins(int v) => _prefs?.setInt('wins', v);
 
+  int get claimedGoldChests => _prefs?.getInt('claimed_gold_chests') ?? 0;
+  set claimedGoldChests(int v) => _prefs?.setInt('claimed_gold_chests', v);
+
   bool get isDarkMode => _prefs?.getBool('dark_mode') ?? true;
   set isDarkMode(bool v) => _prefs?.setBool('dark_mode', v);
 
@@ -62,6 +74,9 @@ class PrefsService {
 
   String get diceSkin => _prefs?.getString('dice_skin') ?? 'classic';
   set diceSkin(String v) => _prefs?.setString('dice_skin', v);
+
+  bool get autoRollEnabled => _prefs?.getBool('auto_roll_enabled') ?? false;
+  set autoRollEnabled(bool v) => _prefs?.setBool('auto_roll_enabled', v);
 
   String get lastDailyRewardDate =>
       _prefs?.getString('last_daily_reward_date') ?? '';

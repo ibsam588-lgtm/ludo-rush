@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -69,6 +70,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   Navigator.pushNamed(context, '/shop');
                   return;
                 }
+                if (index == 1) unawaited(state.refreshSocial());
                 setState(() => _tabIndex = index);
               },
             ),
@@ -268,17 +270,45 @@ const _giftShopItems = [
   ),
 ];
 
-const _recentOpponentRows = [
-  _FeatureRow('Maya', 'Recent opponent', '1120'),
-  _FeatureRow('Noah', 'Recent opponent', '870'),
-  _FeatureRow('Omar', 'Recent opponent', '930'),
-];
-
-const _acceptedFriendRows = [
-  _FeatureRow('Leo', 'Friend online', '790'),
-  _FeatureRow('Ava', 'Friend accepted', '980'),
-  _FeatureRow('Maya', 'Friend request pending', '1120'),
-];
+List<_FeatureRow> _friendRowsForState(AppState state) {
+  final rows = <_FeatureRow>[
+    for (final friend in state.friends)
+      _FeatureRow(
+        friend.displayName,
+        'Accepted friend',
+        friend.rating.toString(),
+        id: friend.id,
+      ),
+    for (final request in state.incomingFriendRequests)
+      _FeatureRow(
+        request.displayName,
+        'Request waiting for you',
+        request.rating.toString(),
+        id: request.id,
+      ),
+    for (final request in state.outgoingFriendRequests)
+      _FeatureRow(
+        request.displayName,
+        'Friend request pending',
+        request.rating.toString(),
+        id: request.id,
+      ),
+    for (final gift in state.receivedFriendGifts.take(2))
+      _FeatureRow(
+        'Gift from ${gift.senderName}',
+        gift.giftId.replaceAll('_', ' '),
+        'NEW',
+      ),
+  ];
+  if (rows.isEmpty) {
+    rows.add(const _FeatureRow(
+      'No friends yet',
+      'Play online to meet recent opponents',
+      '0',
+    ));
+  }
+  return rows;
+}
 
 void _showFeatureSnack(BuildContext context, String message) {
   ScaffoldMessenger.of(context)
@@ -466,10 +496,9 @@ void _showRewardsEconomySheet(BuildContext context, AppState state) {
 
 void _showGiftShopSheet(
   BuildContext context,
-  AppState state, {
-  _FeatureRow? initialFriend,
-}) {
-  var selectedFriend = initialFriend?.title ?? _acceptedFriendRows.first.title;
+  AppState state,
+) {
+  var selectedFriendId = state.friends.isEmpty ? '' : state.friends.first.id;
   var selectedGift = _giftShopItems.first.id;
   showModalBottomSheet<void>(
     context: context,
@@ -487,10 +516,18 @@ void _showGiftShopSheet(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(
-                  height: 96,
-                  child: CustomPaint(
-                    painter: _GiftShopHeroPainter(gift.colors),
-                    child: const SizedBox.expand(),
+                  height: 124,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.asset(
+                      'assets/images/rush/rush_gift_ship_shop_v1.png',
+                      fit: BoxFit.cover,
+                      alignment: Alignment.center,
+                      errorBuilder: (_, __, ___) => CustomPaint(
+                        painter: _GiftShopHeroPainter(gift.colors),
+                        child: const SizedBox.expand(),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -508,18 +545,27 @@ void _showGiftShopSheet(
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
-                    itemCount: _acceptedFriendRows.length,
+                    itemCount: state.friends.isEmpty ? 1 : state.friends.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (context, index) {
-                      final friend = _acceptedFriendRows[index];
-                      final selected = friend.title == selectedFriend;
+                      if (state.friends.isEmpty) {
+                        return _ChoiceChipButton(
+                          label: 'No friends',
+                          subtitle: 'Add a recent opponent first',
+                          selected: true,
+                          accent: boardPurple,
+                          onTap: () {},
+                        );
+                      }
+                      final friend = state.friends[index];
+                      final selected = friend.id == selectedFriendId;
                       return _ChoiceChipButton(
-                        label: friend.title,
-                        subtitle: friend.subtitle,
+                        label: friend.displayName,
+                        subtitle: 'Accepted friend',
                         selected: selected,
                         accent: index.isEven ? boardBlue : boardGreen,
                         onTap: () =>
-                            setSheetState(() => selectedFriend = friend.title),
+                            setSheetState(() => selectedFriendId = friend.id),
                       );
                     },
                   ),
@@ -553,27 +599,32 @@ void _showGiftShopSheet(
                       ? Icons.workspace_premium_rounded
                       : Icons.send_rounded,
                   color: gift.premium ? boardPurple : goldColor,
-                  onTap: () {
+                  onTap: () async {
                     SoundService.tap();
-                    if (gift.premium) {
+                    if (selectedFriendId.isEmpty) {
                       _showFeatureSnack(
                         context,
-                        '${gift.title} will open Play Billing for ${gift.cost}.',
+                        'Add and accept a recent opponent before sending gifts.',
                       );
                       return;
                     }
-                    if (!state.spendCoins(gift.coinCost)) {
-                      _showFeatureSnack(
-                        context,
-                        'Not enough coins for ${gift.title}.',
-                      );
-                      return;
-                    }
-                    Navigator.pop(sheetContext);
-                    _showFeatureSnack(
-                      context,
-                      '${gift.title} sent to $selectedFriend.',
+                    final message = await state.sendFriendGift(
+                      selectedFriendId,
+                      gift.id,
                     );
+                    if (!sheetContext.mounted) return;
+                    if (message == 'Gift sent.') {
+                      final friend = state.friends
+                          .where((item) => item.id == selectedFriendId)
+                          .firstOrNull;
+                      Navigator.pop(sheetContext);
+                      _showFeatureSnack(
+                        context,
+                        '${gift.title} sent to ${friend?.displayName ?? 'friend'}.',
+                      );
+                    } else {
+                      _showFeatureSnack(context, message);
+                    }
                   },
                 ),
               ],
@@ -3291,13 +3342,16 @@ class _RewardStrip extends StatelessWidget {
                     art: _RewardArt.gift,
                     start: const Color(0xFFE93836),
                     end: const Color(0xFFFFB21C),
-                    onTap: () {
-                      final claimed = state.claimDailyReward();
+                    onTap: () async {
+                      final claimed = await state.claimDailyReward();
+                      if (!context.mounted) return;
                       _showHomeSnack(
                         context,
                         claimed
                             ? 'Daily points claimed. +${state.dailyRewardAmount} coins.'
-                            : 'Daily points already claimed. Come back tomorrow.',
+                            : (state.socialError.isNotEmpty
+                                ? state.socialError
+                                : 'Daily points already claimed. Come back tomorrow.'),
                       );
                     },
                   ),
@@ -3941,7 +3995,7 @@ class _HomeTabStage extends StatelessWidget {
         subtitle: 'Online rivals and quick invites',
         accent: const Color(0xFFFFD426),
         icon: Icons.groups_rounded,
-        rows: _acceptedFriendRows,
+        rows: _friendRowsForState(state),
         actions: const ['Invite', 'Add', 'Gift', 'Chat', 'Remove'],
         onAction: (context, action) => _handleFeatureAction(context, action),
       );
@@ -3970,8 +4024,14 @@ class _HomeTabStage extends StatelessWidget {
         subtitle: 'Open prizes earned from matches',
         accent: const Color(0xFFFFB22D),
         icon: Icons.inventory_2_rounded,
-        rows: const [
-          _FeatureRow('Gold Chest', 'Ready', '500'),
+        rows: [
+          _FeatureRow(
+            'Gold Chest',
+            state.availableGoldChests > 0
+                ? '${state.availableGoldChests} ready'
+                : 'Earn one every 3 wins',
+            '500',
+          ),
           _FeatureRow('Crown Chest', '2 wins away', '1.2K'),
           _FeatureRow('Energy Vault', 'Bonus spins', '30'),
         ],
@@ -3990,7 +4050,7 @@ class _HomeTabStage extends StatelessWidget {
         _showFriendInviteSheet(context, state);
         return;
       case 'Add':
-        _showFriendAddSheet(context);
+        _showFriendAddSheet(context, state);
         return;
       case 'Gift':
         _showFriendGiftSheet(context, state);
@@ -3999,7 +4059,7 @@ class _HomeTabStage extends StatelessWidget {
         _showFriendChatSheet(context, state);
         return;
       case 'Remove':
-        _showFriendRemoveSheet(context);
+        _showFriendRemoveSheet(context, state);
         return;
       case 'Join':
         _showClubJoinSheet(context, state);
@@ -4008,8 +4068,7 @@ class _HomeTabStage extends StatelessWidget {
         _showLeaderboardSheet(context, state);
         return;
       case 'Rewards':
-        state.addCoins(150);
-        _showFeatureSnack(context, 'Club reward opened. +150 coins.');
+        _showRewardsEconomySheet(context, state);
         return;
       case 'Open':
         _showChestOpenSheet(context, state);
@@ -4033,17 +4092,26 @@ class _HomeTabStage extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const _FeatureListTile(
-                row: _FeatureRow('Leo', 'Online now', '790'),
-                accent: boardBlue,
-                index: 0,
-              ),
-              const SizedBox(height: 8),
-              const _FeatureListTile(
-                row: _FeatureRow('Ava', 'Invite ready', '980'),
-                accent: boardGreen,
-                index: 1,
-              ),
+              if (state.friends.isEmpty)
+                const _EconomyHint(
+                  icon: Icons.person_add_alt_1_rounded,
+                  text:
+                      'Add a recent opponent first, or create a code and share it outside the app.',
+                )
+              else
+                for (var i = 0; i < state.friends.length; i++) ...[
+                  _FeatureListTile(
+                    row: _FeatureRow(
+                      state.friends[i].displayName,
+                      'Invite ready',
+                      state.friends[i].rating.toString(),
+                      id: state.friends[i].id,
+                    ),
+                    accent: i.isEven ? boardBlue : boardGreen,
+                    index: i,
+                  ),
+                  if (i != state.friends.length - 1) const SizedBox(height: 8),
+                ],
               const SizedBox(height: 10),
               Text(
                 'Invites create a private room code so friends land on the same table.',
@@ -4071,37 +4139,125 @@ class _HomeTabStage extends StatelessWidget {
     );
   }
 
-  void _showFriendAddSheet(BuildContext context) {
+  void _showFriendAddSheet(BuildContext context, AppState state) {
+    final selected = <String>{};
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) {
-        return _HomeActionSheet(
-          title: 'Recent Opponents',
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var i = 0; i < _recentOpponentRows.length; i++) ...[
-                _FeatureListTile(
-                  row: _recentOpponentRows[i],
-                  accent: i.isEven ? goldColor : boardPurple,
-                  index: i,
-                ),
-                if (i != _recentOpponentRows.length - 1)
+      builder: (sheetContext) {
+        return StatefulBuilder(builder: (context, setSheetState) {
+          return _HomeActionSheet(
+            title: 'Recent Opponents',
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (state.incomingFriendRequests.isNotEmpty) ...[
+                  const _EconomyHint(
+                    icon: Icons.mark_email_unread_rounded,
+                    text:
+                        'Accept requests before they join your friends circle.',
+                  ),
                   const SizedBox(height: 8),
+                  for (var i = 0;
+                      i < state.incomingFriendRequests.length;
+                      i++) ...[
+                    _FeatureListTile(
+                      row: _FeatureRow(
+                        state.incomingFriendRequests[i].displayName,
+                        'Incoming request',
+                        state.incomingFriendRequests[i].rating.toString(),
+                      ),
+                      accent: boardGreen,
+                      index: i,
+                    ),
+                    const SizedBox(height: 6),
+                    _FeatureActionButton(
+                      label:
+                          'Accept ${state.incomingFriendRequests[i].displayName}',
+                      accent: boardGreen,
+                      onTap: () async {
+                        final message = await state.acceptFriend(
+                          state.incomingFriendRequests[i].id,
+                        );
+                        if (!sheetContext.mounted) return;
+                        _showFeatureSnack(context, message);
+                        setSheetState(() {});
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                ],
+                if (state.recentOpponents.isEmpty)
+                  const _EconomyHint(
+                    icon: Icons.sports_esports_rounded,
+                    text:
+                        'No recent online opponents yet. Finish an online match and they will appear here.',
+                  )
+                else
+                  for (var i = 0; i < state.recentOpponents.length; i++) ...[
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => setSheetState(() {
+                        final id = state.recentOpponents[i].id;
+                        selected.contains(id)
+                            ? selected.remove(id)
+                            : selected.add(id);
+                      }),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color:
+                                selected.contains(state.recentOpponents[i].id)
+                                    ? goldColor
+                                    : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                        child: _FeatureListTile(
+                          row: _FeatureRow(
+                            state.recentOpponents[i].displayName,
+                            selected.contains(state.recentOpponents[i].id)
+                                ? 'Selected'
+                                : 'Recent opponent',
+                            state.recentOpponents[i].rating.toString(),
+                          ),
+                          accent: i.isEven ? goldColor : boardPurple,
+                          index: i,
+                        ),
+                      ),
+                    ),
+                    if (i != state.recentOpponents.length - 1)
+                      const SizedBox(height: 8),
+                  ],
+                const SizedBox(height: 12),
+                _FeatureActionButton(
+                  label: selected.isEmpty
+                      ? 'Select Opponents'
+                      : 'Send ${selected.length} Request${selected.length == 1 ? '' : 's'}',
+                  accent: boardGreen,
+                  onTap: () async {
+                    if (selected.isEmpty) {
+                      _showFeatureSnack(
+                        context,
+                        'Select at least one recent opponent.',
+                      );
+                      return;
+                    }
+                    var message = 'Friend requests sent.';
+                    for (final id in selected) {
+                      message = await state.requestFriend(id);
+                      if (message != 'Friend request sent.') break;
+                    }
+                    if (!sheetContext.mounted) return;
+                    Navigator.pop(sheetContext);
+                    _showFeatureSnack(context, message);
+                  },
+                ),
               ],
-              const SizedBox(height: 12),
-              _FeatureActionButton(
-                label: 'Send Requests',
-                accent: boardGreen,
-                onTap: () {
-                  Navigator.pop(context);
-                  _showFeatureSnack(context, 'Friend requests sent.');
-                },
-              ),
-            ],
-          ),
-        );
+            ),
+          );
+        });
       },
     );
   }
@@ -4110,101 +4266,237 @@ class _HomeTabStage extends StatelessWidget {
     _showGiftShopSheet(context, state);
   }
 
-  void _showFriendChatSheet(BuildContext context, AppState state) {
-    showModalBottomSheet<void>(
+  Future<void> _showFriendChatSheet(
+      BuildContext context, AppState state) async {
+    final controller = TextEditingController();
+    await state.loadFriendMessages();
+    if (!context.mounted) {
+      controller.dispose();
+      return;
+    }
+    await showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) {
-        return _HomeActionSheet(
-          title: 'Friends Chat',
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _EconomyHint(
-                icon:
-                    state.canUseChat ? Icons.forum_rounded : Icons.lock_rounded,
-                text: state.canUseChat
-                    ? 'Group chat includes accepted friends only. Recent opponents join after they accept a friend request.'
-                    : 'Chat unlocks for players age 13 and older.',
+      builder: (sheetContext) {
+        return Consumer<AppState>(builder: (context, liveState, _) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+            ),
+            child: _HomeActionSheet(
+              title: 'Friends Circle Chat',
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _EconomyHint(
+                    icon: liveState.canUseChat
+                        ? Icons.forum_rounded
+                        : Icons.lock_rounded,
+                    text: liveState.canUseChat
+                        ? 'You see messages from direct accepted friends only. Friends who do not know each other remain separate.'
+                        : 'Chat unlocks for players age 13 and older.',
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 210,
+                    child: !liveState.canUseChat
+                        ? const Center(
+                            child: Text(
+                              'Chat locked',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          )
+                        : liveState.friendMessages.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'No messages yet. Say hello to your friends.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              )
+                            : ListView.separated(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 4),
+                                itemCount: liveState.friendMessages.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(height: 6),
+                                itemBuilder: (context, index) {
+                                  final message =
+                                      liveState.friendMessages[index];
+                                  final mine =
+                                      message.senderId == liveState.playerId;
+                                  return Align(
+                                    alignment: mine
+                                        ? Alignment.centerRight
+                                        : Alignment.centerLeft,
+                                    child: Container(
+                                      constraints:
+                                          const BoxConstraints(maxWidth: 280),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: mine
+                                            ? boardBlue.withAlpha(210)
+                                            : const Color(0xCC3B0B4B),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: mine ? goldColor : boardPurple,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '${message.senderName}: ${message.message}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: controller,
+                    enabled: liveState.canUseChat,
+                    maxLength: 160,
+                    textInputAction: TextInputAction.send,
+                    decoration: InputDecoration(
+                      hintText: 'Message your friends circle',
+                      counterText: '',
+                      filled: true,
+                      fillColor: const Color(0xAA21042C),
+                      suffixIcon: IconButton(
+                        tooltip: 'Send message',
+                        icon: const Icon(Icons.send_rounded, color: goldColor),
+                        onPressed: liveState.canUseChat
+                            ? () async {
+                                final result = await liveState
+                                    .sendFriendMessage(controller.text);
+                                if (!sheetContext.mounted) return;
+                                if (result.isEmpty) {
+                                  controller.clear();
+                                } else {
+                                  _showFeatureSnack(context, result);
+                                }
+                              }
+                            : null,
+                      ),
+                    ),
+                    onSubmitted: liveState.canUseChat
+                        ? (value) async {
+                            final result =
+                                await liveState.sendFriendMessage(value);
+                            if (!sheetContext.mounted) return;
+                            if (result.isEmpty) controller.clear();
+                          }
+                        : null,
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              const _FeatureListTile(
-                row: _FeatureRow('Accepted Friends', 'Leo and Ava', '2'),
-                accent: boardBlue,
-                index: 0,
-              ),
-              const SizedBox(height: 8),
-              const _FeatureListTile(
-                row: _FeatureRow(
-                    'Pending Invites', 'Maya can join after accepting', '1'),
-                accent: goldColor,
-                index: 1,
-              ),
-              const SizedBox(height: 12),
-              _HomeSheetButton(
-                label: state.canUseChat ? 'Open Group Chat' : 'Chat Locked',
-                icon: state.canUseChat
-                    ? Icons.chat_bubble_rounded
-                    : Icons.lock_rounded,
-                color: state.canUseChat ? boardGreen : boardPurple,
-                onTap: () {
-                  Navigator.pop(context);
-                  _showFeatureSnack(
-                    context,
-                    state.canUseChat
-                        ? 'Friends group chat opened for accepted friends.'
-                        : 'Chat is available for 13+ accounts.',
-                  );
-                },
-              ),
-            ],
-          ),
-        );
+            ),
+          );
+        });
       },
     );
+    controller.dispose();
   }
 
-  void _showFriendRemoveSheet(BuildContext context) {
+  void _showFriendRemoveSheet(BuildContext context, AppState state) {
+    var selectedFriendId = state.friends.isEmpty ? '' : state.friends.first.id;
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) {
-        return _HomeActionSheet(
-          title: 'Remove Friend',
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var i = 0; i < _acceptedFriendRows.length; i++) ...[
-                _FeatureListTile(
-                  row: _acceptedFriendRows[i],
-                  accent: i.isEven ? boardBlue : boardGreen,
-                  index: i,
+      builder: (sheetContext) {
+        return StatefulBuilder(builder: (context, setSheetState) {
+          return _HomeActionSheet(
+            title: 'Remove Friend',
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (state.friends.isEmpty)
+                  const _EconomyHint(
+                    icon: Icons.group_off_rounded,
+                    text: 'There are no accepted friends to remove.',
+                  )
+                else
+                  for (var i = 0; i < state.friends.length; i++) ...[
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => setSheetState(
+                        () => selectedFriendId = state.friends[i].id,
+                      ),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: selectedFriendId == state.friends[i].id
+                                ? goldColor
+                                : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                        child: _FeatureListTile(
+                          row: _FeatureRow(
+                            state.friends[i].displayName,
+                            selectedFriendId == state.friends[i].id
+                                ? 'Selected for removal'
+                                : 'Accepted friend',
+                            state.friends[i].rating.toString(),
+                          ),
+                          accent: i.isEven ? boardBlue : boardGreen,
+                          index: i,
+                        ),
+                      ),
+                    ),
+                    if (i != state.friends.length - 1)
+                      const SizedBox(height: 8),
+                  ],
+                const SizedBox(height: 12),
+                _FeatureActionButton(
+                  label: 'Remove Selected',
+                  accent: boardRed,
+                  onTap: () async {
+                    if (selectedFriendId.isEmpty) {
+                      _showFeatureSnack(context, 'Select a friend first.');
+                      return;
+                    }
+                    final message = await state.removeFriend(selectedFriendId);
+                    if (!sheetContext.mounted) return;
+                    Navigator.pop(sheetContext);
+                    _showFeatureSnack(context, message);
+                  },
                 ),
-                if (i != _acceptedFriendRows.length - 1)
-                  const SizedBox(height: 8),
               ],
-              const SizedBox(height: 12),
-              _FeatureActionButton(
-                label: 'Remove Selected',
-                accent: boardRed,
-                onTap: () {
-                  Navigator.pop(context);
-                  _showFeatureSnack(
-                    context,
-                    'Friend removed from preview list.',
-                  );
-                },
-              ),
-            ],
-          ),
-        );
+            ),
+          );
+        });
       },
     );
   }
 
-  void _showChestOpenSheet(BuildContext context, AppState state) {
-    state.addCoins(500);
+  Future<void> _showChestOpenSheet(BuildContext context, AppState state) async {
+    final claimed = await state.claimGoldChest();
+    if (!context.mounted) return;
+    if (!claimed) {
+      _showFeatureSnack(
+        context,
+        state.socialError.isNotEmpty
+            ? state.socialError
+            : 'No Gold Chest is ready. Earn another after 3 more wins.',
+      );
+      return;
+    }
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -4217,7 +4509,7 @@ class _HomeTabStage extends StatelessWidget {
               const Icon(Icons.inventory_2_rounded, color: goldColor, size: 56),
               const SizedBox(height: 8),
               const Text(
-                '+500 coins added',
+                'Gold Chest opened\n+500 coins added',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
@@ -4499,11 +4791,12 @@ class _HomeTabStage extends StatelessWidget {
 }
 
 class _FeatureRow {
+  final String? id;
   final String title;
   final String subtitle;
   final String value;
 
-  const _FeatureRow(this.title, this.subtitle, this.value);
+  const _FeatureRow(this.title, this.subtitle, this.value, {this.id});
 }
 
 class _FeatureTabStage extends StatelessWidget {

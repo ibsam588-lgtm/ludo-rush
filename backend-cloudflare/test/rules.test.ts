@@ -119,6 +119,33 @@ describe("room rules", () => {
     expect(captured?.progress).toBe(-1);
   });
 
+  it("keeps the 6+2 star tile safe from captures", () => {
+    let snapshot = playingSnapshot(["p1", "p2"]);
+    snapshot = {
+      ...snapshot,
+      diceValue: 1,
+      availableMoves: ["s0_p0"],
+      pieces: snapshot.pieces.map((piece) => {
+        if (piece.pieceId === "s0_p0") {
+          return { ...piece, progress: 7, state: "track", trackIndex: 7 };
+        }
+        if (piece.pieceId === "s1_p0") {
+          return { ...piece, progress: 47, state: "track", trackIndex: 8 };
+        }
+        return piece;
+      })
+    };
+
+    const result = applyMove(snapshot, "p1", "s0_p0", 3);
+    const protectedPiece = result.snapshot.pieces.find(
+      (piece) => piece.pieceId === "s1_p0"
+    );
+
+    expect(result.capturedPieceIds).toEqual([]);
+    expect(protectedPiece?.state).toBe("track");
+    expect(protectedPiece?.trackIndex).toBe(8);
+  });
+
   it("always rolls a value between 1 and 6", () => {
     for (let i = 0; i < 500; i += 1) {
       const value = rollDice();
