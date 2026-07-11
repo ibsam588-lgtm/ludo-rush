@@ -10,6 +10,71 @@ import '../services/prefs_service.dart';
 import '../services/sound_service.dart';
 import '../services/websocket_service.dart';
 
+class SocialPlayer {
+  final String id;
+  final String displayName;
+  final int rating;
+
+  const SocialPlayer({
+    required this.id,
+    required this.displayName,
+    required this.rating,
+  });
+
+  factory SocialPlayer.fromJson(Map<String, dynamic> json) => SocialPlayer(
+        id: json['id'] as String? ?? '',
+        displayName: json['displayName'] as String? ?? 'Player',
+        rating: (json['rating'] as num?)?.toInt() ?? 1000,
+      );
+}
+
+class FriendChatMessage {
+  final String id;
+  final String senderId;
+  final String senderName;
+  final String message;
+  final int createdAt;
+
+  const FriendChatMessage({
+    required this.id,
+    required this.senderId,
+    required this.senderName,
+    required this.message,
+    required this.createdAt,
+  });
+
+  factory FriendChatMessage.fromJson(Map<String, dynamic> json) =>
+      FriendChatMessage(
+        id: json['id'] as String? ?? '',
+        senderId: json['senderId'] as String? ?? '',
+        senderName: json['senderName'] as String? ?? 'Player',
+        message: json['message'] as String? ?? '',
+        createdAt: (json['createdAt'] as num?)?.toInt() ?? 0,
+      );
+}
+
+class ReceivedFriendGift {
+  final String id;
+  final String giftId;
+  final String senderName;
+  final int createdAt;
+
+  const ReceivedFriendGift({
+    required this.id,
+    required this.giftId,
+    required this.senderName,
+    required this.createdAt,
+  });
+
+  factory ReceivedFriendGift.fromJson(Map<String, dynamic> json) =>
+      ReceivedFriendGift(
+        id: json['id'] as String? ?? '',
+        giftId: json['giftId'] as String? ?? 'gift',
+        senderName: json['senderName'] as String? ?? 'Friend',
+        createdAt: (json['createdAt'] as num?)?.toInt() ?? 0,
+      );
+}
+
 class AppState extends ChangeNotifier {
   static const String _backendUrl =
       'https://ludo-rush-backend.ibsam588.workers.dev';
@@ -76,6 +141,7 @@ class AppState extends ChangeNotifier {
 
   // Identity
   String? playerId;
+  String? authToken;
   String displayName = 'Ludo Player';
   String countryCode = 'US';
   int avatarPreset = 0;
@@ -85,6 +151,7 @@ class AppState extends ChangeNotifier {
   int rating = 1000;
   int gamesPlayed = 0;
   int wins = 0;
+  int claimedGoldChests = 0;
   bool isDarkMode = true;
   String matchDifficulty = 'medium';
   String snakesBoardTheme = 'carnival';
@@ -92,6 +159,16 @@ class AppState extends ChangeNotifier {
   bool autoRollEnabled = false;
   String lastDailyRewardDate = '';
   bool startChoiceSeen = false;
+  bool socialLoading = false;
+  String socialError = '';
+  List<SocialPlayer> friends = const [];
+  List<SocialPlayer> recentOpponents = const [];
+  List<SocialPlayer> incomingFriendRequests = const [];
+  List<SocialPlayer> outgoingFriendRequests = const [];
+  List<FriendChatMessage> friendMessages = const [];
+  List<ReceivedFriendGift> receivedFriendGifts = const [];
+  bool economySynced = false;
+  int _availableGoldChests = 1;
 
   // Match state
   GameSnapshot? lastSnapshot;
@@ -124,6 +201,7 @@ class AppState extends ChangeNotifier {
   Timer? _localBotTimer;
   Timer? _matchmakingTimer;
   Timer? _autoRollTimer;
+  Future<void>? _authenticationFuture;
 
   // Roll state (mirrors Java lastRollValue / lastRollPlayerId)
   int lastRollValue = 0;
@@ -143,6 +221,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> init() async {
     playerId = _prefs.playerId;
+    authToken = _prefs.authToken;
     displayName = _prefs.displayName;
     countryCode = _prefs.countryCode;
     avatarPreset = _prefs.avatarPreset;
@@ -152,10 +231,12 @@ class AppState extends ChangeNotifier {
     rating = _prefs.rating;
     gamesPlayed = _prefs.gamesPlayed;
     wins = _prefs.wins;
+    claimedGoldChests = _prefs.claimedGoldChests;
     isDarkMode = _prefs.isDarkMode;
     matchDifficulty = _normalizeDifficulty(_prefs.matchDifficulty);
     snakesBoardTheme = _normalizeSnakesBoardTheme(_prefs.snakesBoardTheme);
     diceSkin = _normalizeDiceSkin(_prefs.diceSkin);
+    autoRollEnabled = _prefs.autoRollEnabled;
     if (!isBoardThemeUnlocked(snakesBoardTheme)) {
       snakesBoardTheme = 'carnival';
       _prefs.snakesBoardTheme = snakesBoardTheme;
@@ -170,9 +251,21 @@ class AppState extends ChangeNotifier {
     // Shared WS service identity
     _ws.playerId = playerId;
     _ws.displayName = displayName;
+    _ws.authToken = authToken;
 
     await checkForForcedUpdate(notify: false);
+    if (updateCheckComplete && !forceUpdateRequired) {
+      _ensurePlayerIdentity();
+      unawaited(_initializeOnlineIdentity());
+    }
     _healthCheck();
+  }
+
+  Future<void> _initializeOnlineIdentity() async {
+    await _ensureAuthenticatedIdentity();
+    if (authToken == null || authToken!.isEmpty) return;
+    await syncSocialProfile(notify: false);
+    await refreshSocial();
   }
 
   @override
@@ -260,6 +353,51 @@ class AppState extends ChangeNotifier {
         : false;
     if (!launched) {
       await AppPlatformService.openUrl(_defaultAndroidUpdateUrl);
+    }
+  }
+
+  Future<void> _ensureAuthenticatedIdentity() {
+    if (authToken != null && authToken!.isNotEmpty) {
+      _ws.authToken = authToken;
+      return Future<void>.value();
+    }
+    final active = _authenticationFuture;
+    if (active != null) return active;
+    final request = _authenticateIdentity();
+    _authenticationFuture = request;
+    return request.whenComplete(() {
+      if (identical(_authenticationFuture, request)) {
+        _authenticationFuture = null;
+      }
+    });
+  }
+
+  Future<void> _authenticateIdentity() async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$_backendUrl/api/v1/auth/guest'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'displayName': _humanDisplayName,
+              'region': matchmakingRegion,
+              'countryCode': countryCode,
+              'avatarKey': avatarImagePath ?? 'preset_$avatarPreset',
+              'age': age,
+            }),
+          )
+          .timeout(const Duration(seconds: 7));
+      if (response.statusCode >= 400) return;
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final token = (json['token'] as String? ?? '').trim();
+      final player = json['player'] as Map<String, dynamic>?;
+      if (token.isEmpty || player == null) return;
+      authToken = token;
+      _prefs.authToken = token;
+      _ws.authToken = token;
+      _applyPlayer(player);
+    } catch (_) {
+      // Offline play remains available; online actions explain the failure.
     }
   }
 
@@ -382,47 +520,96 @@ class AppState extends ChangeNotifier {
   void _trackResignedMatch() {
     if (_matchResultTracked) return;
     _matchResultTracked = true;
+    final economyEligible = !localMatchActive && !currentMatchIsBot;
     gamesPlayed++;
-    rating = (rating - 6).clamp(0, 9999);
+    if (economyEligible) {
+      rating = (rating - 6).clamp(0, 9999);
+    }
     _prefs.gamesPlayed = gamesPlayed;
     _prefs.rating = rating;
+    if (economyEligible) {
+      unawaited(Future<void>.delayed(
+        const Duration(milliseconds: 900),
+        refreshSocial,
+      ));
+    }
   }
 
   // ── Matchmaking ────────────────────────────────────────────────────────────
 
   void startQuickMatch(String mode) {
     if (connecting) return;
+    markStartChoiceSeen();
+    _ensurePlayerIdentity();
     pendingMatchMode = mode;
     fallbackBotStarted = false;
-    currentMatchIsBot = true;
+    currentMatchIsBot = false;
     _resetLiveMatch();
     connecting = true;
     _setStatus('Searching for match...');
     _openMatchmakingScreen();
-    _scheduleLocalBotMatch(
-      mode,
-      reason: _isSnakesLaddersMode(mode)
-          ? 'Snakes & Ladders table ready. Roll to climb.'
-          : 'Bot table ready. Roll when it is your turn.',
+
+    if (_isSnakesLaddersMode(mode)) {
+      currentMatchIsBot = true;
+      _scheduleLocalBotMatch(
+        mode,
+        reason: 'Snakes & Ladders table ready. Roll to climb.',
+      );
+      return;
+    }
+
+    if (authToken == null || authToken!.isEmpty) {
+      _ensureAuthenticatedIdentity().then((_) {
+        if (!connecting || pendingMatchMode != mode) return;
+        if (authToken == null || authToken!.isEmpty) {
+          _fallbackToBots('Online sign-in is unavailable.');
+          return;
+        }
+        _requestOnlineMatch(mode);
+      });
+      return;
+    }
+
+    _requestOnlineMatch(mode);
+  }
+
+  void _requestOnlineMatch(String mode) {
+    _pollAttempts = 0;
+    _post(
+      '/api/v1/matchmaking/quick',
+      {
+        'playerId': playerId,
+        'displayName': _humanDisplayName,
+        'mode': mode,
+        'region': matchmakingRegion,
+      },
+      (j) {
+        final status = j['status'] as String? ?? '';
+        if (status == 'matched') {
+          final socketUrl = j['socketUrl'] as String? ?? '';
+          if (socketUrl.isEmpty) {
+            _fallbackToBots('Match server returned no game socket.');
+            return;
+          }
+          _connectWs(socketUrl);
+          replaceWith('/game');
+          return;
+        }
+
+        final ticketId = j['ticketId'] as String? ?? '';
+        if (status == 'waiting' && ticketId.isNotEmpty) {
+          _setStatus('Searching for online players...');
+          _pollTicket(ticketId);
+          return;
+        }
+        _fallbackToBots('No online table was available.');
+      },
+      onError: () => _fallbackToBots('Online matchmaking is unavailable.'),
     );
   }
 
   void startFastMatch() {
-    if (connecting) return;
-    const mode = 'classic_4p';
-    pendingMatchMode = mode;
-    fallbackBotStarted = false;
-    currentMatchIsBot = true;
-    _resetLiveMatch();
-    connecting = true;
-    _setStatus('Finding the fastest table...');
-    _openMatchmakingScreen();
-    _scheduleLocalBotMatch(
-      mode,
-      reason: 'Quick match table ready. Roll when it is your turn.',
-      delay: const Duration(milliseconds: 1200),
-      setupStatus: 'Locking in your quick table...',
-    );
+    startQuickMatch('classic_4p');
   }
 
   void startGuestMatch([String mode = 'classic_2p']) {
@@ -490,6 +677,24 @@ class AppState extends ChangeNotifier {
     connecting = true;
     privateInviteCode = null;
     _setStatus('Creating private room...');
+    _openMatchmakingScreen();
+    if (authToken == null || authToken!.isEmpty) {
+      _ensureAuthenticatedIdentity().then((_) {
+        if (!connecting || pendingMatchMode != mode) return;
+        if (authToken == null || authToken!.isEmpty) {
+          connecting = false;
+          _setStatus(
+              'Online sign-in is unavailable. Try again when connected.');
+          return;
+        }
+        _sendCreatePrivateRoom(mode);
+      });
+      return;
+    }
+    _sendCreatePrivateRoom(mode);
+  }
+
+  void _sendCreatePrivateRoom(String mode) {
     _post(
       '/api/v1/rooms/private',
       {
@@ -519,12 +724,10 @@ class AppState extends ChangeNotifier {
         replaceWith('/game');
       },
       onError: () {
-        final code = _generatePrivateCode();
-        _startLocalPrivateRoom(
-          mode,
-          code,
-          reason: 'Private room $code ready locally. Share the code to test.',
-        );
+        connecting = false;
+        privateInviteCode = null;
+        _setStatus(
+            'Could not create a private room. Check your connection and try again.');
       },
     );
   }
@@ -544,6 +747,25 @@ class AppState extends ChangeNotifier {
     connecting = true;
     privateInviteCode = cleanCode;
     _setStatus('Joining private room $cleanCode...');
+    _openMatchmakingScreen();
+    if (authToken == null || authToken!.isEmpty) {
+      _ensureAuthenticatedIdentity().then((_) {
+        if (!connecting || privateInviteCode != cleanCode) return;
+        if (authToken == null || authToken!.isEmpty) {
+          connecting = false;
+          privateInviteCode = null;
+          _setStatus(
+              'Online sign-in is unavailable. Try again when connected.');
+          return;
+        }
+        _sendJoinPrivateRoom(cleanCode);
+      });
+      return;
+    }
+    _sendJoinPrivateRoom(cleanCode);
+  }
+
+  void _sendJoinPrivateRoom(String cleanCode) {
     _post(
       '/api/v1/rooms/private/join',
       {
@@ -567,11 +789,10 @@ class AppState extends ChangeNotifier {
         replaceWith('/game');
       },
       onError: () {
-        _startLocalPrivateRoom(
-          pendingMatchMode,
-          cleanCode,
-          reason: 'Joined private room $cleanCode locally for testing.',
-        );
+        connecting = false;
+        privateInviteCode = null;
+        _setStatus(
+            'Room code was not found, expired, or could not be reached.');
       },
     );
   }
@@ -617,6 +838,7 @@ class AppState extends ChangeNotifier {
       try {
         final r = await http.get(
           Uri.parse('$_backendUrl/api/v1/matchmaking/tickets/$ticketId'),
+          headers: _authorizedHeaders(),
         );
         final j = jsonDecode(r.body) as Map<String, dynamic>;
         final status = j['status'] as String? ?? 'waiting';
@@ -624,6 +846,7 @@ class AppState extends ChangeNotifier {
           final socketUrl = j['socketUrl'] as String? ?? '';
           if (socketUrl.isNotEmpty) {
             _connectWs(socketUrl);
+            replaceWith('/game');
             return;
           }
         }
@@ -663,6 +886,7 @@ class AppState extends ChangeNotifier {
     _localBotTimer = null;
     _ws.playerId = playerId;
     _ws.displayName = _humanDisplayName;
+    _ws.authToken = authToken;
     _ws.connect(socketPath);
     _wsSub?.cancel();
     _wsSub = _ws.messages.listen(_handleMessage);
@@ -715,6 +939,8 @@ class AppState extends ChangeNotifier {
         if (eventStatus != null && eventStatus.isNotEmpty) {
           _setStatus(eventStatus);
         }
+
+        _scheduleAutomaticTurnAction();
 
         if (lastSnapshot!.status == 'finished') {
           _trackMatchResult(lastSnapshot!);
@@ -870,18 +1096,6 @@ class AppState extends ChangeNotifier {
     );
     _setStatus(reason);
     _scheduleLocalBots();
-  }
-
-  void _startLocalPrivateRoom(
-    String mode,
-    String code, {
-    required String reason,
-  }) {
-    connecting = false;
-    _startLocalBotMatch(mode, reason: reason);
-    privateInviteCode = code;
-    notifyListeners();
-    replaceWith('/game');
   }
 
   void _rollLocalDice() {
@@ -1046,7 +1260,7 @@ class AppState extends ChangeNotifier {
   }) {
     _autoRollTimer?.cancel();
     _autoRollTimer = null;
-    if (!autoRollEnabled || !localMatchActive) return;
+    if (!autoRollEnabled) return;
     _autoRollTimer = Timer(delay, () {
       _autoRollTimer = null;
       final snap = lastSnapshot;
@@ -1058,19 +1272,33 @@ class AppState extends ChangeNotifier {
           !_hasDiceValue()) {
         return;
       }
-      _moveLocalPiece(pieceId);
+      movePiece(pieceId);
     });
   }
 
   bool get _canAutoRollNow {
-    if (!autoRollEnabled || !localMatchActive) return false;
+    if (!autoRollEnabled) return false;
     final snap = lastSnapshot;
     final seat = mySeat;
     return snap != null &&
         seat != null &&
         snap.status == 'playing' &&
         snap.currentTurnSeat == seat &&
-        snap.diceValue == 0;
+        snap.diceValue == 0 &&
+        (localMatchActive || _ws.isConnected);
+  }
+
+  void _scheduleAutomaticTurnAction() {
+    if (!autoRollEnabled) return;
+    final snap = lastSnapshot;
+    if (snap == null || !_isMyTurn()) return;
+    if (snap.diceValue > 0) {
+      if (snap.availableMoves.length == 1) {
+        _scheduleAutoMove(snap.availableMoves.single);
+      }
+      return;
+    }
+    _scheduleAutoRoll();
   }
 
   void _playLocalBotTurn() {
@@ -1484,12 +1712,14 @@ class AppState extends ChangeNotifier {
   void _ensurePlayerIdentity() {
     if (playerId != null && playerId!.isNotEmpty) return;
     playerId = 'local_${DateTime.now().millisecondsSinceEpoch}';
+    authToken = null;
     _prefs.playerId = playerId;
+    _prefs.authToken = null;
     _ws.playerId = playerId;
     _ws.displayName = displayName;
+    _ws.authToken = null;
   }
 
-  // ignore: unused_element
   void _applyPlayer(Map<String, dynamic> player) {
     playerId = player['id'] as String? ?? playerId;
     displayName = player['displayName'] as String? ?? displayName;
@@ -1500,12 +1730,15 @@ class AppState extends ChangeNotifier {
     _ws.displayName = displayName;
     _prefs.playerId = playerId;
     _prefs.displayName = displayName;
+    _prefs.rating = rating;
+    _prefs.coins = coins;
     notifyListeners();
   }
 
   void _trackMatchResult(GameSnapshot snap) {
     if (_matchResultTracked) return;
     _matchResultTracked = true;
+    final economyEligible = !localMatchActive && !currentMatchIsBot;
     _localBotTimer?.cancel();
     _localBotTimer = null;
     localMatchActive = false;
@@ -1513,13 +1746,17 @@ class AppState extends ChangeNotifier {
     final won = playerId != null && playerId == snap.winnerPlayerId;
     if (won) {
       SoundService.success();
-      wins++;
-      rating += 12;
-      coins += 100;
+      if (economyEligible) {
+        wins++;
+        rating += 12;
+        coins += 100;
+      }
     } else {
       SoundService.warning();
-      rating = (rating - 6).clamp(0, 9999);
-      coins += 15;
+      if (economyEligible) {
+        rating = (rating - 6).clamp(0, 9999);
+        coins += 15;
+      }
     }
     _prefs.gamesPlayed = gamesPlayed;
     _prefs.wins = wins;
@@ -1529,6 +1766,7 @@ class AppState extends ChangeNotifier {
     lastRollValue = 0;
     lastRollPlayerId = null;
     notifyListeners();
+    if (economyEligible) unawaited(refreshSocial());
   }
 
   void _resetLiveMatch() {
@@ -1647,7 +1885,7 @@ class AppState extends ChangeNotifier {
     http
         .post(
           Uri.parse('$_backendUrl$path'),
-          headers: {'Content-Type': 'application/json'},
+          headers: _authorizedHeaders(),
           body: jsonEncode(payload),
         )
         .timeout(const Duration(seconds: 6))
@@ -1670,6 +1908,240 @@ class AppState extends ChangeNotifier {
         _setStatus('Request failed.');
       }
     });
+  }
+
+  Future<void> syncSocialProfile({bool notify = true}) async {
+    _ensurePlayerIdentity();
+    try {
+      await _requestJson(
+        'POST',
+        '/api/v1/social/profile',
+        body: {
+          'playerId': playerId,
+          'displayName': _humanDisplayName,
+          'countryCode': countryCode,
+          'avatarKey': avatarImagePath ?? 'preset_$avatarPreset',
+          'age': age,
+        },
+      );
+      socialError = '';
+    } catch (error) {
+      socialError = _cleanApiError(error);
+    }
+    if (notify) notifyListeners();
+  }
+
+  Future<void> refreshSocial({bool notify = true}) async {
+    _ensurePlayerIdentity();
+    socialLoading = true;
+    if (notify) notifyListeners();
+    try {
+      final json = await _requestJson(
+        'GET',
+        '/api/v1/social/overview',
+        query: {'playerId': playerId!},
+      );
+      friends = _socialPlayers(json['friends']);
+      recentOpponents = _socialPlayers(json['recentOpponents']);
+      incomingFriendRequests = _socialPlayers(json['incomingRequests']);
+      outgoingFriendRequests = _socialPlayers(json['outgoingRequests']);
+      final giftsRaw = json['receivedGifts'] as List<dynamic>? ?? const [];
+      receivedFriendGifts = giftsRaw
+          .whereType<Map<String, dynamic>>()
+          .map(ReceivedFriendGift.fromJson)
+          .where((gift) => gift.id.isNotEmpty)
+          .toList(growable: false);
+      final serverCoins = _readInt(json['coins'], fallback: coins);
+      if (serverCoins >= 0) {
+        coins = serverCoins;
+        _prefs.coins = coins;
+      }
+      gamesPlayed = _readInt(json['gamesPlayed'], fallback: gamesPlayed);
+      wins = _readInt(json['wins'], fallback: wins);
+      _availableGoldChests = _readInt(
+        json['availableGoldChests'],
+        fallback: _availableGoldChests,
+      );
+      _prefs.gamesPlayed = gamesPlayed;
+      _prefs.wins = wins;
+      economySynced = true;
+      socialError = '';
+    } catch (error) {
+      socialError = _cleanApiError(error);
+    } finally {
+      socialLoading = false;
+      if (notify) notifyListeners();
+    }
+  }
+
+  Future<String> requestFriend(String targetPlayerId) async {
+    return _socialMutation(
+      '/api/v1/social/friends/request',
+      targetPlayerId: targetPlayerId,
+      success: 'Friend request sent.',
+    );
+  }
+
+  Future<String> acceptFriend(String targetPlayerId) async {
+    return _socialMutation(
+      '/api/v1/social/friends/accept',
+      targetPlayerId: targetPlayerId,
+      success: 'Friend request accepted.',
+    );
+  }
+
+  Future<String> removeFriend(String targetPlayerId) async {
+    return _socialMutation(
+      '/api/v1/social/friends/remove',
+      targetPlayerId: targetPlayerId,
+      success: 'Friend removed.',
+    );
+  }
+
+  Future<String> sendFriendGift(String targetPlayerId, String giftId) async {
+    try {
+      final json = await _requestJson(
+        'POST',
+        '/api/v1/social/gifts',
+        body: {
+          'playerId': playerId,
+          'targetPlayerId': targetPlayerId,
+          'giftId': giftId,
+        },
+      );
+      coins = _readInt(json['coins'], fallback: coins);
+      _prefs.coins = coins;
+      socialError = '';
+      notifyListeners();
+      return 'Gift sent.';
+    } catch (error) {
+      final message = _cleanApiError(error);
+      socialError = message;
+      notifyListeners();
+      return message;
+    }
+  }
+
+  Future<String> loadFriendMessages() async {
+    if (!canUseChat) return 'Friends chat is available for age 13+ profiles.';
+    try {
+      final json = await _requestJson(
+        'GET',
+        '/api/v1/social/messages',
+        query: {'playerId': playerId!},
+      );
+      final raw = json['messages'] as List<dynamic>? ?? const [];
+      friendMessages = raw
+          .whereType<Map<String, dynamic>>()
+          .map(FriendChatMessage.fromJson)
+          .toList(growable: false);
+      socialError = '';
+      notifyListeners();
+      return '';
+    } catch (error) {
+      final message = _cleanApiError(error);
+      socialError = message;
+      notifyListeners();
+      return message;
+    }
+  }
+
+  Future<String> sendFriendMessage(String message) async {
+    if (!canUseChat) return 'Friends chat is available for age 13+ profiles.';
+    final clean = message.trim();
+    if (clean.isEmpty) return 'Enter a message first.';
+    try {
+      await _requestJson(
+        'POST',
+        '/api/v1/social/messages',
+        body: {'playerId': playerId, 'message': clean},
+      );
+      await loadFriendMessages();
+      return '';
+    } catch (error) {
+      final result = _cleanApiError(error);
+      socialError = result;
+      notifyListeners();
+      return result;
+    }
+  }
+
+  Future<String> _socialMutation(
+    String path, {
+    required String targetPlayerId,
+    required String success,
+  }) async {
+    try {
+      await _requestJson(
+        'POST',
+        path,
+        body: {
+          'playerId': playerId,
+          'targetPlayerId': targetPlayerId,
+        },
+      );
+      await refreshSocial();
+      return success;
+    } catch (error) {
+      final message = _cleanApiError(error);
+      socialError = message;
+      notifyListeners();
+      return message;
+    }
+  }
+
+  Future<Map<String, dynamic>> _requestJson(
+    String method,
+    String path, {
+    Map<String, String>? query,
+    Map<String, dynamic>? body,
+  }) async {
+    if (authToken == null || authToken!.isEmpty) {
+      await _ensureAuthenticatedIdentity();
+    }
+    final uri = Uri.parse('$_backendUrl$path').replace(queryParameters: query);
+    final response = method == 'GET'
+        ? await http
+            .get(uri, headers: _authorizedHeaders())
+            .timeout(const Duration(seconds: 7))
+        : await http
+            .post(
+              uri,
+              headers: _authorizedHeaders(),
+              body: jsonEncode(body ?? const <String, dynamic>{}),
+            )
+            .timeout(const Duration(seconds: 7));
+    final decoded = response.body.isEmpty
+        ? <String, dynamic>{}
+        : jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode >= 400) {
+      throw StateError(decoded['error'] as String? ??
+          'Request failed (${response.statusCode}).');
+    }
+    return decoded;
+  }
+
+  Map<String, String> _authorizedHeaders() {
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    final token = authToken;
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+    return headers;
+  }
+
+  List<SocialPlayer> _socialPlayers(dynamic value) {
+    final raw = value as List<dynamic>? ?? const [];
+    return raw
+        .whereType<Map<String, dynamic>>()
+        .map(SocialPlayer.fromJson)
+        .where((player) => player.id.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  String _cleanApiError(Object error) {
+    final message = error.toString().replaceFirst('Bad state: ', '').trim();
+    return message.isEmpty ? 'Could not reach the social service.' : message;
   }
 
   void toggleDarkMode() {
@@ -1721,15 +2193,58 @@ class AppState extends ChangeNotifier {
 
   int get dailyRewardAmount => 150;
 
-  bool claimDailyReward() {
-    if (!canClaimDailyReward) return false;
+  Future<bool> claimDailyReward() async {
     SoundService.tap();
-    coins = (coins + dailyRewardAmount).clamp(0, 99999999);
-    lastDailyRewardDate = _todayKey();
-    _prefs.coins = coins;
-    _prefs.lastDailyRewardDate = lastDailyRewardDate;
-    notifyListeners();
-    return true;
+    try {
+      final json = await _requestJson(
+        'POST',
+        '/api/v1/social/rewards/daily',
+        body: {'playerId': playerId},
+      );
+      final claimed = json['claimed'] == true;
+      coins = _readInt(json['coins'], fallback: coins);
+      lastDailyRewardDate =
+          (json['periodKey'] as String? ?? _todayKey()).trim();
+      _prefs.coins = coins;
+      _prefs.lastDailyRewardDate = lastDailyRewardDate;
+      socialError = '';
+      notifyListeners();
+      return claimed;
+    } catch (error) {
+      socialError = _cleanApiError(error);
+      notifyListeners();
+      return false;
+    }
+  }
+
+  int get availableGoldChests => economySynced
+      ? _availableGoldChests
+      : math.max(0, 1 + (wins ~/ 3) - claimedGoldChests);
+
+  Future<bool> claimGoldChest() async {
+    try {
+      final json = await _requestJson(
+        'POST',
+        '/api/v1/social/rewards/gold-chest',
+        body: {'playerId': playerId},
+      );
+      coins = _readInt(json['coins'], fallback: coins);
+      _availableGoldChests = _readInt(
+        json['availableGoldChests'],
+        fallback: math.max(0, availableGoldChests - 1),
+      );
+      economySynced = true;
+      claimedGoldChests++;
+      _prefs.claimedGoldChests = claimedGoldChests;
+      _prefs.coins = coins;
+      socialError = '';
+      notifyListeners();
+      return json['claimed'] == true;
+    } catch (error) {
+      socialError = _cleanApiError(error);
+      notifyListeners();
+      return false;
+    }
   }
 
   void setDiceSkin(String value) {
@@ -1814,6 +2329,7 @@ class AppState extends ChangeNotifier {
     if (autoRollEnabled == value) return;
     SoundService.tap();
     autoRollEnabled = value;
+    _prefs.autoRollEnabled = autoRollEnabled;
     _autoRollTimer?.cancel();
     _autoRollTimer = null;
     if (value) {
@@ -1900,33 +2416,25 @@ class AppState extends ChangeNotifier {
         '${now.day.toString().padLeft(2, '0')}';
   }
 
-  String _generatePrivateCode() {
-    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    return List<String>.generate(
-      6,
-      (_) => alphabet[_rng.nextInt(alphabet.length)],
-    ).join();
-  }
-
   String get matchmakingRegion {
     switch (countryCode.toUpperCase()) {
       case 'IN':
       case 'PK':
       case 'BD':
       case 'LK':
-        return 'ap-south';
+        return 'south-asia';
       case 'GB':
       case 'DE':
       case 'FR':
       case 'ES':
-        return 'eu-west';
+        return 'europe';
       case 'AE':
       case 'SA':
-        return 'me-central';
+        return 'middle-east';
       case 'AU':
-        return 'ap-southeast';
+        return 'east-asia';
       case 'BR':
-        return 'sa-east';
+        return 'us-east';
       case 'CA':
       case 'US':
       default:
@@ -1973,20 +2481,6 @@ class AppState extends ChangeNotifier {
       _prefs.avatarImagePath = null;
     }
     notifyListeners();
-  }
-
-  void addCoins(int amount) {
-    coins = (coins + amount).clamp(0, 99999999);
-    _prefs.coins = coins;
-    notifyListeners();
-  }
-
-  bool spendCoins(int amount) {
-    if (amount <= 0) return true;
-    if (coins < amount) return false;
-    coins = (coins - amount).clamp(0, 99999999);
-    _prefs.coins = coins;
-    notifyListeners();
-    return true;
+    unawaited(syncSocialProfile());
   }
 }

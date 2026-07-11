@@ -275,6 +275,15 @@ export class LudoRoom extends DurableObject<Env> {
       throw new Error("Only seated players can send reactions.");
     }
 
+    if (!isEmoji) {
+      const profile = await this.env.DB.prepare("SELECT age FROM users WHERE id = ?")
+        .bind(actor)
+        .first<{ age: number }>();
+      if ((profile?.age ?? 0) < 13) {
+        throw new Error("Table chat is only available to players age 13 or older.");
+      }
+    }
+
     const text = (rawText ?? "").trim().slice(0, MAX_REACTION_LENGTH);
     if (!text) {
       return;

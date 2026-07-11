@@ -61,4 +61,26 @@ describe("app config", () => {
     expect(body.minimumBuildNumber).toBe(3);
     expect(body.latestBuildNumber).toBe(9);
   });
+
+  it("prefers the release published by the Play upload workflow", () => {
+    const body = buildAppConfig(
+      {
+        MIN_ANDROID_BUILD_NUMBER: "1",
+        LATEST_ANDROID_BUILD_NUMBER: "1"
+      },
+      "android",
+      10042,
+      {
+        minimumBuildNumber: 10043,
+        latestBuildNumber: 10043,
+        latestVersionName: "1.0.43",
+        forceLatestBuild: true
+      }
+    );
+
+    expect(body.forceUpdate).toBe(true);
+    expect(body.minimumBuildNumber).toBe(10043);
+    expect(body.latestBuildNumber).toBe(10043);
+    expect(body.latestVersionName).toBe("1.0.43");
+  });
 });

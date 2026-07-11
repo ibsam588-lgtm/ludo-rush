@@ -27,7 +27,7 @@ android {
     // Hardcode SDK levels — flutter.compileSdkVersion / flutter.targetSdkVersion
     // can resolve to stale/wrong values depending on plugin evaluation order.
     compileSdk 36
-    ndkVersion "25.1.8937393"
+    ndkVersion "26.1.10909125"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17

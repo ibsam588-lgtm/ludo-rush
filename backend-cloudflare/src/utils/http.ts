@@ -1,6 +1,7 @@
 export function json(data: unknown, init: ResponseInit = {}): Response {
   const headers = new Headers(init.headers);
   headers.set("content-type", "application/json; charset=utf-8");
+  headers.set("access-control-allow-origin", "*");
 
   return new Response(JSON.stringify(data), {
     ...init,
@@ -10,6 +11,10 @@ export function json(data: unknown, init: ResponseInit = {}): Response {
 
 export function badRequest(message: string): Response {
   return json({ error: message }, { status: 400 });
+}
+
+export function unauthorized(message = "Authentication is required."): Response {
+  return json({ error: message }, { status: 401 });
 }
 
 export function notFound(): Response {

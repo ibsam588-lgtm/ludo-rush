@@ -3,9 +3,9 @@ main = "src/index.ts"
 compatibility_date = "2026-06-07"
 
 [vars]
-MIN_ANDROID_BUILD_NUMBER = "1"
-LATEST_ANDROID_BUILD_NUMBER = "1"
-LATEST_ANDROID_VERSION_NAME = "1.0.0"
+MIN_ANDROID_BUILD_NUMBER = "10042"
+LATEST_ANDROID_BUILD_NUMBER = "10042"
+LATEST_ANDROID_VERSION_NAME = "1.0.42"
 FORCE_LATEST_ANDROID_BUILD = "true"
 ANDROID_UPDATE_URL = "https://play.google.com/store/apps/details?id=com.ludorush.game"
 FORCE_UPDATE_MESSAGE = "A newer version of Ludo Rush is required to keep matchmaking, rewards, and game rules in sync."
