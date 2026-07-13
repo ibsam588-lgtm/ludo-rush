@@ -1,5 +1,6 @@
 import type { Env } from "./types";
 import { authenticatedPlayerId } from "./auth";
+import { ECONOMY, earnedGoldChests } from "./economy";
 import { badRequest, json, notFound, readJson, unauthorized } from "./utils/http";
 import { createId } from "./utils/id";
 
@@ -12,6 +13,7 @@ interface SocialBody {
   countryCode?: string;
   avatarKey?: string;
   age?: number;
+  clubId?: string;
 }
 
 interface UserRow {
@@ -27,12 +29,6 @@ interface FriendshipRow {
   requested_by: string;
   status: "pending" | "accepted";
 }
-
-const COIN_GIFTS: Record<string, number> = {
-  lucky_dice: 25,
-  coin_ship: 50,
-  crown_chest: 125
-};
 
 export async function routeSocialRequest(
   request: Request,
@@ -56,6 +52,12 @@ export async function routeSocialRequest(
   if (request.method === "POST" && url.pathname === "/api/v1/social/friends/remove") {
     return removeFriend(request, env, playerId);
   }
+  if (request.method === "POST" && url.pathname === "/api/v1/social/clubs/join") {
+    return joinClub(request, env, playerId);
+  }
+  if (request.method === "POST" && url.pathname === "/api/v1/social/clubs/leave") {
+    return leaveClub(env, playerId);
+  }
   if (request.method === "POST" && url.pathname === "/api/v1/social/gifts") {
     return sendGift(request, env, playerId);
   }
@@ -77,7 +79,7 @@ export async function routeSocialRequest(
 async function socialOverview(env: Env, playerId: string): Promise<Response> {
   if (!playerId) return badRequest("playerId is required.");
 
-  const [friends, incoming, outgoing, recent, gifts, wallet, stats, chestClaims] = await Promise.all([
+  const [friends, incoming, outgoing, recent, gifts, wallet, stats, chestClaims, purchases, currentClub, clubs] = await Promise.all([
     socialUsers(env, playerId, "accepted"),
     socialUsers(env, playerId, "pending", "incoming"),
     socialUsers(env, playerId, "pending", "outgoing"),
@@ -101,11 +103,38 @@ async function socialOverview(env: Env, playerId: string): Promise<Response> {
     ).bind(playerId, playerId).first<{ gamesPlayed: number; wins: number }>(),
     env.DB.prepare(
       "SELECT COUNT(*) AS claimed FROM reward_claims WHERE user_id = ? AND reward_id = 'gold_chest'"
-    ).bind(playerId).first<{ claimed: number }>()
+    ).bind(playerId).first<{ claimed: number }>(),
+    env.DB.prepare(
+      "SELECT DISTINCT product_id AS productId FROM purchases WHERE user_id = ? AND status = 'verified' ORDER BY product_id"
+    ).bind(playerId).all<{ productId: string }>(),
+    env.DB.prepare(
+      `SELECT c.id, c.name, c.tag, c.description,
+              c.minimum_rating AS minimumRating,
+              cm.contribution,
+              (SELECT COUNT(*) FROM club_members members WHERE members.club_id = c.id) AS memberCount,
+              (SELECT COALESCE(SUM(u.rating), 0)
+                 FROM club_members members
+                 JOIN users u ON u.id = members.user_id
+                WHERE members.club_id = c.id) AS ratingTotal
+         FROM club_members cm
+         JOIN clubs c ON c.id = cm.club_id
+        WHERE cm.user_id = ?`
+    ).bind(playerId).first(),
+    env.DB.prepare(
+      `SELECT c.id, c.name, c.tag, c.description,
+              c.minimum_rating AS minimumRating,
+              COUNT(cm.user_id) AS memberCount,
+              COALESCE(SUM(u.rating), 0) AS ratingTotal
+         FROM clubs c
+         LEFT JOIN club_members cm ON cm.club_id = c.id
+         LEFT JOIN users u ON u.id = cm.user_id
+        GROUP BY c.id, c.name, c.tag, c.description, c.minimum_rating
+        ORDER BY memberCount DESC, c.minimum_rating ASC, c.name ASC`
+    ).all()
   ]);
 
   const onlineWins = stats?.wins ?? 0;
-  const earnedGoldChests = 1 + Math.floor(onlineWins / 3);
+  const earnedChests = earnedGoldChests(onlineWins);
 
   return json({
     friends,
@@ -116,20 +145,74 @@ async function socialOverview(env: Env, playerId: string): Promise<Response> {
     coins: wallet?.coins ?? 0,
     gamesPlayed: stats?.gamesPlayed ?? 0,
     wins: onlineWins,
-    availableGoldChests: Math.max(0, earnedGoldChests - (chestClaims?.claimed ?? 0))
+    availableGoldChests: Math.max(0, earnedChests - (chestClaims?.claimed ?? 0)),
+    ownedProductIds: (purchases.results ?? []).map((purchase) => purchase.productId),
+    currentClub: currentClub ?? null,
+    clubs: clubs.results ?? []
   });
+}
+
+const RARE_AVATAR_WINS = new Map<number, number>([
+  [4, 3],
+  [5, 6],
+  [6, 9],
+  [7, 12]
+]);
+
+const PREMIUM_AVATAR_PRODUCTS = new Map<number, string>([
+  [8, "avatar.premium_cosmic_empress"],
+  [9, "avatar.premium_gold_champion"],
+  [10, "avatar.premium_neon_heroine"],
+  [11, "avatar.premium_emerald_prince"]
+]);
+
+async function joinClub(request: Request, env: Env, playerId: string): Promise<Response> {
+  const body = await readJson<SocialBody>(request);
+  const clubId = (body.clubId ?? "").trim();
+  if (!clubId) return badRequest("clubId is required.");
+
+  const [club, user] = await Promise.all([
+    env.DB.prepare("SELECT id, minimum_rating AS minimumRating FROM clubs WHERE id = ?")
+      .bind(clubId).first<{ id: string; minimumRating: number }>(),
+    env.DB.prepare("SELECT rating FROM users WHERE id = ?")
+      .bind(playerId).first<{ rating: number }>()
+  ]);
+  if (!club) return json({ error: "Club was not found." }, { status: 404 });
+  if ((user?.rating ?? 0) < club.minimumRating) {
+    return json(
+      { error: `This club requires rating ${club.minimumRating}.` },
+      { status: 409 }
+    );
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO club_members (user_id, club_id, contribution, joined_at)
+     VALUES (?, ?, 0, ?)
+     ON CONFLICT(user_id) DO UPDATE SET
+       club_id = excluded.club_id,
+       contribution = 0,
+       joined_at = excluded.joined_at`
+  ).bind(playerId, clubId, Date.now()).run();
+  return json({ status: "joined", clubId });
+}
+
+async function leaveClub(env: Env, playerId: string): Promise<Response> {
+  await env.DB.prepare("DELETE FROM club_members WHERE user_id = ?")
+    .bind(playerId).run();
+  return json({ status: "left" });
 }
 
 async function claimDailyReward(env: Env, playerId: string): Promise<Response> {
   const periodKey = new Date().toISOString().slice(0, 10);
-  const claim = await env.DB.prepare(
-    "INSERT OR IGNORE INTO reward_claims (user_id, reward_id, period_key, claimed_at) VALUES (?, 'daily_coins', ?, ?)"
-  ).bind(playerId, periodKey, Date.now()).run();
-  if (claim.meta.changes === 1) {
-    await env.DB.prepare(
-      "UPDATE wallets SET coins = coins + 150, updated_at = ? WHERE user_id = ?"
-    ).bind(Date.now(), playerId).run();
-  }
+  const now = Date.now();
+  const [claim] = await env.DB.batch([
+    env.DB.prepare(
+      "INSERT OR IGNORE INTO reward_claims (user_id, reward_id, period_key, claimed_at) VALUES (?, 'daily_coins', ?, ?)"
+    ).bind(playerId, periodKey, now),
+    env.DB.prepare(
+      "UPDATE wallets SET coins = coins + ?, updated_at = ? WHERE user_id = ? AND changes() = 1"
+    ).bind(ECONOMY.dailyCoins, now, playerId)
+  ]);
   const wallet = await env.DB.prepare("SELECT coins FROM wallets WHERE user_id = ?")
     .bind(playerId).first<{ coins: number }>();
   return json({
@@ -151,20 +234,29 @@ async function claimGoldChest(env: Env, playerId: string): Promise<Response> {
       "SELECT COUNT(*) AS count FROM reward_claims WHERE user_id = ? AND reward_id = 'gold_chest'"
     ).bind(playerId).first<{ count: number }>()
   ]);
-  const available = 1 + Math.floor((stats?.wins ?? 0) / 3) - (claimed?.count ?? 0);
+  const available =
+    earnedGoldChests(stats?.wins ?? 0) - (claimed?.count ?? 0);
   if (available <= 0) {
-    return json({ error: "No Gold Chest is ready. Earn one every 3 online wins." }, { status: 409 });
+    return json(
+      {
+        error: `No Gold Chest is ready. Earn one every ${ECONOMY.winsPerGoldChest} online wins.`
+      },
+      { status: 409 }
+    );
   }
   const ordinal = (claimed?.count ?? 0) + 1;
-  const claim = await env.DB.prepare(
-    "INSERT OR IGNORE INTO reward_claims (user_id, reward_id, period_key, claimed_at) VALUES (?, 'gold_chest', ?, ?)"
-  ).bind(playerId, `chest_${ordinal}`, Date.now()).run();
+  const now = Date.now();
+  const [claim] = await env.DB.batch([
+    env.DB.prepare(
+      "INSERT OR IGNORE INTO reward_claims (user_id, reward_id, period_key, claimed_at) VALUES (?, 'gold_chest', ?, ?)"
+    ).bind(playerId, `chest_${ordinal}`, now),
+    env.DB.prepare(
+      "UPDATE wallets SET coins = coins + ?, updated_at = ? WHERE user_id = ? AND changes() = 1"
+    ).bind(ECONOMY.goldChestCoins, now, playerId)
+  ]);
   if (claim.meta.changes !== 1) {
     return json({ error: "This Gold Chest was already claimed." }, { status: 409 });
   }
-  await env.DB.prepare(
-    "UPDATE wallets SET coins = coins + 500, updated_at = ? WHERE user_id = ?"
-  ).bind(Date.now(), playerId).run();
   const wallet = await env.DB.prepare("SELECT coins FROM wallets WHERE user_id = ?")
     .bind(playerId).first<{ coins: number }>();
   return json({
@@ -180,7 +272,12 @@ async function updateProfile(request: Request, env: Env, playerId: string): Prom
   const displayName = cleanName(body.displayName);
   const age = clampInt(body.age, 0, 120);
   const countryCode = (body.countryCode ?? "US").trim().toUpperCase().slice(0, 2) || "US";
-  const avatarKey = (body.avatarKey ?? "").trim().slice(0, 80) || null;
+  const avatarKey = await authorizedAvatarKey(
+    env,
+    playerId,
+    body.avatarKey
+  );
+  if (avatarKey instanceof Response) return avatarKey;
   const now = Date.now();
 
   await env.DB.batch([
@@ -193,13 +290,55 @@ async function updateProfile(request: Request, env: Env, playerId: string): Prom
          country_code = excluded.country_code,
          avatar_key = excluded.avatar_key,
          last_seen_at = excluded.last_seen_at`
-    ).bind(body.playerId, displayName, now, now, age, countryCode, avatarKey),
+    ).bind(playerId, displayName, now, now, age, countryCode, avatarKey),
     env.DB.prepare(
-      "INSERT INTO wallets (user_id, coins, updated_at) VALUES (?, 500, ?) ON CONFLICT(user_id) DO NOTHING"
-    ).bind(body.playerId, now)
+      "INSERT INTO wallets (user_id, coins, updated_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO NOTHING"
+    ).bind(playerId, ECONOMY.startingCoins, now)
   ]);
 
   return json({ ok: true });
+}
+
+async function authorizedAvatarKey(
+  env: Env,
+  playerId: string,
+  requestedKey: string | undefined
+): Promise<string | Response> {
+  const match = /^preset_(\d{1,2})$/.exec((requestedKey ?? "").trim());
+  const preset = match ? Number.parseInt(match[1], 10) : 0;
+  if (preset >= 0 && preset <= 3) return `preset_${preset}`;
+
+  const requiredWins = RARE_AVATAR_WINS.get(preset);
+  if (requiredWins !== undefined) {
+    const stats = await env.DB.prepare(
+      `SELECT SUM(CASE WHEN m.winner_user_id = ? THEN 1 ELSE 0 END) AS wins
+       FROM match_players mp
+       JOIN matches m ON m.id = mp.match_id AND m.status = 'finished'
+       WHERE mp.user_id = ?`
+    ).bind(playerId, playerId).first<{ wins: number | null }>();
+    if ((stats?.wins ?? 0) >= requiredWins) return `preset_${preset}`;
+    return json(
+      { error: `This avatar unlocks after ${requiredWins} online wins.` },
+      { status: 409 }
+    );
+  }
+
+  const productId = PREMIUM_AVATAR_PRODUCTS.get(preset);
+  if (productId) {
+    const purchase = await env.DB.prepare(
+      `SELECT 1 AS owned
+       FROM purchases
+       WHERE user_id = ? AND product_id = ? AND status = 'verified'
+       LIMIT 1`
+    ).bind(playerId, productId).first<{ owned: number }>();
+    if (purchase) return `preset_${preset}`;
+    return json(
+      { error: "This premium avatar requires a verified Google Play purchase." },
+      { status: 402 }
+    );
+  }
+
+  return "preset_0";
 }
 
 async function requestFriend(request: Request, env: Env, authenticatedId: string): Promise<Response> {
@@ -265,7 +404,7 @@ async function sendGift(request: Request, env: Env, authenticatedId: string): Pr
   if (ids instanceof Response) return ids;
   const [playerId, targetPlayerId] = ids;
   const giftId = (body.giftId ?? "").trim();
-  const coinCost = COIN_GIFTS[giftId];
+  const coinCost = ECONOMY.giftCoinCosts[giftId];
   if (coinCost === undefined) {
     return json({ error: "Premium gifts require a verified Google Play purchase." }, { status: 402 });
   }
@@ -273,16 +412,28 @@ async function sendGift(request: Request, env: Env, authenticatedId: string): Pr
     return json({ error: "Gifts can only be sent to accepted friends." }, { status: 403 });
   }
 
-  const debit = await env.DB.prepare(
-    "UPDATE wallets SET coins = coins - ?, updated_at = ? WHERE user_id = ? AND coins >= ?"
-  ).bind(coinCost, Date.now(), playerId, coinCost).run();
+  const now = Date.now();
+  const [debit] = await env.DB.batch([
+    env.DB.prepare(
+      "UPDATE wallets SET coins = coins - ?, updated_at = ? WHERE user_id = ? AND coins >= ?"
+    ).bind(coinCost, now, playerId, coinCost),
+    env.DB.prepare(
+      `INSERT INTO friend_gifts
+         (id, sender_user_id, recipient_user_id, gift_id, coin_cost, created_at)
+       SELECT ?, ?, ?, ?, ?, ?
+       WHERE changes() = 1`
+    ).bind(
+      createId("gift"),
+      playerId,
+      targetPlayerId,
+      giftId,
+      coinCost,
+      now
+    )
+  ]);
   if (debit.meta.changes !== 1) {
     return json({ error: "Not enough coins for this gift." }, { status: 409 });
   }
-
-  await env.DB.prepare(
-    "INSERT INTO friend_gifts (id, sender_user_id, recipient_user_id, gift_id, coin_cost, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-  ).bind(createId("gift"), playerId, targetPlayerId, giftId, coinCost, Date.now()).run();
   const wallet = await env.DB.prepare("SELECT coins FROM wallets WHERE user_id = ?")
     .bind(playerId).first<{ coins: number }>();
   return json({ status: "sent", coins: wallet?.coins ?? 0 });

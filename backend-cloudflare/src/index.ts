@@ -1,5 +1,6 @@
 import { buildAppConfig, parsePositiveInt } from "./app-config";
 import { authenticatedPlayerId, issueSession } from "./auth";
+import { ECONOMY } from "./economy";
 import { LudoRoom } from "./durable-objects/LudoRoom";
 import { MAX_PLAYERS_BY_MODE } from "./game/rules";
 import type { BackgroundJob, Env, GameMode, Region } from "./types";
@@ -193,7 +194,8 @@ async function createGuest(request: Request, env: Env): Promise<Response> {
   const region = body.region ?? DEFAULT_REGION;
   const age = Number.isFinite(body.age) ? Math.min(120, Math.max(0, Math.trunc(body.age!))) : 0;
   const countryCode = (body.countryCode ?? "US").trim().toUpperCase().slice(0, 2) || "US";
-  const avatarKey = (body.avatarKey ?? "").trim().slice(0, 80) || null;
+  const avatarMatch = /^preset_([0-3])$/.exec((body.avatarKey ?? "").trim());
+  const avatarKey = avatarMatch?.[0] ?? "preset_0";
 
   await env.DB.batch([
     env.DB.prepare(
@@ -209,7 +211,7 @@ async function createGuest(request: Request, env: Env): Promise<Response> {
     ).bind(userId, displayName, region, now, now, age, countryCode, avatarKey),
     env.DB.prepare(
       "INSERT INTO wallets (user_id, coins, updated_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO NOTHING"
-    ).bind(userId, 500, now)
+    ).bind(userId, ECONOMY.startingCoins, now)
   ]);
 
   const [user, wallet, token] = await Promise.all([
@@ -228,7 +230,7 @@ async function createGuest(request: Request, env: Env): Promise<Response> {
         displayName: user?.display_name ?? displayName,
         region: user?.region ?? region,
         rating: user?.rating ?? 1000,
-        coins: wallet?.coins ?? 500
+        coins: wallet?.coins ?? ECONOMY.startingCoins
       }
     },
     { status: 201 }
@@ -481,7 +483,7 @@ async function ensureMatchmakingUser(
     ).bind(playerId, cleanName, region, now, now),
     env.DB.prepare(
       "INSERT INTO wallets (user_id, coins, updated_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO NOTHING"
-    ).bind(playerId, 500, now)
+    ).bind(playerId, ECONOMY.startingCoins, now)
   ]);
   const user = await env.DB.prepare("SELECT rating FROM users WHERE id = ?")
     .bind(playerId).first<{ rating: number }>();

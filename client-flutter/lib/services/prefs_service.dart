@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import '../data/economy.dart';
 
 class PrefsService {
   SharedPreferences? _prefs;
@@ -46,7 +47,7 @@ class PrefsService {
     }
   }
 
-  int get coins => _prefs?.getInt('coins') ?? 500;
+  int get coins => _prefs?.getInt('coins') ?? GameEconomy.startingCoins;
   set coins(int v) => _prefs?.setInt('coins', v);
 
   int get rating => _prefs?.getInt('rating') ?? 1000;

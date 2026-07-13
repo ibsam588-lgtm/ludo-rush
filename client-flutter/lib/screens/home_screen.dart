@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
+import '../data/profile_catalog.dart';
+import '../data/economy.dart';
 import '../state/app_state.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
@@ -70,7 +72,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   Navigator.pushNamed(context, '/shop');
                   return;
                 }
-                if (index == 1) unawaited(state.refreshSocial());
+                if (index == 1 || index == 3 || index == 4) {
+                  unawaited(state.refreshSocial());
+                }
                 setState(() => _tabIndex = index);
               },
             ),
@@ -176,9 +180,10 @@ String _privateModeForPlayers(int players) {
 class _HomeBoardThemeOption {
   final String id;
   final String label;
+  final String asset;
   final List<Color> colors;
 
-  const _HomeBoardThemeOption(this.id, this.label, this.colors);
+  const _HomeBoardThemeOption(this.id, this.label, this.asset, this.colors);
 }
 
 class _GiftShopItem {
@@ -209,22 +214,26 @@ class _GiftShopItem {
 }
 
 const _homeBoardThemes = [
-  _HomeBoardThemeOption('carnival', 'Carnival', [
+  _HomeBoardThemeOption('carnival', 'Carnival',
+      'assets/images/rush/rush_snakes_frame_carnival_mobile_v1.jpg', [
     Color(0xFFFF36B8),
     Color(0xFFFFD426),
     Color(0xFF22B7FF),
   ]),
-  _HomeBoardThemeOption('royal', 'Royal', [
+  _HomeBoardThemeOption('royal', 'Royal',
+      'assets/images/rush/rush_snakes_frame_royal_mobile_v1.jpg', [
     Color(0xFF5B2CFF),
     Color(0xFFFFD426),
     Color(0xFFB145FF),
   ]),
-  _HomeBoardThemeOption('neon', 'Neon', [
+  _HomeBoardThemeOption('neon', 'Neon',
+      'assets/images/rush/rush_snakes_frame_neon_mobile_v1.jpg', [
     Color(0xFF00F5FF),
     Color(0xFFFF35D6),
     Color(0xFF6EFF3A),
   ]),
-  _HomeBoardThemeOption('classic', 'Classic', [
+  _HomeBoardThemeOption('classic', 'Classic',
+      'assets/images/rush/rush_snakes_frame_classic_mobile_v1.jpg', [
     Color(0xFFFF3B3F),
     Color(0xFF2DBB52),
     Color(0xFF1E9BFF),
@@ -236,7 +245,7 @@ const _giftShopItems = [
     id: 'lucky_dice',
     title: 'Lucky Dice',
     subtitle: 'One bright dice reaction',
-    cost: '25 coins',
+    cost: '${GameEconomy.luckyDiceGiftCoins} coins',
     rarity: 'COMMON',
     icon: Icons.casino_rounded,
     colors: [Color(0xFFFFF4AF), Color(0xFFFFB22D), Color(0xFFE85A00)],
@@ -245,7 +254,7 @@ const _giftShopItems = [
     id: 'coin_ship',
     title: 'Coin Ship',
     subtitle: 'Gift boat with coins',
-    cost: '50 coins',
+    cost: '${GameEconomy.coinShipGiftCoins} coins',
     rarity: 'COMMON',
     icon: Icons.sailing_rounded,
     colors: [Color(0xFF5CEBFF), Color(0xFF2E7CFF), Color(0xFFFFD426)],
@@ -254,7 +263,7 @@ const _giftShopItems = [
     id: 'crown_chest',
     title: 'Crown Chest',
     subtitle: 'Rare chest animation',
-    cost: '125 coins',
+    cost: '${GameEconomy.crownChestGiftCoins} coins',
     rarity: 'RARE',
     icon: Icons.workspace_premium_rounded,
     colors: [Color(0xFFFFD426), Color(0xFFFF5D6C), Color(0xFF7A20C8)],
@@ -336,6 +345,7 @@ void _showSnakesBoardSheet(
       return StatefulBuilder(
         builder: (context, setSheetState) {
           final unlocked = state.isBoardThemeUnlocked(selectedTheme);
+          final compactSheet = MediaQuery.sizeOf(context).height < 720;
           return _HomeActionSheet(
             title: 'Snakes Board',
             child: Column(
@@ -352,8 +362,8 @@ void _showSnakesBoardSheet(
                   ),
                 ),
                 const SizedBox(height: 12),
-                AspectRatio(
-                  aspectRatio: 0.86,
+                SizedBox(
+                  height: compactSheet ? 225 : 340,
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
@@ -378,29 +388,38 @@ void _showSnakesBoardSheet(
                   ),
                 ),
                 const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final option in _homeBoardThemes)
-                      _HomeThemeButton(
+                SizedBox(
+                  height: compactSheet ? 92 : 112,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: _homeBoardThemes.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final option = _homeBoardThemes[index];
+                      final optionUnlocked =
+                          state.isBoardThemeUnlocked(option.id);
+                      final premium = state.boardThemePremiumPrice(option.id);
+                      final status = optionUnlocked
+                          ? 'OWNED'
+                          : premium ??
+                              '${state.boardThemeRequiredWins(option.id)} WINS';
+                      return _HomeThemeButton(
                         option: option,
                         selected: selectedTheme == option.id,
+                        locked: !optionUnlocked,
+                        status: status,
+                        width: compactSheet ? 140 : 154,
                         onTap: () {
                           selectedTheme = option.id;
-                          if (state.isBoardThemeUnlocked(option.id)) {
+                          if (optionUnlocked) {
                             state.setSnakesBoardTheme(option.id);
                           }
                           setSheetState(() {});
-                          if (!state.isBoardThemeUnlocked(option.id)) {
-                            _showFeatureSnack(
-                              context,
-                              state.boardThemeUnlockLabel(option.id),
-                            );
-                          }
                         },
-                      ),
-                  ],
+                      );
+                    },
+                  ),
                 ),
                 if (!unlocked) ...[
                   const SizedBox(height: 10),
@@ -445,49 +464,117 @@ void _showRewardsEconomySheet(BuildContext context, AppState state) {
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
-    builder: (_) {
+    builder: (sheetContext) {
       return _HomeActionSheet(
         title: 'Rewards',
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _EconomyHint(
-              icon: Icons.emoji_events_rounded,
-              text: state.rewardEconomySummary(),
-            ),
-            const SizedBox(height: 10),
-            const _EconomyTierCard(
-              title: 'Common',
-              subtitle: 'Daily coins, carnival board, basic dice, small gifts.',
-              accent: boardGreen,
-              icon: Icons.card_giftcard_rounded,
-            ),
-            const SizedBox(height: 8),
-            const _EconomyTierCard(
-              title: 'Rare',
-              subtitle: 'Unlocked by wins: royal dice, neon dice, royal board.',
-              accent: boardBlue,
-              icon: Icons.workspace_premium_rounded,
-            ),
-            const SizedBox(height: 8),
-            const _EconomyTierCard(
-              title: 'Premium',
-              subtitle: 'Optional cosmetics and gifts from 0.99 to 1.99 USD.',
-              accent: boardPurple,
-              icon: Icons.diamond_rounded,
-            ),
-            const SizedBox(height: 12),
-            _HomeSheetButton(
-              label: 'Open Shop',
-              icon: Icons.storefront_rounded,
-              color: goldColor,
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/shop');
-              },
-            ),
-          ],
+        child: Consumer<AppState>(
+          builder: (context, liveState, _) {
+            final chestProgress = liveState.wins % GameEconomy.winsPerGoldChest;
+            final winsToChest = chestProgress == 0
+                ? GameEconomy.winsPerGoldChest
+                : GameEconomy.winsPerGoldChest - chestProgress;
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _EconomyHint(
+                  icon: Icons.account_balance_wallet_rounded,
+                  text:
+                      '${liveState.coins} coins available. Online wins pay ${GameEconomy.onlineWinCoins} coins; other online finishes pay ${GameEconomy.onlineFinishCoins}.',
+                ),
+                const SizedBox(height: 10),
+                _EconomyTierCard(
+                  title: liveState.canClaimDailyReward
+                      ? 'Daily Coins Ready'
+                      : 'Daily Coins Claimed',
+                  subtitle:
+                      'One server-verified claim each day adds ${liveState.dailyRewardAmount} coins.',
+                  accent: boardGreen,
+                  icon: Icons.card_giftcard_rounded,
+                ),
+                const SizedBox(height: 8),
+                _EconomyTierCard(
+                  title:
+                      '${liveState.availableGoldChests} Gold Chest${liveState.availableGoldChests == 1 ? '' : 's'} Ready',
+                  subtitle: liveState.availableGoldChests > 0
+                      ? 'Each chest adds ${GameEconomy.goldChestCoins} coins.'
+                      : '$winsToChest more online ${winsToChest == 1 ? 'win' : 'wins'} earns the next ${GameEconomy.goldChestCoins}-coin chest.',
+                  accent: goldColor,
+                  icon: Icons.inventory_2_rounded,
+                ),
+                const SizedBox(height: 8),
+                _EconomyTierCard(
+                  title: 'Cosmetic Progress',
+                  subtitle: liveState.rewardEconomySummary(),
+                  accent: boardBlue,
+                  icon: Icons.auto_awesome_rounded,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _HomeSheetButton(
+                        label: liveState.canClaimDailyReward
+                            ? 'Claim Daily'
+                            : 'Daily Claimed',
+                        icon: Icons.card_giftcard_rounded,
+                        color: boardGreen,
+                        onTap: () async {
+                          final claimed = await liveState.claimDailyReward();
+                          if (!sheetContext.mounted) return;
+                          _showFeatureSnack(
+                            sheetContext,
+                            claimed
+                                ? '+${liveState.dailyRewardAmount} coins claimed.'
+                                : (liveState.socialError.isNotEmpty
+                                    ? liveState.socialError
+                                    : 'Daily coins are already claimed.'),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _HomeSheetButton(
+                        label: liveState.availableGoldChests > 0
+                            ? 'Open Chest'
+                            : 'Chest Locked',
+                        icon: Icons.inventory_2_rounded,
+                        color: goldColor,
+                        onTap: () async {
+                          if (liveState.availableGoldChests <= 0) {
+                            _showFeatureSnack(
+                              sheetContext,
+                              'Earn one Gold Chest every 3 online wins.',
+                            );
+                            return;
+                          }
+                          final claimed = await liveState.claimGoldChest();
+                          if (!sheetContext.mounted) return;
+                          _showFeatureSnack(
+                            sheetContext,
+                            claimed
+                                ? 'Gold Chest opened. +${GameEconomy.goldChestCoins} coins.'
+                                : liveState.socialError,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                _HomeSheetButton(
+                  label: 'View Cosmetic Shop',
+                  icon: Icons.storefront_rounded,
+                  color: boardPurple,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    Navigator.pushNamed(context, '/shop');
+                  },
+                ),
+              ],
+            );
+          },
         ),
       );
     },
@@ -520,7 +607,7 @@ void _showGiftShopSheet(
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: Image.asset(
-                      'assets/images/rush/rush_gift_ship_shop_v1.png',
+                      'assets/images/rush/rush_gift_ship_shop_mobile_v1.jpg',
                       fit: BoxFit.cover,
                       alignment: Alignment.center,
                       errorBuilder: (_, __, ___) => CustomPaint(
@@ -636,13 +723,15 @@ void _showGiftShopSheet(
   );
 }
 
-void _showPrivateRoomSheet(
+typedef _PrivateRoomIntent = ({String action, String mode, String code});
+
+Future<void> _showPrivateRoomSheet(
   BuildContext context,
   AppState state,
-) {
+) async {
   final codeController = TextEditingController();
   var players = 2;
-  showModalBottomSheet<void>(
+  final intent = await showModalBottomSheet<_PrivateRoomIntent>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -690,8 +779,11 @@ void _showPrivateRoomSheet(
                     color: boardGreen,
                     onTap: () {
                       SoundService.tap();
-                      Navigator.pop(sheetContext);
-                      state.createPrivateRoom(mode);
+                      Navigator.pop(sheetContext, (
+                        action: 'create',
+                        mode: mode,
+                        code: '',
+                      ));
                     },
                   ),
                   const SizedBox(height: 10),
@@ -737,8 +829,11 @@ void _showPrivateRoomSheet(
                               return;
                             }
                             SoundService.tap();
-                            Navigator.pop(sheetContext);
-                            state.joinPrivateRoom(code);
+                            Navigator.pop(sheetContext, (
+                              action: 'join',
+                              mode: mode,
+                              code: code,
+                            ));
                           },
                         ),
                       ),
@@ -750,8 +845,11 @@ void _showPrivateRoomSheet(
                           color: boardPurple,
                           onTap: () {
                             SoundService.tap();
-                            Navigator.pop(sheetContext);
-                            state.startOfflineMatch(mode);
+                            Navigator.pop(sheetContext, (
+                              action: 'offline',
+                              mode: mode,
+                              code: '',
+                            ));
                           },
                         ),
                       ),
@@ -764,7 +862,20 @@ void _showPrivateRoomSheet(
         ),
       );
     },
-  ).whenComplete(codeController.dispose);
+  );
+  codeController.dispose();
+  if (intent == null) return;
+  switch (intent.action) {
+    case 'create':
+      state.createPrivateRoom(intent.mode);
+      return;
+    case 'join':
+      state.joinPrivateRoom(intent.code);
+      return;
+    case 'offline':
+      state.startOfflineMatch(intent.mode);
+      return;
+  }
 }
 
 class _HomeActionSheet extends StatelessWidget {
@@ -809,7 +920,7 @@ class _HomeActionSheet extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: goldColor,
                     fontSize: 23,
                     fontWeight: FontWeight.w900,
@@ -1472,11 +1583,17 @@ class _PlayerCountButton extends StatelessWidget {
 class _HomeThemeButton extends StatelessWidget {
   final _HomeBoardThemeOption option;
   final bool selected;
+  final bool locked;
+  final String status;
+  final double width;
   final VoidCallback onTap;
 
   const _HomeThemeButton({
     required this.option,
     required this.selected,
+    required this.locked,
+    required this.status,
+    required this.width,
     required this.onTap,
   });
 
@@ -1487,8 +1604,7 @@ class _HomeThemeButton extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        width: 154,
-        height: 118,
+        width: width,
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(15),
@@ -1512,10 +1628,70 @@ class _HomeThemeButton extends StatelessWidget {
           children: [
             Positioned.fill(
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 18),
-                child: CustomPaint(
-                  painter: _HomeThemePreviewPainter(option),
-                  child: const SizedBox.expand(),
+                padding: const EdgeInsets.only(bottom: 20),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        option.asset,
+                        fit: BoxFit.fill,
+                        errorBuilder: (_, __, ___) => CustomPaint(
+                          painter: _HomeThemePreviewPainter(option),
+                        ),
+                      ),
+                      CustomPaint(
+                        painter: _HomeThemePreviewPainter(
+                          option,
+                          paintShell: false,
+                        ),
+                      ),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: locked ? Colors.black.withAlpha(80) : null,
+                          gradient: const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Colors.transparent, Color(0xAA16001F)],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              right: 4,
+              top: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(
+                  color: locked
+                      ? const Color(0xDD25052D)
+                      : const Color(0xDD087C3C),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: goldColor, width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      locked ? Icons.lock_rounded : Icons.check_rounded,
+                      color: Colors.white,
+                      size: 10,
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      status,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1594,22 +1770,27 @@ class _HomeThemePreviewPainter extends CustomPainter {
   };
 
   final _HomeBoardThemeOption option;
+  final bool paintShell;
 
-  const _HomeThemePreviewPainter(this.option);
+  const _HomeThemePreviewPainter(this.option, {this.paintShell = true});
 
   @override
   void paint(Canvas canvas, Size size) {
     final p = Paint()..isAntiAlias = true;
     final shell = Offset.zero & size;
-    p.shader = LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: _shellColors,
-    ).createShader(shell);
-    canvas.drawRRect(RRect.fromRectXY(shell, 8, 8), p);
-    p.shader = null;
+    if (paintShell) {
+      p.shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: _shellColors,
+      ).createShader(shell);
+      canvas.drawRRect(RRect.fromRectXY(shell, 8, 8), p);
+      p.shader = null;
+    }
 
-    final side = math.min(size.width, size.height) * 0.90;
+    final side = paintShell
+        ? math.min(size.width, size.height) * 0.90
+        : math.min(size.height * 0.82, size.width * 0.56);
     final board = Rect.fromCenter(
       center: shell.center,
       width: side,
@@ -1886,7 +2067,8 @@ class _HomeThemePreviewPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _HomeThemePreviewPainter oldDelegate) =>
-      oldDelegate.option.id != option.id;
+      oldDelegate.option.id != option.id ||
+      oldDelegate.paintShell != paintShell;
 }
 
 class _StartChoiceOverlay extends StatelessWidget {
@@ -2419,7 +2601,7 @@ class _GeneratedLobbyBackground extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Image.asset(
-              'assets/images/rush/rush_home_royal_backdrop_v4.png',
+              'assets/images/rush/rush_home_royal_backdrop_mobile_v1.jpg',
               fit: BoxFit.cover,
               alignment: Alignment.topCenter,
               filterQuality: FilterQuality.high,
@@ -2514,7 +2696,6 @@ class _TopHud extends StatelessWidget {
               child: Row(
                 children: [
                   _AvatarBadge(
-                      name: state.displayName,
                       level: (state.rating ~/ 90 + 1).clamp(1, 99),
                       preset: state.avatarPreset,
                       imagePath: state.avatarImagePath),
@@ -2619,13 +2800,11 @@ class _TopHud extends StatelessWidget {
 }
 
 class _AvatarBadge extends StatelessWidget {
-  final String name;
   final int level;
   final int preset;
   final String? imagePath;
 
   const _AvatarBadge({
-    required this.name,
     required this.level,
     required this.preset,
     required this.imagePath,
@@ -2633,7 +2812,6 @@ class _AvatarBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initial = name.trim().isEmpty ? 'I' : name.trim()[0].toUpperCase();
     final path = imagePath;
     final hasImage = path != null && File(path).existsSync();
     return Stack(
@@ -2657,7 +2835,7 @@ class _AvatarBadge extends StatelessWidget {
             child: ClipOval(
               child: hasImage
                   ? Image.file(File(path), fit: BoxFit.cover)
-                  : CustomPaint(painter: _AvatarPainter(initial, preset)),
+                  : _ProfileAvatarImage(preset: preset),
             ),
           ),
         ),
@@ -2721,47 +2899,10 @@ class _CountryMiniBadge extends StatelessWidget {
   }
 }
 
-class _CountrySpec {
-  final String code;
-  final String name;
-  final List<Color> colors;
-
-  const _CountrySpec(this.code, this.name, this.colors);
-}
-
-const _countries = [
-  _CountrySpec('US', 'United States',
-      [Color(0xFFB22234), Colors.white, Color(0xFF3C3B6E)]),
-  _CountrySpec(
-      'IN', 'India', [Color(0xFFFF9933), Colors.white, Color(0xFF138808)]),
-  _CountrySpec(
-      'PK', 'Pakistan', [Color(0xFF01411C), Colors.white, Color(0xFF01411C)]),
-  _CountrySpec('GB', 'United Kingdom',
-      [Color(0xFF012169), Colors.white, Color(0xFFC8102E)]),
-  _CountrySpec(
-      'CA', 'Canada', [Color(0xFFFF0000), Colors.white, Color(0xFFFF0000)]),
-  _CountrySpec('AE', 'United Arab Emirates',
-      [Color(0xFF00732F), Colors.white, Color(0xFF000000)]),
-  _CountrySpec('SA', 'Saudi Arabia',
-      [Color(0xFF006C35), Colors.white, Color(0xFF006C35)]),
-  _CountrySpec(
-      'AU', 'Australia', [Color(0xFF00008B), Colors.white, Color(0xFFE4002B)]),
-  _CountrySpec('BD', 'Bangladesh',
-      [Color(0xFF006A4E), Color(0xFFF42A41), Color(0xFF006A4E)]),
-  _CountrySpec('DE', 'Germany',
-      [Color(0xFF000000), Color(0xFFDD0000), Color(0xFFFFCE00)]),
-];
-
-_CountrySpec _countryFor(String code) {
-  final normalized = code.trim().toUpperCase();
-  return _countries.firstWhere(
-    (c) => c.code == normalized,
-    orElse: () => _countries.first,
-  );
-}
+CountrySpec _countryFor(String code) => countryByCode(code);
 
 class _MiniFlag extends StatelessWidget {
-  final _CountrySpec country;
+  final CountrySpec country;
   final double width;
   final double height;
 
@@ -2773,20 +2914,51 @@ class _MiniFlag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(height * 0.18),
-      child: SizedBox(
-        width: width,
-        height: height,
-        child: Row(
-          children: [
-            for (final color in country.colors)
-              Expanded(child: Container(color: color)),
-          ],
-        ),
+    return Container(
+      width: width,
+      height: height,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(height * 0.18),
+      ),
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: Text(countryFlagEmoji(country.code)),
       ),
     );
   }
+}
+
+List<_FeatureRow> _clubRowsForState(AppState state) {
+  final current = state.currentClub;
+  final rows = <_FeatureRow>[];
+  if (current != null) {
+    rows.add(_FeatureRow(
+      current.name,
+      '${current.memberCount} members - rating ${current.ratingTotal}',
+      '${current.contribution} PTS',
+      id: current.id,
+    ));
+  } else {
+    rows.add(const _FeatureRow(
+      'No club joined',
+      'Browse a club that matches your rating',
+      'OPEN',
+    ));
+  }
+  rows.addAll(
+    state.clubs
+        .where((club) => club.id != current?.id)
+        .take(2)
+        .map((club) => _FeatureRow(
+              club.name,
+              '${club.memberCount} members - rating ${club.minimumRating}+',
+              club.ratingTotal.toString(),
+              id: club.id,
+            )),
+  );
+  return rows;
 }
 
 Future<void> _showProfileEditor(
@@ -2844,7 +3016,6 @@ Future<void> _showProfileEditor(
                     Row(
                       children: [
                         _ProfileAvatarPreview(
-                          name: nameController.text,
                           preset: selectedAvatar,
                           imagePath: selectedImagePath,
                         ),
@@ -2951,62 +3122,119 @@ Future<void> _showProfileEditor(
                     const SizedBox(height: 14),
                     _SheetLabel('Country', palette: palette),
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final country in _countries)
-                          _CountryChoice(
-                            country: country,
-                            selected: country.code == selectedCountry,
-                            palette: palette,
-                            onTap: () => setSheetState(
-                                () => selectedCountry = country.code),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedCountry,
+                      isExpanded: true,
+                      menuMaxHeight: 360,
+                      dropdownColor:
+                          palette.dark ? const Color(0xFF3B0A48) : Colors.white,
+                      iconEnabledColor: palette.stroke,
+                      style: TextStyle(
+                        color: palette.text,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: palette.dark
+                            ? const Color(0x66250A31)
+                            : const Color(0xFFFFF4FC),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(
+                            color: palette.stroke.withAlpha(130),
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide:
+                              BorderSide(color: palette.stroke, width: 2),
+                        ),
+                      ),
+                      selectedItemBuilder: (context) => [
+                        for (final country in allCountries)
+                          Row(
+                            children: [
+                              _MiniFlag(country: country),
+                              const SizedBox(width: 9),
+                              Expanded(
+                                child: Text(
+                                  '${country.name} (${country.code})',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                       ],
+                      items: [
+                        for (final country in allCountries)
+                          DropdownMenuItem<String>(
+                            value: country.code,
+                            child: Row(
+                              children: [
+                                _MiniFlag(country: country),
+                                const SizedBox(width: 9),
+                                Expanded(
+                                  child: Text(
+                                    country.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(country.code),
+                              ],
+                            ),
+                          ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          setSheetState(() => selectedCountry = value);
+                        }
+                      },
                     ),
                     const SizedBox(height: 15),
                     _SheetLabel('Avatar', palette: palette),
                     const SizedBox(height: 8),
                     SizedBox(
-                      height: 58,
+                      height: 96,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
-                        itemCount: 8,
+                        itemCount: profileAvatarCatalog.length,
                         separatorBuilder: (_, __) => const SizedBox(width: 8),
-                        itemBuilder: (context, i) => GestureDetector(
-                          onTap: () => setSheetState(() {
-                            selectedAvatar = i;
-                            selectedImagePath = null;
-                          }),
-                          child: Container(
-                            width: 54,
-                            height: 54,
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: selectedAvatar == i &&
-                                        selectedImagePath == null
-                                    ? palette.stroke
-                                    : Colors.white24,
-                                width: selectedAvatar == i &&
-                                        selectedImagePath == null
-                                    ? 3
-                                    : 1,
-                              ),
-                            ),
-                            child: CustomPaint(
-                              painter: _AvatarPainter(
-                                  nameController.text.trim().isEmpty
-                                      ? 'I'
-                                      : nameController.text
-                                          .trim()[0]
-                                          .toUpperCase(),
-                                  i),
-                            ),
-                          ),
-                        ),
+                        itemBuilder: (context, i) {
+                          final avatar = profileAvatarCatalog[i];
+                          final unlocked = state.isAvatarUnlocked(i);
+                          return _ProfileAvatarChoice(
+                            avatar: avatar,
+                            selected: selectedAvatar == i &&
+                                selectedImagePath == null,
+                            unlocked: unlocked,
+                            status: state.avatarUnlockLabel(i),
+                            palette: palette,
+                            onTap: () {
+                              if (!unlocked) {
+                                unawaited(
+                                  _showAvatarUnlockDialog(
+                                    sheetContext,
+                                    avatar,
+                                    state.avatarUnlockLabel(i),
+                                  ),
+                                );
+                                return;
+                              }
+                              setSheetState(() {
+                                selectedAvatar = i;
+                                selectedImagePath = null;
+                              });
+                            },
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -3068,20 +3296,80 @@ Future<void> _showProfileEditor(
   ageController.dispose();
 }
 
+Future<void> _showAvatarUnlockDialog(
+  BuildContext context,
+  ProfileAvatarSpec avatar,
+  String status,
+) async {
+  final openShop = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      backgroundColor: const Color(0xFF3A084A),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18),
+        side: const BorderSide(color: goldColor, width: 2),
+      ),
+      title: Text(
+        avatar.label,
+        style: const TextStyle(
+          color: goldColor,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+      content: Row(
+        children: [
+          SizedBox(
+            width: 64,
+            height: 64,
+            child: ClipOval(child: _ProfileAvatarImage(preset: avatar.preset)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              avatar.rarity == AvatarRarity.premium
+                  ? '$status. Premium avatars unlock only after a verified Google Play purchase.'
+                  : '$status to unlock this rare avatar.',
+              style: const TextStyle(
+                color: Colors.white,
+                height: 1.3,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext, false),
+          child: const Text('Close'),
+        ),
+        if (avatar.rarity == AvatarRarity.premium)
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            icon: const Icon(Icons.storefront_rounded),
+            label: const Text('View Shop'),
+          ),
+      ],
+    ),
+  );
+  if (openShop == true && context.mounted) {
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    navigator.pushNamed('/shop');
+  }
+}
+
 class _ProfileAvatarPreview extends StatelessWidget {
-  final String name;
   final int preset;
   final String? imagePath;
 
   const _ProfileAvatarPreview({
-    required this.name,
     required this.preset,
     required this.imagePath,
   });
 
   @override
   Widget build(BuildContext context) {
-    final initial = name.trim().isEmpty ? 'I' : name.trim()[0].toUpperCase();
     final path = imagePath;
     final hasImage = path != null && File(path).existsSync();
     return Container(
@@ -3097,21 +3385,25 @@ class _ProfileAvatarPreview extends StatelessWidget {
       child: ClipOval(
         child: hasImage
             ? Image.file(File(path), fit: BoxFit.cover)
-            : CustomPaint(painter: _AvatarPainter(initial, preset)),
+            : _ProfileAvatarImage(preset: preset),
       ),
     );
   }
 }
 
-class _CountryChoice extends StatelessWidget {
-  final _CountrySpec country;
+class _ProfileAvatarChoice extends StatelessWidget {
+  final ProfileAvatarSpec avatar;
   final bool selected;
+  final bool unlocked;
+  final String status;
   final _RushPalette palette;
   final VoidCallback onTap;
 
-  const _CountryChoice({
-    required this.country,
+  const _ProfileAvatarChoice({
+    required this.avatar,
     required this.selected,
+    required this.unlocked,
+    required this.status,
     required this.palette,
     required this.onTap,
   });
@@ -3121,10 +3413,10 @@ class _CountryChoice extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 105,
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        width: 82,
+        padding: const EdgeInsets.fromLTRB(6, 4, 6, 5),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(13),
+          borderRadius: BorderRadius.circular(15),
           color: selected
               ? palette.stroke.withAlpha(palette.dark ? 50 : 85)
               : (palette.dark ? const Color(0x55200A2D) : Colors.white70),
@@ -3132,23 +3424,95 @@ class _CountryChoice extends StatelessWidget {
               color: selected ? palette.stroke : Colors.white24,
               width: selected ? 2 : 1),
         ),
-        child: Row(
+        child: Column(
           children: [
-            _MiniFlag(country: country),
-            const SizedBox(width: 7),
             Expanded(
-              child: Text(
-                country.code,
-                style: TextStyle(
-                  color: palette.text,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipOval(
+                    child: _ProfileAvatarImage(preset: avatar.preset),
+                  ),
+                  if (!unlocked)
+                    DecoratedBox(
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color(0x99000000),
+                      ),
+                      child: Icon(
+                        avatar.rarity == AvatarRarity.premium
+                            ? Icons.workspace_premium_rounded
+                            : Icons.lock_rounded,
+                        color: goldColor,
+                        size: 22,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              avatar.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: palette.text,
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            Text(
+              status,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: avatar.rarity == AvatarRarity.premium
+                    ? goldColor
+                    : palette.muted,
+                fontSize: 8,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ProfileAvatarImage extends StatelessWidget {
+  final int preset;
+
+  const _ProfileAvatarImage({required this.preset});
+
+  @override
+  Widget build(BuildContext context) {
+    final avatar = avatarForPreset(preset);
+    return LayoutBuilder(
+      builder: (context, box) {
+        final width = box.maxWidth;
+        final height = box.maxHeight;
+        final column = avatar.atlasIndex % 2;
+        final row = avatar.atlasIndex ~/ 2;
+        return ClipRect(
+          child: Stack(
+            clipBehavior: Clip.hardEdge,
+            children: [
+              Positioned(
+                left: -column * width,
+                top: -row * height,
+                width: width * 2,
+                height: height * 2,
+                child: Image.asset(
+                  avatar.asset,
+                  fit: BoxFit.fill,
+                  filterQuality: FilterQuality.medium,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -3849,16 +4213,13 @@ class _LobbyStage extends StatelessWidget {
             .toDouble();
         final needed =
             idealBoardHeight + baseBigHeight + rowGap + baseSmallHeight;
-        final scale =
-            math.min(1.0, math.max(0.78, (box.maxHeight - 10) / needed));
+        final available = math.max(0.0, box.maxHeight - rowGap - bottomGap);
+        final scale = math.min(1.0, available / math.max(1.0, needed - rowGap));
         final bigHeight = baseBigHeight * scale;
         final smallHeight = baseSmallHeight * scale;
-        final boardHeight = math.min(
-          idealBoardHeight * scale,
-          math.max(
-            compact ? 178.0 : 212.0,
-            box.maxHeight - bigHeight - smallHeight - rowGap - bottomGap,
-          ),
+        final boardHeight = math.max(
+          0.0,
+          box.maxHeight - bigHeight - smallHeight - rowGap - bottomGap,
         );
         final sidePadding = narrow ? 10.0 : 14.0;
         final largeGap = narrow ? 8.0 : 12.0;
@@ -3928,7 +4289,8 @@ class _LobbyStage extends StatelessWidget {
                         start: const Color(0xFF8C35FF),
                         end: const Color(0xFF5010A8),
                         art: _ModeArt.private,
-                        onTap: () => _showPrivateRoomSheet(context, state),
+                        onTap: () =>
+                            unawaited(_showPrivateRoomSheet(context, state)),
                       ),
                     ),
                     SizedBox(width: smallGap),
@@ -3943,7 +4305,7 @@ class _LobbyStage extends StatelessWidget {
                         end: const Color(0xFF087C3C),
                         art: _ModeArt.snakes,
                         imageAsset:
-                            'assets/images/rush/rush_snakes_ladders_mode_v2.png',
+                            'assets/images/rush/rush_snakes_ladders_mode_mobile_v1.jpg',
                         onTap: () => _showSnakesBoardSheet(context, state),
                       ),
                     ),
@@ -4004,39 +4366,47 @@ class _HomeTabStage extends StatelessWidget {
       return _FeatureTabStage(
         palette: palette,
         title: 'Clubs',
-        subtitle: 'Season league and team rewards',
+        subtitle: state.currentClub == null
+            ? 'Join one persistent club at a time'
+            : '${state.currentClub!.tag} - ${state.currentClub!.memberCount} members',
         accent: const Color(0xFFFF5D6C),
         icon: Icons.shield_rounded,
-        rows: const [
-          _FeatureRow('Royal Rollers', 'Rank #12', '4.8K'),
-          _FeatureRow('Crown League', '3 days left', '2.1K'),
-          _FeatureRow('Club Chest', '8 wins needed', '850'),
-        ],
-        actions: const ['Join', 'Leaders', 'Rewards'],
-        bannerAsset: 'assets/images/rush/rush_club_rewards_banner_v1.png',
+        rows: _clubRowsForState(state),
+        actions: state.currentClub == null
+            ? const ['Browse', 'Leaders', 'Progress']
+            : const ['Browse', 'Leaders', 'Progress', 'Leave'],
+        bannerAsset:
+            'assets/images/rush/rush_club_rewards_banner_mobile_v1.jpg',
         onAction: (context, action) => _handleFeatureAction(context, action),
       );
     }
     if (index == 4) {
       return _FeatureTabStage(
         palette: palette,
-        title: 'Chest',
-        subtitle: 'Open prizes earned from matches',
+        title: 'Rewards',
+        subtitle: 'Verified payouts and unlocks',
         accent: const Color(0xFFFFB22D),
         icon: Icons.inventory_2_rounded,
         rows: [
           _FeatureRow(
+            state.canClaimDailyReward ? 'Daily Coins' : 'Daily Claimed',
+            'One claim per calendar day',
+            '+${state.dailyRewardAmount}',
+          ),
+          _FeatureRow(
             'Gold Chest',
             state.availableGoldChests > 0
-                ? '${state.availableGoldChests} ready'
-                : 'Earn one every 3 wins',
-            '500',
+                ? '${state.availableGoldChests} ready now'
+                : 'Earn one every 3 online wins',
+            '+${GameEconomy.goldChestCoins}',
           ),
-          _FeatureRow('Crown Chest', '2 wins away', '1.2K'),
-          _FeatureRow('Energy Vault', 'Bonus spins', '30'),
+          const _FeatureRow(
+            'Online Match',
+            'Win +${GameEconomy.onlineWinCoins} / finish +${GameEconomy.onlineFinishCoins}',
+            'FAIR',
+          ),
         ],
-        actions: const ['Open', 'Boost', 'History'],
-        bannerAsset: 'assets/images/rush/rush_club_rewards_banner_v1.png',
+        actions: const ['Daily', 'Open Chest', 'Shop'],
         onAction: (context, action) => _handleFeatureAction(context, action),
       );
     }
@@ -4061,25 +4431,123 @@ class _HomeTabStage extends StatelessWidget {
       case 'Remove':
         _showFriendRemoveSheet(context, state);
         return;
-      case 'Join':
+      case 'Browse':
         _showClubJoinSheet(context, state);
         return;
       case 'Leaders':
         _showLeaderboardSheet(context, state);
         return;
-      case 'Rewards':
-        _showRewardsEconomySheet(context, state);
+      case 'Progress':
+        _showClubProgressSheet(context, state);
         return;
-      case 'Open':
-        _showChestOpenSheet(context, state);
+      case 'Leave':
+        unawaited(_leaveClub(context));
         return;
-      case 'Boost':
-        _showBoostSheet(context);
+      case 'Daily':
+        unawaited(_claimDailyFromRewards(context));
         return;
-      case 'History':
-        _showHistorySheet(context);
+      case 'Open Chest':
+        unawaited(_showChestOpenSheet(context, state));
+        return;
+      case 'Shop':
+        Navigator.pushNamed(context, '/shop');
         return;
     }
+  }
+
+  Future<void> _leaveClub(BuildContext context) async {
+    final message = await state.leaveClub();
+    if (!context.mounted) return;
+    _showFeatureSnack(context, message);
+  }
+
+  Future<void> _claimDailyFromRewards(BuildContext context) async {
+    final claimed = await state.claimDailyReward();
+    if (!context.mounted) return;
+    _showFeatureSnack(
+      context,
+      claimed
+          ? '+${state.dailyRewardAmount} daily coins claimed.'
+          : (state.socialError.isNotEmpty
+              ? state.socialError
+              : 'Daily coins are already claimed.'),
+    );
+  }
+
+  void _showClubProgressSheet(BuildContext context, AppState state) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => _HomeActionSheet(
+        title: 'Club Progress',
+        child: Consumer<AppState>(
+          builder: (_, liveState, __) {
+            final club = liveState.currentClub;
+            if (club == null) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const _EconomyHint(
+                    icon: Icons.shield_outlined,
+                    text:
+                        'Join one club to earn contribution points from completed online matches.',
+                  ),
+                  const SizedBox(height: 12),
+                  _HomeSheetButton(
+                    label: 'Browse Clubs',
+                    icon: Icons.search_rounded,
+                    color: boardRed,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _showClubJoinSheet(context, liveState);
+                    },
+                  ),
+                ],
+              );
+            }
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Image.asset(
+                    'assets/images/rush/rush_club_rewards_banner_mobile_v1.jpg',
+                    height: 112,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                _EconomyTierCard(
+                  title: '${club.contribution} Contribution Points',
+                  subtitle:
+                      'Online wins add ${GameEconomy.clubWinContribution}; other completed online matches add ${GameEconomy.clubFinishContribution}.',
+                  accent: boardRed,
+                  icon: Icons.bolt_rounded,
+                ),
+                const SizedBox(height: 8),
+                _EconomyTierCard(
+                  title: '${club.ratingTotal} Combined Rating',
+                  subtitle:
+                      '${club.memberCount} members currently represent ${club.name} on the club leaderboard.',
+                  accent: goldColor,
+                  icon: Icons.leaderboard_rounded,
+                ),
+                const SizedBox(height: 8),
+                const _EconomyHint(
+                  icon: Icons.info_outline_rounded,
+                  text:
+                      'Switching clubs resets only club contribution. Personal coins, wins, rating, and cosmetics stay with your account.',
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 
   void _showFriendInviteSheet(BuildContext context, AppState state) {
@@ -4127,9 +4595,14 @@ class _HomeTabStage extends StatelessWidget {
                 label: 'Create Private Code',
                 icon: Icons.add_link_rounded,
                 color: boardBlue,
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(sheetContext);
-                  _showPrivateRoomSheet(context, state);
+                  await Future<void>.delayed(
+                    const Duration(milliseconds: 280),
+                  );
+                  if (context.mounted) {
+                    await _showPrivateRoomSheet(context, state);
+                  }
                 },
               ),
             ],
@@ -4531,89 +5004,17 @@ class _HomeTabStage extends StatelessWidget {
     );
   }
 
-  void _showBoostSheet(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) {
-        return _HomeActionSheet(
-          title: 'Boosts',
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const _FeatureListTile(
-                row: _FeatureRow('Rush Boost', 'Extra XP next match', '1'),
-                accent: boardRed,
-                index: 0,
-              ),
-              const SizedBox(height: 8),
-              const _FeatureListTile(
-                row: _FeatureRow('Leader Glow', 'Crown aura on board', '1'),
-                accent: goldColor,
-                index: 1,
-              ),
-              const SizedBox(height: 8),
-              const _FeatureListTile(
-                row: _FeatureRow('Shield', 'Safe from one snake', '1'),
-                accent: boardBlue,
-                index: 2,
-              ),
-              const SizedBox(height: 12),
-              _FeatureActionButton(
-                label: 'Activate Boost',
-                accent: boardPurple,
-                onTap: () {
-                  Navigator.pop(context);
-                  _showFeatureSnack(context, 'Boost activated for next match.');
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showHistorySheet(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) {
-        return _HomeActionSheet(
-          title: 'Reward History',
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              _FeatureListTile(
-                row: _FeatureRow('Gold Chest', 'Claimed today', '500'),
-                accent: goldColor,
-                index: 0,
-              ),
-              SizedBox(height: 8),
-              _FeatureListTile(
-                row: _FeatureRow('Daily Gift', 'Claimed', '150'),
-                accent: boardGreen,
-                index: 1,
-              ),
-              SizedBox(height: 8),
-              _FeatureListTile(
-                row: _FeatureRow('Match Win', 'Preview reward', '100'),
-                accent: boardBlue,
-                index: 2,
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   void _showLeaderboardSheet(BuildContext context, AppState state) {
     final rows = [
       _FeatureRow(state.displayName, 'You', state.rating.toString()),
-      const _FeatureRow('Royal Rollers', 'Club', '4.8K'),
-      const _FeatureRow('Leo', 'Weekly rival', '1.2K'),
-      const _FeatureRow('Maya', 'Hot streak', '1.1K'),
+      for (final club in ([...state.clubs]
+            ..sort((a, b) => b.ratingTotal.compareTo(a.ratingTotal)))
+          .take(3))
+        _FeatureRow(
+          club.name,
+          '${club.memberCount} members',
+          club.ratingTotal.toString(),
+        ),
     ];
     showModalBottomSheet<void>(
       context: context,
@@ -4679,110 +5080,127 @@ class _HomeTabStage extends StatelessWidget {
   }
 
   void _showClubJoinSheet(BuildContext context, AppState state) {
-    const clubs = [
-      _FeatureRow('Royal Rollers', 'Open club', '4.8K'),
-      _FeatureRow('Dice Dynasty', '2 seats left', '3.6K'),
-      _FeatureRow('Carnival Kings', 'New players', '2.9K'),
-    ];
+    var selectedClubId = state.currentClub?.id ??
+        (state.clubs.isEmpty ? '' : state.clubs.first.id);
+    unawaited(state.refreshSocial());
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) {
-        return SafeArea(
-          top: false,
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF5A1164), Color(0xFF190421)],
-              ),
-              border: Border.all(color: goldColor, width: 2),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0xCC000000),
-                  blurRadius: 24,
-                  offset: Offset(0, 10),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) => Consumer<AppState>(
+            builder: (context, liveState, _) {
+              final available = liveState.clubs;
+              final selected = available
+                  .where((club) => club.id == selectedClubId)
+                  .firstOrNull;
+              return _HomeActionSheet(
+                title: liveState.currentClub == null
+                    ? 'Join a Club'
+                    : 'Switch Club',
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Icon(Icons.shield_rounded,
-                        color: goldColor, size: 28),
-                    const SizedBox(width: 8),
-                    const Expanded(
-                      child: Text(
-                        'Join a Club',
-                        style: TextStyle(
-                          color: goldColor,
-                          fontSize: 23,
-                          fontWeight: FontWeight.w900,
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        'assets/images/rush/rush_club_rewards_banner_mobile_v1.jpg',
+                        height: 104,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        alignment: Alignment.center,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const _EconomyHint(
+                      icon: Icons.shield_rounded,
+                      text:
+                          'One account can join one club. Switching clubs resets club contribution but never removes personal coins or wins.',
+                    ),
+                    const SizedBox(height: 10),
+                    if (available.isEmpty)
+                      _EconomyHint(
+                        icon: liveState.socialLoading
+                            ? Icons.sync_rounded
+                            : Icons.cloud_off_rounded,
+                        text: liveState.socialLoading
+                            ? 'Loading clubs...'
+                            : (liveState.socialError.isNotEmpty
+                                ? liveState.socialError
+                                : 'No clubs are available right now.'),
+                      )
+                    else
+                      for (var i = 0; i < available.length; i++) ...[
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () => setSheetState(
+                            () => selectedClubId = available[i].id,
+                          ),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: selectedClubId == available[i].id
+                                    ? goldColor
+                                    : Colors.transparent,
+                                width: 2,
+                              ),
+                            ),
+                            child: _FeatureListTile(
+                              row: _FeatureRow(
+                                available[i].name,
+                                '${available[i].memberCount} members - rating ${available[i].minimumRating}+',
+                                available[i].tag,
+                              ),
+                              accent: i.isEven ? boardRed : boardBlue,
+                              index: i,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.close_rounded,
-                          color: Colors.white70),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.asset(
-                    'assets/images/rush/rush_club_rewards_banner_v1.png',
-                    height: 96,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                for (var i = 0; i < clubs.length; i++) ...[
-                  _FeatureListTile(
-                    row: clubs[i],
-                    accent: const Color(0xFFFF5D6C),
-                    index: i,
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                Row(
-                  children: [
-                    Expanded(
-                      child: _FeatureActionButton(
-                        label: 'Use Invite Code',
-                        accent: boardBlue,
-                        onTap: () {
-                          Navigator.pop(context);
+                        if (i != available.length - 1)
+                          const SizedBox(height: 8),
+                      ],
+                    const SizedBox(height: 12),
+                    _FeatureActionButton(
+                      label: selected == null
+                          ? 'Refresh Clubs'
+                          : (liveState.currentClub?.id == selected.id
+                              ? 'Current Club'
+                              : 'Join ${selected.name}'),
+                      accent: selected == null
+                          ? boardBlue
+                          : const Color(0xFFFF5D6C),
+                      onTap: () async {
+                        if (selected == null) {
+                          await liveState.refreshSocial();
+                          return;
+                        }
+                        if (liveState.currentClub?.id == selected.id) {
                           _showFeatureSnack(
-                              context, 'Invite codes open from Private Room.');
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _FeatureActionButton(
-                        label: 'Join Royal',
-                        accent: const Color(0xFFFF5D6C),
-                        onTap: () {
-                          Navigator.pop(context);
-                          _showFeatureSnack(context,
-                              'Joined Royal Rollers. Club rewards are active.');
-                        },
-                      ),
+                            sheetContext,
+                            'You are already in ${selected.name}.',
+                          );
+                          return;
+                        }
+                        final message = await liveState.joinClub(selected.id);
+                        if (!sheetContext.mounted) return;
+                        if (message == 'Club joined.') {
+                          _showFeatureSnack(
+                            sheetContext,
+                            'Joined ${selected.name}.',
+                          );
+                          Navigator.pop(sheetContext);
+                        } else {
+                          _showFeatureSnack(sheetContext, message);
+                        }
+                      },
                     ),
                   ],
                 ),
-              ],
-            ),
+              );
+            },
           ),
         );
       },
@@ -4827,15 +5245,20 @@ class _FeatureTabStage extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, box) {
         final narrow = box.maxWidth < 370;
+        final dense = box.maxHeight < 430;
         return Padding(
-          padding:
-              EdgeInsets.fromLTRB(narrow ? 12 : 16, 10, narrow ? 12 : 16, 8),
+          padding: EdgeInsets.fromLTRB(
+            narrow ? 12 : 16,
+            dense ? 4 : 10,
+            narrow ? 12 : 16,
+            dense ? 4 : 8,
+          ),
           child: Column(
             children: [
               Expanded(
                 child: Container(
                   width: double.infinity,
-                  padding: EdgeInsets.all(narrow ? 14 : 18),
+                  padding: EdgeInsets.all(dense ? 10 : (narrow ? 14 : 18)),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(22),
                     gradient: const LinearGradient(
@@ -4897,29 +5320,40 @@ class _FeatureTabStage extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: dense ? 8 : 14),
                       if (bannerAsset != null) ...[
                         ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: Image.asset(
                             bannerAsset!,
-                            height: narrow ? 82 : 96,
+                            height: dense ? 52 : (narrow ? 82 : 96),
                             width: double.infinity,
                             fit: BoxFit.cover,
                             alignment: Alignment.center,
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        SizedBox(height: dense ? 6 : 10),
                       ],
-                      for (int i = 0; i < rows.length; i++) ...[
-                        _FeatureListTile(
-                          row: rows[i],
-                          accent: accent,
-                          index: i,
+                      Expanded(
+                        child: SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          child: Column(
+                            children: [
+                              for (int i = 0; i < rows.length; i++) ...[
+                                _FeatureListTile(
+                                  row: rows[i],
+                                  accent: accent,
+                                  index: i,
+                                  compact: dense,
+                                ),
+                                if (i != rows.length - 1)
+                                  SizedBox(height: dense ? 6 : 8),
+                              ],
+                            ],
+                          ),
                         ),
-                        if (i != rows.length - 1) const SizedBox(height: 8),
-                      ],
-                      const Spacer(),
+                      ),
+                      SizedBox(height: dense ? 8 : 14),
                       LayoutBuilder(
                         builder: (context, actionBox) {
                           final columns =
@@ -4939,7 +5373,7 @@ class _FeatureTabStage extends StatelessWidget {
                                   child: _FeatureActionButton(
                                     label: action,
                                     accent: accent,
-                                    compact: actions.length > 3,
+                                    compact: dense || actions.length > 3,
                                     onTap: () => onAction(context, action),
                                   ),
                                 ),
@@ -4994,18 +5428,20 @@ class _FeatureListTile extends StatelessWidget {
   final _FeatureRow row;
   final Color accent;
   final int index;
+  final bool compact;
 
   const _FeatureListTile({
     required this.row,
     required this.accent,
     required this.index,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 58,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      height: compact ? 48 : 58,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 8 : 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
         color: const Color(0x7A140020),
@@ -5014,7 +5450,7 @@ class _FeatureListTile extends StatelessWidget {
       child: Row(
         children: [
           CircleAvatar(
-            radius: 19,
+            radius: compact ? 15 : 19,
             backgroundColor: accent,
             child: Text(
               row.title.isEmpty ? '?' : row.title.substring(0, 1),
@@ -5024,7 +5460,7 @@ class _FeatureListTile extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: compact ? 8 : 10),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -5034,9 +5470,9 @@ class _FeatureListTile extends StatelessWidget {
                   row.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 15,
+                    fontSize: compact ? 14 : 15,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -5047,20 +5483,21 @@ class _FeatureListTile extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: Colors.white.withAlpha(190),
-                    fontSize: 11,
+                    fontSize: compact ? 10 : 11,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ],
             ),
           ),
-          const Icon(Icons.emoji_events_rounded, color: goldColor, size: 18),
+          Icon(Icons.emoji_events_rounded,
+              color: goldColor, size: compact ? 16 : 18),
           const SizedBox(width: 4),
           Text(
             row.value,
-            style: const TextStyle(
+            style: TextStyle(
               color: goldColor,
-              fontSize: 13,
+              fontSize: compact ? 12 : 13,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -5158,10 +5595,16 @@ class _RoyalBoardHero extends StatelessWidget {
                 child: Transform.scale(
                   scale: short ? 1.0 : 1.05,
                   child: Image.asset(
-                    'assets/images/rush/rush_home_royal_board_cutout_v5.png',
+                    'assets/images/rush/rush_home_royal_board_cutout_mobile_v1.png',
                     fit: BoxFit.contain,
                     alignment: Alignment.center,
                     filterQuality: FilterQuality.high,
+                    frameBuilder: (context, child, frame, loadedSynchronously) {
+                      if (loadedSynchronously || frame != null) return child;
+                      return const CustomPaint(
+                        painter: _HomeBoardLoadingPainter(),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -5187,6 +5630,110 @@ class _RoyalBoardHero extends StatelessWidget {
       },
     );
   }
+}
+
+class _HomeBoardLoadingPainter extends CustomPainter {
+  const _HomeBoardLoadingPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final boardWidth = size.width * 0.82;
+    final boardHeight = math.min(size.height * 0.86, boardWidth * 0.70);
+    final board = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height / 2),
+      width: boardWidth,
+      height: boardHeight,
+    );
+    final paint = Paint()..isAntiAlias = true;
+
+    paint
+      ..color = const Color(0x66000000)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+    canvas.drawRRect(
+      RRect.fromRectXY(board.shift(const Offset(0, 8)), 18, 18),
+      paint,
+    );
+    paint.maskFilter = null;
+    paint.color = const Color(0xFFFFD04B);
+    canvas.drawRRect(RRect.fromRectXY(board, 18, 18), paint);
+
+    final inner = board.deflate(math.max(5, boardWidth * 0.014));
+    final colors = const [boardRed, boardBlue, boardGreen, boardYellow];
+    final quadrants = [
+      Rect.fromLTRB(inner.left, inner.top, inner.center.dx, inner.center.dy),
+      Rect.fromLTRB(inner.center.dx, inner.top, inner.right, inner.center.dy),
+      Rect.fromLTRB(inner.left, inner.center.dy, inner.center.dx, inner.bottom),
+      Rect.fromLTRB(
+          inner.center.dx, inner.center.dy, inner.right, inner.bottom),
+    ];
+    for (var i = 0; i < quadrants.length; i++) {
+      paint.color = colors[i];
+      canvas.drawRect(quadrants[i], paint);
+    }
+
+    final lane = inner.width * 0.15;
+    paint.color = const Color(0xFFFFF9DC);
+    canvas.drawRect(
+      Rect.fromCenter(
+        center: inner.center,
+        width: lane,
+        height: inner.height,
+      ),
+      paint,
+    );
+    canvas.drawRect(
+      Rect.fromCenter(
+        center: inner.center,
+        width: inner.width,
+        height: lane,
+      ),
+      paint,
+    );
+
+    final centerSize = lane * 1.35;
+    final center = Rect.fromCenter(
+      center: inner.center,
+      width: centerSize,
+      height: centerSize,
+    );
+    for (var i = 0; i < 4; i++) {
+      final start = -math.pi / 4 + i * math.pi / 2;
+      paint.color = colors[i];
+      canvas.drawArc(center, start, math.pi / 2, true, paint);
+    }
+
+    for (var i = 0; i < quadrants.length; i++) {
+      final zone = Rect.fromCenter(
+        center: quadrants[i].center,
+        width: quadrants[i].width * 0.62,
+        height: quadrants[i].height * 0.62,
+      );
+      paint.color = const Color(0x55FFFFFF);
+      canvas.drawRRect(RRect.fromRectXY(zone, 12, 12), paint);
+      final radius = math.min(zone.width, zone.height) * 0.085;
+      for (final dx in const [-0.22, 0.22]) {
+        for (final dy in const [-0.22, 0.22]) {
+          final center = Offset(
+            zone.center.dx + zone.width * dx,
+            zone.center.dy + zone.height * dy,
+          );
+          paint.color = const Color(0x55000000);
+          canvas.drawCircle(center.translate(0, radius * 0.35), radius, paint);
+          paint.color = Color.lerp(colors[i], Colors.white, 0.18)!;
+          canvas.drawCircle(center, radius, paint);
+          paint.color = Colors.white.withAlpha(150);
+          canvas.drawCircle(
+            center.translate(-radius * 0.25, -radius * 0.28),
+            radius * 0.24,
+            paint,
+          );
+        }
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _HomeBoardLoadingPainter oldDelegate) => false;
 }
 
 enum _ModeArt { duel, four, private, team, snakes, quick }
@@ -5259,144 +5806,156 @@ class _ModeTileState extends State<_ModeTile>
           final glow = 0.45 + widget.pulse.value * 0.55;
           return Transform.scale(
             scale: scale,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(widget.large ? 18 : 14),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [widget.start, widget.end],
-                ),
-                border: Border.all(
-                    color: widget.palette.stroke,
-                    width: widget.large ? 2.4 : 1.6),
-                boxShadow: [
-                  BoxShadow(
-                      color: widget.start.withAlpha((85 * glow).round()),
-                      blurRadius: widget.large ? 18 : 12,
-                      offset: const Offset(0, 5)),
-                  const BoxShadow(
-                      color: Color(0x77000000),
-                      blurRadius: 5,
-                      offset: Offset(0, 3)),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(widget.large ? 16 : 12),
-                child: Stack(
-                  children: [
-                    if (widget.imageAsset != null)
-                      Positioned.fill(
-                        child: Image.asset(
-                          widget.imageAsset!,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.center,
-                        ),
-                      ),
-                    if (widget.imageAsset != null)
-                      Positioned.fill(
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.black.withAlpha(10),
-                                Colors.black.withAlpha(110),
-                              ],
+            child: LayoutBuilder(
+              builder: (context, box) {
+                final designHeight = widget.large ? 94.0 : 66.0;
+                final density =
+                    (box.maxHeight / designHeight).clamp(0.66, 1.0).toDouble();
+                final showSubtitle =
+                    widget.subtitle.isNotEmpty && box.maxHeight >= 58;
+                return Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(widget.large ? 18 : 14),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [widget.start, widget.end],
+                    ),
+                    border: Border.all(
+                        color: widget.palette.stroke,
+                        width: widget.large ? 2.4 : 1.6),
+                    boxShadow: [
+                      BoxShadow(
+                          color: widget.start.withAlpha((85 * glow).round()),
+                          blurRadius: widget.large ? 18 : 12,
+                          offset: const Offset(0, 5)),
+                      const BoxShadow(
+                          color: Color(0x77000000),
+                          blurRadius: 5,
+                          offset: Offset(0, 3)),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(widget.large ? 16 : 12),
+                    child: Stack(
+                      children: [
+                        if (widget.imageAsset != null)
+                          Positioned.fill(
+                            child: Image.asset(
+                              widget.imageAsset!,
+                              fit: BoxFit.cover,
+                              alignment: Alignment.center,
                             ),
                           ),
-                        ),
-                      ),
-                    Positioned.fill(
-                        child: CustomPaint(
-                            painter: _ModePatternPainter(widget.palette.dark))),
-                    if (widget.imageAsset == null)
-                      Positioned(
-                        left: widget.large ? 18 : 10,
-                        top: widget.large ? 13 : 10,
-                        width: widget.large ? 78 : 38,
-                        height: widget.large ? 70 : 38,
-                        child: _ModeGlyph(
-                          art: widget.art,
-                          large: widget.large,
-                        ),
-                      ),
-                    if (widget.headline.isNotEmpty)
-                      Positioned(
-                        right: widget.large ? 15 : 10,
-                        top: widget.large ? 8 : 11,
-                        child: Text(
-                          widget.headline,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: widget.large ? 70 : 25,
-                            fontWeight: FontWeight.w900,
-                            height: 0.9,
-                            shadows: const [
-                              Shadow(
-                                  color: Color(0xCC4A0038),
-                                  blurRadius: 0,
-                                  offset: Offset(2, 3)),
-                              Shadow(
-                                  color: Color(0x99000000),
-                                  blurRadius: 8,
-                                  offset: Offset(0, 4)),
-                            ],
+                        if (widget.imageAsset != null)
+                          Positioned.fill(
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.black.withAlpha(10),
+                                    Colors.black.withAlpha(110),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                    Positioned(
-                      left: widget.large ? 22 : 8,
-                      right: widget.large ? 86 : 8,
-                      bottom: widget.large ? 12 : 9,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: widget.large
-                            ? CrossAxisAlignment.start
-                            : CrossAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: double.infinity,
-                            child: widget.large
-                                ? FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    alignment: Alignment.centerLeft,
-                                    child: _ModeLabelText(
-                                      widget.label,
-                                      large: true,
-                                    ),
-                                  )
-                                : FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: _ModeLabelText(widget.label),
-                                  ),
+                        Positioned.fill(
+                            child: CustomPaint(
+                                painter:
+                                    _ModePatternPainter(widget.palette.dark))),
+                        if (widget.imageAsset == null)
+                          Positioned(
+                            left: (widget.large ? 18 : 10) * density,
+                            top: (widget.large ? 13 : 8) * density,
+                            width: (widget.large ? 78 : 38) * density,
+                            height: (widget.large ? 70 : 38) * density,
+                            child: _ModeGlyph(
+                              art: widget.art,
+                              large: widget.large,
+                            ),
                           ),
-                          if (widget.subtitle.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              widget.subtitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: widget.large
-                                  ? TextAlign.left
-                                  : TextAlign.center,
+                        if (widget.headline.isNotEmpty)
+                          Positioned(
+                            right: (widget.large ? 15 : 10) * density,
+                            top: (widget.large ? 8 : 9) * density,
+                            child: Text(
+                              widget.headline,
                               style: TextStyle(
-                                color: Colors.white.withAlpha(210),
-                                fontSize: widget.large ? 12 : 11,
-                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                fontSize: (widget.large ? 70 : 25) * density,
+                                fontWeight: FontWeight.w900,
+                                height: 0.9,
                                 shadows: const [
-                                  Shadow(color: Colors.black54, blurRadius: 3)
+                                  Shadow(
+                                      color: Color(0xCC4A0038),
+                                      blurRadius: 0,
+                                      offset: Offset(2, 3)),
+                                  Shadow(
+                                      color: Color(0x99000000),
+                                      blurRadius: 8,
+                                      offset: Offset(0, 4)),
                                 ],
                               ),
                             ),
-                          ],
-                        ],
-                      ),
+                          ),
+                        Positioned(
+                          left: (widget.large ? 22 : 8) * density,
+                          right: (widget.large ? 86 : 8) * density,
+                          bottom: (widget.large ? 10 : 6) * density,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: widget.large
+                                ? CrossAxisAlignment.start
+                                : CrossAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: double.infinity,
+                                child: widget.large
+                                    ? FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerLeft,
+                                        child: _ModeLabelText(
+                                          widget.label,
+                                          large: true,
+                                        ),
+                                      )
+                                    : FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: _ModeLabelText(widget.label),
+                                      ),
+                              ),
+                              if (showSubtitle) ...[
+                                SizedBox(height: 3 * density),
+                                Text(
+                                  widget.subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: widget.large
+                                      ? TextAlign.left
+                                      : TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white.withAlpha(210),
+                                    fontSize:
+                                        (widget.large ? 12 : 11) * density,
+                                    fontWeight: FontWeight.w800,
+                                    shadows: const [
+                                      Shadow(
+                                          color: Colors.black54, blurRadius: 3)
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           );
         },
@@ -5762,7 +6321,7 @@ class _BottomNav extends StatelessWidget {
       _NavSpec(_NavArt.friends, 'Friends'),
       _NavSpec(_NavArt.home, 'Home'),
       _NavSpec(_NavArt.clubs, 'Clubs'),
-      _NavSpec(_NavArt.chest, 'Chest'),
+      _NavSpec(_NavArt.chest, 'Rewards'),
     ];
     return Container(
       height: 82,
@@ -6155,139 +6714,4 @@ class _ModePatternPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ModePatternPainter oldDelegate) =>
       oldDelegate.dark != dark;
-}
-
-class _AvatarPainter extends CustomPainter {
-  final String initial;
-  final int preset;
-
-  _AvatarPainter(this.initial, this.preset);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = Paint()..isAntiAlias = true;
-    final c = Offset(size.width / 2, size.height / 2);
-    final bg = [
-      const Color(0xFF27145C),
-      const Color(0xFF0A5D83),
-      const Color(0xFF7A1554),
-      const Color(0xFF185B2C),
-      const Color(0xFF7A3C05),
-      const Color(0xFF3B247D),
-      const Color(0xFF0C5C55),
-      const Color(0xFF8E1C28),
-    ][preset.clamp(0, 7)];
-    final skin = [
-      const Color(0xFFFFBE7D),
-      const Color(0xFFFFD19A),
-      const Color(0xFFB8744F),
-      const Color(0xFFE79A63),
-      const Color(0xFFF5C28D),
-      const Color(0xFF8B5A3C),
-      const Color(0xFFFFCFA8),
-      const Color(0xFFD28A64),
-    ][preset.clamp(0, 7)];
-    final hair = [
-      const Color(0xFF321506),
-      const Color(0xFF111111),
-      const Color(0xFFFFD426),
-      const Color(0xFF5B2600),
-      const Color(0xFF1D1D1D),
-      const Color(0xFF4D2217),
-      const Color(0xFFEB4B84),
-      const Color(0xFF0D2C74),
-    ][preset.clamp(0, 7)];
-
-    p.color = bg;
-    canvas.drawCircle(c, size.shortestSide * 0.50, p);
-    p.color = skin;
-    canvas.drawCircle(
-        Offset(c.dx, c.dy + size.height * 0.05), size.shortestSide * 0.30, p);
-    p.shader = const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [Color(0xFFFFD23E), Color(0xFFE58A00)],
-    ).createShader(Offset.zero & size);
-    canvas.drawRRect(
-      RRect.fromRectXY(
-        Rect.fromCenter(
-          center: Offset(c.dx, c.dy + size.height * 0.40),
-          width: size.width * 0.48,
-          height: size.height * 0.32,
-        ),
-        14,
-        14,
-      ),
-      p,
-    );
-    p.shader = null;
-
-    p.color = hair;
-    if (preset % 3 == 0) {
-      for (int i = 0; i < 7; i++) {
-        canvas.drawCircle(
-            Offset(c.dx - 17 + i * 6, c.dy - 13 - (i % 2) * 2), 7, p);
-      }
-    } else if (preset % 3 == 1) {
-      canvas.drawRRect(
-        RRect.fromRectXY(
-          Rect.fromCenter(
-              center: Offset(c.dx, c.dy - 13),
-              width: size.width * 0.58,
-              height: size.height * 0.24),
-          12,
-          12,
-        ),
-        p,
-      );
-    } else {
-      final cap = Path()
-        ..moveTo(c.dx - size.width * 0.30, c.dy - size.height * 0.10)
-        ..quadraticBezierTo(c.dx, c.dy - size.height * 0.40,
-            c.dx + size.width * 0.32, c.dy - size.height * 0.08)
-        ..quadraticBezierTo(c.dx, c.dy - size.height * 0.20,
-            c.dx - size.width * 0.30, c.dy - size.height * 0.10)
-        ..close();
-      canvas.drawPath(cap, p);
-    }
-
-    p.color = Colors.white.withAlpha(230);
-    canvas.drawCircle(Offset(c.dx - size.width * 0.11, c.dy + 1),
-        size.shortestSide * 0.045, p);
-    canvas.drawCircle(Offset(c.dx + size.width * 0.11, c.dy + 1),
-        size.shortestSide * 0.045, p);
-    p.color = const Color(0xFF321506);
-    canvas.drawCircle(Offset(c.dx - size.width * 0.11, c.dy + 2),
-        size.shortestSide * 0.022, p);
-    canvas.drawCircle(Offset(c.dx + size.width * 0.11, c.dy + 2),
-        size.shortestSide * 0.022, p);
-    p
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..strokeCap = StrokeCap.round
-      ..color = const Color(0xFF5B2105);
-    canvas.drawArc(
-      Rect.fromCenter(
-        center: Offset(c.dx, c.dy + size.height * 0.13),
-        width: size.width * 0.20,
-        height: size.height * 0.12,
-      ),
-      0,
-      math.pi,
-      false,
-      p,
-    );
-    p
-      ..style = PaintingStyle.fill
-      ..strokeCap = StrokeCap.butt;
-    p.color = Colors.white.withAlpha(160);
-    canvas.drawCircle(
-        Offset(c.dx - size.width * 0.16, c.dy - size.height * 0.13),
-        size.shortestSide * 0.035,
-        p);
-  }
-
-  @override
-  bool shouldRepaint(_AvatarPainter oldDelegate) =>
-      oldDelegate.initial != initial || oldDelegate.preset != preset;
 }

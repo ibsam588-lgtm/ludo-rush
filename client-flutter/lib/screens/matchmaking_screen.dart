@@ -47,7 +47,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen>
               children: [
                 Positioned.fill(
                   child: Image.asset(
-                    'assets/images/rush/rush_matchmaking_scene_v2.png',
+                    'assets/images/rush/rush_matchmaking_scene_mobile_v1.jpg',
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,
                     filterQuality: FilterQuality.high,

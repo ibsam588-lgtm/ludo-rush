@@ -21,8 +21,8 @@ export const FINISH_PROGRESS = 57;
 export const YARD_PROGRESS = -1;
 
 const PIECES_PER_PLAYER = 4;
-const START_OFFSETS = [0, 13, 26, 39];
-const SAFE_TRACK_INDEXES = new Set([0, 8, 13, 21, 26, 34, 39, 47]);
+const START_OFFSETS = [1, 14, 27, 40];
+const SAFE_TRACK_INDEXES = new Set([1, 9, 14, 22, 27, 35, 40, 48]);
 const FALLBACK_PLAYER_NAMES = [
   "Maya",
   "Leo",

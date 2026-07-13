@@ -22,8 +22,29 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - assets/images/home_ludo_background.png
-    - assets/images/home_ludo_backdrop.png
-    - assets/images/home_ludo_board_window.png
-    - assets/images/home_ludo_mockup_background.png
-    - assets/images/rush/
+    - assets/images/rush/rush_avatar_common_atlas_mobile_v1.jpg
+    - assets/images/rush/rush_avatar_premium_atlas_mobile_v1.jpg
+    - assets/images/rush/rush_avatar_rare_atlas_mobile_v1.jpg
+    - assets/images/rush/rush_club_rewards_banner_mobile_v1.jpg
+    - assets/images/rush/rush_game_backdrop_mobile_v1.jpg
+    - assets/images/rush/rush_game_mascot_mobile_v1.png
+    - assets/images/rush/rush_game_reaction_crown_mobile_v1.png
+    - assets/images/rush/rush_game_reaction_six_mobile_v1.png
+    - assets/images/rush/rush_gift_ship_shop_mobile_v1.jpg
+    - assets/images/rush/rush_goti_blue_mobile_v1.png
+    - assets/images/rush/rush_goti_green_mobile_v1.png
+    - assets/images/rush/rush_goti_red_mobile_v1.png
+    - assets/images/rush/rush_goti_yellow_mobile_v1.png
+    - assets/images/rush/rush_home_royal_backdrop_mobile_v1.jpg
+    - assets/images/rush/rush_home_royal_board_cutout_mobile_v1.png
+    - assets/images/rush/rush_matchmaking_scene_mobile_v1.jpg
+    - assets/images/rush/rush_shop_dice_showcase_mobile_v1.jpg
+    - assets/images/rush/rush_shop_hero_mobile_v1.jpg
+    - assets/images/rush/rush_shop_rewards_atlas_mobile_v1.jpg
+    - assets/images/rush/rush_snakes_frame_carnival_mobile_v1.jpg
+    - assets/images/rush/rush_snakes_frame_classic_mobile_v1.jpg
+    - assets/images/rush/rush_snakes_frame_neon_mobile_v1.jpg
+    - assets/images/rush/rush_snakes_frame_royal_mobile_v1.jpg
+    - assets/images/rush/rush_snakes_ladders_mode_mobile_v1.jpg
+    - assets/images/rush/rush_snakes_ladders_title_plaque_mobile_v1.png
+    - assets/images/rush/rush_splash_scene_mobile_v1.jpg
