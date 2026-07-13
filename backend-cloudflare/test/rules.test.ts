@@ -80,7 +80,16 @@ describe("room rules", () => {
 
     expect(piece?.progress).toBe(0);
     expect(piece?.state).toBe("track");
-    expect(piece?.trackIndex).toBe(0);
+    expect(piece?.trackIndex).toBe(1);
+  });
+
+  it("keeps every entry one step ahead and every second safe cell at 6+2", () => {
+    expect([0, 1, 2, 3].map((seat) => getTrackIndex(seat, 0))).toEqual([
+      1, 14, 27, 40
+    ]);
+    expect([0, 1, 2, 3].map((seat) => getTrackIndex(seat, 8))).toEqual([
+      9, 22, 35, 48
+    ]);
   });
 
   it("captures an opponent on an unsafe shared track tile", () => {
@@ -127,10 +136,10 @@ describe("room rules", () => {
       availableMoves: ["s0_p0"],
       pieces: snapshot.pieces.map((piece) => {
         if (piece.pieceId === "s0_p0") {
-          return { ...piece, progress: 7, state: "track", trackIndex: 7 };
+          return { ...piece, progress: 7, state: "track", trackIndex: 8 };
         }
         if (piece.pieceId === "s1_p0") {
-          return { ...piece, progress: 47, state: "track", trackIndex: 8 };
+          return { ...piece, progress: 47, state: "track", trackIndex: 9 };
         }
         return piece;
       })
@@ -143,7 +152,7 @@ describe("room rules", () => {
 
     expect(result.capturedPieceIds).toEqual([]);
     expect(protectedPiece?.state).toBe("track");
-    expect(protectedPiece?.trackIndex).toBe(8);
+    expect(protectedPiece?.trackIndex).toBe(9);
   });
 
   it("always rolls a value between 1 and 6", () => {

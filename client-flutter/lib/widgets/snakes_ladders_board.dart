@@ -6,14 +6,26 @@ import '../models/game_snapshot.dart';
 import '../theme/app_theme.dart';
 
 const _snakesTitlePlaqueAsset =
-    'assets/images/rush/rush_snakes_ladders_title_plaque_v2.png';
+    'assets/images/rush/rush_snakes_ladders_title_plaque_mobile_v1.png';
 
 const _snakePieceAssets = [
-  'assets/images/rush/rush_goti_red_v2.png',
-  'assets/images/rush/rush_goti_blue_v2.png',
-  'assets/images/rush/rush_goti_yellow_v2.png',
-  'assets/images/rush/rush_goti_green_v2.png',
+  'assets/images/rush/rush_goti_red_mobile_v1.png',
+  'assets/images/rush/rush_goti_blue_mobile_v1.png',
+  'assets/images/rush/rush_goti_yellow_mobile_v1.png',
+  'assets/images/rush/rush_goti_green_mobile_v1.png',
 ];
+
+const _snakeFrameAssets = {
+  'carnival': 'assets/images/rush/rush_snakes_frame_carnival_mobile_v1.jpg',
+  'royal': 'assets/images/rush/rush_snakes_frame_royal_mobile_v1.jpg',
+  'neon': 'assets/images/rush/rush_snakes_frame_neon_mobile_v1.jpg',
+  'classic': 'assets/images/rush/rush_snakes_frame_classic_mobile_v1.jpg',
+};
+
+String _normalizedBoardTheme(String value) {
+  final normalized = value.trim().toLowerCase();
+  return _snakeFrameAssets.containsKey(normalized) ? normalized : 'carnival';
+}
 
 class SnakesLaddersBoard extends StatefulWidget {
   final GameSnapshot? snapshot;
@@ -38,6 +50,7 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
   late final AnimationController _pulse;
   final List<_SnakeHit> _hits = [];
   ui.Image? _titlePlaque;
+  ui.Image? _frameImage;
   Map<int, ui.Image> _pieceImages = const {};
 
   @override
@@ -54,6 +67,7 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
   void dispose() {
     _pulse.dispose();
     _titlePlaque?.dispose();
+    _frameImage?.dispose();
     for (final image in _pieceImages.values) {
       image.dispose();
     }
@@ -61,7 +75,11 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
   }
 
   Future<void> _loadAssets() async {
+    final requestedTheme = _normalizedBoardTheme(widget.boardTheme);
     final title = await _loadImage(_snakesTitlePlaqueAsset);
+    final frame = await _loadImage(
+      _snakeFrameAssets[requestedTheme]!,
+    );
     final pieces = <int, ui.Image>{};
     for (var i = 0; i < _snakePieceAssets.length; i++) {
       final image = await _loadImage(_snakePieceAssets[i]);
@@ -69,11 +87,14 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
     }
     if (!mounted) {
       title?.dispose();
+      frame?.dispose();
       for (final image in pieces.values) {
         image.dispose();
       }
       return;
     }
+    final frameStillCurrent =
+        _normalizedBoardTheme(widget.boardTheme) == requestedTheme;
     setState(() {
       _titlePlaque?.dispose();
       for (final image in _pieceImages.values) {
@@ -81,6 +102,37 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
       }
       _titlePlaque = title;
       _pieceImages = pieces;
+      if (frameStillCurrent) {
+        _frameImage?.dispose();
+        _frameImage = frame;
+      } else {
+        frame?.dispose();
+      }
+    });
+    if (!frameStillCurrent) {
+      _loadFrame(widget.boardTheme);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant SnakesLaddersBoard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_normalizedBoardTheme(oldWidget.boardTheme) !=
+        _normalizedBoardTheme(widget.boardTheme)) {
+      _loadFrame(widget.boardTheme);
+    }
+  }
+
+  Future<void> _loadFrame(String theme) async {
+    final normalized = _normalizedBoardTheme(theme);
+    final image = await _loadImage(_snakeFrameAssets[normalized]!);
+    if (!mounted || _normalizedBoardTheme(widget.boardTheme) != normalized) {
+      image?.dispose();
+      return;
+    }
+    setState(() {
+      _frameImage?.dispose();
+      _frameImage = image;
     });
   }
 
@@ -124,6 +176,7 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
             pulse: _pulse.value,
             hits: _hits,
             titlePlaque: _titlePlaque,
+            frameImage: _frameImage,
             pieceImages: _pieceImages,
             boardTheme: widget.boardTheme,
           ),
@@ -226,6 +279,7 @@ class _SnakesLaddersPainter extends CustomPainter {
   final double pulse;
   final List<_SnakeHit> hits;
   final ui.Image? titlePlaque;
+  final ui.Image? frameImage;
   final Map<int, ui.Image> pieceImages;
   final String boardTheme;
 
@@ -235,6 +289,7 @@ class _SnakesLaddersPainter extends CustomPainter {
     required this.pulse,
     required this.hits,
     required this.titlePlaque,
+    required this.frameImage,
     required this.pieceImages,
     required this.boardTheme,
   });
@@ -394,7 +449,9 @@ class _SnakesLaddersPainter extends CustomPainter {
       width: math.min(size.width * 0.92, boardSide * 0.96),
       height: titleHeight,
     );
-    final playRect = boardRect.deflate(boardSide * 0.025);
+    final playRect = boardRect.deflate(
+      boardSide * (frameImage == null ? 0.025 : 0.086),
+    );
     final cell = playRect.width / 10;
 
     _drawTitle(canvas, titleRect);
@@ -453,6 +510,28 @@ class _SnakesLaddersPainter extends CustomPainter {
     );
     p.color = const Color(0x99000000);
     canvas.drawRRect(RRect.fromRectXY(shadow, 28, 28), p);
+
+    final frame = frameImage;
+    if (frame != null) {
+      canvas.save();
+      canvas.clipRRect(RRect.fromRectXY(rect, 24, 24));
+      canvas.drawImageRect(
+        frame,
+        Rect.fromLTWH(0, 0, frame.width.toDouble(), frame.height.toDouble()),
+        rect,
+        Paint()
+          ..isAntiAlias = true
+          ..filterQuality = FilterQuality.medium,
+      );
+      canvas.restore();
+      p
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = rect.width * 0.006
+        ..color = Color.lerp(_outerGridColor, Colors.white, 0.36)!;
+      canvas.drawRRect(RRect.fromRectXY(rect.deflate(2), 22, 22), p);
+      p.style = PaintingStyle.fill;
+      return;
+    }
 
     p.shader = LinearGradient(
       begin: Alignment.topLeft,
@@ -1187,6 +1266,7 @@ class _SnakesLaddersPainter extends CustomPainter {
         oldDelegate.mySeat != mySeat ||
         oldDelegate.pulse != pulse ||
         oldDelegate.titlePlaque != titlePlaque ||
+        oldDelegate.frameImage != frameImage ||
         oldDelegate.pieceImages != pieceImages ||
         oldDelegate.boardTheme != boardTheme;
   }

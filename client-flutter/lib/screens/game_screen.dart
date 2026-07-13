@@ -11,11 +11,13 @@ import '../widgets/ludo_board.dart';
 import '../widgets/snakes_ladders_board.dart';
 import '../widgets/dice_widget.dart';
 
-const _gameBackdropAsset = 'assets/images/rush/rush_game_backdrop_v3.png';
-const _gameMascotAsset = 'assets/images/rush/rush_game_mascot_v3.png';
-const _reactionSixAsset = 'assets/images/rush/rush_game_reaction_six_v3.png';
+const _gameBackdropAsset =
+    'assets/images/rush/rush_game_backdrop_mobile_v1.jpg';
+const _gameMascotAsset = 'assets/images/rush/rush_game_mascot_mobile_v1.png';
+const _reactionSixAsset =
+    'assets/images/rush/rush_game_reaction_six_mobile_v1.png';
 const _reactionCrownAsset =
-    'assets/images/rush/rush_game_reaction_crown_v3.png';
+    'assets/images/rush/rush_game_reaction_crown_mobile_v1.png';
 
 String _shortNumber(int value) {
   if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
@@ -1182,17 +1184,17 @@ class _PlayerHeroBand extends StatelessWidget {
                                       child: const Icon(Icons.shield_rounded,
                                           color: goldColor, size: 17),
                                     ),
+                                    if (state.privateInviteCode != null) ...[
+                                      const SizedBox(width: 8),
+                                      _InviteCodeChip(
+                                        code: state.privateInviteCode!,
+                                        compact: compact,
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
                             ),
-                            if (state.privateInviteCode != null) ...[
-                              const SizedBox(height: 3),
-                              _InviteCodeChip(
-                                code: state.privateInviteCode!,
-                                compact: compact,
-                              ),
-                            ],
                           ],
                         ),
                       ),
@@ -1543,13 +1545,24 @@ class _PlayerActionRow extends StatelessWidget {
           final opponentDockHeight =
               opponents.isEmpty ? 0.0 : (compact ? 38.0 : 44.0);
           final diceSize = opponents.isEmpty
-              ? (compact ? 92.0 : 116.0)
-              : (compact ? 80.0 : 104.0);
-          final mascotWidth = compact ? 118.0 : 154.0;
+              ? (compact ? 82.0 : 116.0)
+              : (compact ? 68.0 : 104.0);
+          final mascotWidth = compact ? 100.0 : 154.0;
           final diceTop = opponentDockHeight + (compact ? 4.0 : 6.0);
           return Stack(
             clipBehavior: Clip.none,
             children: [
+              Positioned(
+                left: -8,
+                bottom: compact ? 6 : 8,
+                width: mascotWidth,
+                child: IgnorePointer(
+                  child: Image.asset(
+                    _gameMascotAsset,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
               if (opponents.isNotEmpty)
                 Positioned(
                   left: compact ? 2 : 6,
@@ -1563,17 +1576,6 @@ class _PlayerActionRow extends StatelessWidget {
                     compact: compact,
                   ),
                 ),
-              Positioned(
-                left: -8,
-                bottom: compact ? 22 : 8,
-                width: mascotWidth,
-                child: IgnorePointer(
-                  child: Image.asset(
-                    _gameMascotAsset,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
               Positioned(
                 top: diceTop,
                 left: (constraints.maxWidth - diceSize) / 2,
@@ -1639,18 +1641,20 @@ class _PlayerActionRow extends StatelessWidget {
               ),
               Positioned(
                 right: compact ? 8 : 14,
-                bottom: compact ? 22 : 24,
+                bottom: compact ? 6 : 24,
                 child: Row(
                   children: [
                     _ActionPill(
                       label: 'Emoji',
                       icon: Icons.mood_rounded,
+                      compact: compact,
                       onTap: onEmoji,
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: compact ? 7 : 12),
                     _ActionPill(
                       label: 'Chat',
                       icon: Icons.chat_bubble_rounded,
+                      compact: compact,
                       onTap: onChat,
                     ),
                   ],
@@ -2006,11 +2010,13 @@ class _ActionPill extends StatelessWidget {
   final String label;
   final IconData icon;
   final VoidCallback onTap;
+  final bool compact;
 
   const _ActionPill({
     required this.label,
     required this.icon,
     required this.onTap,
+    this.compact = false,
   });
 
   @override
@@ -2023,8 +2029,8 @@ class _ActionPill extends StatelessWidget {
           onTap();
         },
         child: Container(
-          width: 52,
-          height: 52,
+          width: compact ? 40 : 52,
+          height: compact ? 40 : 52,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: const LinearGradient(
@@ -2032,13 +2038,15 @@ class _ActionPill extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [Color(0xFFFFEE8C), Color(0xFFFF9D00)],
             ),
-            border: Border.all(color: const Color(0xFFFFF3B0), width: 2),
+            border: Border.all(
+                color: const Color(0xFFFFF3B0), width: compact ? 1.5 : 2),
             boxShadow: const [
               BoxShadow(color: Color(0xAA000000), blurRadius: 9),
               BoxShadow(color: Color(0x77FFD426), blurRadius: 14),
             ],
           ),
-          child: Icon(icon, color: const Color(0xFF38104A), size: 30),
+          child: Icon(icon,
+              color: const Color(0xFF38104A), size: compact ? 23 : 30),
         ),
       ),
     );

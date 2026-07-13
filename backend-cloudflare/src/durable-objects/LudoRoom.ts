@@ -1,4 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
+import { ECONOMY } from "../economy";
 import {
   TURN_DURATION_MS,
   applyMove,
@@ -474,7 +475,12 @@ export class LudoRoom extends DurableObject<Env> {
 
     for (const seat of humanSeats) {
       const won = seat.playerId === snapshot.winnerPlayerId;
-      const coinsDelta = won ? 100 : 15;
+      const coinsDelta = won
+        ? ECONOMY.onlineWinCoins
+        : ECONOMY.onlineFinishCoins;
+      const clubContribution = won
+        ? ECONOMY.clubWinContribution
+        : ECONOMY.clubFinishContribution;
       const ratingDelta = won ? 12 : -6;
       const finishRank = seat.finishRank ?? ranks.get(seat.playerId) ?? (won ? 1 : snapshot.seats.length);
 
@@ -486,7 +492,10 @@ export class LudoRoom extends DurableObject<Env> {
           "INSERT INTO wallets (user_id, coins, updated_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET coins = coins + ?, updated_at = ?"
         ).bind(seat.playerId, coinsDelta, snapshot.updatedAt, coinsDelta, snapshot.updatedAt),
         this.env.DB.prepare("UPDATE users SET rating = rating + ?, last_seen_at = ? WHERE id = ?")
-          .bind(ratingDelta, snapshot.updatedAt, seat.playerId)
+          .bind(ratingDelta, snapshot.updatedAt, seat.playerId),
+        this.env.DB.prepare(
+          "UPDATE club_members SET contribution = contribution + ? WHERE user_id = ?"
+        ).bind(clubContribution, seat.playerId)
       );
     }
 

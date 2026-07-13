@@ -65,24 +65,23 @@ class _BoardConsts {
     [7, 14],
   ];
 
-  // Safe cells must match the server rules (rules.ts SAFE_TRACK_INDEXES
-  // {0,8,13,21,26,34,39,47}) and AppState._localSafeTrackIndexes so captures
-  // and visuals agree. Stars sit 8 steps past each color's start cell
-  // (path indexes 8, 21, 34, 47).
+  // Safe cells must match the server rules and AppState. Each entry cell is
+  // one step beyond the arm corner, and the second star is exactly 6 + 2
+  // moves beyond that entry cell.
   static const safeSeats = [
-    [3, 8, 0],
-    [6, 3, 1],
-    [11, 6, 2],
-    [8, 11, 3],
+    [2, 8, 0],
+    [6, 2, 1],
+    [12, 6, 2],
+    [8, 12, 3],
   ];
 
-  // Entry cells (path indexes 0, 13, 26, 39) are also capture-safe and are
+  // Entry cells (path indexes 1, 14, 27, 40) are also capture-safe and are
   // tinted in the owning seat's color.
   static const startCells = [
-    [6, 14, 0],
-    [0, 6, 1],
-    [8, 0, 2],
-    [14, 8, 3],
+    [6, 13, 0],
+    [1, 6, 1],
+    [8, 1, 2],
+    [13, 8, 3],
   ];
 
   static const homeLanes = [
@@ -130,7 +129,7 @@ class _BoardConsts {
   ];
   // Track index of each seat's entry cell — must match the backend
   // START_OFFSETS in rules.ts and AppState._localStartOffsets.
-  static const seatStarts = [0, 13, 26, 39];
+  static const seatStarts = [1, 14, 27, 40];
 }
 
 // ── Tap hit record ─────────────────────────────────────────────────────────────
@@ -203,10 +202,10 @@ class _LudoBoardState extends State<LudoBoard>
 
   Future<void> _loadPieceImages() async {
     const paths = [
-      'assets/images/rush/rush_goti_red_v2.png',
-      'assets/images/rush/rush_goti_blue_v2.png',
-      'assets/images/rush/rush_goti_yellow_v2.png',
-      'assets/images/rush/rush_goti_green_v2.png',
+      'assets/images/rush/rush_goti_red_mobile_v1.png',
+      'assets/images/rush/rush_goti_blue_mobile_v1.png',
+      'assets/images/rush/rush_goti_yellow_mobile_v1.png',
+      'assets/images/rush/rush_goti_green_mobile_v1.png',
     ];
     final loaded = <int, ui.Image>{};
     for (int i = 0; i < paths.length; i++) {

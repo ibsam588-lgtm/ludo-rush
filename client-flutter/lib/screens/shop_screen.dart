@@ -4,11 +4,23 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../data/profile_catalog.dart';
+import '../data/economy.dart';
 import '../state/app_state.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dice_widget.dart';
-import '../widgets/snakes_ladders_board.dart';
+
+const _shopDiceAtlasAsset =
+    'assets/images/rush/rush_shop_dice_showcase_mobile_v1.jpg';
+const _shopRewardsAtlasAsset =
+    'assets/images/rush/rush_shop_rewards_atlas_mobile_v1.jpg';
+const _shopBoardFrameAssets = {
+  'carnival': 'assets/images/rush/rush_snakes_frame_carnival_mobile_v1.jpg',
+  'royal': 'assets/images/rush/rush_snakes_frame_royal_mobile_v1.jpg',
+  'neon': 'assets/images/rush/rush_snakes_frame_neon_mobile_v1.jpg',
+  'classic': 'assets/images/rush/rush_snakes_frame_classic_mobile_v1.jpg',
+};
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -22,8 +34,8 @@ class _ShopScreenState extends State<ShopScreen>
   late final AnimationController _bg;
 
   static const _items = [
-    _ShopProduct(
-        'Daily Coins', 'FREE', '150 coins', _ProductArt.daily, false, 150,
+    _ShopProduct('Daily Coins', 'FREE', '${GameEconomy.dailyCoins} coins',
+        _ProductArt.daily, false, GameEconomy.dailyCoins,
         dailyReward: true),
     _ShopProduct('Royal Dice', '3 WINS', 'rare win reward',
         _ProductArt.royalDice, false, 0,
@@ -55,7 +67,7 @@ class _ShopScreenState extends State<ShopScreen>
     _ShopProduct('Coin Stack', '0.99 USD', '1,200 coins', _ProductArt.coinPack,
         false, 1200,
         rarity: 'PREMIUM'),
-    _ShopProduct('Club Chest', '1.49 USD', '3,500 coins', _ProductArt.clubChest,
+    _ShopProduct('Gem Chest', '1.49 USD', '3,500 coins', _ProductArt.clubChest,
         false, 3500,
         rarity: 'PREMIUM'),
     _ShopProduct('Royal Vault', '1.99 USD', '7,500 coins',
@@ -85,155 +97,176 @@ class _ShopScreenState extends State<ShopScreen>
         final p = _ShopPalette.fromDark(dark);
         return Scaffold(
           backgroundColor: p.bg,
-          body: Stack(
-            children: [
-              Positioned.fill(
-                child: AnimatedBuilder(
-                  animation: _bg,
-                  builder: (_, __) => CustomPaint(
-                    painter: _ShopBackdropPainter(_bg.value, p),
-                    child: const SizedBox.expand(),
-                  ),
-                ),
-              ),
-              SafeArea(
-                child: LayoutBuilder(
-                  builder: (context, box) {
-                    final narrow = box.maxWidth < 370;
-                    final compactHeight = box.maxHeight < 720;
-                    final heroHeight =
-                        (box.maxHeight * (compactHeight ? 0.30 : 0.34))
-                            .clamp(narrow ? 210.0 : 230.0, 330.0)
-                            .toDouble();
-                    final columns = box.maxWidth < 360 ? 2 : 3;
-                    final cardAspect = columns == 2
-                        ? (compactHeight ? 0.76 : 0.82)
-                        : (compactHeight ? 0.66 : 0.70);
-                    final gridPad = EdgeInsets.fromLTRB(
-                      narrow ? 12 : 16,
-                      compactHeight ? 6 : 8,
-                      narrow ? 12 : 16,
-                      18,
-                    );
-
-                    return Column(
-                      children: [
-                        _ShopResources(state: state, palette: p),
-                        Expanded(
-                          child: CustomScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            slivers: [
-                              SliverToBoxAdapter(
-                                child: _ShopHero(
-                                  palette: p,
-                                  animation: _bg,
-                                  height: heroHeight,
-                                ),
-                              ),
-                              if (!compactHeight || box.maxWidth >= 390)
-                                SliverToBoxAdapter(
-                                  child: _BoosterBanner(palette: p),
-                                ),
-                              SliverToBoxAdapter(
-                                child: _DiceSkinStrip(
-                                  palette: p,
-                                  state: state,
-                                ),
-                              ),
-                              SliverToBoxAdapter(
-                                child: _BoardThemeStrip(
-                                  palette: p,
-                                  state: state,
-                                ),
-                              ),
-                              SliverPadding(
-                                padding: gridPad,
-                                sliver: SliverGrid(
-                                  gridDelegate:
-                                      SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: columns,
-                                    childAspectRatio: cardAspect,
-                                    crossAxisSpacing: narrow ? 8 : 10,
-                                    mainAxisSpacing: compactHeight ? 10 : 14,
-                                  ),
-                                  delegate: SliverChildBuilderDelegate(
-                                    (context, i) => _ShopCard(
-                                      product: _items[i],
-                                      palette: p,
-                                      locked: _items[i].isLocked(state),
-                                      actionLabel: _items[i].actionLabel(state),
-                                      onBuy: () async {
-                                        final product = _items[i];
-                                        var message =
-                                            '${product.title} selected.';
-                                        if (product.dailyReward) {
-                                          final claimed =
-                                              await state.claimDailyReward();
-                                          if (!context.mounted) return;
-                                          message = claimed
-                                              ? 'Daily coins claimed. +${state.dailyRewardAmount} coins.'
-                                              : (state.socialError.isNotEmpty
-                                                  ? state.socialError
-                                                  : 'Daily coins already claimed. Come back tomorrow.');
-                                        } else if (product.diceSkin != null) {
-                                          if (state.isDiceSkinUnlocked(
-                                              product.diceSkin!)) {
-                                            state
-                                                .setDiceSkin(product.diceSkin!);
-                                            message =
-                                                '${product.title} equipped for your dice.';
-                                          } else {
-                                            message = state.diceSkinUnlockLabel(
-                                                product.diceSkin!);
-                                          }
-                                        } else if (product.boardTheme != null) {
-                                          if (state.isBoardThemeUnlocked(
-                                              product.boardTheme!)) {
-                                            state.setSnakesBoardTheme(
-                                                product.boardTheme!);
-                                            message =
-                                                '${product.title} equipped for Snakes & Ladders.';
-                                          } else {
-                                            message =
-                                                state.boardThemeUnlockLabel(
-                                                    product.boardTheme!);
-                                          }
-                                        } else if (product.premium) {
-                                          message =
-                                              '${product.title} requires a verified Google Play purchase. No coins were added.';
-                                        } else if (product.coinReward > 0) {
-                                          message =
-                                              '${product.title} is unavailable until its reward source is earned.';
-                                        }
-                                        ScaffoldMessenger.of(context)
-                                          ..clearSnackBars()
-                                          ..showSnackBar(
-                                            SnackBar(
-                                              behavior:
-                                                  SnackBarBehavior.floating,
-                                              backgroundColor:
-                                                  const Color(0xEE22082E),
-                                              duration: const Duration(
-                                                  milliseconds: 1200),
-                                              content: Text(message),
-                                            ),
-                                          );
-                                      },
-                                    ),
-                                    childCount: _items.length,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+          body: LayoutBuilder(
+            builder: (context, viewport) {
+              return SizedBox(
+                width: viewport.maxWidth,
+                height: viewport.maxHeight,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Positioned.fill(
+                      child: RepaintBoundary(
+                        child: CustomPaint(
+                          painter: _ShopBackdropPainter(0.35, p),
+                          child: const SizedBox.expand(),
                         ),
-                        _ShopBottomNav(palette: p),
-                      ],
-                    );
-                  },
+                      ),
+                    ),
+                    SafeArea(
+                      child: LayoutBuilder(
+                        builder: (context, box) {
+                          final narrow = box.maxWidth < 370;
+                          final compactHeight = box.maxHeight < 720;
+                          final heroHeight =
+                              (box.maxHeight * (compactHeight ? 0.30 : 0.34))
+                                  .clamp(narrow ? 210.0 : 230.0, 330.0)
+                                  .toDouble();
+                          final columns = box.maxWidth < 360 ? 2 : 3;
+                          final cardAspect = columns == 2
+                              ? (compactHeight ? 0.76 : 0.82)
+                              : (compactHeight ? 0.66 : 0.70);
+                          final gridPad = EdgeInsets.fromLTRB(
+                            narrow ? 12 : 16,
+                            compactHeight ? 6 : 8,
+                            narrow ? 12 : 16,
+                            18,
+                          );
+
+                          return Column(
+                            children: [
+                              _ShopResources(state: state, palette: p),
+                              Expanded(
+                                child: CustomScrollView(
+                                  physics: const BouncingScrollPhysics(),
+                                  slivers: [
+                                    SliverToBoxAdapter(
+                                      child: _ShopHero(
+                                        palette: p,
+                                        animation: _bg,
+                                        height: heroHeight,
+                                      ),
+                                    ),
+                                    if (!compactHeight || box.maxWidth >= 390)
+                                      SliverToBoxAdapter(
+                                        child: _BoosterBanner(palette: p),
+                                      ),
+                                    SliverToBoxAdapter(
+                                      child: _DiceSkinStrip(
+                                        palette: p,
+                                        state: state,
+                                      ),
+                                    ),
+                                    SliverToBoxAdapter(
+                                      child: _BoardThemeStrip(
+                                        palette: p,
+                                        state: state,
+                                      ),
+                                    ),
+                                    SliverToBoxAdapter(
+                                      child: _AvatarShopStrip(
+                                        palette: p,
+                                        state: state,
+                                      ),
+                                    ),
+                                    SliverPadding(
+                                      padding: gridPad,
+                                      sliver: SliverGrid(
+                                        gridDelegate:
+                                            SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: columns,
+                                          childAspectRatio: cardAspect,
+                                          crossAxisSpacing: narrow ? 8 : 10,
+                                          mainAxisSpacing:
+                                              compactHeight ? 10 : 14,
+                                        ),
+                                        delegate: SliverChildBuilderDelegate(
+                                          (context, i) => _ShopCard(
+                                            product: _items[i],
+                                            palette: p,
+                                            locked: _items[i].isLocked(state),
+                                            actionLabel:
+                                                _items[i].actionLabel(state),
+                                            onBuy: () async {
+                                              final product = _items[i];
+                                              var message =
+                                                  '${product.title} selected.';
+                                              if (product.dailyReward) {
+                                                final claimed = await state
+                                                    .claimDailyReward();
+                                                if (!context.mounted) return;
+                                                message = claimed
+                                                    ? 'Daily coins claimed. +${state.dailyRewardAmount} coins.'
+                                                    : (state.socialError
+                                                            .isNotEmpty
+                                                        ? state.socialError
+                                                        : 'Daily coins already claimed. Come back tomorrow.');
+                                              } else if (product.diceSkin !=
+                                                  null) {
+                                                if (state.isDiceSkinUnlocked(
+                                                    product.diceSkin!)) {
+                                                  state.setDiceSkin(
+                                                      product.diceSkin!);
+                                                  message =
+                                                      '${product.title} equipped for your dice.';
+                                                } else {
+                                                  message =
+                                                      state.diceSkinUnlockLabel(
+                                                          product.diceSkin!);
+                                                }
+                                              } else if (product.boardTheme !=
+                                                  null) {
+                                                if (state.isBoardThemeUnlocked(
+                                                    product.boardTheme!)) {
+                                                  state.setSnakesBoardTheme(
+                                                      product.boardTheme!);
+                                                  message =
+                                                      '${product.title} equipped for Snakes & Ladders.';
+                                                } else {
+                                                  message = state
+                                                      .boardThemeUnlockLabel(
+                                                          product.boardTheme!);
+                                                }
+                                              } else if (product.premium) {
+                                                message =
+                                                    '${product.title} requires a verified Google Play purchase. No coins were added.';
+                                              } else if (product.coinReward >
+                                                  0) {
+                                                message =
+                                                    '${product.title} is unavailable until its reward source is earned.';
+                                              }
+                                              ScaffoldMessenger.of(context)
+                                                ..clearSnackBars()
+                                                ..showSnackBar(
+                                                  SnackBar(
+                                                    behavior: SnackBarBehavior
+                                                        .floating,
+                                                    backgroundColor:
+                                                        const Color(0xEE22082E),
+                                                    duration: const Duration(
+                                                        milliseconds: 1200),
+                                                    content: Text(message),
+                                                  ),
+                                                );
+                                            },
+                                          ),
+                                          childCount: _items.length,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              _ShopBottomNav(palette: p),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+              );
+            },
           ),
         );
       },
@@ -296,37 +329,52 @@ class _ShopResources extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 52,
-      padding: const EdgeInsets.fromLTRB(14, 6, 14, 4),
-      child: Row(
-        children: [
-          IconButton(
-            padding: EdgeInsets.zero,
-            onPressed: () => Navigator.pop(context),
-            icon: Icon(Icons.arrow_back_ios_new_rounded,
-                color: palette.text, size: 20),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 400;
+        final gap = compact ? 5.0 : 14.0;
+        return Container(
+          height: 52,
+          padding:
+              EdgeInsets.fromLTRB(compact ? 7 : 14, 6, compact ? 7 : 14, 4),
+          child: Row(
+            children: [
+              IconButton(
+                constraints: BoxConstraints.tightFor(
+                  width: compact ? 34 : 42,
+                  height: 38,
+                ),
+                padding: EdgeInsets.zero,
+                tooltip: 'Back',
+                onPressed: () => Navigator.pop(context),
+                icon: Icon(Icons.arrow_back_ios_new_rounded,
+                    color: palette.text, size: compact ? 18 : 20),
+              ),
+              const Spacer(),
+              _ResourceChip(
+                  icon: Icons.monetization_on_rounded,
+                  value: '${state.coins}',
+                  color: amberColor,
+                  palette: palette,
+                  compact: compact),
+              SizedBox(width: gap),
+              _ResourceChip(
+                  icon: Icons.diamond_rounded,
+                  value: '30',
+                  color: const Color(0xFF22E46C),
+                  palette: palette,
+                  compact: compact),
+              SizedBox(width: gap),
+              _ResourceChip(
+                  icon: Icons.bolt_rounded,
+                  value: '${state.wins}',
+                  color: const Color(0xFF35D6FF),
+                  palette: palette,
+                  compact: compact),
+            ],
           ),
-          const Spacer(),
-          _ResourceChip(
-              icon: Icons.monetization_on_rounded,
-              value: '${state.coins}',
-              color: amberColor,
-              palette: palette),
-          const SizedBox(width: 14),
-          _ResourceChip(
-              icon: Icons.diamond_rounded,
-              value: '30',
-              color: const Color(0xFF22E46C),
-              palette: palette),
-          const SizedBox(width: 14),
-          _ResourceChip(
-              icon: Icons.bolt_rounded,
-              value: '${state.wins}',
-              color: const Color(0xFF35D6FF),
-              palette: palette),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -336,20 +384,22 @@ class _ResourceChip extends StatelessWidget {
   final String value;
   final Color color;
   final _ShopPalette palette;
+  final bool compact;
 
   const _ResourceChip({
     required this.icon,
     required this.value,
     required this.color,
     required this.palette,
+    required this.compact,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 86),
-      height: 34,
-      padding: const EdgeInsets.fromLTRB(4, 3, 8, 3),
+      width: compact ? 69 : 86,
+      height: compact ? 32 : 34,
+      padding: EdgeInsets.fromLTRB(3, 3, compact ? 5 : 8, 3),
       decoration: BoxDecoration(
         color: Colors.black.withAlpha(palette.dark ? 105 : 20),
         borderRadius: BorderRadius.circular(18),
@@ -358,21 +408,28 @@ class _ResourceChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 28,
-            height: 28,
+            width: compact ? 26 : 28,
+            height: compact ? 26 : 28,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
                   colors: [Color.lerp(color, Colors.white, 0.35)!, color]),
             ),
-            child: Icon(icon, color: Colors.white, size: 17),
+            child: Icon(icon, color: Colors.white, size: compact ? 15 : 17),
           ),
-          const SizedBox(width: 7),
-          Text(value,
-              style: TextStyle(
-                  color: palette.text,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900)),
+          SizedBox(width: compact ? 4 : 7),
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(value,
+                  maxLines: 1,
+                  style: TextStyle(
+                      color: palette.text,
+                      fontSize: compact ? 12 : 13,
+                      fontWeight: FontWeight.w900)),
+            ),
+          ),
         ],
       ),
     );
@@ -423,10 +480,10 @@ class _ShopHero extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             Image.asset(
-              'assets/images/rush/rush_shop_hero_v3.png',
+              'assets/images/rush/rush_shop_hero_mobile_v1.jpg',
               fit: BoxFit.cover,
-              alignment: Alignment.topCenter,
-              filterQuality: FilterQuality.high,
+              alignment: Alignment.bottomCenter,
+              filterQuality: FilterQuality.medium,
             ),
             AnimatedBuilder(
               animation: animation,
@@ -1334,7 +1391,7 @@ class _BoosterBanner extends StatelessWidget {
             color: palette.dark ? Colors.transparent : const Color(0x22A00073)),
       ),
       child: Text(
-        'Booster multiplies XP earned in a game',
+        'Win +${GameEconomy.onlineWinCoins} | Finish +${GameEconomy.onlineFinishCoins} | Daily +${GameEconomy.dailyCoins} | Chest +${GameEconomy.goldChestCoins} every ${GameEconomy.winsPerGoldChest} wins',
         textAlign: TextAlign.center,
         style: TextStyle(
           color: palette.text,
@@ -1357,6 +1414,241 @@ class _BoardThemeOption {
 
   const _BoardThemeOption(this.id, this.label, this.colors,
       {this.rarity = 'COMMON'});
+}
+
+class _AvatarShopStrip extends StatelessWidget {
+  final _ShopPalette palette;
+  final AppState state;
+
+  const _AvatarShopStrip({required this.palette, required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 128,
+      margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0x8420062C),
+        border: Border.all(color: palette.stroke.withAlpha(165), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x66000000),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const SizedBox(
+            width: 76,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Avatar',
+                  style: TextStyle(
+                    color: goldColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    shadows: [Shadow(color: Colors.black, blurRadius: 3)],
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Styles',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: profileAvatarCatalog.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final avatar = profileAvatarCatalog[index];
+                final unlocked = state.isAvatarUnlocked(index);
+                return _ShopAvatarButton(
+                  avatar: avatar,
+                  selected: state.avatarPreset == index &&
+                      state.avatarImagePath == null,
+                  unlocked: unlocked,
+                  actionLabel: state.avatarUnlockLabel(index),
+                  onTap: () {
+                    var message = '${avatar.label} equipped.';
+                    if (unlocked) {
+                      state.updateProfile(avatar: index, clearImage: true);
+                    } else if (avatar.rarity == AvatarRarity.premium) {
+                      message =
+                          '${avatar.label} requires a verified Google Play purchase (${avatar.price}).';
+                    } else {
+                      message = state.avatarUnlockLabel(index);
+                    }
+                    ScaffoldMessenger.of(context)
+                      ..clearSnackBars()
+                      ..showSnackBar(
+                        SnackBar(
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: const Color(0xEE22082E),
+                          duration: const Duration(milliseconds: 1200),
+                          content: Text(message),
+                        ),
+                      );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShopAvatarButton extends StatelessWidget {
+  final ProfileAvatarSpec avatar;
+  final bool selected;
+  final bool unlocked;
+  final String actionLabel;
+  final VoidCallback onTap;
+
+  const _ShopAvatarButton({
+    required this.avatar,
+    required this.selected,
+    required this.unlocked,
+    required this.actionLabel,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = switch (avatar.rarity) {
+      AvatarRarity.common => boardGreen,
+      AvatarRarity.rare => boardBlue,
+      AvatarRarity.premium => boardPurple,
+    };
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: 86,
+        padding: const EdgeInsets.fromLTRB(5, 5, 5, 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          gradient: LinearGradient(
+            colors: [
+              Color.lerp(accent, Colors.white, 0.22)!,
+              accent.withAlpha(170),
+            ],
+          ),
+          border: Border.all(
+            color: selected ? goldColor : Colors.white.withAlpha(80),
+            width: selected ? 2.2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: _ShopAvatarImage(avatar: avatar),
+                  ),
+                  if (!unlocked)
+                    DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(10),
+                        color: const Color(0x99000000),
+                      ),
+                      child: Icon(
+                        avatar.rarity == AvatarRarity.premium
+                            ? Icons.workspace_premium_rounded
+                            : Icons.lock_rounded,
+                        color: goldColor,
+                        size: 22,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              avatar.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            Text(
+              actionLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: avatar.rarity == AvatarRarity.premium
+                    ? goldColor
+                    : Colors.white70,
+                fontSize: 8,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ShopAvatarImage extends StatelessWidget {
+  final ProfileAvatarSpec avatar;
+
+  const _ShopAvatarImage({required this.avatar});
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, box) {
+        final width = box.maxWidth;
+        final height = box.maxHeight;
+        final column = avatar.atlasIndex % 2;
+        final row = avatar.atlasIndex ~/ 2;
+        return ClipRect(
+          child: Stack(
+            clipBehavior: Clip.hardEdge,
+            children: [
+              Positioned(
+                left: -column * width,
+                top: -row * height,
+                width: width * 2,
+                height: height * 2,
+                child: Image.asset(
+                  avatar.asset,
+                  fit: BoxFit.fill,
+                  filterQuality: FilterQuality.medium,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _BoardThemeStrip extends StatelessWidget {
@@ -1549,12 +1841,10 @@ class _BoardThemeButton extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: IgnorePointer(
-                      child: SnakesLaddersBoard(
-                        snapshot: null,
-                        mySeat: null,
-                        boardTheme: option.id,
-                        onPieceTap: (_) {},
+                    child: RepaintBoundary(
+                      child: _SnakesThemePreview(
+                        theme: option.id,
+                        colors: option.colors,
                       ),
                     ),
                   ),
@@ -1614,6 +1904,33 @@ class _BoardThemeButton extends StatelessWidget {
   }
 }
 
+class _SnakesThemePreview extends StatelessWidget {
+  final String theme;
+  final List<Color> colors;
+
+  const _SnakesThemePreview({
+    required this.theme,
+    required this.colors,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final asset =
+        _shopBoardFrameAssets[theme] ?? _shopBoardFrameAssets['carnival']!;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(
+          asset,
+          fit: BoxFit.fill,
+          filterQuality: FilterQuality.low,
+        ),
+        CustomPaint(painter: _ThemePreviewPainter(colors)),
+      ],
+    );
+  }
+}
+
 class _ThemePreviewPainter extends CustomPainter {
   final List<Color> colors;
 
@@ -1622,76 +1939,90 @@ class _ThemePreviewPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final p = Paint()..isAntiAlias = true;
-    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
-    p.shader = ui.Gradient.linear(
-      rect.topLeft,
-      rect.bottomRight,
-      const [Color(0xFFFFF8DD), Color(0xFFFFD46A), Color(0xFF9B5A13)],
-      const [0, 0.65, 1],
+    final shell = Offset.zero & size;
+    final side = size.shortestSide * 0.78;
+    final board = Rect.fromCenter(
+      center: shell.center,
+      width: side,
+      height: side,
     );
-    canvas.drawRRect(RRect.fromRectXY(rect, 10, 10), p);
-    p.shader = null;
+    final cell = side / 10;
+    p.color = const Color(0xFFFFF8E7);
+    canvas.drawRect(board, p);
 
-    final board = rect.deflate(size.shortestSide * 0.10);
-    p.color = const Color(0xFFFFF9E8);
-    canvas.drawRRect(RRect.fromRectXY(board, 6, 6), p);
-    final cell = board.shortestSide / 15;
-    final ox = board.center.dx - cell * 7.5;
-    final oy = board.center.dy - cell * 7.5;
-
-    final bases = [
-      Rect.fromLTWH(ox, oy, cell * 6, cell * 6),
-      Rect.fromLTWH(ox + cell * 9, oy, cell * 6, cell * 6),
-      Rect.fromLTWH(ox, oy + cell * 9, cell * 6, cell * 6),
-      Rect.fromLTWH(ox + cell * 9, oy + cell * 9, cell * 6, cell * 6),
-    ];
-    for (var i = 0; i < bases.length; i++) {
-      p.color = colors[i % colors.length].withAlpha(235);
-      canvas.drawRRect(RRect.fromRectXY(bases[i], 5, 5), p);
-      p.color = Colors.white.withAlpha(170);
-      canvas.drawRRect(RRect.fromRectXY(bases[i].deflate(cell), 4, 4), p);
+    for (var row = 0; row < 10; row++) {
+      for (var col = 0; col < 10; col++) {
+        final rect = Rect.fromLTWH(
+          board.left + col * cell,
+          board.top + row * cell,
+          cell,
+          cell,
+        );
+        p.color = (row + col).isEven
+            ? Colors.white.withAlpha(215)
+            : const Color(0xFFFFF0C7).withAlpha(220);
+        canvas.drawRect(rect, p);
+        p
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.55
+          ..color = const Color(0x999B701F);
+        canvas.drawRect(rect, p);
+        p.style = PaintingStyle.fill;
+      }
     }
 
-    for (var i = 0; i < 15; i++) {
-      p.color = const Color(0xFFFFF9E8);
-      canvas.drawRect(
-          Rect.fromLTWH(ox + cell * 6, oy + i * cell, cell, cell), p);
-      canvas.drawRect(
-          Rect.fromLTWH(ox + cell * 8, oy + i * cell, cell, cell), p);
-      canvas.drawRect(
-          Rect.fromLTWH(ox + i * cell, oy + cell * 6, cell, cell), p);
-      canvas.drawRect(
-          Rect.fromLTWH(ox + i * cell, oy + cell * 8, cell, cell), p);
+    for (var i = 0; i < 3; i++) {
+      final x = board.left + cell * (1.7 + i * 2.8);
+      final from = Offset(x, board.bottom - cell * (1.0 + i * 0.55));
+      final to = Offset(x + cell * 1.4, board.top + cell * (1.2 + i * 0.8));
+      final normal = Offset(-(to - from).dy, (to - from).dx) /
+          (to - from).distance *
+          cell *
+          0.12;
+      p
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = cell * 0.12
+        ..color = const Color(0xFFFFB51C);
+      canvas.drawLine(from + normal, to + normal, p);
+      canvas.drawLine(from - normal, to - normal, p);
+      for (var rung = 1; rung < 6; rung++) {
+        final center = Offset.lerp(from, to, rung / 6)!;
+        canvas.drawLine(center - normal, center + normal, p);
+      }
     }
-    final lanes = [
-      Rect.fromLTWH(ox + cell * 7, oy + cell * 9, cell, cell * 5),
-      Rect.fromLTWH(ox + cell, oy + cell * 7, cell * 5, cell),
-      Rect.fromLTWH(ox + cell * 7, oy + cell, cell, cell * 5),
-      Rect.fromLTWH(ox + cell * 9, oy + cell * 7, cell * 5, cell),
-    ];
-    for (var i = 0; i < lanes.length; i++) {
-      p.color = colors[i % colors.length].withAlpha(245);
-      canvas.drawRect(lanes[i], p);
+
+    for (var i = 0; i < 3; i++) {
+      final start = Offset(
+        board.left + cell * (8.3 - i * 2.4),
+        board.top + cell * (1.0 + i * 1.2),
+      );
+      final end = Offset(
+        board.left + cell * (5.8 - i * 1.5),
+        board.top + cell * (7.8 - i * 0.6),
+      );
+      final path = Path()
+        ..moveTo(start.dx, start.dy)
+        ..cubicTo(
+          start.dx - cell * 1.7,
+          start.dy + cell * 1.4,
+          end.dx + cell * 1.6,
+          end.dy - cell * 1.5,
+          end.dx,
+          end.dy,
+        );
+      p
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = cell * 0.34
+        ..color = colors[i % colors.length];
+      canvas.drawPath(path, p);
+      p
+        ..strokeWidth = cell * 0.08
+        ..color = Colors.white.withAlpha(145);
+      canvas.drawPath(path, p);
     }
-    p.color = goldColor;
-    canvas.drawCircle(board.center, cell * 1.2, p);
-    p.color = Colors.white;
-    canvas.drawCircle(board.center, cell * 0.72, p);
-    p
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.7
-      ..color = const Color(0xAA9B701F);
-    for (var i = 0; i <= 15; i++) {
-      canvas.drawLine(
-          Offset(ox, oy + i * cell), Offset(ox + cell * 15, oy + i * cell), p);
-      canvas.drawLine(
-          Offset(ox + i * cell, oy), Offset(ox + i * cell, oy + cell * 15), p);
-    }
-    p
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = const Color(0x99A46C00);
-    canvas.drawRRect(RRect.fromRectXY(rect.deflate(0.5), 8, 8), p);
+    p.style = PaintingStyle.fill;
   }
 
   @override
@@ -1792,7 +2123,7 @@ class _DiceSkinStrip extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           Image.asset(
-            'assets/images/rush/rush_shop_dice_showcase_v1.png',
+            'assets/images/rush/rush_shop_dice_showcase_mobile_v1.jpg',
             fit: BoxFit.cover,
             alignment: Alignment.center,
             filterQuality: FilterQuality.high,
@@ -2125,6 +2456,11 @@ class _ShopCardState extends State<_ShopCard>
 
   @override
   Widget build(BuildContext context) {
+    final cardColors = switch (widget.product.rarity) {
+      'PREMIUM' => const [Color(0xFFB91B7A), Color(0xFF4C0A65)],
+      'RARE' => const [Color(0xFF355FC7), Color(0xFF40116A)],
+      _ => const [Color(0xFF8B2F62), Color(0xFF35093F)],
+    };
     return GestureDetector(
       onTapDown: (_) => _press.forward(),
       onTapCancel: _press.reverse,
@@ -2147,10 +2483,7 @@ class _ShopCardState extends State<_ShopCard>
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [
-                        widget.palette.cardTop,
-                        widget.palette.cardBottom
-                      ],
+                      colors: cardColors,
                     ),
                     border:
                         Border.all(color: const Color(0xFFFFD18A), width: 1.4),
@@ -2354,14 +2687,30 @@ class _ShopProductVisual extends StatelessWidget {
     if (product.boardTheme != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: IgnorePointer(
-          child: SnakesLaddersBoard(
-            snapshot: null,
-            mySeat: null,
-            boardTheme: product.boardTheme!,
-            onPieceTap: (_) {},
+        child: RepaintBoundary(
+          child: _SnakesThemePreview(
+            theme: product.boardTheme!,
+            colors: _boardColors(product.boardTheme!),
           ),
         ),
+      );
+    }
+    final diceIndex = _diceAtlasIndex(product.art);
+    if (diceIndex != null) {
+      return _AtlasSprite(
+        asset: _shopDiceAtlasAsset,
+        columns: 3,
+        rows: 2,
+        index: diceIndex,
+      );
+    }
+    final rewardIndex = _rewardAtlasIndex(product.art);
+    if (rewardIndex != null) {
+      return _AtlasSprite(
+        asset: _shopRewardsAtlasAsset,
+        columns: 2,
+        rows: 2,
+        index: rewardIndex,
       );
     }
     return DecoratedBox(
@@ -2381,6 +2730,78 @@ class _ShopProductVisual extends StatelessWidget {
       ),
     );
   }
+
+  static int? _diceAtlasIndex(_ProductArt art) => switch (art) {
+        _ProductArt.royalDice => 0,
+        _ProductArt.neonDice => 1,
+        _ProductArt.rubyDice => 2,
+        _ProductArt.emeraldDice => 3,
+        _ProductArt.cosmicDice => 4,
+        _ => null,
+      };
+
+  static int? _rewardAtlasIndex(_ProductArt art) => switch (art) {
+        _ProductArt.daily => 0,
+        _ProductArt.coinPack => 1,
+        _ProductArt.clubChest => 2,
+        _ProductArt.royalVault => 3,
+        _ => null,
+      };
+
+  static List<Color> _boardColors(String theme) => switch (theme) {
+        'royal' => const [Color(0xFF7D35FF), goldColor, Color(0xFF2FE8FF)],
+        'neon' => const [
+            Color(0xFF00E7FF),
+            Color(0xFFFF35D6),
+            Color(0xFF6BFF39)
+          ],
+        'classic' => const [boardRed, boardGreen, boardBlue],
+        _ => const [boardRed, boardBlue, boardGreen],
+      };
+}
+
+class _AtlasSprite extends StatelessWidget {
+  final String asset;
+  final int columns;
+  final int rows;
+  final int index;
+
+  const _AtlasSprite({
+    required this.asset,
+    required this.columns,
+    required this.rows,
+    required this.index,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, box) {
+        final width = box.maxWidth;
+        final height = box.maxHeight;
+        final column = index % columns;
+        final row = index ~/ columns;
+        return ClipRect(
+          child: Stack(
+            clipBehavior: Clip.hardEdge,
+            children: [
+              Positioned(
+                left: -column * width,
+                top: -row * height,
+                width: width * columns,
+                height: height * rows,
+                child: Image.asset(
+                  asset,
+                  fit: BoxFit.fill,
+                  filterQuality: FilterQuality.medium,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _ShopBottomNav extends StatelessWidget {
@@ -2395,7 +2816,7 @@ class _ShopBottomNav extends StatelessWidget {
       _ShopNavSpec(Icons.groups_rounded, 'Friends'),
       _ShopNavSpec(Icons.home_rounded, 'Home'),
       _ShopNavSpec(Icons.shield_rounded, 'Clubs'),
-      _ShopNavSpec(Icons.inventory_2_rounded, 'Chest'),
+      _ShopNavSpec(Icons.inventory_2_rounded, 'Rewards'),
     ];
     return Container(
       height: 76,

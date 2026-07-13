@@ -4,6 +4,8 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../data/profile_catalog.dart';
+import '../data/economy.dart';
 import '../models/game_snapshot.dart';
 import '../services/app_platform_service.dart';
 import '../services/prefs_service.dart';
@@ -25,6 +27,39 @@ class SocialPlayer {
         id: json['id'] as String? ?? '',
         displayName: json['displayName'] as String? ?? 'Player',
         rating: (json['rating'] as num?)?.toInt() ?? 1000,
+      );
+}
+
+class ClubSummary {
+  final String id;
+  final String name;
+  final String tag;
+  final String description;
+  final int minimumRating;
+  final int memberCount;
+  final int ratingTotal;
+  final int contribution;
+
+  const ClubSummary({
+    required this.id,
+    required this.name,
+    required this.tag,
+    required this.description,
+    required this.minimumRating,
+    required this.memberCount,
+    required this.ratingTotal,
+    this.contribution = 0,
+  });
+
+  factory ClubSummary.fromJson(Map<String, dynamic> json) => ClubSummary(
+        id: json['id'] as String? ?? '',
+        name: json['name'] as String? ?? 'Club',
+        tag: json['tag'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        minimumRating: (json['minimumRating'] as num?)?.toInt() ?? 0,
+        memberCount: (json['memberCount'] as num?)?.toInt() ?? 0,
+        ratingTotal: (json['ratingTotal'] as num?)?.toInt() ?? 0,
+        contribution: (json['contribution'] as num?)?.toInt() ?? 0,
       );
 }
 
@@ -88,8 +123,8 @@ class AppState extends ChangeNotifier {
   // Must match the backend rules (rules.ts): START_OFFSETS and
   // SAFE_TRACK_INDEXES, so online and offline games agree on where pieces
   // stand and which cells are capture-safe.
-  static const List<int> _localStartOffsets = [0, 13, 26, 39];
-  static const Set<int> _localSafeTrackIndexes = {0, 8, 13, 21, 26, 34, 39, 47};
+  static const List<int> _localStartOffsets = [1, 14, 27, 40];
+  static const Set<int> _localSafeTrackIndexes = {1, 9, 14, 22, 27, 35, 40, 48};
   static const Map<int, int> _snakeLadders = {
     6: 26,
     23: 37,
@@ -147,7 +182,7 @@ class AppState extends ChangeNotifier {
   int avatarPreset = 0;
   int age = 0;
   String? avatarImagePath;
-  int coins = 500;
+  int coins = GameEconomy.startingCoins;
   int rating = 1000;
   int gamesPlayed = 0;
   int wins = 0;
@@ -167,8 +202,11 @@ class AppState extends ChangeNotifier {
   List<SocialPlayer> outgoingFriendRequests = const [];
   List<FriendChatMessage> friendMessages = const [];
   List<ReceivedFriendGift> receivedFriendGifts = const [];
+  List<ClubSummary> clubs = const [];
+  ClubSummary? currentClub;
+  Set<String> ownedProductIds = const {};
   bool economySynced = false;
-  int _availableGoldChests = 1;
+  int _availableGoldChests = 0;
 
   // Match state
   GameSnapshot? lastSnapshot;
@@ -224,7 +262,8 @@ class AppState extends ChangeNotifier {
     authToken = _prefs.authToken;
     displayName = _prefs.displayName;
     countryCode = _prefs.countryCode;
-    avatarPreset = _prefs.avatarPreset;
+    avatarPreset =
+        _prefs.avatarPreset.clamp(0, profileAvatarCatalog.length - 1);
     age = _prefs.age;
     avatarImagePath = _prefs.avatarImagePath;
     coins = _prefs.coins;
@@ -237,11 +276,12 @@ class AppState extends ChangeNotifier {
     snakesBoardTheme = _normalizeSnakesBoardTheme(_prefs.snakesBoardTheme);
     diceSkin = _normalizeDiceSkin(_prefs.diceSkin);
     autoRollEnabled = _prefs.autoRollEnabled;
-    if (!isBoardThemeUnlocked(snakesBoardTheme)) {
+    if (!isBoardThemePremium(snakesBoardTheme) &&
+        !isBoardThemeUnlocked(snakesBoardTheme)) {
       snakesBoardTheme = 'carnival';
       _prefs.snakesBoardTheme = snakesBoardTheme;
     }
-    if (!isDiceSkinUnlocked(diceSkin)) {
+    if (!isDiceSkinPremium(diceSkin) && !isDiceSkinUnlocked(diceSkin)) {
       diceSkin = 'classic';
       _prefs.diceSkin = diceSkin;
     }
@@ -382,7 +422,7 @@ class AppState extends ChangeNotifier {
               'displayName': _humanDisplayName,
               'region': matchmakingRegion,
               'countryCode': countryCode,
-              'avatarKey': avatarImagePath ?? 'preset_$avatarPreset',
+              'avatarKey': 'preset_$avatarPreset',
               'age': age,
             }),
           )
@@ -1749,13 +1789,13 @@ class AppState extends ChangeNotifier {
       if (economyEligible) {
         wins++;
         rating += 12;
-        coins += 100;
+        coins += GameEconomy.onlineWinCoins;
       }
     } else {
       SoundService.warning();
       if (economyEligible) {
         rating = (rating - 6).clamp(0, 9999);
-        coins += 15;
+        coins += GameEconomy.onlineFinishCoins;
       }
     }
     _prefs.gamesPlayed = gamesPlayed;
@@ -1920,7 +1960,7 @@ class AppState extends ChangeNotifier {
           'playerId': playerId,
           'displayName': _humanDisplayName,
           'countryCode': countryCode,
-          'avatarKey': avatarImagePath ?? 'preset_$avatarPreset',
+          'avatarKey': 'preset_$avatarPreset',
           'age': age,
         },
       );
@@ -1951,6 +1991,34 @@ class AppState extends ChangeNotifier {
           .map(ReceivedFriendGift.fromJson)
           .where((gift) => gift.id.isNotEmpty)
           .toList(growable: false);
+      final productsRaw = json['ownedProductIds'] as List<dynamic>? ?? const [];
+      ownedProductIds = productsRaw
+          .whereType<String>()
+          .map((product) => product.trim())
+          .where((product) => product.isNotEmpty)
+          .toSet();
+      final clubsRaw = json['clubs'] as List<dynamic>? ?? const [];
+      clubs = clubsRaw
+          .whereType<Map<String, dynamic>>()
+          .map(ClubSummary.fromJson)
+          .where((club) => club.id.isNotEmpty)
+          .toList(growable: false);
+      final currentClubRaw = json['currentClub'];
+      currentClub = currentClubRaw is Map<String, dynamic>
+          ? ClubSummary.fromJson(currentClubRaw)
+          : null;
+      if (!isBoardThemeUnlocked(snakesBoardTheme)) {
+        snakesBoardTheme = 'carnival';
+        _prefs.snakesBoardTheme = snakesBoardTheme;
+      }
+      if (!isDiceSkinUnlocked(diceSkin)) {
+        diceSkin = 'classic';
+        _prefs.diceSkin = diceSkin;
+      }
+      if (!isAvatarUnlocked(avatarPreset)) {
+        avatarPreset = 0;
+        _prefs.avatarPreset = avatarPreset;
+      }
       final serverCoins = _readInt(json['coins'], fallback: coins);
       if (serverCoins >= 0) {
         coins = serverCoins;
@@ -2191,7 +2259,7 @@ class AppState extends ChangeNotifier {
 
   bool get canClaimDailyReward => lastDailyRewardDate != _todayKey();
 
-  int get dailyRewardAmount => 150;
+  int get dailyRewardAmount => GameEconomy.dailyCoins;
 
   Future<bool> claimDailyReward() async {
     SoundService.tap();
@@ -2219,7 +2287,10 @@ class AppState extends ChangeNotifier {
 
   int get availableGoldChests => economySynced
       ? _availableGoldChests
-      : math.max(0, 1 + (wins ~/ 3) - claimedGoldChests);
+      : math.max(
+          0,
+          (wins ~/ GameEconomy.winsPerGoldChest) - claimedGoldChests,
+        );
 
   Future<bool> claimGoldChest() async {
     try {
@@ -2280,18 +2351,23 @@ class AppState extends ChangeNotifier {
 
   bool isDiceSkinUnlocked(String value) {
     final normalized = _normalizeDiceSkin(value);
-    if (isDiceSkinPremium(normalized)) return false;
+    if (isDiceSkinPremium(normalized)) {
+      return ownedProductIds.contains('dice.$normalized');
+    }
     return wins >= diceSkinRequiredWins(normalized);
   }
 
   bool isBoardThemeUnlocked(String value) {
     final normalized = _normalizeSnakesBoardTheme(value);
-    if (isBoardThemePremium(normalized)) return false;
+    if (isBoardThemePremium(normalized)) {
+      return ownedProductIds.contains('board.$normalized');
+    }
     return wins >= boardThemeRequiredWins(normalized);
   }
 
   String diceSkinUnlockLabel(String value) {
     final normalized = _normalizeDiceSkin(value);
+    if (isDiceSkinUnlocked(normalized)) return 'Dice unlocked.';
     final premium = diceSkinPremiumPrice(normalized);
     if (premium != null) return 'Premium dice unlocks with $premium.';
     final needed = diceSkinRequiredWins(normalized);
@@ -2303,6 +2379,7 @@ class AppState extends ChangeNotifier {
 
   String boardThemeUnlockLabel(String value) {
     final normalized = _normalizeSnakesBoardTheme(value);
+    if (isBoardThemeUnlocked(normalized)) return 'Board unlocked.';
     final premium = boardThemePremiumPrice(normalized);
     if (premium != null) return 'Premium board unlocks with $premium.';
     final needed = boardThemeRequiredWins(normalized);
@@ -2312,17 +2389,81 @@ class AppState extends ChangeNotifier {
         : 'Win $left more ${left == 1 ? 'game' : 'games'} to unlock this board.';
   }
 
-  String rewardEconomySummary() {
-    final nextDice = _diceUnlockWins.entries
-        .where((entry) => entry.value > wins)
-        .toList()
-      ..sort((a, b) => a.value.compareTo(b.value));
-    if (nextDice.isEmpty) {
-      return 'Common and rare win rewards unlocked. Premium cosmetics stay optional.';
+  Future<String> joinClub(String clubId) async {
+    try {
+      await _requestJson(
+        'POST',
+        '/api/v1/social/clubs/join',
+        body: {'clubId': clubId},
+      );
+      await refreshSocial();
+      return 'Club joined.';
+    } catch (error) {
+      final message = _cleanApiError(error);
+      socialError = message;
+      notifyListeners();
+      return message;
     }
-    final next = nextDice.first;
-    final left = next.value - wins;
-    return 'Next unlock: ${next.key} dice in $left ${left == 1 ? 'win' : 'wins'}.';
+  }
+
+  Future<String> leaveClub() async {
+    try {
+      await _requestJson('POST', '/api/v1/social/clubs/leave');
+      await refreshSocial();
+      return 'Club left.';
+    } catch (error) {
+      final message = _cleanApiError(error);
+      socialError = message;
+      notifyListeners();
+      return message;
+    }
+  }
+
+  bool isAvatarUnlocked(int preset) {
+    final avatar = avatarForPreset(preset);
+    switch (avatar.rarity) {
+      case AvatarRarity.common:
+        return true;
+      case AvatarRarity.rare:
+        return wins >= avatar.requiredWins;
+      case AvatarRarity.premium:
+        return ownedProductIds.contains('avatar.${avatar.id}');
+    }
+  }
+
+  String avatarUnlockLabel(int preset) {
+    final avatar = avatarForPreset(preset);
+    switch (avatar.rarity) {
+      case AvatarRarity.common:
+        return 'Included';
+      case AvatarRarity.rare:
+        final left = math.max(0, avatar.requiredWins - wins);
+        return left == 0
+            ? 'Unlocked'
+            : 'Win $left more ${left == 1 ? 'game' : 'games'}';
+      case AvatarRarity.premium:
+        if (isAvatarUnlocked(preset)) return 'Owned';
+        return avatar.price ?? 'Premium';
+    }
+  }
+
+  String rewardEconomySummary() {
+    final unlocks = <({int atWins, String label})>[
+      for (final entry in _diceUnlockWins.entries)
+        if (entry.value > 0) (atWins: entry.value, label: '${entry.key} dice'),
+      for (final entry in _boardUnlockWins.entries)
+        if (entry.value > 0)
+          (atWins: entry.value, label: '${entry.key} Snakes board'),
+      for (final avatar in profileAvatarCatalog)
+        if (avatar.rarity == AvatarRarity.rare)
+          (atWins: avatar.requiredWins, label: '${avatar.label} avatar'),
+    ]..sort((a, b) => a.atWins.compareTo(b.atWins));
+    final next = unlocks.where((unlock) => unlock.atWins > wins).firstOrNull;
+    if (next == null) {
+      return 'All win-tier cosmetics are unlocked. Premium cosmetics remain optional.';
+    }
+    final left = next.atWins - wins;
+    return 'Next unlock: ${next.label} in $left ${left == 1 ? 'online win' : 'online wins'}.';
   }
 
   void setAutoRollEnabled(bool value) {
@@ -2462,11 +2603,16 @@ class AppState extends ChangeNotifier {
       _prefs.countryCode = countryCode;
     }
     if (avatar != null) {
-      avatarPreset = avatar.clamp(0, 7);
-      _prefs.avatarPreset = avatarPreset;
-      if (clearImage) {
-        avatarImagePath = null;
-        _prefs.avatarImagePath = null;
+      final normalizedAvatar = avatar.clamp(0, profileAvatarCatalog.length - 1);
+      if (isAvatarUnlocked(normalizedAvatar)) {
+        avatarPreset = normalizedAvatar;
+        _prefs.avatarPreset = avatarPreset;
+        if (clearImage) {
+          avatarImagePath = null;
+          _prefs.avatarImagePath = null;
+        }
+      } else {
+        _setStatus(avatarUnlockLabel(normalizedAvatar));
       }
     }
     if (age != null) {
