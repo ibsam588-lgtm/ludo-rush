@@ -105,7 +105,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
         final mySeat = state.mySeat;
         final myTurn = snapshot?.currentTurnSeat == mySeat;
-        final canRoll = myTurn && (snapshot?.diceValue ?? 0) == 0 && !_rolling;
+        final canRoll = snapshot?.status == 'playing' &&
+            myTurn &&
+            (snapshot?.diceValue ?? 0) == 0 &&
+            !_rolling;
         final legalCount = snapshot?.availableMoves.length ?? 0;
         final seatColor =
             mySeat != null ? AppColors.seatColor(mySeat) : goldColor;
@@ -1517,21 +1520,28 @@ class _PlayerActionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final seat = mySeat ?? 0;
     final seatColor = AppColors.seatColor(seat);
+    final waitingForPlayers = snapshot?.status == 'waiting';
     final isMyTurn = snapshot?.currentTurnSeat == mySeat;
     final hasDice = (snapshot?.diceValue ?? 0) > 0;
-    final showMove = hasDice && legalCount > 0 && isMyTurn && !rolling;
+    final showMove = snapshot?.status == 'playing' &&
+        hasDice &&
+        legalCount > 0 &&
+        isMyTurn &&
+        !rolling;
     final enabled = canRoll || showMove;
     final action =
         showMove ? state.moveBestPiece : (canRoll ? state.rollDice : null);
-    final actionLabel = rolling
-        ? 'Rolling'
-        : showMove
-            ? 'Tap to Move'
-            : canRoll
-                ? 'Tap to Roll'
-                : isMyTurn
-                    ? 'Choose Goti'
-                    : 'Wait Turn';
+    final actionLabel = waitingForPlayers
+        ? 'Waiting for players'
+        : rolling
+            ? 'Rolling'
+            : showMove
+                ? 'Tap to Move'
+                : canRoll
+                    ? 'Tap to Roll'
+                    : isMyTurn
+                        ? 'Choose Goti'
+                        : 'Wait Turn';
     final opponents =
         snapshot?.seats.where((s) => s.seat != mySeat).toList() ?? const [];
 

@@ -16,7 +16,7 @@ void main() {
       ..playerId = 'player_me'
       ..privateInviteCode = 'ABC123'
       ..lastSnapshot = GameSnapshot.fromJson({
-        'status': 'playing',
+        'status': 'waiting',
         'mode': 'classic_4p',
         'diceValue': 0,
         'currentTurnSeat': 0,
@@ -62,6 +62,8 @@ void main() {
     expect(find.text('Leo'), findsOneWidget);
     expect(find.text('Ava'), findsOneWidget);
     expect(find.text('Noah'), findsOneWidget);
+    expect(find.text('Waiting for players'), findsOneWidget);
+    expect(find.text('Tap to Roll'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }
