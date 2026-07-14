@@ -28,6 +28,7 @@ class MainActivity : FlutterActivity() {
                 when (call.method) {
                     "getVersionInfo" -> result.success(versionInfo())
                     "openUrl" -> result.success(openUrl(call.argument<String>("url") ?: ""))
+                    "shareText" -> result.success(shareText(call.argument<String>("text") ?: ""))
                     else -> result.notImplemented()
                 }
             }
@@ -64,6 +65,20 @@ class MainActivity : FlutterActivity() {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             startActivity(intent)
+            true
+        } catch (_: RuntimeException) {
+            false
+        }
+    }
+
+    private fun shareText(text: String): Boolean {
+        if (text.isBlank()) return false
+        return try {
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_TEXT, text)
+            }
+            startActivity(Intent.createChooser(sendIntent, "Share Ludo Rush result"))
             true
         } catch (_: RuntimeException) {
             false

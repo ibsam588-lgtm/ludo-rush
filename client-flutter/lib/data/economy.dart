@@ -8,6 +8,9 @@ abstract final class GameEconomy {
   static const goldChestCoins = 500;
   static const winsPerGoldChest = 3;
   static const luckyDiceGiftCoins = 25;
+  static const friendshipHeartGiftCoins = 40;
   static const coinShipGiftCoins = 50;
+  static const mascotCheerGiftCoins = 75;
   static const crownChestGiftCoins = 125;
+  static const fireworkCastleGiftCoins = 200;
 }

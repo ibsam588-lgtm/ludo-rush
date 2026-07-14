@@ -20,6 +20,7 @@ const _snakeFrameAssets = {
   'royal': 'assets/images/rush/rush_snakes_frame_royal_mobile_v1.jpg',
   'neon': 'assets/images/rush/rush_snakes_frame_neon_mobile_v1.jpg',
   'classic': 'assets/images/rush/rush_snakes_frame_classic_mobile_v1.jpg',
+  'jungle': 'assets/images/rush/rush_snakes_frame_jungle_mobile_v1.webp',
 };
 
 String _normalizedBoardTheme(String value) {
@@ -296,7 +297,10 @@ class _SnakesLaddersPainter extends CustomPainter {
 
   String get _theme {
     final value = boardTheme.trim().toLowerCase();
-    if (value == 'royal' || value == 'neon' || value == 'classic') {
+    if (value == 'royal' ||
+        value == 'neon' ||
+        value == 'classic' ||
+        value == 'jungle') {
       return value;
     }
     return 'carnival';
@@ -310,6 +314,8 @@ class _SnakesLaddersPainter extends CustomPainter {
         return const [Color(0xFFB9FFFF), Color(0xFFFF4CE2), Color(0xFF160051)];
       case 'classic':
         return const [Color(0xFFFFF8D6), Color(0xFFFFC448), Color(0xFF7D430E)];
+      case 'jungle':
+        return const [Color(0xFFFFF4C8), Color(0xFF36B86A), Color(0xFF0E4D35)];
       case 'carnival':
       default:
         return const [Color(0xFFFFF7A6), Color(0xFFFFB61C), Color(0xFF713100)];
@@ -324,6 +330,8 @@ class _SnakesLaddersPainter extends CustomPainter {
         return const Color(0xFFF2FBFF);
       case 'classic':
         return const Color(0xFFFFF5D6);
+      case 'jungle':
+        return const Color(0xFFFFF4CF);
       case 'carnival':
       default:
         return const Color(0xFFFFF1C4);
@@ -338,6 +346,8 @@ class _SnakesLaddersPainter extends CustomPainter {
         return const Color(0xD129BFFF);
       case 'classic':
         return const Color(0xD6BE8A25);
+      case 'jungle':
+        return const Color(0xD5997425);
       case 'carnival':
       default:
         return const Color(0xD9D8A115);
@@ -352,6 +362,8 @@ class _SnakesLaddersPainter extends CustomPainter {
         return const Color(0xFF15DFFF);
       case 'classic':
         return const Color(0xFFB77B1A);
+      case 'jungle':
+        return const Color(0xFF2D9F67);
       case 'carnival':
       default:
         return const Color(0xFFE5A716);
@@ -373,6 +385,10 @@ class _SnakesLaddersPainter extends CustomPainter {
         return even
             ? const [Color(0xFFFFFDF4), Color(0xFFFFE7B5)]
             : const [Color(0xFFFFF7E1), Color(0xFFFFE0A0)];
+      case 'jungle':
+        return even
+            ? const [Color(0xFFFFF9E7), Color(0xFFF2E0B4)]
+            : const [Color(0xFFFFF5D7), Color(0xFFE8D19A)];
       case 'carnival':
       default:
         return even
@@ -404,6 +420,13 @@ class _SnakesLaddersPainter extends CustomPainter {
           Color(0xFF53C846),
           Color(0xFF2AA8EA),
         ];
+      case 'jungle':
+        return const [
+          Color(0xFFFF8A28),
+          Color(0xFFB356D8),
+          Color(0xFF4CCB45),
+          Color(0xFF22AEDD),
+        ];
       case 'carnival':
       default:
         return const [
@@ -423,6 +446,8 @@ class _SnakesLaddersPainter extends CustomPainter {
         return Color.lerp(color, const Color(0xFF39F6FF), 0.12)!;
       case 'classic':
         return Color.lerp(color, Colors.white, 0.04)!;
+      case 'jungle':
+        return Color.lerp(color, const Color(0xFF45C779), 0.08)!;
       case 'carnival':
       default:
         return color;
@@ -449,9 +474,9 @@ class _SnakesLaddersPainter extends CustomPainter {
       width: math.min(size.width * 0.92, boardSide * 0.96),
       height: titleHeight,
     );
-    final playRect = boardRect.deflate(
-      boardSide * (frameImage == null ? 0.025 : 0.086),
-    );
+    final frameInset =
+        frameImage == null ? 0.025 : (_theme == 'jungle' ? 0.132 : 0.086);
+    final playRect = boardRect.deflate(boardSide * frameInset);
     final cell = playRect.width / 10;
 
     _drawTitle(canvas, titleRect);

@@ -3,24 +3,40 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ludo_rush/screens/shop_screen.dart';
 import 'package:ludo_rush/services/prefs_service.dart';
 import 'package:ludo_rush/state/app_state.dart';
+import 'package:ludo_rush/widgets/ludo_board.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('shop lays out on a tall Android phone', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(411.4, 914.3));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+  for (final size in const [Size(320, 568), Size(411.4, 914.3)]) {
+    testWidgets('shop lays out at ${size.width.toInt()}x${size.height.toInt()}',
+        (tester) async {
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    final state = AppState(PrefsService());
-    await tester.pumpWidget(
-      ChangeNotifierProvider.value(
-        value: state,
-        child: const MaterialApp(home: ShopScreen()),
-      ),
-    );
-    await tester.pump(const Duration(milliseconds: 100));
+      final state = AppState(PrefsService());
+      await tester.pumpWidget(
+        ChangeNotifierProvider.value(
+          value: state,
+          child: const MaterialApp(home: ShopScreen()),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Dice Shop'), findsOneWidget);
-    expect(find.byType(CustomScrollView), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+      expect(find.text('Dice Shop'), findsOneWidget);
+      expect(find.byType(CustomScrollView), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('Carnival Board'),
+        500,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.byType(LudoBoard), findsWidgets);
+      final previewSize = tester.getSize(find.byType(LudoBoard).first);
+      expect(previewSize.width, greaterThan(40));
+      expect(previewSize.height, greaterThan(40));
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

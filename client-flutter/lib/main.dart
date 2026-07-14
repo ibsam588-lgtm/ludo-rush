@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -20,7 +21,7 @@ void main() async {
   await prefs.init();
 
   final appState = AppState(prefs);
-  await appState.init();
+  unawaited(appState.init());
 
   runApp(
     ChangeNotifierProvider.value(

@@ -38,6 +38,25 @@ class AppPlatformService {
     }
   }
 
+  static Future<bool> shareText(String text) async {
+    final value = text.trim();
+    if (value.isEmpty) return false;
+    try {
+      final result = await _channel.invokeMethod<bool>('shareText', {
+        'text': value,
+      });
+      if (result == true) return true;
+    } catch (_) {
+      // Web and unsupported platforms fall back to a copied result.
+    }
+    try {
+      await Clipboard.setData(ClipboardData(text: value));
+    } catch (_) {
+      // Clipboard access can be denied by a browser or restricted platform.
+    }
+    return false;
+  }
+
   static int _readInt(dynamic value) {
     if (value is int) return value;
     if (value is num) return value.toInt();

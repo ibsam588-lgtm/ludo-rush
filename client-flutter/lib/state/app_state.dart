@@ -10,6 +10,7 @@ import '../models/game_snapshot.dart';
 import '../services/app_platform_service.dart';
 import '../services/prefs_service.dart';
 import '../services/sound_service.dart';
+import '../services/soundtrack_service.dart';
 import '../services/websocket_service.dart';
 
 class SocialPlayer {
@@ -110,7 +111,7 @@ class ReceivedFriendGift {
       );
 }
 
-class AppState extends ChangeNotifier {
+class AppState extends ChangeNotifier with WidgetsBindingObserver {
   static const String _backendUrl =
       'https://ludo-rush-backend.ibsam588.workers.dev';
   static const String _defaultAndroidUpdateUrl =
@@ -148,6 +149,7 @@ class AppState extends ChangeNotifier {
     'carnival': 0,
     'classic': 2,
     'royal': 6,
+    'jungle': 10,
   };
   static const Map<String, String> _premiumDicePrices = {
     'ruby': '0.99 USD',
@@ -173,6 +175,7 @@ class AppState extends ChangeNotifier {
 
   final PrefsService _prefs;
   final WebSocketService _ws = WebSocketService();
+  final SoundtrackService _soundtrack = SoundtrackService();
 
   // Identity
   String? playerId;
@@ -189,9 +192,12 @@ class AppState extends ChangeNotifier {
   int claimedGoldChests = 0;
   bool isDarkMode = true;
   String matchDifficulty = 'medium';
+  String ludoBoardTheme = 'carnival';
   String snakesBoardTheme = 'carnival';
   String diceSkin = 'classic';
   bool autoRollEnabled = false;
+  String soundtrackId = SoundtrackCatalog.defaultId;
+  bool musicEnabled = true;
   String lastDailyRewardDate = '';
   bool startChoiceSeen = false;
   bool socialLoading = false;
@@ -240,6 +246,7 @@ class AppState extends ChangeNotifier {
   Timer? _matchmakingTimer;
   Timer? _autoRollTimer;
   Future<void>? _authenticationFuture;
+  bool _lifecycleObserverRegistered = false;
 
   // Roll state (mirrors Java lastRollValue / lastRollPlayerId)
   int lastRollValue = 0;
@@ -258,6 +265,10 @@ class AppState extends ChangeNotifier {
   AppState(this._prefs);
 
   Future<void> init() async {
+    if (!_lifecycleObserverRegistered) {
+      WidgetsBinding.instance.addObserver(this);
+      _lifecycleObserverRegistered = true;
+    }
     playerId = _prefs.playerId;
     authToken = _prefs.authToken;
     displayName = _prefs.displayName;
@@ -273,9 +284,21 @@ class AppState extends ChangeNotifier {
     claimedGoldChests = _prefs.claimedGoldChests;
     isDarkMode = _prefs.isDarkMode;
     matchDifficulty = _normalizeDifficulty(_prefs.matchDifficulty);
+    ludoBoardTheme = _normalizeLudoBoardTheme(_prefs.ludoBoardTheme);
     snakesBoardTheme = _normalizeSnakesBoardTheme(_prefs.snakesBoardTheme);
     diceSkin = _normalizeDiceSkin(_prefs.diceSkin);
     autoRollEnabled = _prefs.autoRollEnabled;
+    final storedSoundtrackId = _prefs.soundtrackId;
+    soundtrackId = SoundtrackCatalog.normalize(storedSoundtrackId);
+    if (soundtrackId != storedSoundtrackId) {
+      _prefs.soundtrackId = soundtrackId;
+    }
+    musicEnabled = _prefs.musicEnabled;
+    if (!isBoardThemePremium(ludoBoardTheme) &&
+        !isBoardThemeUnlocked(ludoBoardTheme)) {
+      ludoBoardTheme = 'carnival';
+      _prefs.ludoBoardTheme = ludoBoardTheme;
+    }
     if (!isBoardThemePremium(snakesBoardTheme) &&
         !isBoardThemeUnlocked(snakesBoardTheme)) {
       snakesBoardTheme = 'carnival';
@@ -287,6 +310,10 @@ class AppState extends ChangeNotifier {
     }
     lastDailyRewardDate = _prefs.lastDailyRewardDate;
     startChoiceSeen = _prefs.startChoiceSeen;
+    unawaited(_soundtrack.configure(
+      track: soundtrackId,
+      enabled: musicEnabled,
+    ));
 
     // Shared WS service identity
     _ws.playerId = playerId;
@@ -310,12 +337,26 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    if (_lifecycleObserverRegistered) {
+      WidgetsBinding.instance.removeObserver(this);
+      _lifecycleObserverRegistered = false;
+    }
     _matchmakingTimer?.cancel();
     _localBotTimer?.cancel();
     _autoRollTimer?.cancel();
     _wsSub?.cancel();
     _ws.disconnect();
+    unawaited(_soundtrack.dispose());
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_soundtrack.resumeAfterLifecycle());
+      return;
+    }
+    unawaited(_soundtrack.pauseForLifecycle());
   }
 
   void _healthCheck() {
@@ -646,10 +687,6 @@ class AppState extends ChangeNotifier {
       },
       onError: () => _fallbackToBots('Online matchmaking is unavailable.'),
     );
-  }
-
-  void startFastMatch() {
-    startQuickMatch('classic_4p');
   }
 
   void startGuestMatch([String mode = 'classic_2p']) {
@@ -2011,6 +2048,10 @@ class AppState extends ChangeNotifier {
         snakesBoardTheme = 'carnival';
         _prefs.snakesBoardTheme = snakesBoardTheme;
       }
+      if (!isBoardThemeUnlocked(ludoBoardTheme)) {
+        ludoBoardTheme = 'carnival';
+        _prefs.ludoBoardTheme = ludoBoardTheme;
+      }
       if (!isDiceSkinUnlocked(diceSkin)) {
         diceSkin = 'classic';
         _prefs.diceSkin = diceSkin;
@@ -2257,6 +2298,39 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setLudoBoardTheme(String value) {
+    final normalized = _normalizeLudoBoardTheme(value);
+    if (!isBoardThemeUnlocked(normalized)) {
+      _setStatus(boardThemeUnlockLabel(normalized));
+      return;
+    }
+    if (normalized == ludoBoardTheme) return;
+    SoundService.tap();
+    ludoBoardTheme = normalized;
+    _prefs.ludoBoardTheme = ludoBoardTheme;
+    notifyListeners();
+  }
+
+  void setSoundtrack(String value) {
+    final normalized = SoundtrackCatalog.normalize(value);
+    final selectionChanged = normalized != soundtrackId || !musicEnabled;
+    soundtrackId = normalized;
+    musicEnabled = true;
+    _prefs.soundtrackId = soundtrackId;
+    _prefs.musicEnabled = true;
+    unawaited(_soundtrack.select(soundtrackId));
+    if (selectionChanged) notifyListeners();
+  }
+
+  void setMusicEnabled(bool value) {
+    if (musicEnabled == value) return;
+    SoundService.tap();
+    musicEnabled = value;
+    _prefs.musicEnabled = musicEnabled;
+    unawaited(_soundtrack.setEnabled(musicEnabled));
+    notifyListeners();
+  }
+
   bool get canClaimDailyReward => lastDailyRewardDate != _todayKey();
 
   int get dailyRewardAmount => GameEconomy.dailyCoins;
@@ -2453,7 +2527,7 @@ class AppState extends ChangeNotifier {
         if (entry.value > 0) (atWins: entry.value, label: '${entry.key} dice'),
       for (final entry in _boardUnlockWins.entries)
         if (entry.value > 0)
-          (atWins: entry.value, label: '${entry.key} Snakes board'),
+          (atWins: entry.value, label: '${entry.key} board skin'),
       for (final avatar in profileAvatarCatalog)
         if (avatar.rarity == AvatarRarity.rare)
           (atWins: avatar.requiredWins, label: '${avatar.label} avatar'),
@@ -2525,6 +2599,19 @@ class AppState extends ChangeNotifier {
   }
 
   String _normalizeSnakesBoardTheme(String value) {
+    switch (value.trim().toLowerCase()) {
+      case 'royal':
+      case 'neon':
+      case 'classic':
+      case 'jungle':
+        return value.trim().toLowerCase();
+      case 'carnival':
+      default:
+        return 'carnival';
+    }
+  }
+
+  String _normalizeLudoBoardTheme(String value) {
     switch (value.trim().toLowerCase()) {
       case 'royal':
       case 'neon':
