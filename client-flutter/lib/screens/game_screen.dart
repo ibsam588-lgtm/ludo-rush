@@ -218,6 +218,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                 : LudoBoard(
                                     snapshot: snapshot,
                                     mySeat: mySeat,
+                                    boardTheme: state.ludoBoardTheme,
                                     onPieceTap: (id) => state.movePiece(id),
                                     showWaitingOverlay: false,
                                   ),

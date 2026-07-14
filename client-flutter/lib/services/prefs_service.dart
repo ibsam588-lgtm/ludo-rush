@@ -1,5 +1,6 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/economy.dart';
+import 'soundtrack_service.dart';
 
 class PrefsService {
   SharedPreferences? _prefs;
@@ -73,11 +74,22 @@ class PrefsService {
       _prefs?.getString('snakes_board_theme') ?? 'carnival';
   set snakesBoardTheme(String v) => _prefs?.setString('snakes_board_theme', v);
 
+  String get ludoBoardTheme =>
+      _prefs?.getString('ludo_board_theme') ?? 'carnival';
+  set ludoBoardTheme(String v) => _prefs?.setString('ludo_board_theme', v);
+
   String get diceSkin => _prefs?.getString('dice_skin') ?? 'classic';
   set diceSkin(String v) => _prefs?.setString('dice_skin', v);
 
   bool get autoRollEnabled => _prefs?.getBool('auto_roll_enabled') ?? false;
   set autoRollEnabled(bool v) => _prefs?.setBool('auto_roll_enabled', v);
+
+  String get soundtrackId =>
+      _prefs?.getString('soundtrack_id') ?? SoundtrackCatalog.defaultId;
+  set soundtrackId(String v) => _prefs?.setString('soundtrack_id', v);
+
+  bool get musicEnabled => _prefs?.getBool('music_enabled') ?? true;
+  set musicEnabled(bool v) => _prefs?.setBool('music_enabled', v);
 
   String get lastDailyRewardDate =>
       _prefs?.getString('last_daily_reward_date') ?? '';

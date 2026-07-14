@@ -8,6 +8,7 @@ import '../data/profile_catalog.dart';
 import '../data/economy.dart';
 import '../state/app_state.dart';
 import '../services/sound_service.dart';
+import '../services/soundtrack_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/snakes_ladders_board.dart';
 
@@ -190,27 +191,26 @@ class _GiftShopItem {
   final String id;
   final String title;
   final String subtitle;
-  final String cost;
   final String rarity;
-  final IconData icon;
   final List<Color> colors;
+  final int? coinCost;
+  final String? price;
 
   const _GiftShopItem({
     required this.id,
     required this.title,
     required this.subtitle,
-    required this.cost,
     required this.rarity,
-    required this.icon,
     required this.colors,
-  });
+    this.coinCost,
+    this.price,
+  }) : assert((coinCost == null) != (price == null));
 
-  bool get premium => rarity == 'PREMIUM';
+  String get asset => 'assets/images/rush/rush_gift_${id}_mobile_v1.webp';
 
-  int get coinCost {
-    final value = int.tryParse(cost.replaceAll(RegExp(r'[^0-9]'), ''));
-    return cost.contains('coin') || cost.contains('Coin') ? value ?? 0 : 0;
-  }
+  bool get premium => price != null;
+
+  String get cost => price ?? '$coinCost coins';
 }
 
 const _homeBoardThemes = [
@@ -238,6 +238,12 @@ const _homeBoardThemes = [
     Color(0xFF2DBB52),
     Color(0xFF1E9BFF),
   ]),
+  _HomeBoardThemeOption('jungle', 'Jungle Temple',
+      'assets/images/rush/rush_snakes_frame_jungle_mobile_v1.webp', [
+    Color(0xFF35B96D),
+    Color(0xFFFFC93C),
+    Color(0xFF21BDEB),
+  ]),
 ];
 
 const _giftShopItems = [
@@ -245,37 +251,65 @@ const _giftShopItems = [
     id: 'lucky_dice',
     title: 'Lucky Dice',
     subtitle: 'One bright dice reaction',
-    cost: '${GameEconomy.luckyDiceGiftCoins} coins',
+    coinCost: GameEconomy.luckyDiceGiftCoins,
     rarity: 'COMMON',
-    icon: Icons.casino_rounded,
     colors: [Color(0xFFFFF4AF), Color(0xFFFFB22D), Color(0xFFE85A00)],
+  ),
+  _GiftShopItem(
+    id: 'friendship_heart',
+    title: 'Friendship Heart',
+    subtitle: 'Two goti share a ruby heart',
+    coinCost: GameEconomy.friendshipHeartGiftCoins,
+    rarity: 'COMMON',
+    colors: [Color(0xFFFFA4BE), Color(0xFFE93062), Color(0xFF8D1745)],
   ),
   _GiftShopItem(
     id: 'coin_ship',
     title: 'Coin Ship',
     subtitle: 'Gift boat with coins',
-    cost: '${GameEconomy.coinShipGiftCoins} coins',
+    coinCost: GameEconomy.coinShipGiftCoins,
     rarity: 'COMMON',
-    icon: Icons.sailing_rounded,
     colors: [Color(0xFF5CEBFF), Color(0xFF2E7CFF), Color(0xFFFFD426)],
   ),
   _GiftShopItem(
     id: 'crown_chest',
     title: 'Crown Chest',
     subtitle: 'Rare chest animation',
-    cost: '${GameEconomy.crownChestGiftCoins} coins',
+    coinCost: GameEconomy.crownChestGiftCoins,
     rarity: 'RARE',
-    icon: Icons.workspace_premium_rounded,
     colors: [Color(0xFFFFD426), Color(0xFFFF5D6C), Color(0xFF7A20C8)],
+  ),
+  _GiftShopItem(
+    id: 'mascot_cheer',
+    title: 'Mascot Cheer',
+    subtitle: 'A royal high-five reaction',
+    coinCost: GameEconomy.mascotCheerGiftCoins,
+    rarity: 'RARE',
+    colors: [Color(0xFFFF775D), Color(0xFF2988FF), Color(0xFFFFD426)],
+  ),
+  _GiftShopItem(
+    id: 'firework_castle',
+    title: 'Firework Castle',
+    subtitle: 'A full celebration animation',
+    coinCost: GameEconomy.fireworkCastleGiftCoins,
+    rarity: 'RARE',
+    colors: [Color(0xFF67E7FF), Color(0xFF7847EF), Color(0xFFFF9A2C)],
   ),
   _GiftShopItem(
     id: 'royal_crown',
     title: 'Royal Crown',
     subtitle: 'Premium friend gift',
-    cost: '0.99 USD',
+    price: '0.99 USD',
     rarity: 'PREMIUM',
-    icon: Icons.diamond_rounded,
     colors: [Color(0xFFFFF2A3), Color(0xFFFF36B8), Color(0xFF5B2CFF)],
+  ),
+  _GiftShopItem(
+    id: 'victory_parade',
+    title: 'Victory Parade',
+    subtitle: 'Trophy cart and dancing dice',
+    price: '1.99 USD',
+    rarity: 'PREMIUM',
+    colors: [Color(0xFFFFE780), Color(0xFFE54E45), Color(0xFF275DEB)],
   ),
 ];
 
@@ -305,7 +339,11 @@ List<_FeatureRow> _friendRowsForState(AppState state) {
     for (final gift in state.receivedFriendGifts.take(2))
       _FeatureRow(
         'Gift from ${gift.senderName}',
-        gift.giftId.replaceAll('_', ' '),
+        _giftShopItems
+                .where((item) => item.id == gift.giftId)
+                .firstOrNull
+                ?.title ??
+            gift.giftId.replaceAll('_', ' '),
         'NEW',
       ),
   ];
@@ -641,7 +679,10 @@ void _showGiftShopSheet(
                           subtitle: 'Add a recent opponent first',
                           selected: true,
                           accent: boardPurple,
-                          onTap: () {},
+                          onTap: () => _showFeatureSnack(
+                            context,
+                            'Add a recent opponent from the Friends tab first.',
+                          ),
                         );
                       }
                       final friend = state.friends[index];
@@ -679,19 +720,34 @@ void _showGiftShopSheet(
                 ),
                 const SizedBox(height: 12),
                 _HomeSheetButton(
-                  label: gift.premium
-                      ? 'Buy & Send ${gift.cost}'
-                      : 'Send ${gift.cost}',
-                  icon: gift.premium
-                      ? Icons.workspace_premium_rounded
-                      : Icons.send_rounded,
-                  color: gift.premium ? boardPurple : goldColor,
+                  label: selectedFriendId.isEmpty
+                      ? 'Add a friend first'
+                      : gift.premium
+                          ? 'Preview ${gift.cost}'
+                          : 'Send ${gift.cost}',
+                  icon: selectedFriendId.isEmpty
+                      ? Icons.person_add_alt_1_rounded
+                      : gift.premium
+                          ? Icons.workspace_premium_rounded
+                          : Icons.send_rounded,
+                  color: selectedFriendId.isEmpty
+                      ? boardPurple
+                      : gift.premium
+                          ? boardPurple
+                          : goldColor,
                   onTap: () async {
                     SoundService.tap();
                     if (selectedFriendId.isEmpty) {
                       _showFeatureSnack(
                         context,
                         'Add and accept a recent opponent before sending gifts.',
+                      );
+                      return;
+                    }
+                    if (gift.premium) {
+                      _showFeatureSnack(
+                        context,
+                        'Premium gift purchases are currently unavailable.',
                       );
                       return;
                     }
@@ -1253,9 +1309,14 @@ class _GiftShopCard extends StatelessWidget {
           children: [
             Expanded(
               child: Center(
-                child: CustomPaint(
-                  painter: _GiftAssetPainter(item),
-                  child: const SizedBox(width: 72, height: 54),
+                child: SizedBox(
+                  width: 92,
+                  height: 62,
+                  child: Image.asset(
+                    item.asset,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.medium,
+                  ),
                 ),
               ),
             ),
@@ -1386,154 +1447,6 @@ class _GiftShopHeroPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _GiftShopHeroPainter oldDelegate) =>
       oldDelegate.colors != colors;
-}
-
-class _GiftAssetPainter extends CustomPainter {
-  final _GiftShopItem item;
-
-  const _GiftAssetPainter(this.item);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = Paint()..isAntiAlias = true;
-    final rect = Offset.zero & size;
-    p.color = const Color(0x55000000);
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(size.width * 0.5, size.height * 0.88),
-        width: size.width * 0.72,
-        height: size.height * 0.18,
-      ),
-      p,
-    );
-
-    if (item.id == 'coin_ship') {
-      final hull = Path()
-        ..moveTo(size.width * 0.12, size.height * 0.58)
-        ..lineTo(size.width * 0.82, size.height * 0.58)
-        ..quadraticBezierTo(
-          size.width * 0.70,
-          size.height * 0.86,
-          size.width * 0.28,
-          size.height * 0.82,
-        )
-        ..quadraticBezierTo(
-          size.width * 0.15,
-          size.height * 0.75,
-          size.width * 0.12,
-          size.height * 0.58,
-        );
-      p.shader = const LinearGradient(
-        colors: [Color(0xFFFFD426), Color(0xFFE85A00)],
-      ).createShader(rect);
-      canvas.drawPath(hull, p);
-      p.shader = null;
-      p.color = const Color(0xFF2E7CFF);
-      canvas.drawPath(
-        Path()
-          ..moveTo(size.width * 0.45, size.height * 0.12)
-          ..lineTo(size.width * 0.45, size.height * 0.58)
-          ..lineTo(size.width * 0.73, size.height * 0.52)
-          ..close(),
-        p,
-      );
-      p.color = goldColor;
-      for (var i = 0; i < 4; i++) {
-        canvas.drawCircle(
-          Offset(size.width * (0.28 + i * 0.12), size.height * 0.52),
-          5,
-          p,
-        );
-      }
-      return;
-    }
-
-    if (item.id == 'crown_chest') {
-      final chest = Rect.fromLTWH(
-        size.width * 0.16,
-        size.height * 0.38,
-        size.width * 0.68,
-        size.height * 0.38,
-      );
-      p.shader = const LinearGradient(
-        colors: [Color(0xFFFFD426), Color(0xFF9B46FF)],
-      ).createShader(chest);
-      canvas.drawRRect(RRect.fromRectXY(chest, 8, 8), p);
-      p.shader = null;
-      p.color = const Color(0xFF5B1B84);
-      canvas.drawRect(
-        Rect.fromLTWH(chest.left, chest.center.dy - 3, chest.width, 6),
-        p,
-      );
-      p.color = goldColor;
-      canvas.drawCircle(chest.center, 8, p);
-      _drawTinyCrown(canvas, Offset(size.width * 0.50, size.height * 0.22),
-          size.width * 0.32, p);
-      return;
-    }
-
-    if (item.id == 'royal_crown') {
-      _drawTinyCrown(canvas, Offset(size.width * 0.50, size.height * 0.46),
-          size.width * 0.62, p);
-      p.color = const Color(0xFFFF36B8);
-      canvas.drawCircle(Offset(size.width * 0.24, size.height * 0.40), 6, p);
-      p.color = const Color(0xFF22B7FF);
-      canvas.drawCircle(Offset(size.width * 0.78, size.height * 0.36), 5, p);
-      return;
-    }
-
-    final dice = Rect.fromCenter(
-      center: Offset(size.width * 0.47, size.height * 0.45),
-      width: size.width * 0.50,
-      height: size.width * 0.50,
-    );
-    p.shader = const LinearGradient(
-      colors: [Colors.white, Color(0xFFFFE2C4)],
-    ).createShader(dice);
-    canvas.drawRRect(RRect.fromRectXY(dice, 10, 10), p);
-    p.shader = null;
-    p.color = const Color(0xFF3A0430);
-    for (final o in const [
-      Offset(0.35, 0.35),
-      Offset(0.50, 0.50),
-      Offset(0.65, 0.65),
-    ]) {
-      canvas.drawCircle(
-        Offset(dice.left + dice.width * o.dx, dice.top + dice.height * o.dy),
-        3.4,
-        p,
-      );
-    }
-    p.color = goldColor;
-    canvas.drawCircle(Offset(size.width * 0.72, size.height * 0.24), 8, p);
-  }
-
-  void _drawTinyCrown(Canvas canvas, Offset center, double width, Paint p) {
-    final height = width * 0.48;
-    final left = center.dx - width / 2;
-    final top = center.dy - height / 2;
-    final crown = Path()
-      ..moveTo(left, top + height)
-      ..lineTo(left + width * 0.12, top + height * 0.30)
-      ..lineTo(left + width * 0.34, top + height * 0.62)
-      ..lineTo(left + width * 0.50, top)
-      ..lineTo(left + width * 0.66, top + height * 0.62)
-      ..lineTo(left + width * 0.88, top + height * 0.30)
-      ..lineTo(left + width, top + height)
-      ..close();
-    p.shader = null;
-    p.color = const Color(0xAA5A2100);
-    canvas.drawPath(crown.shift(const Offset(0, 2)), p);
-    p.shader = const LinearGradient(
-      colors: [Color(0xFFFFF1A1), Color(0xFFFFB22D), Color(0xFFE85A00)],
-    ).createShader(Rect.fromLTWH(left, top, width, height));
-    canvas.drawPath(crown, p);
-    p.shader = null;
-  }
-
-  @override
-  bool shouldRepaint(covariant _GiftAssetPainter oldDelegate) =>
-      oldDelegate.item != item;
 }
 
 class _PlayerCountButton extends StatelessWidget {
@@ -2976,6 +2889,8 @@ Future<void> _showProfileEditor(
   var selectedCountry = state.countryCode;
   var selectedAvatar = state.avatarPreset;
   var selectedImagePath = state.avatarImagePath;
+  var selectedSoundtrack = state.soundtrackId;
+  var musicEnabled = state.musicEnabled;
 
   await showModalBottomSheet<void>(
     context: context,
@@ -3236,6 +3151,93 @@ Future<void> _showProfileEditor(
                           );
                         },
                       ),
+                    ),
+                    const SizedBox(height: 15),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _SheetLabel('Soundtrack', palette: palette),
+                        ),
+                        Text(
+                          musicEnabled ? 'Music on' : 'Music off',
+                          style: TextStyle(
+                            color: palette.muted,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Switch.adaptive(
+                          value: musicEnabled,
+                          activeTrackColor: goldColor,
+                          onChanged: (value) {
+                            setSheetState(() => musicEnabled = value);
+                            state.setMusicEnabled(value);
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 7),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        const gap = 8.0;
+                        final itemWidth = (constraints.maxWidth - gap) / 2;
+                        return Wrap(
+                          spacing: gap,
+                          runSpacing: gap,
+                          children: [
+                            for (final option in const [
+                              (
+                                id: SoundtrackCatalog.victorySpark,
+                                label: 'Victory Spark',
+                                icon: Icons.military_tech_rounded,
+                              ),
+                              (
+                                id: SoundtrackCatalog.royalAdventure,
+                                label: 'Royal',
+                                icon: Icons.emoji_events_rounded,
+                              ),
+                              (
+                                id: SoundtrackCatalog.luckyDiceDance,
+                                label: 'Lucky Dice',
+                                icon: Icons.casino_rounded,
+                              ),
+                              (
+                                id: SoundtrackCatalog.starlightBoardwalk,
+                                label: 'Starlight',
+                                icon: Icons.auto_awesome_rounded,
+                              ),
+                              (
+                                id: SoundtrackCatalog.diceParade,
+                                label: 'Dice Parade',
+                                icon: Icons.music_note_rounded,
+                              ),
+                              (
+                                id: SoundtrackCatalog.carnivalCrown,
+                                label: 'Carnival Crown',
+                                icon: Icons.celebration_rounded,
+                              ),
+                            ])
+                              SizedBox(
+                                width: itemWidth,
+                                child: _SoundtrackChoice(
+                                  label: option.label,
+                                  icon: option.icon,
+                                  selected: musicEnabled &&
+                                      selectedSoundtrack == option.id,
+                                  palette: palette,
+                                  onTap: () {
+                                    setSheetState(() {
+                                      selectedSoundtrack = option.id;
+                                      musicEnabled = true;
+                                    });
+                                    state.setSoundtrack(option.id);
+                                  },
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -3536,6 +3538,68 @@ class _SheetLabel extends StatelessWidget {
   }
 }
 
+class _SoundtrackChoice extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final _RushPalette palette;
+  final VoidCallback onTap;
+
+  const _SoundtrackChoice({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.palette,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: '$label soundtrack',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          height: 58,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              colors: selected
+                  ? const [Color(0xFFFFC928), Color(0xFFE06C13)]
+                  : const [Color(0xFF711466), Color(0xFF351044)],
+            ),
+            border: Border.all(
+              color: selected ? const Color(0xFFFFF19A) : palette.stroke,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: Colors.white, size: 22),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ProfileButton extends StatelessWidget {
   final String label;
   final IconData icon;
@@ -3569,22 +3633,29 @@ class _ProfileButton extends StatelessWidget {
               : (palette.dark ? const Color(0x66250A31) : Colors.white),
           border: Border.all(color: palette.stroke, width: 1.5),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon,
-                color: filled ? const Color(0xFF3D1600) : palette.text,
-                size: 18),
-            const SizedBox(width: 7),
-            Text(
-              label,
-              style: TextStyle(
-                color: filled ? const Color(0xFF3D1600) : palette.text,
-                fontSize: 13,
-                fontWeight: FontWeight.w900,
-              ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon,
+                    color: filled ? const Color(0xFF3D1600) : palette.text,
+                    size: 18),
+                const SizedBox(width: 7),
+                Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: filled ? const Color(0xFF3D1600) : palette.text,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -4314,13 +4385,13 @@ class _LobbyStage extends StatelessWidget {
                       child: _ModeTile(
                         palette: palette,
                         pulse: pulse,
-                        label: 'Quick Match',
+                        label: 'Offline',
                         headline: '',
-                        subtitle: '',
+                        subtitle: 'Vs bots',
                         start: const Color(0xFFFFC22D),
                         end: const Color(0xFFE47B00),
                         art: _ModeArt.quick,
-                        onTap: state.startFastMatch,
+                        onTap: () => state.startOfflineMatch('classic_2p'),
                       ),
                     ),
                   ],

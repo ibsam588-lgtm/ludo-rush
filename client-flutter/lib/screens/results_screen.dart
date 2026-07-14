@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../models/game_snapshot.dart';
+import '../services/app_platform_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 
@@ -76,6 +77,8 @@ class _ResultsScreenState extends State<ResultsScreen>
     final state = context.read<AppState>();
     final snapshot = state.lastSnapshot;
     final myId = state.playerId;
+    final replayMode = snapshot?.mode ?? state.pendingMatchMode;
+    final replayOffline = state.currentMatchIsBot;
 
     bool won = false;
     String winnerName = 'Unknown';
@@ -177,7 +180,11 @@ class _ResultsScreenState extends State<ResultsScreen>
                           ],
                           onTap: () {
                             Navigator.of(context).popUntil((r) => r.isFirst);
-                            state.startQuickMatch('classic_2p');
+                            if (replayOffline) {
+                              state.startOfflineMatch(replayMode);
+                            } else {
+                              state.startQuickMatch(replayMode);
+                            }
                           },
                         ),
                         const SizedBox(height: 10),
@@ -197,7 +204,25 @@ class _ResultsScreenState extends State<ResultsScreen>
                             const Color(0xFF8E24AA),
                             const Color(0xFF4A148C)
                           ],
-                          onTap: () {},
+                          onTap: () async {
+                            SoundService.tap();
+                            final text = won
+                                ? 'I won a Ludo Rush match with a ${state.rating} rating! Play Ludo Rush: https://play.google.com/store/apps/details?id=com.ludorush.game'
+                                : '$winnerName won our Ludo Rush match. Play Ludo Rush: https://play.google.com/store/apps/details?id=com.ludorush.game';
+                            final shared =
+                                await AppPlatformService.shareText(text);
+                            if (!context.mounted || shared) return;
+                            ScaffoldMessenger.of(context)
+                              ..clearSnackBars()
+                              ..showSnackBar(
+                                const SnackBar(
+                                  behavior: SnackBarBehavior.floating,
+                                  content: Text(
+                                    'Result copied. Paste it into any app to share.',
+                                  ),
+                                ),
+                              );
+                          },
                         ),
                       ],
                     ),

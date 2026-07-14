@@ -14,7 +14,14 @@ describe("reward economy", () => {
     expect(ECONOMY.goldChestCoins).toBeGreaterThan(
       ECONOMY.onlineWinCoins * ECONOMY.winsPerGoldChest
     );
-    expect(Object.values(ECONOMY.giftCoinCosts)).toEqual([25, 50, 125]);
+    expect(ECONOMY.giftCoinCosts).toEqual({
+      lucky_dice: 25,
+      friendship_heart: 40,
+      coin_ship: 50,
+      mascot_cheer: 75,
+      crown_chest: 125,
+      firework_castle: 200
+    });
   });
 
   it("awards one Gold Chest for every three online wins", () => {

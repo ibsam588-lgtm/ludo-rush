@@ -14,6 +14,7 @@ dependencies:
   provider: ^6.1.0
   http: ^1.2.0
   image_picker: ^1.1.2
+  audioplayers: 6.8.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -30,6 +31,14 @@ flutter:
     - assets/images/rush/rush_game_mascot_mobile_v1.png
     - assets/images/rush/rush_game_reaction_crown_mobile_v1.png
     - assets/images/rush/rush_game_reaction_six_mobile_v1.png
+    - assets/images/rush/rush_gift_coin_ship_mobile_v1.webp
+    - assets/images/rush/rush_gift_crown_chest_mobile_v1.webp
+    - assets/images/rush/rush_gift_firework_castle_mobile_v1.webp
+    - assets/images/rush/rush_gift_friendship_heart_mobile_v1.webp
+    - assets/images/rush/rush_gift_lucky_dice_mobile_v1.webp
+    - assets/images/rush/rush_gift_mascot_cheer_mobile_v1.webp
+    - assets/images/rush/rush_gift_royal_crown_mobile_v1.webp
+    - assets/images/rush/rush_gift_victory_parade_mobile_v1.webp
     - assets/images/rush/rush_gift_ship_shop_mobile_v1.jpg
     - assets/images/rush/rush_goti_blue_mobile_v1.png
     - assets/images/rush/rush_goti_green_mobile_v1.png
@@ -37,14 +46,24 @@ flutter:
     - assets/images/rush/rush_goti_yellow_mobile_v1.png
     - assets/images/rush/rush_home_royal_backdrop_mobile_v1.jpg
     - assets/images/rush/rush_home_royal_board_cutout_mobile_v1.png
+    - assets/images/rush/rush_ludo_board_carnival_mobile_v1.webp
+    - assets/images/rush/rush_ludo_board_neon_mobile_v1.webp
+    - assets/images/rush/rush_ludo_board_royal_mobile_v1.webp
     - assets/images/rush/rush_matchmaking_scene_mobile_v1.jpg
     - assets/images/rush/rush_shop_dice_showcase_mobile_v1.jpg
     - assets/images/rush/rush_shop_hero_mobile_v1.jpg
     - assets/images/rush/rush_shop_rewards_atlas_mobile_v1.jpg
     - assets/images/rush/rush_snakes_frame_carnival_mobile_v1.jpg
     - assets/images/rush/rush_snakes_frame_classic_mobile_v1.jpg
+    - assets/images/rush/rush_snakes_frame_jungle_mobile_v1.webp
     - assets/images/rush/rush_snakes_frame_neon_mobile_v1.jpg
     - assets/images/rush/rush_snakes_frame_royal_mobile_v1.jpg
     - assets/images/rush/rush_snakes_ladders_mode_mobile_v1.jpg
     - assets/images/rush/rush_snakes_ladders_title_plaque_mobile_v1.png
     - assets/images/rush/rush_splash_scene_mobile_v1.jpg
+    - assets/audio/music-royal-adventure.mp3
+    - assets/audio/music-lucky-dice-dance.mp3
+    - assets/audio/music-starlight-boardwalk.mp3
+    - assets/audio/music-dice-parade.mp3
+    - assets/audio/music-victory-spark.mp3
+    - assets/audio/music-carnival-crown.mp3

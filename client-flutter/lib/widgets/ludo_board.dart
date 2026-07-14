@@ -7,6 +7,19 @@ import 'package:flutter/services.dart' show rootBundle;
 import '../models/game_snapshot.dart';
 import '../theme/app_theme.dart';
 
+const _ludoThemeAssets = {
+  'carnival': 'assets/images/rush/rush_ludo_board_carnival_mobile_v1.webp',
+  'royal': 'assets/images/rush/rush_ludo_board_royal_mobile_v1.webp',
+  'neon': 'assets/images/rush/rush_ludo_board_neon_mobile_v1.webp',
+};
+
+String _normalizedLudoTheme(String value) {
+  final normalized = value.trim().toLowerCase();
+  return const {'carnival', 'royal', 'neon', 'classic'}.contains(normalized)
+      ? normalized
+      : 'carnival';
+}
+
 // ── Board geometry — exact port from Java BoardView ────────────────────────────
 
 class _BoardConsts {
@@ -160,6 +173,8 @@ class LudoBoard extends StatefulWidget {
   final int? mySeat;
   final void Function(String pieceId) onPieceTap;
   final bool showWaitingOverlay;
+  final String boardTheme;
+  final bool animate;
 
   const LudoBoard({
     super.key,
@@ -167,6 +182,8 @@ class LudoBoard extends StatefulWidget {
     required this.mySeat,
     required this.onPieceTap,
     this.showWaitingOverlay = true,
+    this.boardTheme = 'carnival',
+    this.animate = true,
   });
 
   @override
@@ -179,6 +196,7 @@ class _LudoBoardState extends State<LudoBoard>
   late final Animation<double> _pulseAnim;
   final List<_PieceHit> _hits = [];
   Map<int, ui.Image> _pieceImages = const {};
+  ui.Image? _themeImage;
 
   @override
   void initState() {
@@ -186,9 +204,30 @@ class _LudoBoardState extends State<LudoBoard>
     _pulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
-    )..repeat(reverse: true);
+      value: 0.35,
+    );
+    if (widget.animate) _pulse.repeat(reverse: true);
     _pulseAnim = Tween<double>(begin: 0.2, end: 1.0).animate(_pulse);
     _loadPieceImages();
+    _loadThemeImage(widget.boardTheme);
+  }
+
+  @override
+  void didUpdateWidget(covariant LudoBoard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.animate != widget.animate) {
+      if (widget.animate) {
+        _pulse.repeat(reverse: true);
+      } else {
+        _pulse
+          ..stop()
+          ..value = 0.35;
+      }
+    }
+    if (_normalizedLudoTheme(oldWidget.boardTheme) !=
+        _normalizedLudoTheme(widget.boardTheme)) {
+      _loadThemeImage(widget.boardTheme);
+    }
   }
 
   @override
@@ -197,7 +236,34 @@ class _LudoBoardState extends State<LudoBoard>
     for (final image in _pieceImages.values) {
       image.dispose();
     }
+    _themeImage?.dispose();
     super.dispose();
+  }
+
+  Future<ui.Image?> _loadImage(String asset) async {
+    try {
+      final data = await rootBundle.load(asset);
+      final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+      final frame = await codec.getNextFrame();
+      codec.dispose();
+      return frame.image;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _loadThemeImage(String theme) async {
+    final normalized = _normalizedLudoTheme(theme);
+    final asset = _ludoThemeAssets[normalized];
+    final image = asset == null ? null : await _loadImage(asset);
+    if (!mounted || _normalizedLudoTheme(widget.boardTheme) != normalized) {
+      image?.dispose();
+      return;
+    }
+    setState(() {
+      _themeImage?.dispose();
+      _themeImage = image;
+    });
   }
 
   Future<void> _loadPieceImages() async {
@@ -209,11 +275,8 @@ class _LudoBoardState extends State<LudoBoard>
     ];
     final loaded = <int, ui.Image>{};
     for (int i = 0; i < paths.length; i++) {
-      final data = await rootBundle.load(paths[i]);
-      final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-      final frame = await codec.getNextFrame();
-      codec.dispose();
-      loaded[i] = frame.image;
+      final image = await _loadImage(paths[i]);
+      if (image != null) loaded[i] = image;
     }
     if (!mounted) {
       for (final image in loaded.values) {
@@ -262,6 +325,8 @@ class _LudoBoardState extends State<LudoBoard>
               hits: _hits,
               showWaitingOverlay: widget.showWaitingOverlay,
               pieceImages: _pieceImages,
+              themeImage: _themeImage,
+              boardTheme: widget.boardTheme,
             ),
           ),
         ),
@@ -279,9 +344,43 @@ class _BoardPainter extends CustomPainter {
   final List<_PieceHit> hits;
   final bool showWaitingOverlay;
   final Map<int, ui.Image> pieceImages;
-  static const _ivory = creamCell;
-  static const _gold = goldColor;
-  static const _goldDk = goldDark;
+  final ui.Image? themeImage;
+  final String boardTheme;
+
+  String get _theme => _normalizedLudoTheme(boardTheme);
+
+  Color get _ivory => switch (_theme) {
+        'neon' => const Color(0xFFE9F7FF),
+        'royal' => const Color(0xFFFFF8E6),
+        'carnival' => const Color(0xFFFFF4D6),
+        _ => creamCell,
+      };
+
+  Color get _gold => switch (_theme) {
+        'neon' => const Color(0xFF32E6FF),
+        'carnival' => const Color(0xFFFFC52B),
+        _ => goldColor,
+      };
+
+  Color get _goldDk => switch (_theme) {
+        'neon' => const Color(0xFF116EA8),
+        'carnival' => const Color(0xFFB44A12),
+        _ => goldDark,
+      };
+
+  List<Color> get _nestColors => switch (_theme) {
+        'neon' => const [Color(0xFF17243B), Color(0xFF07101E)],
+        'royal' => const [Color(0xFFFFFBF0), Color(0xFFE7D3A5)],
+        'carnival' => const [Color(0xFFFFF9E9), Color(0xFFFFDFA1)],
+        _ => const [Color(0xFFFFFCF4), Color(0xFFF2E5C8)],
+      };
+
+  List<Color> get _ivoryCellColors => switch (_theme) {
+        'neon' => const [Color(0xFFF5FDFF), Color(0xFFB7D8E7)],
+        'royal' => const [Color(0xFFFFFCF1), Color(0xFFE7D7AE)],
+        'carnival' => const [Color(0xFFFFFDF2), Color(0xFFFFDC91)],
+        _ => const [Color(0xFFFFFBEA), Color(0xFFF1E1B4)],
+      };
 
   _BoardPainter({
     required this.snapshot,
@@ -290,6 +389,8 @@ class _BoardPainter extends CustomPainter {
     required this.hits,
     required this.showWaitingOverlay,
     required this.pieceImages,
+    required this.themeImage,
+    required this.boardTheme,
   });
 
   @override
@@ -299,13 +400,22 @@ class _BoardPainter extends CustomPainter {
     final outer = math.min(w, h).toDouble();
     final left = (w - outer) / 2;
     final top = (h - outer) / 2;
-    final margin = outer * (13 / 600);
+    final hasThemeArt = themeImage != null && _theme != 'classic';
+    final margin = outer * (hasThemeArt ? 0.078 : (13 / 600));
     final boardSize = outer - margin * 2;
     final boardLeft = left + margin;
     final boardTop = top + margin;
     final cell = boardSize / 15.0;
 
-    _drawShell(canvas, left, top, outer, margin);
+    if (hasThemeArt) {
+      _drawThemeShell(
+        canvas,
+        Rect.fromLTWH(left, top, outer, outer),
+        Rect.fromLTWH(boardLeft, boardTop, boardSize, boardSize),
+      );
+    } else {
+      _drawShell(canvas, left, top, outer, margin);
+    }
 
     final boardRect = Rect.fromLTWH(boardLeft, boardTop, boardSize, boardSize);
     canvas.save();
@@ -347,6 +457,60 @@ class _BoardPainter extends CustomPainter {
   }
 
   static Color _seatCol(int s) => AppColors.seatColors[s.clamp(0, 3)];
+
+  void _drawThemeShell(Canvas canvas, Rect outerRect, Rect boardRect) {
+    final image = themeImage;
+    if (image == null) return;
+    final p = Paint()..isAntiAlias = true;
+    p.color = const Color(0x77000000);
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: outerRect.bottomCenter.translate(0, -outerRect.height * 0.02),
+        width: outerRect.width * 0.88,
+        height: outerRect.height * 0.075,
+      ),
+      p,
+    );
+    canvas.save();
+    canvas.clipRRect(RRect.fromRectXY(
+      outerRect.deflate(outerRect.width * 0.008),
+      outerRect.width * 0.025,
+      outerRect.width * 0.025,
+    ));
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      outerRect,
+      Paint()
+        ..isAntiAlias = true
+        ..filterQuality = FilterQuality.high,
+    );
+    canvas.restore();
+
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = outerRect.width * 0.009
+      ..color = Color.lerp(_gold, Colors.white, 0.36)!;
+    canvas.drawRRect(
+      RRect.fromRectXY(
+        boardRect.inflate(outerRect.width * 0.007),
+        outerRect.width * 0.015,
+        outerRect.width * 0.015,
+      ),
+      p,
+    );
+    p
+      ..strokeWidth = outerRect.width * 0.004
+      ..color = _goldDk.withAlpha(225);
+    canvas.drawRRect(
+      RRect.fromRectXY(
+        boardRect,
+        outerRect.width * 0.012,
+        outerRect.width * 0.012,
+      ),
+      p,
+    );
+  }
 
   // ── Board shell ────────────────────────────────────────────────────────────
 
@@ -451,7 +615,7 @@ class _BoardPainter extends CustomPainter {
     p.shader = ui.Gradient.linear(
       innerRect.topLeft,
       innerRect.bottomRight,
-      const [Color(0xFFFFFCF4), Color(0xFFF2E5C8)],
+      _nestColors,
     );
     canvas.drawRRect(innerRR, p);
     p.shader = null;
@@ -481,8 +645,10 @@ class _BoardPainter extends CustomPainter {
     final y2 = top + (gy + 6) * cell;
     final rect = Rect.fromLTRB(x1, y1, x2, y2);
 
-    final dark = Color(_blend(_toInt(color), 0xFF000000, 0.24));
-    final light = Color(_blend(_toInt(color), 0xFFFFFFFF, 0.18));
+    final darkAmount = _theme == 'neon' ? 0.58 : 0.24;
+    final lightAmount = _theme == 'neon' ? 0.08 : 0.18;
+    final dark = Color(_blend(_toInt(color), 0xFF000000, darkAmount));
+    final light = Color(_blend(_toInt(color), 0xFFFFFFFF, lightAmount));
     p.shader = ui.Gradient.linear(
       rect.topLeft,
       rect.bottomRight,
@@ -513,7 +679,7 @@ class _BoardPainter extends CustomPainter {
     p.shader = ui.Gradient.linear(
       innerRect.topLeft,
       innerRect.bottomRight,
-      const [Color(0xFFFFFBF2), Color(0xFFF1E4C5)],
+      _nestColors,
     );
     canvas.drawRRect(innerRR, p);
     p.shader = null;
@@ -845,7 +1011,7 @@ class _BoardPainter extends CustomPainter {
       rect.topLeft,
       rect.bottomRight,
       isIvory
-          ? const [Color(0xFFFFFBEA), Color(0xFFF1E1B4)]
+          ? _ivoryCellColors
           : [
               Color(_blend(fill, 0xFFFFFFFF, 0.22)),
               fillColor,
@@ -860,7 +1026,7 @@ class _BoardPainter extends CustomPainter {
     p.shader = null;
     p.style = PaintingStyle.stroke;
     p.strokeWidth = math.max(0.8, cell * 0.030);
-    p.color = Color(stroke);
+    p.color = _theme == 'neon' ? _goldDk.withAlpha(210) : Color(stroke);
     canvas.drawRRect(
       RRect.fromRectXY(rect, cell * 0.05, cell * 0.05),
       p,
@@ -1203,6 +1369,8 @@ class _BoardPainter extends CustomPainter {
         old.pulsePhase != pulsePhase ||
         old.mySeat != mySeat ||
         old.showWaitingOverlay != showWaitingOverlay ||
-        old.pieceImages != pieceImages;
+        old.pieceImages != pieceImages ||
+        old.themeImage != themeImage ||
+        old.boardTheme != boardTheme;
   }
 }

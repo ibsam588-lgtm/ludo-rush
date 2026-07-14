@@ -10,6 +10,7 @@ import '../state/app_state.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dice_widget.dart';
+import '../widgets/ludo_board.dart';
 
 const _shopDiceAtlasAsset =
     'assets/images/rush/rush_shop_dice_showcase_mobile_v1.jpg';
@@ -20,6 +21,7 @@ const _shopBoardFrameAssets = {
   'royal': 'assets/images/rush/rush_snakes_frame_royal_mobile_v1.jpg',
   'neon': 'assets/images/rush/rush_snakes_frame_neon_mobile_v1.jpg',
   'classic': 'assets/images/rush/rush_snakes_frame_classic_mobile_v1.jpg',
+  'jungle': 'assets/images/rush/rush_snakes_frame_jungle_mobile_v1.webp',
 };
 
 class ShopScreen extends StatefulWidget {
@@ -54,16 +56,16 @@ class _ShopScreenState extends State<ShopScreen>
         diceSkin: 'cosmic', rarity: 'PREMIUM'),
     _ShopProduct('Carnival Board', 'EQUIP', 'approved theme',
         _ProductArt.carnivalBoard, false, 0,
-        boardTheme: 'carnival', rarity: 'COMMON'),
+        ludoBoardTheme: 'carnival', rarity: 'COMMON'),
     _ShopProduct('Royal Board', '6 WINS', 'gold palace', _ProductArt.royalBoard,
         false, 0,
-        boardTheme: 'royal', rarity: 'RARE'),
+        ludoBoardTheme: 'royal', rarity: 'RARE'),
     _ShopProduct('Neon Board', '1.99 USD', 'premium arcade board',
         _ProductArt.neonBoard, false, 0,
-        boardTheme: 'neon', rarity: 'PREMIUM'),
-    _ShopProduct('Classic Board', 'EQUIP', 'clean table',
+        ludoBoardTheme: 'neon', rarity: 'PREMIUM'),
+    _ShopProduct('Classic Board', '2 WINS', 'clean table',
         _ProductArt.classicBoard, false, 0,
-        boardTheme: 'classic', rarity: 'COMMON'),
+        ludoBoardTheme: 'classic', rarity: 'COMMON'),
     _ShopProduct('Coin Stack', '0.99 USD', '1,200 coins', _ProductArt.coinPack,
         false, 1200,
         rarity: 'PREMIUM'),
@@ -201,6 +203,10 @@ class _ShopScreenState extends State<ShopScreen>
                                                             .isNotEmpty
                                                         ? state.socialError
                                                         : 'Daily coins already claimed. Come back tomorrow.');
+                                              } else if (product
+                                                  .requiresPurchase(state)) {
+                                                message =
+                                                    '${product.title} is a ${product.price} preview. Google Play checkout is not available yet.';
                                               } else if (product.diceSkin !=
                                                   null) {
                                                 if (state.isDiceSkinUnlocked(
@@ -214,18 +220,20 @@ class _ShopScreenState extends State<ShopScreen>
                                                       state.diceSkinUnlockLabel(
                                                           product.diceSkin!);
                                                 }
-                                              } else if (product.boardTheme !=
+                                              } else if (product
+                                                      .ludoBoardTheme !=
                                                   null) {
                                                 if (state.isBoardThemeUnlocked(
-                                                    product.boardTheme!)) {
-                                                  state.setSnakesBoardTheme(
-                                                      product.boardTheme!);
+                                                    product.ludoBoardTheme!)) {
+                                                  state.setLudoBoardTheme(
+                                                      product.ludoBoardTheme!);
                                                   message =
-                                                      '${product.title} equipped for Snakes & Ladders.';
+                                                      '${product.title} equipped for Ludo.';
                                                 } else {
                                                   message = state
                                                       .boardThemeUnlockLabel(
-                                                          product.boardTheme!);
+                                                          product
+                                                              .ludoBoardTheme!);
                                                 }
                                               } else if (product.premium) {
                                                 message =
@@ -1689,6 +1697,15 @@ class _BoardThemeStrip extends StatelessWidget {
       Color(0xFF2DBB52),
       Color(0xFF1E9BFF),
     ]),
+    _BoardThemeOption(
+        'jungle',
+        'Jungle',
+        [
+          Color(0xFF35B96D),
+          Color(0xFFFFC93C),
+          Color(0xFF21BDEB),
+        ],
+        rarity: 'RARE'),
   ];
 
   @override
@@ -1900,6 +1917,24 @@ class _BoardThemeButton extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _LudoThemePreview extends StatelessWidget {
+  final String theme;
+
+  const _LudoThemePreview({required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return LudoBoard(
+      snapshot: null,
+      mySeat: null,
+      boardTheme: theme,
+      showWaitingOverlay: false,
+      animate: false,
+      onPieceTap: (_) {},
     );
   }
 }
@@ -2371,7 +2406,7 @@ class _ShopProduct {
   final bool best;
   final int coinReward;
   final String? diceSkin;
-  final String? boardTheme;
+  final String? ludoBoardTheme;
   final bool dailyReward;
   final String rarity;
 
@@ -2383,37 +2418,50 @@ class _ShopProduct {
     this.best,
     this.coinReward, {
     this.diceSkin,
-    this.boardTheme,
+    this.ludoBoardTheme,
     this.dailyReward = false,
     this.rarity = 'COMMON',
   });
 
   bool isLocked(AppState state) {
     if (diceSkin != null) return !state.isDiceSkinUnlocked(diceSkin!);
-    if (boardTheme != null) return !state.isBoardThemeUnlocked(boardTheme!);
+    if (ludoBoardTheme != null) {
+      return !state.isBoardThemeUnlocked(ludoBoardTheme!);
+    }
     return false;
   }
 
   bool isEquipped(AppState state) {
     if (diceSkin != null) return state.diceSkin == diceSkin;
-    if (boardTheme != null) return state.snakesBoardTheme == boardTheme;
+    if (ludoBoardTheme != null) return state.ludoBoardTheme == ludoBoardTheme;
     return false;
   }
 
   bool get premium => rarity == 'PREMIUM';
+
+  bool requiresPurchase(AppState state) {
+    if (!premium) return false;
+    if (diceSkin != null) return !state.isDiceSkinUnlocked(diceSkin!);
+    if (ludoBoardTheme != null) {
+      return !state.isBoardThemeUnlocked(ludoBoardTheme!);
+    }
+    return true;
+  }
 
   String actionLabel(AppState state) {
     if (dailyReward) {
       return state.canClaimDailyReward ? 'FREE' : 'CLAIMED';
     }
     if (isEquipped(state)) return 'EQUIPPED';
+    if (requiresPurchase(state)) return 'PREVIEW $price';
     if (diceSkin != null && !state.isDiceSkinUnlocked(diceSkin!)) {
       return state.diceSkinPremiumPrice(diceSkin!) ?? price;
     }
-    if (boardTheme != null && !state.isBoardThemeUnlocked(boardTheme!)) {
-      return state.boardThemePremiumPrice(boardTheme!) ?? price;
+    if (ludoBoardTheme != null &&
+        !state.isBoardThemeUnlocked(ludoBoardTheme!)) {
+      return state.boardThemePremiumPrice(ludoBoardTheme!) ?? price;
     }
-    if (diceSkin != null || boardTheme != null) return 'EQUIP';
+    if (diceSkin != null || ludoBoardTheme != null) return 'EQUIP';
     return price;
   }
 }
@@ -2684,13 +2732,12 @@ class _ShopProductVisual extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (product.boardTheme != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: RepaintBoundary(
-          child: _SnakesThemePreview(
-            theme: product.boardTheme!,
-            colors: _boardColors(product.boardTheme!),
+    if (product.ludoBoardTheme != null) {
+      return SizedBox.expand(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: RepaintBoundary(
+            child: _LudoThemePreview(theme: product.ludoBoardTheme!),
           ),
         ),
       );
