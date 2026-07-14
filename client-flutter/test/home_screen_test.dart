@@ -24,6 +24,11 @@ void main() {
       expect(find.text('2 Player'), findsOneWidget);
       expect(find.text('4 Player'), findsOneWidget);
       expect(find.text('Offline'), findsOneWidget);
+      if (size.height >= 700) {
+        expect(find.text('Solo play'), findsOneWidget);
+      }
+      expect(find.textContaining(RegExp('bot', caseSensitive: false)),
+          findsNothing);
       expect(tester.takeException(), isNull);
     });
   }
