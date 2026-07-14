@@ -896,8 +896,8 @@ Future<void> _showPrivateRoomSheet(
                       const SizedBox(width: 10),
                       Expanded(
                         child: _HomeSheetButton(
-                          label: 'Offline Bot',
-                          icon: Icons.smart_toy_rounded,
+                          label: 'Play Offline',
+                          icon: Icons.person_rounded,
                           color: boardPurple,
                           onTap: () {
                             SoundService.tap();
@@ -4387,7 +4387,7 @@ class _LobbyStage extends StatelessWidget {
                         pulse: pulse,
                         label: 'Offline',
                         headline: '',
-                        subtitle: 'Vs bots',
+                        subtitle: 'Solo play',
                         start: const Color(0xFFFFC22D),
                         end: const Color(0xFFE47B00),
                         art: _ModeArt.quick,

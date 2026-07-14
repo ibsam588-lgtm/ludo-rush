@@ -717,13 +717,13 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     currentMatchIsBot = true;
     _resetLiveMatch();
     connecting = true;
-    _setStatus('Searching for bot table...');
+    _setStatus('Preparing a local table...');
     _openMatchmakingScreen();
     _scheduleLocalBotMatch(
       mode,
       reason: _isSnakesLaddersMode(mode)
           ? 'Snakes & Ladders table ready. Roll to climb.'
-          : 'Bot table ready. Roll when it is your turn.',
+          : 'Local table ready. Roll when it is your turn.',
     );
   }
 
