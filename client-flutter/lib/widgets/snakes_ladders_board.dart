@@ -32,6 +32,9 @@ class SnakesLaddersBoard extends StatefulWidget {
   final GameSnapshot? snapshot;
   final int? mySeat;
   final String boardTheme;
+  final bool showTitle;
+  final bool showPieces;
+  final bool animate;
   final void Function(String pieceId) onPieceTap;
 
   const SnakesLaddersBoard({
@@ -39,6 +42,9 @@ class SnakesLaddersBoard extends StatefulWidget {
     required this.snapshot,
     required this.mySeat,
     this.boardTheme = 'carnival',
+    this.showTitle = true,
+    this.showPieces = true,
+    this.animate = true,
     required this.onPieceTap,
   });
 
@@ -60,7 +66,10 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
     _pulse = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 820),
-    )..repeat(reverse: true);
+    );
+    if (widget.animate) {
+      _pulse.repeat(reverse: true);
+    }
     _loadAssets();
   }
 
@@ -77,14 +86,17 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
 
   Future<void> _loadAssets() async {
     final requestedTheme = _normalizedBoardTheme(widget.boardTheme);
-    final title = await _loadImage(_snakesTitlePlaqueAsset);
+    final title =
+        widget.showTitle ? await _loadImage(_snakesTitlePlaqueAsset) : null;
     final frame = await _loadImage(
       _snakeFrameAssets[requestedTheme]!,
     );
     final pieces = <int, ui.Image>{};
-    for (var i = 0; i < _snakePieceAssets.length; i++) {
-      final image = await _loadImage(_snakePieceAssets[i]);
-      if (image != null) pieces[i] = image;
+    if (widget.showPieces) {
+      for (var i = 0; i < _snakePieceAssets.length; i++) {
+        final image = await _loadImage(_snakePieceAssets[i]);
+        if (image != null) pieces[i] = image;
+      }
     }
     if (!mounted) {
       title?.dispose();
@@ -121,6 +133,19 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
     if (_normalizedBoardTheme(oldWidget.boardTheme) !=
         _normalizedBoardTheme(widget.boardTheme)) {
       _loadFrame(widget.boardTheme);
+    }
+    if (oldWidget.showTitle != widget.showTitle ||
+        oldWidget.showPieces != widget.showPieces) {
+      _loadAssets();
+    }
+    if (oldWidget.animate != widget.animate) {
+      if (widget.animate) {
+        _pulse.repeat(reverse: true);
+      } else {
+        _pulse
+          ..stop()
+          ..value = 0;
+      }
     }
   }
 
@@ -180,6 +205,8 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
             frameImage: _frameImage,
             pieceImages: _pieceImages,
             boardTheme: widget.boardTheme,
+            showTitle: widget.showTitle,
+            showPieces: widget.showPieces,
           ),
         ),
       ),
@@ -283,6 +310,8 @@ class _SnakesLaddersPainter extends CustomPainter {
   final ui.Image? frameImage;
   final Map<int, ui.Image> pieceImages;
   final String boardTheme;
+  final bool showTitle;
+  final bool showPieces;
 
   _SnakesLaddersPainter({
     required this.snapshot,
@@ -293,6 +322,8 @@ class _SnakesLaddersPainter extends CustomPainter {
     required this.frameImage,
     required this.pieceImages,
     required this.boardTheme,
+    required this.showTitle,
+    required this.showPieces,
   });
 
   String get _theme {
@@ -375,20 +406,20 @@ class _SnakesLaddersPainter extends CustomPainter {
     switch (_theme) {
       case 'royal':
         return even
-            ? const [Color(0xFFFFF8FF), Color(0xFFF4DFFF)]
-            : const [Color(0xFFFFF2F8), Color(0xFFEAD8FF)];
+            ? const [Color(0xFFFFFAE8), Color(0xFFE8D3FF)]
+            : const [Color(0xFFFFF2C2), Color(0xFFD8B8F6)];
       case 'neon':
         return even
-            ? const [Color(0xFFFFFFFF), Color(0xFFE1FBFF)]
-            : const [Color(0xFFFFF5FF), Color(0xFFEAF8FF)];
+            ? const [Color(0xFF09244A), Color(0xFF07142F)]
+            : const [Color(0xFF2B0C4D), Color(0xFF130727)];
       case 'classic':
         return even
-            ? const [Color(0xFFFFFDF4), Color(0xFFFFE7B5)]
-            : const [Color(0xFFFFF7E1), Color(0xFFFFE0A0)];
+            ? const [Color(0xFFFFF8DD), Color(0xFFEAD39D)]
+            : const [Color(0xFFF4E4BB), Color(0xFFD8B978)];
       case 'jungle':
         return even
-            ? const [Color(0xFFFFF9E7), Color(0xFFF2E0B4)]
-            : const [Color(0xFFFFF5D7), Color(0xFFE8D19A)];
+            ? const [Color(0xFFE8E0B9), Color(0xFFC6C68C)]
+            : const [Color(0xFFD4D19B), Color(0xFFAFC17B)];
       case 'carnival':
       default:
         return even
@@ -422,10 +453,10 @@ class _SnakesLaddersPainter extends CustomPainter {
         ];
       case 'jungle':
         return const [
-          Color(0xFFFF8A28),
-          Color(0xFFB356D8),
-          Color(0xFF4CCB45),
-          Color(0xFF22AEDD),
+          Color(0xFF2E9F4D),
+          Color(0xFF16A4A2),
+          Color(0xFFD78A24),
+          Color(0xFF9A4F2D),
         ];
       case 'carnival':
       default:
@@ -435,6 +466,71 @@ class _SnakesLaddersPainter extends CustomPainter {
           Color(0xFF56D82D),
           Color(0xFF22B7FF),
         ];
+    }
+  }
+
+  String get _themeLabel {
+    switch (_theme) {
+      case 'royal':
+        return 'ROYAL COURT';
+      case 'neon':
+        return 'NEON CIRCUIT';
+      case 'classic':
+        return 'CLASSIC TABLE';
+      case 'jungle':
+        return 'JUNGLE TEMPLE';
+      case 'carnival':
+      default:
+        return 'CARNIVAL';
+    }
+  }
+
+  List<Color> get _titleColors {
+    switch (_theme) {
+      case 'royal':
+        return const [Color(0xFF39106E), Color(0xFF9228BC), Color(0xFF250847)];
+      case 'neon':
+        return const [Color(0xFF07152F), Color(0xFF173C78), Color(0xFF09051D)];
+      case 'classic':
+        return const [Color(0xFF7B4219), Color(0xFFBE7A31), Color(0xFF4B260F)];
+      case 'jungle':
+        return const [Color(0xFF0B4A35), Color(0xFF278A52), Color(0xFF073224)];
+      case 'carnival':
+      default:
+        return const [Color(0xFFFF36B8), Color(0xFF8F146D), Color(0xFF5B0B7F)];
+    }
+  }
+
+  List<Color> get _ladderColors {
+    switch (_theme) {
+      case 'royal':
+        return const [Color(0xFF7C3AA8), Color(0xFFFFC928), Color(0xFFFFF3A6)];
+      case 'neon':
+        return const [Color(0xFF123B73), Color(0xFF19E6FF), Color(0xFFFF55E8)];
+      case 'classic':
+        return const [Color(0xFF5A2D12), Color(0xFFA85D22), Color(0xFFE8AC58)];
+      case 'jungle':
+        return const [Color(0xFF31542A), Color(0xFFD6AE54), Color(0xFF79A83F)];
+      case 'carnival':
+      default:
+        return const [Color(0xFF8B4A08), Color(0xFFFFB51C), Color(0xFFFFF0A1)];
+    }
+  }
+
+  Color _numberColor(bool colored) {
+    if (colored) return Colors.white;
+    switch (_theme) {
+      case 'royal':
+        return const Color(0xFF4B176E);
+      case 'neon':
+        return const Color(0xFFD9FAFF);
+      case 'classic':
+        return const Color(0xFF5D3517);
+      case 'jungle':
+        return const Color(0xFF29482C);
+      case 'carnival':
+      default:
+        return const Color(0xFF684811);
     }
   }
 
@@ -457,8 +553,10 @@ class _SnakesLaddersPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     hits.clear();
-    final titleHeight = (size.height * 0.135).clamp(40.0, 78.0);
-    final gap = (size.height * 0.012).clamp(4.0, 8.0);
+    final titleHeight =
+        showTitle ? (size.height * 0.135).clamp(40.0, 78.0).toDouble() : 0.0;
+    final gap =
+        showTitle ? (size.height * 0.012).clamp(4.0, 8.0).toDouble() : 0.0;
     final maxBoardSide = size.height - titleHeight - gap;
     final boardSide = math.min(size.width * 0.965, maxBoardSide);
     final totalHeight = titleHeight + gap + boardSide;
@@ -479,7 +577,7 @@ class _SnakesLaddersPainter extends CustomPainter {
     final playRect = boardRect.deflate(boardSide * frameInset);
     final cell = playRect.width / 10;
 
-    _drawTitle(canvas, titleRect);
+    if (showTitle) _drawTitle(canvas, titleRect);
     _drawShell(canvas, boardRect);
 
     canvas.save();
@@ -490,12 +588,12 @@ class _SnakesLaddersPainter extends CustomPainter {
     _drawNumbers(canvas, playRect, cell);
     canvas.restore();
 
-    _drawPieces(canvas, playRect, cell);
+    if (showPieces) _drawPieces(canvas, playRect, cell);
   }
 
   void _drawTitle(Canvas canvas, Rect rect) {
     final image = titlePlaque;
-    if (image != null) {
+    if (image != null && _theme == 'carnival') {
       canvas.drawImageRect(
         image,
         Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
@@ -506,23 +604,50 @@ class _SnakesLaddersPainter extends CustomPainter {
       );
     } else {
       final p = Paint()..isAntiAlias = true;
-      p.shader = const LinearGradient(
-        colors: [Color(0xFFFFDA37), Color(0xFFFF8B00), Color(0xFF6D2500)],
+      if (_theme == 'neon') {
+        p
+          ..color = const Color(0xAA23E7FF)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10);
+        canvas.drawRRect(RRect.fromRectXY(rect.deflate(2), 18, 18), p);
+        p.maskFilter = null;
+      }
+      p.shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: _titleColors,
       ).createShader(rect);
-      canvas.drawRRect(RRect.fromRectXY(rect, 24, 24), p);
-      p.shader = const LinearGradient(
-        colors: [Color(0xFFFF36B8), Color(0xFF5B0B7F)],
-      ).createShader(rect.deflate(6));
-      canvas.drawRRect(RRect.fromRectXY(rect.deflate(6), 18, 18), p);
+      canvas.drawRRect(RRect.fromRectXY(rect, 18, 18), p);
       p.shader = null;
+      p
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = math.max(2.0, rect.height * 0.055)
+        ..color = _theme == 'neon'
+            ? const Color(0xFF38F4FF)
+            : const Color(0xFFFFD426);
+      canvas.drawRRect(RRect.fromRectXY(rect.deflate(2), 16, 16), p);
+      p
+        ..strokeWidth = math.max(1.0, rect.height * 0.025)
+        ..color = _theme == 'jungle'
+            ? const Color(0xFF8FE36B)
+            : Colors.white.withAlpha(125);
+      canvas.drawRRect(RRect.fromRectXY(rect.deflate(7), 12, 12), p);
+      p.style = PaintingStyle.fill;
     }
     _drawOutlinedText(
       canvas,
       'Snakes & Ladders',
-      rect.center.translate(0, rect.height * 0.01),
-      rect.height * 0.43,
-      const Color(0xFFFFF34D),
-      const Color(0xFF7C2600),
+      rect.center.translate(0, -rect.height * 0.07),
+      rect.height * 0.36,
+      _theme == 'neon' ? const Color(0xFFE6FFFF) : const Color(0xFFFFF34D),
+      _theme == 'neon' ? const Color(0xFF701E9B) : const Color(0xFF632000),
+    );
+    _drawText(
+      canvas,
+      _themeLabel,
+      rect.center.translate(0, rect.height * 0.28),
+      _theme == 'neon' ? const Color(0xFF5AFAFF) : Colors.white,
+      rect.height * 0.13,
+      weight: FontWeight.w900,
     );
   }
 
@@ -605,6 +730,8 @@ class _SnakesLaddersPainter extends CustomPainter {
         p.shader = null;
       }
 
+      _drawTileTexture(canvas, r, cell, n);
+
       p
         ..style = PaintingStyle.stroke
         ..strokeWidth = math.max(1.0, cell * 0.025)
@@ -613,11 +740,10 @@ class _SnakesLaddersPainter extends CustomPainter {
       p.style = PaintingStyle.fill;
 
       if (_starCells.contains(n)) {
-        _drawStar(
+        _drawSafeMark(
           canvas,
           r.center,
           cell * 0.30,
-          Colors.white,
           _starOutlineFor(cellColor ?? goldColor),
         );
       }
@@ -639,6 +765,222 @@ class _SnakesLaddersPainter extends CustomPainter {
     return const Color(0xFFB78000);
   }
 
+  void _drawTileTexture(Canvas canvas, Rect rect, double cell, int number) {
+    final p = Paint()
+      ..isAntiAlias = true
+      ..strokeCap = StrokeCap.round;
+    switch (_theme) {
+      case 'royal':
+        p
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(0.7, cell * 0.018)
+          ..color = const Color(0x557B319D);
+        final c = rect.bottomRight - Offset(cell * 0.17, cell * 0.17);
+        canvas.drawPath(
+          Path()
+            ..moveTo(c.dx, c.dy - cell * 0.09)
+            ..lineTo(c.dx + cell * 0.07, c.dy)
+            ..lineTo(c.dx, c.dy + cell * 0.09)
+            ..lineTo(c.dx - cell * 0.07, c.dy)
+            ..close(),
+          p,
+        );
+        break;
+      case 'neon':
+        p
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(0.8, cell * 0.022)
+          ..color = (number.isEven
+                  ? const Color(0xFF27E8FF)
+                  : const Color(0xFFFF4BDF))
+              .withAlpha(72);
+        final node = rect.bottomRight - Offset(cell * 0.15, cell * 0.15);
+        canvas.drawLine(
+          Offset(rect.left + cell * 0.55, node.dy),
+          node,
+          p,
+        );
+        canvas.drawLine(
+          Offset(node.dx, rect.top + cell * 0.55),
+          node,
+          p,
+        );
+        p.style = PaintingStyle.fill;
+        canvas.drawCircle(node, cell * 0.035, p);
+        break;
+      case 'classic':
+        p
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(0.7, cell * 0.016)
+          ..color = const Color(0x40734A1E);
+        final y = rect.bottom - cell * (number.isEven ? 0.19 : 0.25);
+        canvas.drawLine(
+          Offset(rect.left + cell * 0.45, y),
+          Offset(rect.right - cell * 0.10, y - cell * 0.04),
+          p,
+        );
+        break;
+      case 'jungle':
+        p
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(0.8, cell * 0.022)
+          ..color = const Color(0x553A622F);
+        final start = rect.bottomRight - Offset(cell * 0.10, cell * 0.12);
+        canvas.drawLine(start, start - Offset(cell * 0.16, cell * 0.10), p);
+        canvas.drawLine(
+          start - Offset(cell * 0.16, cell * 0.10),
+          start - Offset(cell * 0.11, cell * 0.23),
+          p,
+        );
+        break;
+      case 'carnival':
+      default:
+        if (number % 4 == 0) {
+          p
+            ..style = PaintingStyle.fill
+            ..color = (number.isEven ? boardRed : boardBlue).withAlpha(72);
+          canvas.drawCircle(
+            rect.bottomRight - Offset(cell * 0.15, cell * 0.15),
+            cell * 0.035,
+            p,
+          );
+        }
+    }
+  }
+
+  void _drawSafeMark(
+    Canvas canvas,
+    Offset center,
+    double radius,
+    Color outline,
+  ) {
+    switch (_theme) {
+      case 'royal':
+        _drawCrownMark(canvas, center, radius, outline);
+        break;
+      case 'neon':
+        _drawDiamondMark(canvas, center, radius, outline);
+        break;
+      case 'classic':
+        _drawShieldMark(canvas, center, radius, outline);
+        break;
+      case 'jungle':
+        _drawLeafMark(canvas, center, radius, outline);
+        break;
+      case 'carnival':
+      default:
+        _drawStar(canvas, center, radius, Colors.white, outline);
+    }
+  }
+
+  void _drawCrownMark(
+      Canvas canvas, Offset center, double radius, Color outline) {
+    final path = Path()
+      ..moveTo(center.dx - radius, center.dy + radius * 0.46)
+      ..lineTo(center.dx - radius * 0.82, center.dy - radius * 0.52)
+      ..lineTo(center.dx - radius * 0.30, center.dy - radius * 0.04)
+      ..lineTo(center.dx, center.dy - radius * 0.78)
+      ..lineTo(center.dx + radius * 0.30, center.dy - radius * 0.04)
+      ..lineTo(center.dx + radius * 0.82, center.dy - radius * 0.52)
+      ..lineTo(center.dx + radius, center.dy + radius * 0.46)
+      ..close();
+    final p = Paint()
+      ..isAntiAlias = true
+      ..color = Colors.white;
+    canvas.drawPath(path, p);
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = math.max(1.0, radius * 0.16)
+      ..color = outline;
+    canvas.drawPath(path, p);
+  }
+
+  void _drawDiamondMark(
+      Canvas canvas, Offset center, double radius, Color outline) {
+    final path = Path()
+      ..moveTo(center.dx, center.dy - radius)
+      ..lineTo(center.dx + radius * 0.86, center.dy)
+      ..lineTo(center.dx, center.dy + radius)
+      ..lineTo(center.dx - radius * 0.86, center.dy)
+      ..close();
+    final glow = Paint()
+      ..isAntiAlias = true
+      ..color = const Color(0xFF4AFAFF).withAlpha(190)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, radius * 0.36);
+    canvas.drawPath(path, glow);
+    final p = Paint()
+      ..isAntiAlias = true
+      ..color = Colors.white;
+    canvas.drawPath(path, p);
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.0, radius * 0.15)
+      ..color = outline;
+    canvas.drawPath(path, p);
+  }
+
+  void _drawShieldMark(
+      Canvas canvas, Offset center, double radius, Color outline) {
+    final path = Path()
+      ..moveTo(center.dx, center.dy - radius)
+      ..quadraticBezierTo(center.dx + radius, center.dy - radius * 0.72,
+          center.dx + radius * 0.78, center.dy + radius * 0.20)
+      ..quadraticBezierTo(center.dx + radius * 0.50, center.dy + radius * 0.72,
+          center.dx, center.dy + radius)
+      ..quadraticBezierTo(center.dx - radius * 0.50, center.dy + radius * 0.72,
+          center.dx - radius * 0.78, center.dy + radius * 0.20)
+      ..quadraticBezierTo(center.dx - radius, center.dy - radius * 0.72,
+          center.dx, center.dy - radius)
+      ..close();
+    final p = Paint()
+      ..isAntiAlias = true
+      ..color = Colors.white;
+    canvas.drawPath(path, p);
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.0, radius * 0.15)
+      ..color = outline;
+    canvas.drawPath(path, p);
+  }
+
+  void _drawLeafMark(
+      Canvas canvas, Offset center, double radius, Color outline) {
+    final path = Path()
+      ..moveTo(center.dx - radius * 0.88, center.dy + radius * 0.55)
+      ..cubicTo(
+        center.dx - radius * 0.65,
+        center.dy - radius * 0.85,
+        center.dx + radius * 0.62,
+        center.dy - radius,
+        center.dx + radius * 0.82,
+        center.dy - radius * 0.55,
+      )
+      ..cubicTo(
+        center.dx + radius * 0.55,
+        center.dy + radius * 0.70,
+        center.dx - radius * 0.55,
+        center.dy + radius,
+        center.dx - radius * 0.88,
+        center.dy + radius * 0.55,
+      )
+      ..close();
+    final p = Paint()
+      ..isAntiAlias = true
+      ..color = Colors.white;
+    canvas.drawPath(path, p);
+    p
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.0, radius * 0.14)
+      ..color = outline;
+    canvas.drawPath(path, p);
+    canvas.drawLine(
+      center - Offset(radius * 0.55, -radius * 0.48),
+      center + Offset(radius * 0.55, -radius * 0.48),
+      p,
+    );
+  }
+
   void _drawLadders(Canvas canvas, Rect rect, double cell) {
     for (final entry in ladders.entries) {
       _drawLadder(
@@ -654,6 +996,7 @@ class _SnakesLaddersPainter extends CustomPainter {
     final p = Paint()
       ..isAntiAlias = true
       ..strokeCap = StrokeCap.round;
+    final colors = _ladderColors;
     final dir = to - from;
     final len = dir.distance;
     if (len <= 0) return;
@@ -666,20 +1009,30 @@ class _SnakesLaddersPainter extends CustomPainter {
     final b1 = start - normal;
     final b2 = end - normal;
 
+    if (_theme == 'neon') {
+      p
+        ..strokeWidth = cell * 0.22
+        ..color = colors[1].withAlpha(145)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, cell * 0.16);
+      canvas.drawLine(a1, a2, p);
+      canvas.drawLine(b1, b2, p);
+      p.maskFilter = null;
+    }
+
     p
       ..strokeWidth = cell * 0.14
-      ..color = const Color(0x66000000);
+      ..color = colors[0].withAlpha(170);
     canvas.drawLine(a1.translate(2, 3), a2.translate(2, 3), p);
     canvas.drawLine(b1.translate(2, 3), b2.translate(2, 3), p);
 
     p
       ..strokeWidth = cell * 0.105
-      ..color = const Color(0xFFFFB51C);
+      ..color = colors[1];
     canvas.drawLine(a1, a2, p);
     canvas.drawLine(b1, b2, p);
     p
       ..strokeWidth = cell * 0.045
-      ..color = const Color(0xFFFFF0A1);
+      ..color = colors[2];
     canvas.drawLine(a1, a2, p);
     canvas.drawLine(b1, b2, p);
 
@@ -689,12 +1042,64 @@ class _SnakesLaddersPainter extends CustomPainter {
       final c = Offset.lerp(start, end, t)!;
       p
         ..strokeWidth = cell * 0.075
-        ..color = const Color(0xFFFFAB15);
+        ..color = colors[1];
       canvas.drawLine(c - normal * 1.05, c + normal * 1.05, p);
       p
         ..strokeWidth = cell * 0.026
-        ..color = const Color(0xFFFFF2A8);
+        ..color = colors[2];
       canvas.drawLine(c - normal * 0.84, c + normal * 0.84, p);
+
+      if (_theme == 'jungle') {
+        p
+          ..style = PaintingStyle.fill
+          ..color = const Color(0xFF426B2E);
+        canvas.drawCircle(c - normal, cell * 0.045, p);
+        canvas.drawCircle(c + normal, cell * 0.045, p);
+      } else if (_theme == 'neon') {
+        p
+          ..style = PaintingStyle.fill
+          ..color = colors[2];
+        canvas.drawCircle(c - normal, cell * 0.028, p);
+        canvas.drawCircle(c + normal, cell * 0.028, p);
+      } else if (_theme == 'royal' && i.isEven) {
+        p
+          ..style = PaintingStyle.fill
+          ..color = const Color(0xFF8B42D1);
+        canvas.drawCircle(c, cell * 0.045, p);
+      }
+      p.style = PaintingStyle.stroke;
+    }
+
+    p.style = PaintingStyle.fill;
+    if (_theme == 'royal') {
+      p.color = const Color(0xFFFFE06A);
+      for (final point in [a1, a2, b1, b2]) {
+        canvas.drawCircle(point, cell * 0.085, p);
+        p.color = const Color(0xFF8F3CCC);
+        canvas.drawCircle(point, cell * 0.038, p);
+        p.color = const Color(0xFFFFE06A);
+      }
+    } else if (_theme == 'jungle') {
+      p.color = const Color(0xFF4E9B43).withAlpha(220);
+      _drawRotatedOval(
+        canvas,
+        start - normal * 1.25,
+        math.atan2(unit.dy, unit.dx) + 0.7,
+        Size(cell * 0.30, cell * 0.14),
+        p,
+      );
+      _drawRotatedOval(
+        canvas,
+        end + normal * 1.25,
+        math.atan2(unit.dy, unit.dx) - 0.7,
+        Size(cell * 0.30, cell * 0.14),
+        p,
+      );
+    } else if (_theme == 'carnival') {
+      p.color = const Color(0xFFFFF3A6);
+      for (final point in [a1, a2, b1, b2]) {
+        canvas.drawCircle(point, cell * 0.050, p);
+      }
     }
   }
 
@@ -708,6 +1113,7 @@ class _SnakesLaddersPainter extends CustomPainter {
         _cellCenter(rect, cell, entry.value),
         cell,
         colors[i % colors.length],
+        i,
       );
       i++;
     }
@@ -719,21 +1125,75 @@ class _SnakesLaddersPainter extends CustomPainter {
     Offset tail,
     double cell,
     Color color,
+    int variant,
   ) {
     final dir = tail - head;
     final len = dir.distance;
     if (len <= 0) return;
     final unit = dir / len;
     final normal = Offset(-unit.dy, unit.dx);
-    final wave = normal * cell * 0.76;
-    final c1 = head + dir * 0.30 + wave;
-    final c2 = head + dir * 0.68 - wave;
+    final themeSeed = switch (_theme) {
+      'royal' => 1,
+      'neon' => 2,
+      'classic' => 3,
+      'jungle' => 4,
+      _ => 0,
+    };
+    final direction = (variant + themeSeed).isEven ? 1.0 : -1.0;
+    final waveScale = switch (_theme) {
+      'royal' => 0.96,
+      'neon' => 0.50,
+      'classic' => 0.62,
+      'jungle' => 1.12,
+      _ => 0.78,
+    };
+    final firstTurn = switch (_theme) {
+      'neon' => 0.20,
+      'classic' => 0.34,
+      'jungle' => 0.24,
+      _ => 0.29,
+    };
+    final secondTurn = switch (_theme) {
+      'royal' => 0.74,
+      'neon' => 0.80,
+      'classic' => 0.64,
+      'jungle' => 0.70,
+      _ => 0.68,
+    };
+    final wave = normal * cell * waveScale * direction;
+    final c1 = head + dir * firstTurn + wave;
+    final c2 = head + dir * secondTurn - wave * (_theme == 'jungle' ? 0.72 : 1);
     final path = Path()
       ..moveTo(head.dx, head.dy)
       ..cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, tail.dx, tail.dy);
 
+    if (_theme == 'neon') {
+      final glowPaint = Paint()
+        ..isAntiAlias = true
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeWidth = cell * 0.62
+        ..color = color.withAlpha(180)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, cell * 0.24);
+      canvas.drawPath(path, glowPaint);
+    }
+
     final samples = <_SnakeSample>[];
     const sampleCount = 34;
+    final baseRadius = switch (_theme) {
+      'neon' => 0.085,
+      'classic' => 0.10,
+      'royal' => 0.12,
+      'jungle' => 0.12,
+      _ => 0.115,
+    };
+    final taperRadius = switch (_theme) {
+      'neon' => 0.14,
+      'classic' => 0.145,
+      'royal' => 0.17,
+      'jungle' => 0.18,
+      _ => 0.165,
+    };
     for (var i = 0; i <= sampleCount; i++) {
       final t = i / sampleCount;
       final point = _cubicPoint(head, c1, c2, tail, t);
@@ -745,7 +1205,7 @@ class _SnakesLaddersPainter extends CustomPainter {
         point: point,
         tangent: tangent,
         normal: side,
-        radius: cell * (0.115 + taper * 0.165 + pulseWidth),
+        radius: cell * (baseRadius + taper * taperRadius + pulseWidth),
       ));
     }
 
@@ -802,33 +1262,11 @@ class _SnakesLaddersPainter extends CustomPainter {
       ..color = Color.lerp(color, Colors.black, 0.28)!.withAlpha(115);
     canvas.drawPath(path.shift(Offset(cell * 0.018, cell * 0.025)), linePaint);
 
+    _drawSnakePattern(canvas, samples, cell, color, variant);
+
     final detailPaint = Paint()
       ..isAntiAlias = true
-      ..strokeCap = StrokeCap.round;
-    for (var i = 4; i < samples.length - 3; i += 4) {
-      final s = samples[i];
-      detailPaint
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = math.max(1.0, cell * 0.030)
-        ..color = Color.lerp(color, Colors.black, 0.30)!.withAlpha(95);
-      canvas.drawLine(
-        s.point - s.normal * s.radius * 0.58,
-        s.point + s.normal * s.radius * 0.58,
-        detailPaint,
-      );
-    }
-
-    detailPaint.style = PaintingStyle.fill;
-    for (var i = 5; i < samples.length - 6; i += 5) {
-      final s = samples[i];
-      final side = i.isEven ? 1.0 : -1.0;
-      detailPaint.color = Color.lerp(color, Colors.white, 0.50)!.withAlpha(185);
-      canvas.drawCircle(
-        s.point + s.normal * side * s.radius * 0.45,
-        s.radius * 0.18,
-        detailPaint,
-      );
-    }
+      ..style = PaintingStyle.fill;
 
     final tailSample = samples.last;
     final tailPath = Path()
@@ -850,6 +1288,148 @@ class _SnakesLaddersPainter extends CustomPainter {
 
     _drawSnakeHead(
         canvas, head, _cubicTangent(head, c1, c2, tail, 0.035), cell, color);
+  }
+
+  void _drawSnakePattern(
+    Canvas canvas,
+    List<_SnakeSample> samples,
+    double cell,
+    Color color,
+    int variant,
+  ) {
+    final p = Paint()
+      ..isAntiAlias = true
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    switch (_theme) {
+      case 'royal':
+        p
+          ..style = PaintingStyle.fill
+          ..color = const Color(0xFFFFE06A).withAlpha(205);
+        for (var i = 4; i < samples.length - 4; i += 3) {
+          final s = samples[i];
+          final scale = s.radius * 0.46;
+          final path = Path()
+            ..moveTo(s.point.dx - s.tangent.dx * scale,
+                s.point.dy - s.tangent.dy * scale)
+            ..lineTo(s.point.dx + s.normal.dx * scale,
+                s.point.dy + s.normal.dy * scale)
+            ..lineTo(s.point.dx + s.tangent.dx * scale,
+                s.point.dy + s.tangent.dy * scale)
+            ..lineTo(s.point.dx - s.normal.dx * scale,
+                s.point.dy - s.normal.dy * scale)
+            ..close();
+          canvas.drawPath(path, p);
+          p
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = math.max(0.8, cell * 0.018)
+            ..color = const Color(0xFF71329B).withAlpha(180);
+          canvas.drawPath(path, p);
+          p
+            ..style = PaintingStyle.fill
+            ..color = const Color(0xFFFFE06A).withAlpha(205);
+        }
+        break;
+      case 'neon':
+        for (var i = 3; i < samples.length - 3; i += 3) {
+          final s = samples[i];
+          final accent = (i + variant).isEven
+              ? const Color(0xFF5AFAFF)
+              : const Color(0xFFFF57E8);
+          p
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = math.max(1.2, cell * 0.050)
+            ..color = accent
+            ..maskFilter = MaskFilter.blur(BlurStyle.normal, cell * 0.045);
+          canvas.drawLine(
+            s.point - s.normal * s.radius * 0.68,
+            s.point + s.normal * s.radius * 0.68,
+            p,
+          );
+          p.maskFilter = null;
+          p
+            ..style = PaintingStyle.fill
+            ..color = Colors.white;
+          canvas.drawCircle(
+            s.point + s.normal * (i.isEven ? 1 : -1) * s.radius * 0.43,
+            s.radius * 0.13,
+            p,
+          );
+        }
+        break;
+      case 'classic':
+        for (var i = 4; i < samples.length - 3; i += 4) {
+          final s = samples[i];
+          p
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = math.max(1.0, cell * 0.035)
+            ..color = Color.lerp(color, Colors.black, 0.48)!.withAlpha(165);
+          canvas.drawLine(
+            s.point - s.normal * s.radius * 0.68,
+            s.point + s.normal * s.radius * 0.68,
+            p,
+          );
+        }
+        p
+          ..style = PaintingStyle.fill
+          ..color = const Color(0xFFFFF1B8).withAlpha(205);
+        for (var i = 7; i < samples.length - 5; i += 7) {
+          final s = samples[i];
+          canvas.drawCircle(s.point, s.radius * 0.19, p);
+        }
+        break;
+      case 'jungle':
+        for (var i = 4; i < samples.length - 4; i += 4) {
+          final s = samples[i];
+          p
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = math.max(1.0, cell * 0.030)
+            ..color = const Color(0xFF173D25).withAlpha(145);
+          final tip = s.point + s.tangent * s.radius * 0.18;
+          canvas.drawLine(s.point - s.normal * s.radius * 0.62, tip, p);
+          canvas.drawLine(s.point + s.normal * s.radius * 0.62, tip, p);
+        }
+        p
+          ..style = PaintingStyle.fill
+          ..color = const Color(0xFF8BD65F).withAlpha(225);
+        for (var i = 8; i < samples.length - 7; i += 8) {
+          final s = samples[i];
+          final side = i.isEven ? 1.0 : -1.0;
+          _drawRotatedOval(
+            canvas,
+            s.point + s.normal * side * s.radius * 0.95,
+            math.atan2(s.tangent.dy, s.tangent.dx) + side * 0.72,
+            Size(s.radius * 0.72, s.radius * 0.34),
+            p,
+          );
+        }
+        break;
+      case 'carnival':
+      default:
+        for (var i = 4; i < samples.length - 3; i += 4) {
+          final s = samples[i];
+          p
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = math.max(1.0, cell * 0.030)
+            ..color = Color.lerp(color, Colors.black, 0.30)!.withAlpha(95);
+          canvas.drawLine(
+            s.point - s.normal * s.radius * 0.58,
+            s.point + s.normal * s.radius * 0.58,
+            p,
+          );
+        }
+        p.style = PaintingStyle.fill;
+        for (var i = 5; i < samples.length - 6; i += 5) {
+          final s = samples[i];
+          final side = i.isEven ? 1.0 : -1.0;
+          p.color = Color.lerp(color, Colors.white, 0.50)!.withAlpha(210);
+          canvas.drawCircle(
+            s.point + s.normal * side * s.radius * 0.45,
+            s.radius * 0.20,
+            p,
+          );
+        }
+    }
   }
 
   void _drawSnakeHead(
@@ -955,6 +1535,105 @@ class _SnakesLaddersPainter extends CustomPainter {
     canvas.drawLine(tongueEnd, tongueEnd + side * cell * 0.075, headPaint);
     canvas.drawLine(tongueEnd, tongueEnd - side * cell * 0.075, headPaint);
     headPaint.style = PaintingStyle.fill;
+    _drawHeadThemeDetail(
+      canvas,
+      headCenter,
+      face,
+      side,
+      eyeA,
+      eyeB,
+      cell,
+      color,
+    );
+  }
+
+  void _drawHeadThemeDetail(
+    Canvas canvas,
+    Offset center,
+    Offset face,
+    Offset side,
+    Offset eyeA,
+    Offset eyeB,
+    double cell,
+    Color color,
+  ) {
+    final p = Paint()
+      ..isAntiAlias = true
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    switch (_theme) {
+      case 'royal':
+        final base = center - face * cell * 0.22;
+        final path = Path()
+          ..moveTo(
+              (base - side * cell * 0.24).dx, (base - side * cell * 0.24).dy)
+          ..lineTo((base - side * cell * 0.18 - face * cell * 0.22).dx,
+              (base - side * cell * 0.18 - face * cell * 0.22).dy)
+          ..lineTo(
+              (base - face * cell * 0.10).dx, (base - face * cell * 0.10).dy)
+          ..lineTo((base + side * cell * 0.18 - face * cell * 0.22).dx,
+              (base + side * cell * 0.18 - face * cell * 0.22).dy)
+          ..lineTo(
+              (base + side * cell * 0.24).dx, (base + side * cell * 0.24).dy)
+          ..close();
+        p.color = const Color(0xFFFFD426);
+        canvas.drawPath(path, p);
+        p
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(1.0, cell * 0.025)
+          ..color = const Color(0xFF7D3A13);
+        canvas.drawPath(path, p);
+        p
+          ..style = PaintingStyle.fill
+          ..color = const Color(0xFF9D3BE0);
+        canvas.drawCircle(base - face * cell * 0.08, cell * 0.035, p);
+        break;
+      case 'neon':
+        p
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = math.max(1.2, cell * 0.045)
+          ..color = const Color(0xFF4AFAFF)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, cell * 0.025);
+        canvas.drawLine(
+            eyeA - side * cell * 0.04, eyeB + side * cell * 0.04, p);
+        p.maskFilter = null;
+        p
+          ..style = PaintingStyle.fill
+          ..color = const Color(0xFFFF55E8);
+        canvas.drawCircle(center - face * cell * 0.22, cell * 0.040, p);
+        break;
+      case 'classic':
+        p.color = const Color(0xFF5A2518).withAlpha(190);
+        canvas.drawCircle(
+            center + face * cell * 0.25 - side * cell * 0.065, cell * 0.018, p);
+        canvas.drawCircle(
+            center + face * cell * 0.25 + side * cell * 0.065, cell * 0.018, p);
+        break;
+      case 'jungle':
+        p.color = const Color(0xFF8AD45D).withAlpha(230);
+        _drawRotatedOval(
+          canvas,
+          center - face * cell * 0.20 + side * cell * 0.22,
+          math.atan2(face.dy, face.dx) + 0.9,
+          Size(cell * 0.27, cell * 0.12),
+          p,
+        );
+        _drawRotatedOval(
+          canvas,
+          center - face * cell * 0.20 - side * cell * 0.22,
+          math.atan2(face.dy, face.dx) - 0.9,
+          Size(cell * 0.27, cell * 0.12),
+          p,
+        );
+        break;
+      case 'carnival':
+      default:
+        p.color = Color.lerp(color, Colors.white, 0.68)!.withAlpha(210);
+        canvas.drawCircle(
+            center + face * cell * 0.20 + side * cell * 0.22, cell * 0.035, p);
+        canvas.drawCircle(
+            center + face * cell * 0.20 - side * cell * 0.22, cell * 0.035, p);
+    }
   }
 
   void _drawRotatedOval(
@@ -1001,7 +1680,7 @@ class _SnakesLaddersPainter extends CustomPainter {
         canvas,
         n.toString(),
         r.topLeft + Offset(cell * 0.16, cell * 0.14),
-        colored ? Colors.white : const Color(0xFF684811),
+        _numberColor(colored),
         n == 100 ? cell * 0.29 : cell * 0.25,
         weight: FontWeight.w900,
         align: TextAlign.left,
@@ -1293,7 +1972,9 @@ class _SnakesLaddersPainter extends CustomPainter {
         oldDelegate.titlePlaque != titlePlaque ||
         oldDelegate.frameImage != frameImage ||
         oldDelegate.pieceImages != pieceImages ||
-        oldDelegate.boardTheme != boardTheme;
+        oldDelegate.boardTheme != boardTheme ||
+        oldDelegate.showTitle != showTitle ||
+        oldDelegate.showPieces != showPieces;
   }
 }
 

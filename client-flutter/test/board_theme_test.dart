@@ -79,4 +79,46 @@ void main() {
 
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('static Snakes previews paint all five board themes',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 640));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    for (final theme in const [
+      'carnival',
+      'royal',
+      'neon',
+      'classic',
+      'jungle'
+    ]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: SizedBox.square(
+              dimension: 320,
+              child: SnakesLaddersBoard(
+                snapshot: null,
+                mySeat: null,
+                boardTheme: theme,
+                showTitle: false,
+                showPieces: false,
+                animate: false,
+                onPieceTap: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 250));
+
+      final board = tester.widget<SnakesLaddersBoard>(
+        find.byType(SnakesLaddersBoard),
+      );
+      expect(board.boardTheme, theme);
+      expect(board.showPieces, isFalse);
+      expect(board.animate, isFalse);
+      expect(tester.takeException(), isNull, reason: 'Theme: $theme');
+    }
+  });
 }

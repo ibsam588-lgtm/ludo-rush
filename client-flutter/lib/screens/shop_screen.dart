@@ -11,18 +11,12 @@ import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/dice_widget.dart';
 import '../widgets/ludo_board.dart';
+import '../widgets/snakes_ladders_board.dart';
 
 const _shopDiceAtlasAsset =
     'assets/images/rush/rush_shop_dice_showcase_mobile_v1.jpg';
 const _shopRewardsAtlasAsset =
     'assets/images/rush/rush_shop_rewards_atlas_mobile_v1.jpg';
-const _shopBoardFrameAssets = {
-  'carnival': 'assets/images/rush/rush_snakes_frame_carnival_mobile_v1.jpg',
-  'royal': 'assets/images/rush/rush_snakes_frame_royal_mobile_v1.jpg',
-  'neon': 'assets/images/rush/rush_snakes_frame_neon_mobile_v1.jpg',
-  'classic': 'assets/images/rush/rush_snakes_frame_classic_mobile_v1.jpg',
-  'jungle': 'assets/images/rush/rush_snakes_frame_jungle_mobile_v1.webp',
-};
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -1861,7 +1855,6 @@ class _BoardThemeButton extends StatelessWidget {
                     child: RepaintBoundary(
                       child: _SnakesThemePreview(
                         theme: option.id,
-                        colors: option.colors,
                       ),
                     ),
                   ),
@@ -1941,128 +1934,23 @@ class _LudoThemePreview extends StatelessWidget {
 
 class _SnakesThemePreview extends StatelessWidget {
   final String theme;
-  final List<Color> colors;
 
   const _SnakesThemePreview({
     required this.theme,
-    required this.colors,
   });
 
   @override
   Widget build(BuildContext context) {
-    final asset =
-        _shopBoardFrameAssets[theme] ?? _shopBoardFrameAssets['carnival']!;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        Image.asset(
-          asset,
-          fit: BoxFit.fill,
-          filterQuality: FilterQuality.low,
-        ),
-        CustomPaint(painter: _ThemePreviewPainter(colors)),
-      ],
+    return SnakesLaddersBoard(
+      snapshot: null,
+      mySeat: null,
+      boardTheme: theme,
+      showTitle: false,
+      showPieces: false,
+      animate: false,
+      onPieceTap: (_) {},
     );
   }
-}
-
-class _ThemePreviewPainter extends CustomPainter {
-  final List<Color> colors;
-
-  const _ThemePreviewPainter(this.colors);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = Paint()..isAntiAlias = true;
-    final shell = Offset.zero & size;
-    final side = size.shortestSide * 0.78;
-    final board = Rect.fromCenter(
-      center: shell.center,
-      width: side,
-      height: side,
-    );
-    final cell = side / 10;
-    p.color = const Color(0xFFFFF8E7);
-    canvas.drawRect(board, p);
-
-    for (var row = 0; row < 10; row++) {
-      for (var col = 0; col < 10; col++) {
-        final rect = Rect.fromLTWH(
-          board.left + col * cell,
-          board.top + row * cell,
-          cell,
-          cell,
-        );
-        p.color = (row + col).isEven
-            ? Colors.white.withAlpha(215)
-            : const Color(0xFFFFF0C7).withAlpha(220);
-        canvas.drawRect(rect, p);
-        p
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 0.55
-          ..color = const Color(0x999B701F);
-        canvas.drawRect(rect, p);
-        p.style = PaintingStyle.fill;
-      }
-    }
-
-    for (var i = 0; i < 3; i++) {
-      final x = board.left + cell * (1.7 + i * 2.8);
-      final from = Offset(x, board.bottom - cell * (1.0 + i * 0.55));
-      final to = Offset(x + cell * 1.4, board.top + cell * (1.2 + i * 0.8));
-      final normal = Offset(-(to - from).dy, (to - from).dx) /
-          (to - from).distance *
-          cell *
-          0.12;
-      p
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = cell * 0.12
-        ..color = const Color(0xFFFFB51C);
-      canvas.drawLine(from + normal, to + normal, p);
-      canvas.drawLine(from - normal, to - normal, p);
-      for (var rung = 1; rung < 6; rung++) {
-        final center = Offset.lerp(from, to, rung / 6)!;
-        canvas.drawLine(center - normal, center + normal, p);
-      }
-    }
-
-    for (var i = 0; i < 3; i++) {
-      final start = Offset(
-        board.left + cell * (8.3 - i * 2.4),
-        board.top + cell * (1.0 + i * 1.2),
-      );
-      final end = Offset(
-        board.left + cell * (5.8 - i * 1.5),
-        board.top + cell * (7.8 - i * 0.6),
-      );
-      final path = Path()
-        ..moveTo(start.dx, start.dy)
-        ..cubicTo(
-          start.dx - cell * 1.7,
-          start.dy + cell * 1.4,
-          end.dx + cell * 1.6,
-          end.dy - cell * 1.5,
-          end.dx,
-          end.dy,
-        );
-      p
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = cell * 0.34
-        ..color = colors[i % colors.length];
-      canvas.drawPath(path, p);
-      p
-        ..strokeWidth = cell * 0.08
-        ..color = Colors.white.withAlpha(145);
-      canvas.drawPath(path, p);
-    }
-    p.style = PaintingStyle.fill;
-  }
-
-  @override
-  bool shouldRepaint(covariant _ThemePreviewPainter oldDelegate) =>
-      oldDelegate.colors != colors;
 }
 
 class _DiceSkinOption {
