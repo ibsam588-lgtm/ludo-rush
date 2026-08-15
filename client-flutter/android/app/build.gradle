@@ -21,12 +21,14 @@ if (localPropertiesFile.exists()) {
 }
 def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
 def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0.0'
+def playTargetApi = 36
+def minimumSupportedBillingMajor = 8
 
 android {
     namespace "com.ludorush.game"
-    // Hardcode SDK levels — flutter.compileSdkVersion / flutter.targetSdkVersion
+    // Hardcode SDK levels - flutter.compileSdkVersion / flutter.targetSdkVersion
     // can resolve to stale/wrong values depending on plugin evaluation order.
-    compileSdk 36
+    compileSdk playTargetApi
     ndkVersion "28.2.13676358"
 
     compileOptions {
@@ -44,8 +46,8 @@ android {
 
     defaultConfig {
         applicationId "com.ludorush.game"
-        minSdkVersion flutter.minSdkVersion        // Flutter minimum; supports Android 5.0+
-        targetSdk 35
+        minSdkVersion flutter.minSdkVersion
+        targetSdk playTargetApi
         versionCode Integer.parseInt(flutterVersionCode)
         versionName flutterVersionName
     }
@@ -77,4 +79,44 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+}
+
+def verifyPlayCompliance = tasks.register("verifyPlayCompliance") {
+    doLast {
+        if (playTargetApi < 36) {
+            throw new GradleException(
+                "Google Play releases must target Android API 36 or higher."
+            )
+        }
+
+        def billingVersions = configurations.releaseRuntimeClasspath
+            .incoming
+            .resolutionResult
+            .allComponents
+            .collect { component -> component.moduleVersion }
+            .findAll { module ->
+                module != null && module.group == "com.android.billingclient"
+            }
+            .collect { module -> module.version }
+            .unique()
+
+        billingVersions.each { version ->
+            def major = version.tokenize('.').first()
+            if (!(major ==~ /\d+/) || major.toInteger() < minimumSupportedBillingMajor) {
+                throw new GradleException(
+                    "Unsupported Google Play Billing Library ${version}; version 8 or newer is required."
+                )
+            }
+        }
+
+        logger.lifecycle(
+            billingVersions.isEmpty()
+                ? "Play compliance verified: target API ${playTargetApi}; Billing Library not packaged."
+                : "Play compliance verified: target API ${playTargetApi}; Billing Library ${billingVersions.join(', ')}."
+        )
+    }
+}
+
+tasks.matching { task -> task.name == "preReleaseBuild" }.configureEach {
+    dependsOn verifyPlayCompliance
 }
