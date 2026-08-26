@@ -23,6 +23,11 @@ ANDROID_KEYSTORE_PASS
 ANDROID_KEYALIAS_NAME
 ANDROID_KEYALIAS_PASS
 GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
+ADMOB_APPLICATION_ID
+LEVELPLAY_ANDROID_APP_KEY
+LEVELPLAY_ANDROID_BANNER_AD_UNIT
+LEVELPLAY_ANDROID_INTERSTITIAL_AD_UNIT
+LEVELPLAY_ANDROID_REWARDED_AD_UNIT
 ```
 
 ## Workflows
@@ -61,7 +66,7 @@ Free/paid: Free
 Package name: com.ludorush.game
 ```
 
-After that, the `Flutter Android Internal Build` workflow can upload builds when the Google service account secret is configured.
+After that, the `Flutter Android Internal Build` workflow can upload builds when the Google service account and production ad secrets are configured.
 
 ## Internal Testers
 

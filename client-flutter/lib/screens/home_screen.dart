@@ -7,9 +7,11 @@ import 'package:provider/provider.dart';
 import '../data/profile_catalog.dart';
 import '../data/economy.dart';
 import '../state/app_state.dart';
+import '../services/levelplay_ad_service.dart';
 import '../services/sound_service.dart';
 import '../services/soundtrack_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/levelplay_banner.dart';
 import '../widgets/snakes_ladders_board.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -61,24 +63,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         final p = _RushPalette.fromDark(state.isDarkMode);
         return Scaffold(
           backgroundColor: p.bg,
-          bottomNavigationBar: SafeArea(
-            top: false,
-            child: _BottomNav(
-              palette: p,
-              activeIndex: _tabIndex,
-              onSelect: (index) {
-                SoundService.tap();
-                if (index == 0) {
-                  ScaffoldMessenger.of(context).clearSnackBars();
-                  Navigator.pushNamed(context, '/shop');
-                  return;
-                }
-                if (index == 1 || index == 3 || index == 4) {
-                  unawaited(state.refreshSocial());
-                }
-                setState(() => _tabIndex = index);
-              },
-            ),
+          bottomNavigationBar: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const LevelPlayBannerAd(placementName: 'LobbyBanner'),
+              SafeArea(
+                top: false,
+                child: _BottomNav(
+                  palette: p,
+                  activeIndex: _tabIndex,
+                  onSelect: (index) {
+                    SoundService.tap();
+                    if (index == 0) {
+                      ScaffoldMessenger.of(context).clearSnackBars();
+                      Navigator.pushNamed(context, '/shop');
+                      return;
+                    }
+                    if (index == 1 || index == 3 || index == 4) {
+                      unawaited(state.refreshSocial());
+                    }
+                    setState(() => _tabIndex = index);
+                  },
+                ),
+              ),
+            ],
           ),
           body: Stack(
             children: [
@@ -3778,6 +3786,18 @@ class _RewardStrip extends StatelessWidget {
                     start: const Color(0xFFE93836),
                     end: const Color(0xFFFFB21C),
                     onTap: () async {
+                      final adService = LevelPlayAdService.instance;
+                      final earned = await adService.showRewarded(
+                        placementName: 'DailyGift',
+                      );
+                      if (!context.mounted) return;
+                      if (adService.isConfigured && !earned) {
+                        _showHomeSnack(
+                          context,
+                          'Bonus ad is loading. Try again soon.',
+                        );
+                        return;
+                      }
                       final claimed = await state.claimDailyReward();
                       if (!context.mounted) return;
                       _showHomeSnack(
