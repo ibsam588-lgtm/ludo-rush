@@ -9,6 +9,7 @@ import '../data/economy.dart';
 import '../state/app_state.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/levelplay_banner.dart';
 import '../widgets/dice_widget.dart';
 import '../widgets/ludo_board.dart';
 import '../widgets/snakes_ladders_board.dart';
@@ -258,6 +259,9 @@ class _ShopScreenState extends State<ShopScreen>
                                     ),
                                   ],
                                 ),
+                              ),
+                              const LevelPlayBannerAd(
+                                placementName: 'ShopBanner',
                               ),
                               _ShopBottomNav(palette: p),
                             ],

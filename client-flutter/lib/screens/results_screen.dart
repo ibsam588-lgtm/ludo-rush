@@ -5,8 +5,10 @@ import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../models/game_snapshot.dart';
 import '../services/app_platform_service.dart';
+import '../services/levelplay_ad_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/levelplay_banner.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  RESULTS SCREEN — Celebratory match end screen
@@ -178,7 +180,10 @@ class _ResultsScreenState extends State<ResultsScreen>
                             const Color(0xFF43A047),
                             const Color(0xFF1B5E20)
                           ],
-                          onTap: () {
+                          onTap: () async {
+                            await LevelPlayAdService.instance.showInterstitial(
+                              placementName: 'ResultPlayAgain',
+                            );
                             Navigator.of(context).popUntil((r) => r.isFirst);
                             if (replayOffline) {
                               state.startOfflineMatch(replayMode);
@@ -194,8 +199,12 @@ class _ResultsScreenState extends State<ResultsScreen>
                             const Color(0xFF0288D1),
                             const Color(0xFF01579B)
                           ],
-                          onTap: () =>
-                              Navigator.of(context).popUntil((r) => r.isFirst),
+                          onTap: () async {
+                            await LevelPlayAdService.instance.showInterstitial(
+                              placementName: 'ResultBackToLobby',
+                            );
+                            Navigator.of(context).popUntil((r) => r.isFirst);
+                          },
                         ),
                         const SizedBox(height: 10),
                         _ActionBtn(
@@ -229,6 +238,15 @@ class _ResultsScreenState extends State<ResultsScreen>
                   ),
                 ),
               ),
+            ),
+          ),
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              top: false,
+              child: LevelPlayBannerAd(placementName: 'ResultsBanner'),
             ),
           ),
         ],

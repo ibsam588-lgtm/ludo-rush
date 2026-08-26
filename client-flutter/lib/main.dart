@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'state/app_state.dart';
+import 'services/levelplay_ad_service.dart';
 import 'services/prefs_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
@@ -21,7 +22,13 @@ void main() async {
   await prefs.init();
 
   final appState = AppState(prefs);
-  unawaited(appState.init());
+  unawaited(
+    appState.init().then(
+          (_) => LevelPlayAdService.instance.initialize(
+            userId: appState.playerId,
+          ),
+        ),
+  );
 
   runApp(
     ChangeNotifierProvider.value(

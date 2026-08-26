@@ -15,6 +15,7 @@ dependencies:
   http: ^1.2.0
   image_picker: ^1.1.2
   audioplayers: 6.8.1
+  unity_levelplay_mediation: ^9.2.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
