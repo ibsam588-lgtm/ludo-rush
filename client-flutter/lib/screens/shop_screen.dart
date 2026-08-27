@@ -94,6 +94,16 @@ class _ShopScreenState extends State<ShopScreen>
         final p = _ShopPalette.fromDark(dark);
         return Scaffold(
           backgroundColor: p.bg,
+          bottomNavigationBar: SafeArea(
+            top: false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const LevelPlayBannerAd(placementName: 'ShopBanner'),
+                _ShopBottomNav(palette: p),
+              ],
+            ),
+          ),
           body: LayoutBuilder(
             builder: (context, viewport) {
               return SizedBox(
@@ -260,10 +270,6 @@ class _ShopScreenState extends State<ShopScreen>
                                   ],
                                 ),
                               ),
-                              const LevelPlayBannerAd(
-                                placementName: 'ShopBanner',
-                              ),
-                              _ShopBottomNav(palette: p),
                             ],
                           );
                         },
@@ -1417,9 +1423,15 @@ class _BoardThemeOption {
   final String label;
   final List<Color> colors;
   final String rarity;
+  final String asset;
 
-  const _BoardThemeOption(this.id, this.label, this.colors,
-      {this.rarity = 'COMMON'});
+  const _BoardThemeOption(
+    this.id,
+    this.label,
+    this.colors, {
+    required this.asset,
+    this.rarity = 'COMMON',
+  });
 }
 
 class _AvatarShopStrip extends StatelessWidget {
@@ -1667,11 +1679,15 @@ class _BoardThemeStrip extends StatelessWidget {
   });
 
   static const _options = [
-    _BoardThemeOption('carnival', 'Carnival', [
-      Color(0xFFFF36B8),
-      Color(0xFFFFD426),
-      Color(0xFF22B7FF),
-    ]),
+    _BoardThemeOption(
+        'carnival',
+        'Carnival',
+        [
+          Color(0xFFFF36B8),
+          Color(0xFFFFD426),
+          Color(0xFF22B7FF),
+        ],
+        asset: 'assets/images/rush/rush_snakes_frame_carnival_mobile_v1.jpg'),
     _BoardThemeOption(
         'royal',
         'Royal',
@@ -1680,6 +1696,7 @@ class _BoardThemeStrip extends StatelessWidget {
           Color(0xFFFFD426),
           Color(0xFFB145FF),
         ],
+        asset: 'assets/images/rush/rush_board_royal_locked_v1.png',
         rarity: 'RARE'),
     _BoardThemeOption(
         'neon',
@@ -1689,12 +1706,17 @@ class _BoardThemeStrip extends StatelessWidget {
           Color(0xFFFF35D6),
           Color(0xFF6EFF3A),
         ],
+        asset: 'assets/images/rush/rush_board_neon_locked_v1.png',
         rarity: 'PREMIUM'),
-    _BoardThemeOption('classic', 'Classic', [
-      Color(0xFFFF3B3F),
-      Color(0xFF2DBB52),
-      Color(0xFF1E9BFF),
-    ]),
+    _BoardThemeOption(
+        'classic',
+        'Classic',
+        [
+          Color(0xFFFF3B3F),
+          Color(0xFF2DBB52),
+          Color(0xFF1E9BFF),
+        ],
+        asset: 'assets/images/rush/rush_snakes_frame_classic_mobile_v1.jpg'),
     _BoardThemeOption(
         'jungle',
         'Jungle',
@@ -1703,6 +1725,7 @@ class _BoardThemeStrip extends StatelessWidget {
           Color(0xFFFFC93C),
           Color(0xFF21BDEB),
         ],
+        asset: 'assets/images/rush/rush_snakes_frame_jungle_mobile_v1.webp',
         rarity: 'RARE'),
   ];
 
@@ -1856,10 +1879,10 @@ class _BoardThemeButton extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: RepaintBoundary(
-                      child: _SnakesThemePreview(
-                        theme: option.id,
-                      ),
+                    child: Image.asset(
+                      option.asset,
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.medium,
                     ),
                   ),
                   if (locked)
@@ -2407,7 +2430,13 @@ class _ShopCardState extends State<_ShopCard>
       onTapUp: (_) {
         _press.reverse();
         SoundService.tap();
-        widget.onBuy();
+        _showShopProductPreview(
+          context,
+          product: widget.product,
+          locked: widget.locked,
+          actionLabel: widget.actionLabel,
+          onAction: widget.onBuy,
+        );
       },
       child: AnimatedBuilder(
         animation: _press,
@@ -2583,6 +2612,134 @@ class _ShopCardState extends State<_ShopCard>
       ),
     );
   }
+}
+
+void _showShopProductPreview(
+  BuildContext context, {
+  required _ShopProduct product,
+  required bool locked,
+  required String actionLabel,
+  required VoidCallback onAction,
+}) {
+  showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      return Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 24),
+        backgroundColor: Colors.transparent,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 390),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF681064), Color(0xFF22062D)],
+              ),
+              border: Border.all(color: goldColor, width: 2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0xCC000000),
+                  blurRadius: 24,
+                  offset: Offset(0, 12),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        product.title,
+                        style: const TextStyle(
+                          color: goldColor,
+                          fontSize: 23,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Close preview',
+                      onPressed: () => Navigator.pop(dialogContext),
+                      icon: const Icon(Icons.close_rounded),
+                      color: Colors.white70,
+                    ),
+                  ],
+                ),
+                SizedBox(
+                  height: 220,
+                  width: double.infinity,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: _ShopProductVisual(product: product),
+                      ),
+                      if (locked)
+                        const Align(
+                          alignment: Alignment.topRight,
+                          child: CircleAvatar(
+                            radius: 19,
+                            backgroundColor: Color(0xDD22082E),
+                            child: Icon(
+                              Icons.lock_rounded,
+                              color: goldColor,
+                              size: 21,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                Text(
+                  product.description,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      Navigator.pop(dialogContext);
+                      onAction();
+                    },
+                    icon: Icon(
+                      locked
+                          ? Icons.lock_open_rounded
+                          : Icons.shopping_cart_checkout_rounded,
+                    ),
+                    label: Text(actionLabel),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF2EAD25),
+                      foregroundColor: Colors.white,
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
 }
 
 class _RarityPill extends StatelessWidget {

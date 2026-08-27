@@ -228,14 +228,14 @@ const _homeBoardThemes = [
     Color(0xFFFFD426),
     Color(0xFF22B7FF),
   ]),
-  _HomeBoardThemeOption('royal', 'Royal',
-      'assets/images/rush/rush_snakes_frame_royal_mobile_v1.jpg', [
+  _HomeBoardThemeOption(
+      'royal', 'Royal', 'assets/images/rush/rush_board_royal_locked_v1.png', [
     Color(0xFF5B2CFF),
     Color(0xFFFFD426),
     Color(0xFFB145FF),
   ]),
-  _HomeBoardThemeOption('neon', 'Neon',
-      'assets/images/rush/rush_snakes_frame_neon_mobile_v1.jpg', [
+  _HomeBoardThemeOption(
+      'neon', 'Neon', 'assets/images/rush/rush_board_neon_locked_v1.png', [
     Color(0xFF00F5FF),
     Color(0xFFFF35D6),
     Color(0xFF6EFF3A),

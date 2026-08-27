@@ -943,11 +943,22 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   void _fallbackToBots(String reason) {
     if (fallbackBotStarted) return;
     fallbackBotStarted = true;
-    connecting = false;
-    _setStatus('$reason Opening the next table...');
-    Future.delayed(const Duration(milliseconds: 650), () {
-      connecting = false;
-      startBotMatch(pendingMatchMode);
+    currentMatchIsBot = true;
+    connecting = true;
+    final noLivePlayer = reason.toLowerCase().contains('no online') ||
+        reason.toLowerCase().contains('no table');
+    _setStatus(noLivePlayer
+        ? 'No live player found. Starting a bot match...'
+        : '$reason Starting a bot match...');
+    _matchmakingTimer?.cancel();
+    _matchmakingTimer = Timer(const Duration(milliseconds: 900), () {
+      _matchmakingTimer = null;
+      if (!connecting) return;
+      _startLocalBotMatch(
+        pendingMatchMode,
+        reason: 'Bot table ready. Roll when it is your turn.',
+      );
+      replaceWith('/game');
     });
   }
 
@@ -1068,6 +1079,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       final pid = e['playerId'] as String? ?? '';
       final mine = playerId == pid;
       final piece = e['pieceId'] as String? ?? '';
+      final captures = e['capturedPieceIds'] as List<dynamic>? ?? const [];
+      if (captures.isNotEmpty) {
+        return mine
+            ? 'Capture! You get a free turn.'
+            : '${_playerName(snap, pid)} captured a piece and gets a free turn.';
+      }
       return mine
           ? 'Moved $piece.'
           : '${_playerName(snap, pid)} moved a piece.';
@@ -1289,15 +1306,18 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     final sameTurn = after.currentTurnSeat == (mySeat ?? -1);
+    final captured = _didSeatCapture(before, after, mySeat ?? -1);
     if (_isSnakesLaddersMode(after.mode)) {
       _setStatus('You moved. ${_currentTurnLabel(after)} is next.');
       _scheduleLocalBots();
       return;
     }
     _setStatus(
-      sameTurn
-          ? 'You moved a piece. Bonus roll.'
-          : 'You moved a piece. ${_currentTurnLabel(after)} is next.',
+      captured
+          ? 'Capture! You get a free turn.'
+          : sameTurn
+              ? 'You moved a piece. Bonus roll.'
+              : 'You moved a piece. ${_currentTurnLabel(after)} is next.',
     );
     _scheduleLocalBots();
   }
@@ -1437,10 +1457,13 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       final sameTurn = after.currentTurnSeat == seat.seat;
+      final captured = _didSeatCapture(current, after, seat.seat);
       _setStatus(
-        sameTurn
-            ? '$name moved a piece. Bonus roll.'
-            : '$name moved a piece. ${_currentTurnLabel(after)} is next.',
+        captured
+            ? '$name captured a piece and gets a free turn.'
+            : sameTurn
+                ? '$name moved a piece. Bonus roll.'
+                : '$name moved a piece. ${_currentTurnLabel(after)} is next.',
       );
       _scheduleLocalBots();
     });
@@ -1556,6 +1579,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         movingPiece.progress == _yardProgress ? 0 : movingPiece.progress + dice;
     final nextTrack = _trackIndexFor(moverSeat, nextProgress, snap.mode);
     final nextState = _stateForProgress(nextProgress, snap.mode);
+    final capturedOpponent = nextTrack != null &&
+        !_safeTrackIndexesForMode(snap.mode).contains(nextTrack) &&
+        snap.pieces.any((piece) =>
+            piece.seat != moverSeat &&
+            piece.trackIndex == nextTrack &&
+            piece.state == 'track');
 
     var pieces = snap.pieces.map((piece) {
       if (piece.pieceId != pieceId) return piece;
@@ -1606,7 +1635,23 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       diceValue: 0,
       availableMoves: const [],
     );
-    return dice == 6 ? moved : _advanceLocalTurn(moved);
+    return dice == 6 || capturedOpponent ? moved : _advanceLocalTurn(moved);
+  }
+
+  bool _didSeatCapture(
+    GameSnapshot before,
+    GameSnapshot after,
+    int moverSeat,
+  ) {
+    if (moverSeat < 0) return false;
+    final afterById = {for (final piece in after.pieces) piece.pieceId: piece};
+    return before.pieces.any((piece) {
+      if (piece.seat == moverSeat || piece.state != 'track') return false;
+      final updated = afterById[piece.pieceId];
+      return updated != null &&
+          updated.state == 'yard' &&
+          updated.progress == _yardProgress;
+    });
   }
 
   List<String> _localLegalMoves(GameSnapshot snap, int seat, int diceValue) {

@@ -27,6 +27,8 @@ flutter:
     - assets/images/rush/rush_avatar_common_atlas_mobile_v1.jpg
     - assets/images/rush/rush_avatar_premium_atlas_mobile_v1.jpg
     - assets/images/rush/rush_avatar_rare_atlas_mobile_v1.jpg
+    - assets/images/rush/rush_board_neon_locked_v1.png
+    - assets/images/rush/rush_board_royal_locked_v1.png
     - assets/images/rush/rush_club_rewards_banner_mobile_v1.jpg
     - assets/images/rush/rush_game_backdrop_mobile_v1.jpg
     - assets/images/rush/rush_game_mascot_mobile_v1.png

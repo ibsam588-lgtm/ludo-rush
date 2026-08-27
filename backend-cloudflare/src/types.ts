@@ -92,7 +92,13 @@ export type ClientRoomMessage =
 export type ServerRoomMessage =
   | { type: "snapshot"; snapshot: RoomSnapshot }
   | { type: "dice_rolled"; playerId: string; value: number; snapshot: RoomSnapshot }
-  | { type: "move_accepted"; playerId: string; pieceId: string; snapshot: RoomSnapshot }
+  | {
+      type: "move_accepted";
+      playerId: string;
+      pieceId: string;
+      capturedPieceIds: string[];
+      snapshot: RoomSnapshot;
+    }
   | { type: "turn_skipped"; playerId: string; reason: string; snapshot: RoomSnapshot }
   | { type: "bots_filled"; snapshot: RoomSnapshot }
   | { type: "match_finished"; winnerPlayerId: string; snapshot: RoomSnapshot }

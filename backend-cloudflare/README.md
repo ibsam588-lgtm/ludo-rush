@@ -63,7 +63,7 @@ Server to client:
 ```
 
 ```json
-{ "type": "move_accepted", "playerId": "usr_123", "pieceId": "s0_p0", "snapshot": {} }
+{ "type": "move_accepted", "playerId": "usr_123", "pieceId": "s0_p0", "capturedPieceIds": [], "snapshot": {} }
 ```
 
 ## Notes
