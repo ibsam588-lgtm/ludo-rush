@@ -126,6 +126,8 @@ describe("room rules", () => {
     expect(result.capturedPieceIds).toContain("s1_p0");
     expect(captured?.state).toBe("yard");
     expect(captured?.progress).toBe(-1);
+    expect(result.snapshot.currentTurnSeat).toBe(0);
+    expect(result.snapshot.diceValue).toBeUndefined();
   });
 
   it("keeps the 6+2 star tile safe from captures", () => {

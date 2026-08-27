@@ -244,7 +244,13 @@ export class LudoRoom extends DurableObject<Env> {
       return;
     }
 
-    this.broadcast({ type: "move_accepted", playerId, pieceId, snapshot: result.snapshot });
+    this.broadcast({
+      type: "move_accepted",
+      playerId,
+      pieceId,
+      capturedPieceIds: result.capturedPieceIds,
+      snapshot: result.snapshot
+    });
     await this.playBotsIfNeeded();
   }
 
@@ -358,6 +364,7 @@ export class LudoRoom extends DurableObject<Env> {
         type: "move_accepted",
         playerId: timedOutSeat.playerId,
         pieceId: result.movedPieceId,
+        capturedPieceIds: result.capturedPieceIds ?? [],
         snapshot: result.snapshot
       });
     } else {
@@ -426,7 +433,13 @@ export class LudoRoom extends DurableObject<Env> {
         return;
       }
 
-      this.broadcast({ type: "move_accepted", playerId: botSeat.playerId, pieceId, snapshot: moveResult.snapshot });
+      this.broadcast({
+        type: "move_accepted",
+        playerId: botSeat.playerId,
+        pieceId,
+        capturedPieceIds: moveResult.capturedPieceIds,
+        snapshot: moveResult.snapshot
+      });
       snapshot = moveResult.snapshot;
       actions += 1;
     }

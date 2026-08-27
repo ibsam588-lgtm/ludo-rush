@@ -252,7 +252,7 @@ export function applyMove(snapshot: RoomSnapshot, playerId: string, pieceId: str
     };
   }
 
-  const shouldKeepTurn = snapshot.diceValue === 6;
+  const shouldKeepTurn = snapshot.diceValue === 6 || moved.capturedPieceIds.length > 0;
   const nextSnapshot: RoomSnapshot = shouldKeepTurn
     ? startTurn({
         ...snapshot,
@@ -352,6 +352,7 @@ export interface TimeoutResult {
   timedOut: boolean;
   timedOutPlayerId?: string;
   movedPieceId?: string;
+  capturedPieceIds?: string[];
 }
 
 export function timeoutTurn(snapshot: RoomSnapshot, now = Date.now()): TimeoutResult {
@@ -387,7 +388,8 @@ export function timeoutTurn(snapshot: RoomSnapshot, now = Date.now()): TimeoutRe
         snapshot: moved.snapshot,
         timedOut: true,
         timedOutPlayerId: seat.playerId,
-        movedPieceId: pieceId
+        movedPieceId: pieceId,
+        capturedPieceIds: moved.capturedPieceIds
       };
     }
   }
