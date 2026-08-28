@@ -1,6 +1,6 @@
 # Unity LevelPlay production setup
 
-The Flutter client is wired for Unity LevelPlay mediation on Android. Debug builds use Unity's demo LevelPlay IDs so engineers can verify the SDK integration without production inventory. Release builds must provide real LevelPlay and AdMob values.
+The Flutter client is wired for Unity LevelPlay mediation on Android. Debug builds use Unity's demo LevelPlay IDs so engineers can verify the SDK integration without production inventory. Release builds must provide real LevelPlay values.
 
 ## Release build inputs
 
@@ -15,30 +15,16 @@ flutter build appbundle --release `
   --dart-define=LEVELPLAY_ANDROID_REWARDED_AD_UNIT=<levelplay-rewarded-ad-unit>
 ```
 
-Provide the mediated AdMob app ID to Gradle using either an environment variable or Gradle property:
-
-```powershell
-$env:ADMOB_APPLICATION_ID="ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy"
-```
-
-Release builds fail if this value is missing and the Google test app ID would be used.
-
 ## Android networks included
 
 The Android app includes adapter and SDK dependencies for:
 
-- Google AdMob / Google bidding
-- Meta Audience Network
+- ironSource Ads (through the LevelPlay plugin)
 - Unity Ads
-- AppLovin
 - Liftoff Monetize / Vungle
-- Mintegral
-- Pangle
 - InMobi
-- DT Exchange
-- Chartboost
 
-Each network still needs to be activated in the Unity LevelPlay dashboard with that network's app IDs, placement IDs, reporting API credentials, and payout/account approval. Code dependencies alone do not make a network serve ads.
+Each mediated network still needs to be activated in the Unity LevelPlay dashboard with that network's app IDs, placement IDs, reporting API credentials, and payout/account approval. Code dependencies alone do not make a network serve ads.
 
 For production, create or connect each network in the Unity LevelPlay dashboard, map the network-specific Android app and placement IDs to the LevelPlay ad units, and publish the waterfall or bidding setup. The app ships the Android adapters, but Unity's dashboard decides which networks are live, test-mode, capped, blocked by COPPA/GDPR settings, or excluded by geo.
 
