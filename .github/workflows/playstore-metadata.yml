@@ -26,8 +26,14 @@ jobs:
           ruby-version: "3.3"
           bundler-cache: true
 
+      - name: Prepare listing-only metadata
+        run: |
+          mkdir -p "$RUNNER_TEMP/play-metadata"
+          rsync -a --exclude='changelogs' fastlane/metadata/android/ "$RUNNER_TEMP/play-metadata/"
+
       - name: Upload Play Store metadata
         run: bundle exec fastlane android metadata
         env:
           ANDROID_PACKAGE_NAME: ${{ inputs.package_name }}
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          PLAY_METADATA_PATH: ${{ runner.temp }}/play-metadata

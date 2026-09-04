@@ -31,6 +31,7 @@ platform :android do
       json_key_data: ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"],
       skip_upload_aab: true,
       skip_upload_apk: true,
+      metadata_path: ENV.fetch("PLAY_METADATA_PATH", "./fastlane/metadata/android"),
       skip_upload_metadata: false,
       skip_upload_changelogs: true,
       skip_upload_images: false,
