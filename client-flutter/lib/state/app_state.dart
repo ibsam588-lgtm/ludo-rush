@@ -186,6 +186,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   int age = 0;
   String? avatarImagePath;
   int coins = GameEconomy.startingCoins;
+  int energy = GameEconomy.startingEnergy;
   int rating = 1000;
   int gamesPlayed = 0;
   int wins = 0;
@@ -278,6 +279,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     age = _prefs.age;
     avatarImagePath = _prefs.avatarImagePath;
     coins = _prefs.coins;
+    energy = _prefs.energy;
     rating = _prefs.rating;
     gamesPlayed = _prefs.gamesPlayed;
     wins = _prefs.wins;
@@ -2402,6 +2404,27 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       notifyListeners();
       return false;
     }
+  }
+
+  void grantRewardedShopPoints({
+    int amount = GameEconomy.rewardedShopPoints,
+  }) {
+    if (amount <= 0) return;
+    coins += amount;
+    _prefs.coins = coins;
+    notifyListeners();
+  }
+
+  void grantRewardedLevelComplete({
+    int points = GameEconomy.rewardedLevelPoints,
+    int energyAmount = GameEconomy.rewardedLevelEnergy,
+  }) {
+    if (points <= 0 && energyAmount <= 0) return;
+    coins += math.max(0, points);
+    energy += math.max(0, energyAmount);
+    _prefs.coins = coins;
+    _prefs.energy = energy;
+    notifyListeners();
   }
 
   int get availableGoldChests => economySynced

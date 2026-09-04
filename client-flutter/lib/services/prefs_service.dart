@@ -51,6 +51,9 @@ class PrefsService {
   int get coins => _prefs?.getInt('coins') ?? GameEconomy.startingCoins;
   set coins(int v) => _prefs?.setInt('coins', v);
 
+  int get energy => _prefs?.getInt('energy') ?? GameEconomy.startingEnergy;
+  set energy(int v) => _prefs?.setInt('energy', v);
+
   int get rating => _prefs?.getInt('rating') ?? 1000;
   set rating(int v) => _prefs?.setInt('rating', v);
 

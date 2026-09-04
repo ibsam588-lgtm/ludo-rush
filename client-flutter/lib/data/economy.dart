@@ -1,6 +1,10 @@
 abstract final class GameEconomy {
   static const startingCoins = 500;
+  static const startingEnergy = 5;
   static const dailyCoins = 150;
+  static const rewardedShopPoints = 300;
+  static const rewardedLevelPoints = 150;
+  static const rewardedLevelEnergy = 1;
   static const onlineWinCoins = 100;
   static const onlineFinishCoins = 15;
   static const clubWinContribution = 10;

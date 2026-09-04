@@ -4,9 +4,11 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/levelplay_ad_config.dart';
 import '../data/profile_catalog.dart';
 import '../data/economy.dart';
 import '../state/app_state.dart';
+import '../services/levelplay_ad_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/levelplay_banner.dart';
@@ -29,6 +31,7 @@ class ShopScreen extends StatefulWidget {
 class _ShopScreenState extends State<ShopScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _bg;
+  bool _rewardInFlight = false;
 
   static const _items = [
     _ShopProduct('Daily Coins', 'FREE', '${GameEconomy.dailyCoins} coins',
@@ -159,6 +162,14 @@ class _ShopScreenState extends State<ShopScreen>
                                         child: _BoosterBanner(palette: p),
                                       ),
                                     SliverToBoxAdapter(
+                                      child: _RewardedPointsBanner(
+                                        palette: p,
+                                        loading: _rewardInFlight,
+                                        onWatch: () =>
+                                            _claimRewardedPoints(state),
+                                      ),
+                                    ),
+                                    SliverToBoxAdapter(
                                       child: _DiceSkinStrip(
                                         palette: p,
                                         state: state,
@@ -282,6 +293,103 @@ class _ShopScreenState extends State<ShopScreen>
           ),
         );
       },
+    );
+  }
+
+  Future<void> _claimRewardedPoints(AppState state) async {
+    if (_rewardInFlight) return;
+    setState(() => _rewardInFlight = true);
+    final earned = await LevelPlayAdService.instance.showRewarded(
+      placementName: 'ShopPoints300',
+    );
+    if (!mounted) return;
+
+    if (earned) {
+      state.grantRewardedShopPoints(
+        amount: LevelPlayAdConfig.shopRewardPoints,
+      );
+    }
+    setState(() => _rewardInFlight = false);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: const Color(0xEE22082E),
+          content: Text(
+            earned
+                ? '+${LevelPlayAdConfig.shopRewardPoints} points added.'
+                : 'Reward video is loading. Try again shortly.',
+          ),
+        ),
+      );
+  }
+}
+
+class _RewardedPointsBanner extends StatelessWidget {
+  final _ShopPalette palette;
+  final bool loading;
+  final VoidCallback onWatch;
+
+  const _RewardedPointsBanner({
+    required this.palette,
+    required this.loading,
+    required this.onWatch,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: palette.panel,
+          border: Border.all(color: const Color(0xFFFFC107)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.ondemand_video_rounded,
+                color: Color(0xFFFFC107),
+                size: 28,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Free points',
+                      style: TextStyle(
+                        color: palette.text,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      'Watch a video for ${LevelPlayAdConfig.shopRewardPoints} points',
+                      style: TextStyle(color: palette.muted, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filled(
+                onPressed: loading ? null : onWatch,
+                tooltip: loading ? 'Loading video' : 'Watch reward video',
+                icon: loading
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.play_arrow_rounded),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
