@@ -24,11 +24,24 @@ platform :android do
 
   desc "Upload store listing metadata and artwork without uploading a build"
   lane :metadata do
-    UI.user_error!("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is required") if ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"].to_s.empty?
+    package_name = ENV.fetch("ANDROID_PACKAGE_NAME", "com.ludorush.game")
+    json_key_data = ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"]
+    track = ENV.fetch("PLAY_METADATA_TRACK", "internal")
+
+    UI.user_error!("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is required") if json_key_data.to_s.empty?
+
+    version_codes = google_play_track_version_codes(
+      package_name: package_name,
+      json_key_data: json_key_data,
+      track: track
+    )
+    UI.user_error!("No release exists on the #{track} track") if version_codes.empty?
 
     upload_to_play_store(
-      package_name: ENV.fetch("ANDROID_PACKAGE_NAME", "com.ludorush.game"),
-      json_key_data: ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"],
+      package_name: package_name,
+      json_key_data: json_key_data,
+      track: track,
+      version_code: version_codes.max,
       skip_upload_aab: true,
       skip_upload_apk: true,
       metadata_path: ENV.fetch("PLAY_METADATA_PATH", "./fastlane/metadata/android"),
