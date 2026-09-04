@@ -6,6 +6,27 @@ class LevelPlayAdConfig {
   static const bool enableTestSuite =
       bool.fromEnvironment('LEVELPLAY_TEST_SUITE', defaultValue: false);
 
+  static const int firstRoundInterstitial = int.fromEnvironment(
+    'LEVELPLAY_FIRST_ROUND_INTERSTITIAL',
+    defaultValue: 1,
+  );
+  static const int roundInterstitialInterval = int.fromEnvironment(
+    'LEVELPLAY_ROUND_INTERSTITIAL_INTERVAL',
+    defaultValue: 1,
+  );
+  static const int shopRewardPoints = int.fromEnvironment(
+    'LEVELPLAY_SHOP_REWARD_POINTS',
+    defaultValue: 300,
+  );
+  static const int levelCompleteRewardPoints = int.fromEnvironment(
+    'LEVELPLAY_LEVEL_REWARD_POINTS',
+    defaultValue: 150,
+  );
+  static const int levelCompleteRewardEnergy = int.fromEnvironment(
+    'LEVELPLAY_LEVEL_REWARD_ENERGY',
+    defaultValue: 1,
+  );
+
   static const String _androidAppKey =
       String.fromEnvironment('LEVELPLAY_ANDROID_APP_KEY');
   static const String _iosAppKey =

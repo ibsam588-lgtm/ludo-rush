@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/levelplay_banner.dart';
 
 class MatchmakingScreen extends StatefulWidget {
   const MatchmakingScreen({super.key});
@@ -43,6 +44,12 @@ class _MatchmakingScreenState extends State<MatchmakingScreen>
           },
           child: Scaffold(
             backgroundColor: bgDeep,
+            bottomNavigationBar: const SafeArea(
+              top: false,
+              child: LevelPlayBannerAd(
+                placementName: 'MatchmakingBanner',
+              ),
+            ),
             body: Stack(
               children: [
                 Positioned.fill(

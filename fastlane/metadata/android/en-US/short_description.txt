@@ -1,1 +1,1 @@
-Fast online Ludo with private rooms, bots, and global matchmaking.
+Play fast Ludo and Snakes & Ladders with friends, rivals, or offline bots.

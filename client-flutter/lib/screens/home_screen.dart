@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../data/profile_catalog.dart';
@@ -26,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late final AnimationController _shimmer;
   int _tabIndex = 2;
   bool _routeTabApplied = false;
+  bool _exitDialogOpen = false;
 
   @override
   void initState() {
@@ -61,109 +63,156 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return Consumer<AppState>(
       builder: (context, state, _) {
         final p = _RushPalette.fromDark(state.isDarkMode);
-        return Scaffold(
-          backgroundColor: p.bg,
-          bottomNavigationBar: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const LevelPlayBannerAd(placementName: 'LobbyBanner'),
-              SafeArea(
-                top: false,
-                child: _BottomNav(
-                  palette: p,
-                  activeIndex: _tabIndex,
-                  onSelect: (index) {
-                    SoundService.tap();
-                    if (index == 0) {
-                      ScaffoldMessenger.of(context).clearSnackBars();
-                      Navigator.pushNamed(context, '/shop');
-                      return;
-                    }
-                    if (index == 1 || index == 3 || index == 4) {
-                      unawaited(state.refreshSocial());
-                    }
-                    setState(() => _tabIndex = index);
-                  },
-                ),
-              ),
-            ],
-          ),
-          body: Stack(
-            children: [
-              Positioned.fill(
-                child: _GeneratedLobbyBackground(palette: p),
-              ),
-              Positioned.fill(
-                child: SafeArea(
-                  bottom: false,
-                  child: LayoutBuilder(
-                    builder: (context, box) {
-                      final compact = box.maxWidth < 370;
-                      final brandHeight = compact ? 74.0 : 88.0;
-                      final hudHeight = 94.0;
-                      final rewardHeight = compact ? 76.0 : 84.0;
-                      final stageTop = brandHeight + hudHeight + rewardHeight;
-                      final stageHeight =
-                          math.max(0.0, box.maxHeight - stageTop);
-                      return SizedBox.expand(
-                        child: Stack(
-                          clipBehavior: Clip.hardEdge,
-                          children: [
-                            Positioned(
-                              left: 0,
-                              top: 0,
-                              right: 0,
-                              height: brandHeight,
-                              child: _BrandHeader(palette: p),
-                            ),
-                            Positioned(
-                              left: 0,
-                              top: brandHeight,
-                              right: 0,
-                              height: hudHeight,
-                              child: _TopHud(
-                                  state: state, palette: p, shimmer: _shimmer),
-                            ),
-                            Positioned(
-                              left: 0,
-                              top: brandHeight + hudHeight,
-                              right: 0,
-                              height: rewardHeight,
-                              child: _RewardStrip(state: state, palette: p),
-                            ),
-                            Positioned(
-                              left: 0,
-                              top: stageTop,
-                              right: 0,
-                              height: stageHeight,
-                              child: ClipRect(
-                                child: _HomeTabStage(
-                                  index: _tabIndex,
-                                  state: state,
-                                  palette: p,
-                                  pulse: _pulse,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) unawaited(_confirmAppExit());
+          },
+          child: Scaffold(
+            backgroundColor: p.bg,
+            bottomNavigationBar: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const LevelPlayBannerAd(placementName: 'LobbyBanner'),
+                SafeArea(
+                  top: false,
+                  child: _BottomNav(
+                    palette: p,
+                    activeIndex: _tabIndex,
+                    onSelect: (index) {
+                      SoundService.tap();
+                      if (index == 0) {
+                        ScaffoldMessenger.of(context).clearSnackBars();
+                        Navigator.pushNamed(context, '/shop');
+                        return;
+                      }
+                      if (index == 1 || index == 3 || index == 4) {
+                        unawaited(state.refreshSocial());
+                      }
+                      setState(() => _tabIndex = index);
                     },
                   ),
                 ),
-              ),
-              if (state.shouldShowStartChoice)
+              ],
+            ),
+            body: Stack(
+              children: [
                 Positioned.fill(
-                  child: _StartChoiceOverlay(
-                    state: state,
-                    palette: p,
+                  child: _GeneratedLobbyBackground(palette: p),
+                ),
+                Positioned.fill(
+                  child: SafeArea(
+                    bottom: false,
+                    child: LayoutBuilder(
+                      builder: (context, box) {
+                        final compact = box.maxWidth < 370;
+                        final brandHeight = compact ? 74.0 : 88.0;
+                        final hudHeight = 94.0;
+                        final rewardHeight = compact ? 76.0 : 84.0;
+                        final stageTop = brandHeight + hudHeight + rewardHeight;
+                        final stageHeight =
+                            math.max(0.0, box.maxHeight - stageTop);
+                        return SizedBox.expand(
+                          child: Stack(
+                            clipBehavior: Clip.hardEdge,
+                            children: [
+                              Positioned(
+                                left: 0,
+                                top: 0,
+                                right: 0,
+                                height: brandHeight,
+                                child: _BrandHeader(palette: p),
+                              ),
+                              Positioned(
+                                left: 0,
+                                top: brandHeight,
+                                right: 0,
+                                height: hudHeight,
+                                child: _TopHud(
+                                    state: state,
+                                    palette: p,
+                                    shimmer: _shimmer),
+                              ),
+                              Positioned(
+                                left: 0,
+                                top: brandHeight + hudHeight,
+                                right: 0,
+                                height: rewardHeight,
+                                child: _RewardStrip(state: state, palette: p),
+                              ),
+                              Positioned(
+                                left: 0,
+                                top: stageTop,
+                                right: 0,
+                                height: stageHeight,
+                                child: ClipRect(
+                                  child: _HomeTabStage(
+                                    index: _tabIndex,
+                                    state: state,
+                                    palette: p,
+                                    pulse: _pulse,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
-            ],
+                if (state.shouldShowStartChoice)
+                  Positioned.fill(
+                    child: _StartChoiceOverlay(
+                      state: state,
+                      palette: p,
+                    ),
+                  ),
+              ],
+            ),
           ),
         );
       },
     );
+  }
+
+  Future<void> _confirmAppExit() async {
+    if (_exitDialogOpen || !mounted) return;
+    _exitDialogOpen = true;
+    final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            backgroundColor: const Color(0xFF2D0A35),
+            title: const Text(
+              'Exit Ludo Rush?',
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            content: const Text(
+              'Your current progress is saved.',
+              style: TextStyle(color: Colors.white70),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Stay'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text(
+                  'Exit',
+                  style: TextStyle(color: boardRed),
+                ),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    _exitDialogOpen = false;
+    if (!shouldExit || !mounted) return;
+
+    await LevelPlayAdService.instance.showBeforeAppExit();
+    if (mounted) await SystemNavigator.pop();
   }
 }
 
@@ -2687,7 +2736,7 @@ class _TopHud extends StatelessWidget {
                   children: [
                     _CurrencyPill(
                         icon: Icons.bolt_rounded,
-                        value: '${state.wins}',
+                        value: '${state.energy}',
                         color: const Color(0xFF9EA5B5),
                         palette: palette),
                     const SizedBox(width: 3),

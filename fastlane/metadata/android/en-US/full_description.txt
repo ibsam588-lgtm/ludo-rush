@@ -1,12 +1,22 @@
-Ludo Rush is a fast online Ludo game built for quick matches with friends or global players.
+Ludo Rush brings quick, colorful board-game matches to your phone. Play classic Ludo or switch things up with Snakes & Ladders, then challenge friends, find an online rival, or practice against offline players.
 
-Internal testing features:
+PLAY YOUR WAY
+- Jump into fast 2-player or 4-player Ludo matches
+- Create a private room and share the code with friends
+- Play offline when you want a relaxed solo match
+- Climb ladders, dodge snakes, and race to the finish
 
-- Quick match
-- Private room codes
-- Bot matches
-- Server-authoritative dice and moves
-- Captures, safe tiles, home path, and win detection
-- Reconnect-ready room state
+BUILD YOUR COLLECTION
+- Earn points by completing matches and opening rewards
+- Unlock dice skins, board themes, and player avatars
+- Preview cosmetics in the Shop before equipping them
+- Watch optional reward videos for bonus points and energy
 
-This internal test build is for gameplay, networking, and stability feedback before the final art, ads, purchases, and public launch polish are added.
+FAIR, FAMILIAR RULES
+- Roll a six to bring a piece into play
+- Land on an opponent to capture it and earn another turn
+- Safe tiles protect pieces from capture
+- Exact rolls are required to reach home
+- Rolling a six also grants another turn
+
+Whether you have a minute for a quick round or want to settle a rivalry with friends, Ludo Rush keeps the board ready.

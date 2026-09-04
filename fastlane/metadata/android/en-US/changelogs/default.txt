@@ -1,1 +1,1 @@
-Added colorful light and dark themes, cleaner readable text, richer lobby/board styling, and verified the dice flow in offline matches.
+Added production ads with bottom banners, automatic post-round interstitials, and optional Shop and level-complete reward videos. Updated the app icon and Play Store listing.

@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../config/levelplay_ad_config.dart';
 import '../state/app_state.dart';
 import '../models/game_snapshot.dart';
 import '../services/app_platform_service.dart';
@@ -29,6 +31,8 @@ class _ResultsScreenState extends State<ResultsScreen>
 
   late final Animation<double> _entryScale;
   late final Animation<double> _entryFade;
+  bool _rewardInFlight = false;
+  bool _rewardClaimed = false;
 
   @override
   void initState() {
@@ -63,6 +67,9 @@ class _ResultsScreenState extends State<ResultsScreen>
     )..repeat(reverse: true);
 
     _entryCtrl.forward();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(LevelPlayAdService.instance.showAfterCompletedRound());
+    });
   }
 
   @override
@@ -96,6 +103,10 @@ class _ResultsScreenState extends State<ResultsScreen>
 
     return Scaffold(
       backgroundColor: Colors.transparent,
+      bottomNavigationBar: const SafeArea(
+        top: false,
+        child: LevelPlayBannerAd(placementName: 'ResultsBanner'),
+      ),
       body: Stack(
         fit: StackFit.expand,
         children: [
@@ -164,6 +175,12 @@ class _ResultsScreenState extends State<ResultsScreen>
 
                         // Rewards row
                         _RewardsRow(won: won),
+                        const SizedBox(height: 10),
+                        _RewardedBonusButton(
+                          inFlight: _rewardInFlight,
+                          claimed: _rewardClaimed,
+                          onPressed: () => _claimLevelCompleteReward(state),
+                        ),
                         const SizedBox(height: 14),
 
                         // Player list
@@ -180,10 +197,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                             const Color(0xFF43A047),
                             const Color(0xFF1B5E20)
                           ],
-                          onTap: () async {
-                            await LevelPlayAdService.instance.showInterstitial(
-                              placementName: 'ResultPlayAgain',
-                            );
+                          onTap: () {
                             Navigator.of(context).popUntil((r) => r.isFirst);
                             if (replayOffline) {
                               state.startOfflineMatch(replayMode);
@@ -199,10 +213,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                             const Color(0xFF0288D1),
                             const Color(0xFF01579B)
                           ],
-                          onTap: () async {
-                            await LevelPlayAdService.instance.showInterstitial(
-                              placementName: 'ResultBackToLobby',
-                            );
+                          onTap: () {
                             Navigator.of(context).popUntil((r) => r.isFirst);
                           },
                         ),
@@ -240,16 +251,76 @@ class _ResultsScreenState extends State<ResultsScreen>
               ),
             ),
           ),
-          const Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SafeArea(
-              top: false,
-              child: LevelPlayBannerAd(placementName: 'ResultsBanner'),
-            ),
-          ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _claimLevelCompleteReward(AppState state) async {
+    if (_rewardInFlight || _rewardClaimed) return;
+    setState(() => _rewardInFlight = true);
+    final earned = await LevelPlayAdService.instance.showRewarded(
+      placementName: 'LevelCompleteBonus',
+    );
+    if (!mounted) return;
+
+    if (earned) {
+      state.grantRewardedLevelComplete(
+        points: LevelPlayAdConfig.levelCompleteRewardPoints,
+        energyAmount: LevelPlayAdConfig.levelCompleteRewardEnergy,
+      );
+      _rewardClaimed = true;
+    }
+    setState(() => _rewardInFlight = false);
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            earned
+                ? '+${LevelPlayAdConfig.levelCompleteRewardPoints} points and +${LevelPlayAdConfig.levelCompleteRewardEnergy} energy added.'
+                : 'Reward video is loading. Try again shortly.',
+          ),
+        ),
+      );
+  }
+}
+
+class _RewardedBonusButton extends StatelessWidget {
+  final bool inFlight;
+  final bool claimed;
+  final VoidCallback onPressed;
+
+  const _RewardedBonusButton({
+    required this.inFlight,
+    required this.claimed,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final label = claimed
+        ? 'Bonus claimed'
+        : inFlight
+            ? 'Loading video...'
+            : 'Watch video: +${LevelPlayAdConfig.levelCompleteRewardPoints} points +${LevelPlayAdConfig.levelCompleteRewardEnergy} energy';
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: claimed || inFlight ? null : onPressed,
+        icon: Icon(claimed ? Icons.check_rounded : Icons.play_circle_fill),
+        label: Text(label, textAlign: TextAlign.center),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF6A1B9A),
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: Colors.white12,
+          disabledForegroundColor: Colors.white54,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
       ),
     );
   }

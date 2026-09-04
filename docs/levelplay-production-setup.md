@@ -15,6 +15,16 @@ flutter build appbundle --release `
   --dart-define=LEVELPLAY_ANDROID_REWARDED_AD_UNIT=<levelplay-rewarded-ad-unit>
 ```
 
+Placement behavior and reward amounts can also be changed without editing Dart:
+
+```text
+LEVELPLAY_FIRST_ROUND_INTERSTITIAL=1
+LEVELPLAY_ROUND_INTERSTITIAL_INTERVAL=1
+LEVELPLAY_SHOP_REWARD_POINTS=300
+LEVELPLAY_LEVEL_REWARD_POINTS=150
+LEVELPLAY_LEVEL_REWARD_ENERGY=1
+```
+
 ## Android networks included
 
 The Android app includes adapter and SDK dependencies for:
@@ -32,12 +42,18 @@ For production, create or connect each network in the Unity LevelPlay dashboard,
 
 - `LobbyBanner`
 - `ShopBanner`
+- `MatchmakingBanner`
 - `ResultsBanner`
 - `DailyGift`
-- `ResultPlayAgain`
-- `ResultBackToLobby`
+- `RoundComplete`
+- `ConfirmedQuit`
+- `ConfirmedAppExit`
+- `ShopPoints300`
+- `LevelCompleteBonus`
 
 Use matching placement names in LevelPlay reporting so waterfalls, caps, and A/B tests are easy to read.
+
+`RoundComplete` starts after the first completed round and repeats after every completed round. Confirmed quit and app-exit placements wait for the full-screen ad to close before navigation or process exit. Reward balances are granted only from LevelPlay's reward callback.
 
 ## QA flow
 

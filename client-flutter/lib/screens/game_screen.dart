@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../models/game_snapshot.dart';
+import '../services/levelplay_ad_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ludo_board.dart';
@@ -40,6 +41,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int _prevRollSequence = 0;
   bool _rolling = false;
   bool _quitDialogOpen = false;
+  bool _quitting = false;
   Timer? _quickBubbleTimer;
   String? _quickBubbleText;
   bool _quickBubbleIsEmoji = false;
@@ -576,12 +578,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             child: const Text('Stay', style: TextStyle(color: goldColor)),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              state.resign();
-              Navigator.of(context)
-                  .pushNamedAndRemoveUntil('/home', (_) => false);
-            },
+            onPressed: _quitting
+                ? null
+                : () async {
+                    _quitting = true;
+                    Navigator.pop(context);
+                    state.resign();
+                    await LevelPlayAdService.instance.showAfterConfirmedQuit();
+                    if (!mounted) return;
+                    Navigator.of(context)
+                        .pushNamedAndRemoveUntil('/home', (_) => false);
+                  },
             child: const Text('Exit', style: TextStyle(color: boardRed)),
           ),
         ],
