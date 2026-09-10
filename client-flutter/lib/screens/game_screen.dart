@@ -11,6 +11,9 @@ import '../theme/app_theme.dart';
 import '../widgets/ludo_board.dart';
 import '../widgets/snakes_ladders_board.dart';
 import '../widgets/dice_widget.dart';
+import '../widgets/profile_avatar.dart';
+import '../widgets/six_celebration.dart';
+import '../data/table_reactions.dart';
 
 const _gameBackdropAsset =
     'assets/images/rush/rush_game_backdrop_mobile_v1.jpg';
@@ -40,6 +43,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   final _diceKey = GlobalKey<DiceWidgetState>();
   int _prevRollSequence = 0;
   bool _rolling = false;
+  int _sixSequence = 0;
   bool _quitDialogOpen = false;
   bool _quitting = false;
   Timer? _quickBubbleTimer;
@@ -81,12 +85,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           if (rollSequence != _prevRollSequence && rollValue > 0) {
             _prevRollSequence = rollSequence;
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (!_rolling) {
-                _rolling = true;
-                _diceKey.currentState?.startRoll(rollValue, () {
-                  if (mounted) setState(() => _rolling = false);
+              if (!mounted) return;
+              final dice = _diceKey.currentState;
+              if (dice == null) return;
+              setState(() => _rolling = true);
+              dice.startRoll(rollValue, () {
+                if (!mounted) return;
+                setState(() {
+                  _rolling = false;
+                  if (rollValue == 6) _sixSequence++;
                 });
-              }
+              });
             });
           }
           final reactionSequence = state.reactionSequence;
@@ -245,6 +254,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     },
                   ),
                 ),
+                Positioned.fill(child: SixCelebration(sequence: _sixSequence)),
                 if (_quickBubbleText != null)
                   Positioned(
                     left: 18,
@@ -283,26 +293,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   void _showEmojiPicker(BuildContext context) {
     final state = context.read<AppState>();
-    final emojis = <String>[
-      String.fromCharCode(0x1F600),
-      String.fromCharCode(0x1F602),
-      String.fromCharCode(0x1F62E),
-      String.fromCharCode(0x1F622),
-      String.fromCharCode(0x1F62D),
-      String.fromCharCode(0x1F62C),
-      String.fromCharCode(0x1F621),
-      String.fromCharCode(0x1F60E),
-      String.fromCharCode(0x1F44D),
-      String.fromCharCode(0x1F44E),
-      String.fromCharCode(0x1F525),
-      String.fromCharCode(0x1F3B2),
-      String.fromCharCode(0x1F451),
-      String.fromCharCode(0x1F44F),
-      String.fromCharCode(0x1F494),
-      String.fromCharCode(0x1F64F),
-    ];
+    const emojis = tableEmojis;
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return _GameActionSheet(
@@ -351,16 +345,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     }
 
     final controller = TextEditingController();
-    const quickMessages = [
-      'Good luck!',
-      'Nice move!',
-      'Well played!',
-      'Close one!',
-      'Roll again!',
-      'I need a six!',
-      'Your turn!',
-      'Good game!',
-    ];
+    const quickMessages = tablePhrases;
 
     void send(BuildContext sheetContext, String raw) {
       final message = raw.trim();
@@ -482,6 +467,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final needsAge = state.age == 0;
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
         return _GameActionSheet(
@@ -613,6 +599,8 @@ class _GameActionSheet extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
+        constraints:
+            BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.82),
         margin: const EdgeInsets.fromLTRB(10, 0, 10, 10),
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
         decoration: BoxDecoration(
@@ -654,7 +642,7 @@ class _GameActionSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            child,
+            Flexible(child: SingleChildScrollView(child: child)),
           ],
         ),
       ),
@@ -1119,11 +1107,16 @@ class _PlayerHeroBand extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      _MascotAvatar(
-                        color: color,
-                        size: compact ? 66 : 78,
-                        badge: myTurn ? '1st' : '12',
-                      ),
+                      SizedBox(
+                          width: compact ? 66 : 78,
+                          height: compact ? 66 : 78,
+                          child: ProfileAvatarView(
+                              preset: state.avatarPreset,
+                              imagePath: state.avatarImagePath,
+                              celebration: state.lastRollValue == 6 &&
+                                      state.lastRollPlayerId == state.playerId
+                                  ? state.lastRollSequence
+                                  : 0)),
                       SizedBox(width: compact ? 8 : 12),
                       Expanded(
                         child: Column(
@@ -1278,86 +1271,6 @@ class _InviteCodeChip extends StatelessWidget {
               fontSize: compact ? 10 : 11,
               fontWeight: FontWeight.w900,
               shadows: const [Shadow(color: Colors.black, blurRadius: 3)],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MascotAvatar extends StatelessWidget {
-  final Color color;
-  final double size;
-  final String badge;
-
-  const _MascotAvatar({
-    required this.color,
-    required this.size,
-    required this.badge,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size + 8,
-      height: size + 8,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [Colors.white, color, const Color(0xFF5F0318)],
-                  stops: const [0.0, 0.58, 1.0],
-                ),
-                border: Border.all(color: goldColor, width: 4),
-                boxShadow: [
-                  BoxShadow(color: color.withAlpha(160), blurRadius: 18),
-                ],
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: ClipOval(
-              child: Align(
-                alignment: const Alignment(0, -0.74),
-                widthFactor: 1,
-                heightFactor: 1,
-                child: Image.asset(
-                  _gameMascotAsset,
-                  width: size * 1.55,
-                  fit: BoxFit.fitWidth,
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            right: -3,
-            bottom: -3,
-            child: Container(
-              width: size * 0.42,
-              height: size * 0.42,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFFF3B4E),
-                border: Border.all(color: Colors.white, width: 2.5),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black54, blurRadius: 5)
-                ],
-              ),
-              child: Text(
-                badge,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: size * 0.17,
-                  fontWeight: FontWeight.w900,
-                  shadows: const [Shadow(color: Colors.black, blurRadius: 3)],
-                ),
-              ),
             ),
           ),
         ],

@@ -13,8 +13,9 @@ import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/levelplay_banner.dart';
 import '../widgets/dice_widget.dart';
-import '../widgets/ludo_board.dart';
-import '../widgets/snakes_ladders_board.dart';
+import '../widgets/live_board_preview.dart';
+import '../widgets/live_item_preview.dart';
+import '../widgets/profile_avatar.dart';
 
 const _shopDiceAtlasAsset =
     'assets/images/rush/rush_shop_dice_showcase_mobile_v1.jpg';
@@ -1611,27 +1612,18 @@ class _AvatarShopStrip extends StatelessWidget {
                       state.avatarImagePath == null,
                   unlocked: unlocked,
                   actionLabel: state.avatarUnlockLabel(index),
-                  onTap: () {
-                    var message = '${avatar.label} equipped.';
-                    if (unlocked) {
-                      state.updateProfile(avatar: index, clearImage: true);
-                    } else if (avatar.rarity == AvatarRarity.premium) {
-                      message =
-                          '${avatar.label} requires a verified Google Play purchase (${avatar.price}).';
-                    } else {
-                      message = state.avatarUnlockLabel(index);
-                    }
-                    ScaffoldMessenger.of(context)
-                      ..clearSnackBars()
-                      ..showSnackBar(
-                        SnackBar(
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: const Color(0xEE22082E),
-                          duration: const Duration(milliseconds: 1200),
-                          content: Text(message),
-                        ),
-                      );
-                  },
+                  onTap: () => showLiveItemPreview(context,
+                      title: avatar.label,
+                      preview: ProfileAvatarView(preset: index, animate: true),
+                      description:
+                          'See your avatar move. It celebrates when you roll a six.',
+                      actionLabel: unlocked
+                          ? 'Equip avatar'
+                          : state.avatarUnlockLabel(index),
+                      onAction: unlocked
+                          ? () => state.updateProfile(
+                              avatar: index, clearImage: true)
+                          : null),
                 );
               },
             ),
@@ -1743,38 +1735,10 @@ class _ShopAvatarButton extends StatelessWidget {
 
 class _ShopAvatarImage extends StatelessWidget {
   final ProfileAvatarSpec avatar;
-
   const _ShopAvatarImage({required this.avatar});
-
   @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, box) {
-        final width = box.maxWidth;
-        final height = box.maxHeight;
-        final column = avatar.atlasIndex % 2;
-        final row = avatar.atlasIndex ~/ 2;
-        return ClipRect(
-          child: Stack(
-            clipBehavior: Clip.hardEdge,
-            children: [
-              Positioned(
-                left: -column * width,
-                top: -row * height,
-                width: width * 2,
-                height: height * 2,
-                child: Image.asset(
-                  avatar.asset,
-                  fit: BoxFit.fill,
-                  filterQuality: FilterQuality.medium,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) =>
+      ProfileAvatarView(preset: avatar.preset);
 }
 
 class _BoardThemeStrip extends StatelessWidget {
@@ -1905,23 +1869,17 @@ class _BoardThemeStrip extends StatelessWidget {
                       (state.isBoardThemeUnlocked(option.id)
                           ? 'Owned'
                           : '${state.boardThemeRequiredWins(option.id)} wins'),
-                  onTap: () {
-                    if (state.isBoardThemeUnlocked(option.id)) {
-                      state.setSnakesBoardTheme(option.id);
-                    }
-                    ScaffoldMessenger.of(context)
-                      ..clearSnackBars()
-                      ..showSnackBar(
-                        SnackBar(
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: const Color(0xEE22082E),
-                          duration: const Duration(milliseconds: 1100),
-                          content: Text(state.isBoardThemeUnlocked(option.id)
-                              ? '${option.label} board selected.'
-                              : state.boardThemeUnlockLabel(option.id)),
-                        ),
-                      );
-                  },
+                  onTap: () => showLiveItemPreview(context,
+                      title: '${option.label} Snakes & Ladders',
+                      preview: LiveBoardPreview(theme: option.id, snakes: true),
+                      description:
+                          'Live board demo. Previewing never changes your equipped board or coins.',
+                      actionLabel: state.isBoardThemeUnlocked(option.id)
+                          ? 'Equip board'
+                          : state.boardThemeUnlockLabel(option.id),
+                      onAction: state.isBoardThemeUnlocked(option.id)
+                          ? () => state.setSnakesBoardTheme(option.id)
+                          : null),
                 );
               },
             ),
@@ -2051,41 +2009,17 @@ class _BoardThemeButton extends StatelessWidget {
 
 class _LudoThemePreview extends StatelessWidget {
   final String theme;
-
   const _LudoThemePreview({required this.theme});
-
   @override
-  Widget build(BuildContext context) {
-    return LudoBoard(
-      snapshot: null,
-      mySeat: null,
-      boardTheme: theme,
-      showWaitingOverlay: false,
-      animate: false,
-      onPieceTap: (_) {},
-    );
-  }
+  Widget build(BuildContext context) => LiveBoardPreview(theme: theme);
 }
 
 class _SnakesThemePreview extends StatelessWidget {
   final String theme;
-
-  const _SnakesThemePreview({
-    required this.theme,
-  });
-
+  const _SnakesThemePreview({required this.theme});
   @override
-  Widget build(BuildContext context) {
-    return SnakesLaddersBoard(
-      snapshot: null,
-      mySeat: null,
-      boardTheme: theme,
-      showTitle: false,
-      showPieces: false,
-      animate: false,
-      onPieceTap: (_) {},
-    );
-  }
+  Widget build(BuildContext context) =>
+      LiveBoardPreview(theme: theme, snakes: true);
 }
 
 class _DiceSkinOption {
@@ -2252,24 +2186,17 @@ class _DiceSkinStrip extends StatelessWidget {
                             (state.isDiceSkinUnlocked(option.id)
                                 ? 'Owned'
                                 : '${state.diceSkinRequiredWins(option.id)} wins'),
-                        onTap: () {
-                          if (state.isDiceSkinUnlocked(option.id)) {
-                            state.setDiceSkin(option.id);
-                          }
-                          ScaffoldMessenger.of(context)
-                            ..clearSnackBars()
-                            ..showSnackBar(
-                              SnackBar(
-                                behavior: SnackBarBehavior.floating,
-                                backgroundColor: const Color(0xEE22082E),
-                                duration: const Duration(milliseconds: 1100),
-                                content: Text(
-                                    state.isDiceSkinUnlocked(option.id)
-                                        ? '${option.label} dice equipped.'
-                                        : state.diceSkinUnlockLabel(option.id)),
-                              ),
-                            );
-                        },
+                        onTap: () => showLiveItemPreview(context,
+                            title: '${option.label} dice',
+                            preview: LiveDicePreview(skin: option.id),
+                            description:
+                                'Watch this die roll. Skins never change the odds.',
+                            actionLabel: state.isDiceSkinUnlocked(option.id)
+                                ? 'Equip dice'
+                                : state.diceSkinUnlockLabel(option.id),
+                            onAction: state.isDiceSkinUnlocked(option.id)
+                                ? () => state.setDiceSkin(option.id)
+                                : null),
                       );
                     },
                   ),
@@ -2728,127 +2655,19 @@ void _showShopProductPreview(
   required bool locked,
   required String actionLabel,
   required VoidCallback onAction,
-}) {
-  showDialog<void>(
-    context: context,
-    builder: (dialogContext) {
-      return Dialog(
-        insetPadding: const EdgeInsets.symmetric(horizontal: 26, vertical: 24),
-        backgroundColor: Colors.transparent,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 390),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              gradient: const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF681064), Color(0xFF22062D)],
-              ),
-              border: Border.all(color: goldColor, width: 2),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0xCC000000),
-                  blurRadius: 24,
-                  offset: Offset(0, 12),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        product.title,
-                        style: const TextStyle(
-                          color: goldColor,
-                          fontSize: 23,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Close preview',
-                      onPressed: () => Navigator.pop(dialogContext),
-                      icon: const Icon(Icons.close_rounded),
-                      color: Colors.white70,
-                    ),
-                  ],
-                ),
-                SizedBox(
-                  height: 220,
-                  width: double.infinity,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: _ShopProductVisual(product: product),
-                      ),
-                      if (locked)
-                        const Align(
-                          alignment: Alignment.topRight,
-                          child: CircleAvatar(
-                            radius: 19,
-                            backgroundColor: Color(0xDD22082E),
-                            child: Icon(
-                              Icons.lock_rounded,
-                              color: goldColor,
-                              size: 21,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                Text(
-                  product.description,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      Navigator.pop(dialogContext);
-                      onAction();
-                    },
-                    icon: Icon(
-                      locked
-                          ? Icons.lock_open_rounded
-                          : Icons.shopping_cart_checkout_rounded,
-                    ),
-                    label: Text(actionLabel),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF2EAD25),
-                      foregroundColor: Colors.white,
-                      textStyle: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    },
-  );
-}
+}) =>
+    showLiveItemPreview(
+      context,
+      title: product.title,
+      description: product.description,
+      preview: product.diceSkin != null
+          ? LiveDicePreview(skin: product.diceSkin!)
+          : product.ludoBoardTheme != null
+              ? LiveBoardPreview(theme: product.ludoBoardTheme!)
+              : PreviewMotion(child: _ShopProductVisual(product: product)),
+      actionLabel: actionLabel,
+      onAction: locked ? null : onAction,
+    );
 
 class _RarityPill extends StatelessWidget {
   final String label;

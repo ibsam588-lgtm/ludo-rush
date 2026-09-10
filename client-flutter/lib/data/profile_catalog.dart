@@ -9,6 +9,7 @@ class ProfileAvatarSpec {
   final AvatarRarity rarity;
   final int requiredWins;
   final String? price;
+  final String? emoji;
 
   const ProfileAvatarSpec({
     required this.preset,
@@ -19,6 +20,7 @@ class ProfileAvatarSpec {
     required this.rarity,
     this.requiredWins = 0,
     this.price,
+    this.emoji,
   });
 }
 
@@ -127,6 +129,102 @@ const profileAvatarCatalog = [
     rarity: AvatarRarity.premium,
     price: '1.99 USD',
   ),
+  ProfileAvatarSpec(
+      preset: 12,
+      id: 'expressive_fox',
+      label: 'Fox',
+      asset: '',
+      atlasIndex: 0,
+      rarity: AvatarRarity.common,
+      emoji: '🦊'),
+  ProfileAvatarSpec(
+      preset: 13,
+      id: 'expressive_panda',
+      label: 'Panda',
+      asset: '',
+      atlasIndex: 0,
+      rarity: AvatarRarity.common,
+      emoji: '🐼'),
+  ProfileAvatarSpec(
+      preset: 14,
+      id: 'expressive_lion',
+      label: 'Lion',
+      asset: '',
+      atlasIndex: 0,
+      rarity: AvatarRarity.common,
+      emoji: '🦁'),
+  ProfileAvatarSpec(
+      preset: 15,
+      id: 'expressive_tiger',
+      label: 'Tiger',
+      asset: '',
+      atlasIndex: 0,
+      rarity: AvatarRarity.common,
+      emoji: '🐯'),
+  ProfileAvatarSpec(
+      preset: 16,
+      id: 'expressive_dragon',
+      label: 'Dragon',
+      asset: '',
+      atlasIndex: 0,
+      rarity: AvatarRarity.common,
+      emoji: '🐲'),
+  ProfileAvatarSpec(
+      preset: 17,
+      id: 'expressive_unicorn',
+      label: 'Unicorn',
+      asset: '',
+      atlasIndex: 0,
+      rarity: AvatarRarity.common,
+      emoji: '🦄'),
+  ProfileAvatarSpec(
+      preset: 18,
+      id: 'expressive_robot',
+      label: 'Robot',
+      asset: '',
+      atlasIndex: 0,
+      rarity: AvatarRarity.common,
+      emoji: '🤖'),
+  ProfileAvatarSpec(
+      preset: 19,
+      id: 'expressive_alien',
+      label: 'Alien',
+      asset: '',
+      atlasIndex: 0,
+      rarity: AvatarRarity.common,
+      emoji: '👽'),
+  ProfileAvatarSpec(
+      preset: 20,
+      id: 'expressive_owl',
+      label: 'Owl',
+      asset: '',
+      atlasIndex: 0,
+      rarity: AvatarRarity.common,
+      emoji: '🦉'),
+  ProfileAvatarSpec(
+      preset: 21,
+      id: 'expressive_penguin',
+      label: 'Penguin',
+      asset: '',
+      atlasIndex: 0,
+      rarity: AvatarRarity.common,
+      emoji: '🐧'),
+  ProfileAvatarSpec(
+      preset: 22,
+      id: 'expressive_octopus',
+      label: 'Octopus',
+      asset: '',
+      atlasIndex: 0,
+      rarity: AvatarRarity.common,
+      emoji: '🐙'),
+  ProfileAvatarSpec(
+      preset: 23,
+      id: 'expressive_rocket',
+      label: 'Rocket',
+      asset: '',
+      atlasIndex: 0,
+      rarity: AvatarRarity.common,
+      emoji: '🚀'),
 ];
 
 ProfileAvatarSpec avatarForPreset(int preset) =>

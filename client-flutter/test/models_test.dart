@@ -53,11 +53,11 @@ void main() {
   });
 
   test('avatar catalog separates common, rare, and premium tiers', () {
-    expect(profileAvatarCatalog, hasLength(12));
+    expect(profileAvatarCatalog, hasLength(24));
     expect(
       profileAvatarCatalog
           .where((avatar) => avatar.rarity == AvatarRarity.common),
-      hasLength(4),
+      hasLength(16),
     );
     expect(
       profileAvatarCatalog
