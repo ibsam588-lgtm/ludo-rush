@@ -179,7 +179,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   ];
 
   final PrefsService _prefs;
-  final WebSocketService _ws = WebSocketService();
+  final WebSocketService _ws;
   final SoundtrackService _soundtrack = SoundtrackService();
 
   // Identity
@@ -260,6 +260,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _localBotTimer;
   Timer? _matchmakingTimer;
   Timer? _autoRollTimer;
+  Timer? _autoMoveTimer;
+  Timer? _roomReadyTimer;
   Future<void>? _authenticationFuture;
   bool _lifecycleObserverRegistered = false;
 
@@ -277,9 +279,14 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   // WS message subscription
   StreamSubscription<dynamic>? _wsSub;
+  StreamSubscription<bool>? _wsConnectionSub;
 
-  AppState(this._prefs, {math.Random? random, http.Client? matchmakingClient})
-      : _rng = random ?? math.Random(),
+  AppState(this._prefs,
+      {math.Random? random,
+      http.Client? matchmakingClient,
+      WebSocketService? webSocketService})
+      : _ws = webSocketService ?? WebSocketService(),
+        _rng = random ?? math.Random(),
         _matchmakingClient = matchmakingClient ?? http.Client();
 
   Future<void> init() async {
@@ -368,7 +375,10 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _localBotTimer?.cancel();
     _autoRollTimer?.cancel();
     _wsSub?.cancel();
-    _ws.disconnect();
+    _autoMoveTimer?.cancel();
+    _roomReadyTimer?.cancel();
+    _wsConnectionSub?.cancel();
+    _ws.dispose();
     unawaited(_soundtrack.dispose());
     super.dispose();
   }
@@ -823,7 +833,6 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         }
         _connectWs(
           socketUrl,
-          fillBots: false,
           readyStatus: code.isEmpty
               ? 'Private room ready. Waiting for players...'
               : 'Share code $code. Waiting for players...',
@@ -892,7 +901,6 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         }
         _connectWs(
           socketUrl,
-          fillBots: false,
           readyStatus: 'Joined room $cleanCode. Waiting for players...',
         );
         replaceWith('/game');
@@ -933,6 +941,10 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _matchmakingTimer?.cancel();
     _matchmakingTimer = null;
     if (connecting) {
+      _roomReadyTimer?.cancel();
+      _wsSub?.cancel();
+      _wsSub = null;
+      _ws.disconnect();
       connecting = false;
       pendingMatchMode = 'classic_2p';
       _setStatus('Matchmaking cancelled.');
@@ -964,7 +976,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   void _pollTicket(String ticketId) {
     final generation = _matchGeneration;
     if (!_isCurrentSearch(generation)) return;
-    if (_pollAttempts >= 4) {
+    if (_pollAttempts >= 15) {
       _fallbackToBots();
       return;
     }
@@ -1024,7 +1036,6 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   void _connectWs(
     String socketPath, {
-    bool fillBots = true,
     String? readyStatus,
   }) {
     localMatchActive = false;
@@ -1033,24 +1044,31 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _ws.playerId = playerId;
     _ws.displayName = _humanDisplayName;
     _ws.authToken = authToken;
-    _ws.connect(socketPath);
     _wsSub?.cancel();
     _wsSub = _ws.messages.listen(_handleMessage);
-
     final generation = _matchGeneration;
-    // Send join after connect (slight delay for WS handshake)
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (_disposed || generation != _matchGeneration) return;
-      _ws.send({
-        'type': 'join',
-        'playerId': playerId,
-        'displayName': _humanDisplayName
-      });
-      if (fillBots) {
-        _ws.send({'type': 'fill_bots', 'playerId': playerId});
+    _wsConnectionSub?.cancel();
+    _wsConnectionSub = _ws.connections.listen((connected) {
+      if (_disposed ||
+          localMatchActive ||
+          generation != _matchGeneration ||
+          lastSnapshot?.status == 'finished') return;
+      if (!connected) {
+        _setStatus('Reconnecting to your table...');
+      } else {
+        _setStatus(readyStatus ?? 'Connected. Waiting for the table...');
       }
-      connecting = false;
-      _setStatus(readyStatus ?? 'Table ready. Roll when it is your turn.');
+    });
+    _ws.connect(socketPath);
+    _matchmakingTicketId = null;
+    _roomReadyTimer?.cancel();
+    _roomReadyTimer = Timer(const Duration(seconds: 30), () {
+      if (!_isCurrentSearch(generation)) return;
+      if (privateInviteCode != null && mySeat != null) return;
+      _ws.disconnect();
+      _wsSub?.cancel();
+      _wsSub = null;
+      _fallbackToBots();
     });
   }
 
@@ -1075,6 +1093,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
       if (snapRaw != null) {
         lastSnapshot = GameSnapshot.fromJson(snapRaw);
+        if (lastSnapshot!.status == 'playing' && mySeat != null) {
+          connecting = false;
+          _roomReadyTimer?.cancel();
+          _roomReadyTimer = null;
+        }
 
         // Track roll event
         if (type == 'dice_rolled') {
@@ -1319,13 +1342,13 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       diceValue: value,
       availableMoves: moves,
     );
-    _setStatus('You rolled $value. Tap to move.');
-    if (autoRollEnabled && moves.length == 1) {
-      _scheduleAutoMove(moves.single);
-    }
+    _setStatus('You rolled $value. Moving your token...');
+    _scheduleAutoMove(moves.single);
   }
 
   void _moveLocalPiece(String pieceId) {
+    _autoMoveTimer?.cancel();
+    _autoMoveTimer = null;
     _autoRollTimer?.cancel();
     _autoRollTimer = null;
     if (!_canAct()) return;
@@ -1404,28 +1427,32 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     if (!_canAutoRollNow) return;
     _autoRollTimer = Timer(delay, () {
       _autoRollTimer = null;
-      if (_canAutoRollNow) _rollLocalDice();
+      if (_canAutoRollNow) rollDice();
     });
   }
 
   void _scheduleAutoMove(
     String pieceId, {
-    Duration delay = const Duration(milliseconds: 520),
+    Duration delay = const Duration(milliseconds: 760),
   }) {
-    _autoRollTimer?.cancel();
-    _autoRollTimer = null;
-    if (!autoRollEnabled) return;
-    _autoRollTimer = Timer(delay, () {
-      _autoRollTimer = null;
+    _autoMoveTimer?.cancel();
+    _autoMoveTimer = null;
+    final before = lastSnapshot;
+    final snakes = before?.mode == snakesLaddersMode;
+    if (!autoRollEnabled && !snakes) return;
+    final generation = _matchGeneration;
+    _autoMoveTimer = Timer(delay, () {
+      _autoMoveTimer = null;
       final snap = lastSnapshot;
-      if (snap == null ||
+      if (_disposed ||
+          generation != _matchGeneration ||
+          (!autoRollEnabled && !snakes) ||
+          snap == null ||
           snap.status != 'playing' ||
+          snap.diceValue != before?.diceValue ||
           snap.availableMoves.length != 1 ||
           !snap.availableMoves.contains(pieceId) ||
-          !_isMyTurn() ||
-          !_hasDiceValue()) {
-        return;
-      }
+          !_isMyTurn()) return;
       movePiece(pieceId);
     });
   }
@@ -1443,7 +1470,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _scheduleAutomaticTurnAction() {
-    if (!autoRollEnabled) return;
+    if (!autoRollEnabled && lastSnapshot?.mode != snakesLaddersMode) return;
     final snap = lastSnapshot;
     if (snap == null || !_isMyTurn()) return;
     if (snap.diceValue > 0) {
@@ -1975,6 +2002,13 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _localBotTimer = null;
     _autoRollTimer?.cancel();
     _autoRollTimer = null;
+    _autoMoveTimer?.cancel();
+    _autoMoveTimer = null;
+    _roomReadyTimer?.cancel();
+    _roomReadyTimer = null;
+    _wsConnectionSub?.cancel();
+    _wsConnectionSub = null;
+    connecting = false;
     localMatchActive = false;
     _ws.disconnect();
     lastSnapshot = null;
@@ -1993,6 +2027,10 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   bool _canAct() {
     if (playerId == null) {
       _setStatus('Match is not connected.');
+      return false;
+    }
+    if (!localMatchActive && !_ws.isConnected) {
+      _setStatus('Reconnecting to your table...');
       return false;
     }
     if (lastSnapshot == null) {
@@ -2710,6 +2748,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       _setStatus(
           'Auto roll enabled. Choose a goti when more than one can move.');
     } else {
+      if (lastSnapshot?.mode != snakesLaddersMode) _autoMoveTimer?.cancel();
       _setStatus('Auto roll disabled.');
     }
   }

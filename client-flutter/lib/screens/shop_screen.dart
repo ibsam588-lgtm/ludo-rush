@@ -255,24 +255,24 @@ class _ShopScreenState extends State<ShopScreen>
                                           state: state,
                                         ),
                                       ),
-                                    if (_category == 'All' ||
-                                        _category == 'Snakes')
+                                    if (_category == 'All')
                                       SliverToBoxAdapter(
-                                        child: _BoardThemeStrip(
-                                          expanded: _category == 'Snakes',
+                                          child: _BoardThemeStrip(
+                                              palette: p, state: state)),
+                                    if (_category == 'Snakes')
+                                      _BoardThemeStrip(
+                                          expanded: true,
                                           palette: p,
-                                          state: state,
-                                        ),
-                                      ),
-                                    if (_category == 'All' ||
-                                        _category == 'Avatars')
+                                          state: state),
+                                    if (_category == 'All')
                                       SliverToBoxAdapter(
-                                        child: _AvatarShopStrip(
-                                          expanded: _category == 'Avatars',
+                                          child: _AvatarShopStrip(
+                                              palette: p, state: state)),
+                                    if (_category == 'Avatars')
+                                      _AvatarShopStrip(
+                                          expanded: true,
                                           palette: p,
-                                          state: state,
-                                        ),
-                                      ),
+                                          state: state),
                                     SliverPadding(
                                       padding: gridPad,
                                       sliver: SliverGrid(
@@ -1661,19 +1661,18 @@ class _AvatarShopStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (expanded) {
-      return GridView.builder(
-        key: const ValueKey('avatar-gallery'),
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(12),
-        itemCount: profileAvatarCatalog.length,
-        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 190,
-            childAspectRatio: .9,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 12),
-        itemBuilder: _avatarButton,
-      );
+      return SliverPadding(
+          padding: const EdgeInsets.all(12),
+          sliver: SliverGrid.builder(
+            key: const ValueKey('avatar-gallery'),
+            itemCount: profileAvatarCatalog.length,
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 190,
+                childAspectRatio: .9,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 12),
+            itemBuilder: _avatarButton,
+          ));
     }
     return Container(
       height: 128,
@@ -1915,40 +1914,42 @@ class _BoardThemeStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (expanded) {
-      return GridView.builder(
-          key: const ValueKey('snakes-board-gallery'),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+      return SliverPadding(
           padding: const EdgeInsets.all(12),
-          itemCount: _options.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: .72,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 12),
-          itemBuilder: (context, index) {
-            final option = _options[index];
-            final unlocked = state.isBoardThemeUnlocked(option.id);
-            return _BoardThemeButton(
-                expanded: true,
-                option: option,
-                selected: state.snakesBoardTheme == option.id,
-                locked: !unlocked,
-                actionLabel: unlocked
-                    ? 'Owned'
-                    : state.boardThemePremiumPrice(option.id) ??
-                        '${state.boardThemeRequiredWins(option.id)} wins',
-                onTap: () => showLiveItemPreview(context,
-                    title: '${option.label} Snakes & Ladders',
-                    preview: LiveBoardPreview(theme: option.id, snakes: true),
-                    description: 'Try the board in motion before equipping it.',
+          sliver: SliverGrid.builder(
+              key: const ValueKey('snakes-board-gallery'),
+              itemCount: _options.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: .72,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 12),
+              itemBuilder: (context, index) {
+                final option = _options[index];
+                final unlocked = state.isBoardThemeUnlocked(option.id);
+                return _BoardThemeButton(
+                    expanded: true,
+                    key: ValueKey('snakes-theme-${option.id}'),
+                    option: option,
+                    selected: state.snakesBoardTheme == option.id,
+                    locked: !unlocked,
                     actionLabel: unlocked
-                        ? 'Equip board'
-                        : state.boardThemeUnlockLabel(option.id),
-                    onAction: unlocked
-                        ? () => state.setSnakesBoardTheme(option.id)
-                        : null));
-          });
+                        ? 'Owned'
+                        : state.boardThemePremiumPrice(option.id) ??
+                            '${state.boardThemeRequiredWins(option.id)} wins',
+                    onTap: () => showLiveItemPreview(context,
+                        title: '${option.label} Snakes & Ladders',
+                        preview:
+                            LiveBoardPreview(theme: option.id, snakes: true),
+                        description:
+                            'Try the board in motion before equipping it.',
+                        actionLabel: unlocked
+                            ? 'Equip board'
+                            : state.boardThemeUnlockLabel(option.id),
+                        onAction: unlocked
+                            ? () => state.setSnakesBoardTheme(option.id)
+                            : null));
+              }));
     }
     return Container(
       height: expanded ? 260 : 122,

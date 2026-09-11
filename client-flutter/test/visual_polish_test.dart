@@ -281,8 +281,13 @@ void main() {
     expect(find.byType(LudoBoard), findsNothing);
     expect(find.byType(SnakesLaddersBoard), findsWidgets);
     await capture(tester, 'shop-snakes-category');
-    await tester
-        .ensureVisible(find.byKey(const ValueKey('shop-category-Avatars')));
+    await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('shop-category-Avatars')), 160,
+        scrollable: find
+            .descendant(
+                of: find.byType(ListView).first,
+                matching: find.byType(Scrollable))
+            .first);
     await tester.tap(find.byKey(const ValueKey('shop-category-Avatars')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));

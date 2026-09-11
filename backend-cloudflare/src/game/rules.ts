@@ -47,6 +47,7 @@ export interface MoveResult {
 
 export function createInitialSnapshot(input: {
   roomId: string;
+  expectedPlayerIds?: string[];
   code?: string;
   mode: GameMode;
   region: RoomSnapshot["region"];
@@ -54,6 +55,7 @@ export function createInitialSnapshot(input: {
 }): RoomSnapshot {
   return {
     roomId: input.roomId,
+    expectedPlayerIds: input.expectedPlayerIds,
     code: input.code,
     mode: input.mode,
     region: input.region,
@@ -96,6 +98,9 @@ export function upsertSeat(
     };
   }
 
+  if (snapshot.expectedPlayerIds && !snapshot.expectedPlayerIds.includes(player.playerId)) {
+    throw new Error("This seat is reserved for a matched player.");
+  }
   assertCanSeat(snapshot);
 
   const maxPlayers = MAX_PLAYERS_BY_MODE[snapshot.mode];
@@ -120,7 +125,7 @@ export function upsertSeat(
 }
 
 export function fillBotSeats(snapshot: RoomSnapshot): RoomSnapshot {
-  if (snapshot.status !== "waiting") {
+  if (snapshot.expectedPlayerIds || snapshot.code || snapshot.status !== "waiting") {
     return snapshot;
   }
 

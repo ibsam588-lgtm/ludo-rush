@@ -3,7 +3,7 @@ import '../data/economy.dart';
 
 List<String> rulesForMode(String mode) => mode == 'snakes_ladders'
     ? const [
-        'Start on square 1. Roll and tap your token to move.',
+        'Start on square 1. Tap the dice; your token moves automatically after the roll.',
         'Land at a ladder’s foot to climb; a snake’s head sends you down.',
         'Reach square 100 with an exact roll to win. An overshoot passes your turn.',
         'A six moves you six squares. There is no extra roll in Snakes & Ladders.',
