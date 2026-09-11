@@ -66,7 +66,7 @@ void main() {
               })));
 
   testWidgets(
-      'all nine board designs render differently with isolated demo state',
+      'all fifteen board designs render differently with isolated demo state',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(400, 480));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -77,6 +77,9 @@ void main() {
         'royal',
         'neon',
         'classic',
+        'ocean',
+        'astral',
+        'volcano',
         if (snakes) 'jungle'
       ]) {
         await tester.pumpWidget(app(Scaffold(
@@ -129,6 +132,44 @@ void main() {
     await tester.tap(find.text('Equip avatar'));
     await tester.pump();
     expect(state.avatarPreset, 1);
+    expect(state.coins, 500);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets(
+      'new snake boards render in the shop strip and preview before equip',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 740));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(app(const ShopScreen()));
+    final picker = find.byKey(const ValueKey('snakes-theme-picker'));
+    await tester.scrollUntilVisible(picker, 300,
+        scrollable: find.byType(Scrollable).first);
+    final strip =
+        find.descendant(of: picker, matching: find.byType(Scrollable));
+    final ocean = find.byKey(const ValueKey('snakes-theme-ocean'));
+    await tester.scrollUntilVisible(ocean, 160, scrollable: strip);
+    await tester.pump();
+    expect(find.descendant(of: ocean, matching: find.byType(LiveBoardPreview)),
+        findsOneWidget);
+    await tester.tap(ocean);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Ocean Voyage Snakes & Ladders'), findsOneWidget);
+    expect(state.snakesBoardTheme, 'carnival');
+    await tester.tap(find.text('Equip board'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(state.snakesBoardTheme, 'ocean');
+    final volcano = find.byKey(const ValueKey('snakes-theme-volcano'));
+    await tester.scrollUntilVisible(volcano, 150, scrollable: strip);
+    await tester.tap(volcano);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.text('Lava Citadel Snakes & Ladders'), findsOneWidget);
+    expect(find.text('Equip board'), findsNothing);
+    expect(state.snakesBoardTheme, 'ocean');
     expect(state.coins, 500);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());

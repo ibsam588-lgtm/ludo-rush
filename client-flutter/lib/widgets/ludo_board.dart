@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import '../models/game_snapshot.dart';
 import '../theme/app_theme.dart';
+import 'adventure_board_art.dart';
 
 const _ludoThemeAssets = {
   'carnival': 'assets/images/rush/rush_ludo_board_carnival_mobile_v1.webp',
@@ -15,7 +16,13 @@ const _ludoThemeAssets = {
 
 String _normalizedLudoTheme(String value) {
   final normalized = value.trim().toLowerCase();
-  return const {'carnival', 'royal', 'neon', 'classic'}.contains(normalized)
+  return {
+    'carnival',
+    'royal',
+    'neon',
+    'classic',
+    ...AdventureBoardArt.themes.keys
+  }.contains(normalized)
       ? normalized
       : 'carnival';
 }
@@ -349,33 +356,45 @@ class _BoardPainter extends CustomPainter {
 
   String get _theme => _normalizedLudoTheme(boardTheme);
 
-  Color get _ivory => switch (_theme) {
+  AdventureBoardArt? get _adventure => AdventureBoardArt.forTheme(_theme);
+
+  Color get _ivory =>
+      _adventure?.tiles.first ??
+      switch (_theme) {
         'neon' => const Color(0xFFE9F7FF),
         'royal' => const Color(0xFFFFF8E6),
         'carnival' => const Color(0xFFFFF4D6),
         _ => creamCell,
       };
 
-  Color get _gold => switch (_theme) {
+  Color get _gold =>
+      _adventure?.accent ??
+      switch (_theme) {
         'neon' => const Color(0xFF32E6FF),
         'carnival' => const Color(0xFFFFC52B),
         _ => goldColor,
       };
 
-  Color get _goldDk => switch (_theme) {
+  Color get _goldDk =>
+      _adventure?.shell.last ??
+      switch (_theme) {
         'neon' => const Color(0xFF116EA8),
         'carnival' => const Color(0xFFB44A12),
         _ => goldDark,
       };
 
-  List<Color> get _nestColors => switch (_theme) {
+  List<Color> get _nestColors =>
+      _adventure?.nests ??
+      switch (_theme) {
         'neon' => const [Color(0xFF17243B), Color(0xFF07101E)],
         'royal' => const [Color(0xFFF5E6FF), Color(0xFFCFA6EE)],
         'carnival' => const [Color(0xFFFFF9E9), Color(0xFFFFDFA1)],
         _ => const [Color(0xFFFFFCF4), Color(0xFFF2E5C8)],
       };
 
-  List<Color> get _ivoryCellColors => switch (_theme) {
+  List<Color> get _ivoryCellColors =>
+      _adventure?.tiles ??
+      switch (_theme) {
         'neon' => const [Color(0xFFF5FDFF), Color(0xFFB7D8E7)],
         'royal' => const [Color(0xFFFFFCF1), Color(0xFFE7D7AE)],
         'carnival' => const [Color(0xFFFFFDF2), Color(0xFFFFDC91)],
@@ -401,13 +420,42 @@ class _BoardPainter extends CustomPainter {
     final left = (w - outer) / 2;
     final top = (h - outer) / 2;
     final hasThemeArt = themeImage != null && _theme != 'classic';
-    final margin = outer * (hasThemeArt ? 0.078 : (13 / 600));
+    final margin = outer *
+        (hasThemeArt ? 0.078 : (_adventure != null ? .055 : (13 / 600)));
     final boardSize = outer - margin * 2;
     final boardLeft = left + margin;
     final boardTop = top + margin;
     final cell = boardSize / 15.0;
 
-    if (hasThemeArt) {
+    if (_adventure != null) {
+      final shell =
+          Rect.fromLTWH(left, top, outer, outer).deflate(outer * .008);
+      canvas.drawRRect(
+          RRect.fromRectAndRadius(shell, Radius.circular(outer * .035)),
+          Paint()
+            ..shader = ui.Gradient.linear(shell.topLeft, shell.bottomRight,
+                _adventure!.shell, const [0, .5, 1]));
+      canvas.save();
+      canvas.clipRRect(
+          RRect.fromRectAndRadius(shell, Radius.circular(outer * .035)));
+      _adventure!.paintTexture(canvas, shell);
+      canvas.restore();
+      for (final corner in [
+        shell.topLeft,
+        shell.topRight,
+        shell.bottomLeft,
+        shell.bottomRight
+      ]) {
+        final c = Offset(
+            corner.dx < shell.center.dx
+                ? shell.left + outer * .028
+                : shell.right - outer * .028,
+            corner.dy < shell.center.dy
+                ? shell.top + outer * .028
+                : shell.bottom - outer * .028);
+        _adventure!.paintEmblem(canvas, c, outer * .022);
+      }
+    } else if (hasThemeArt) {
       _drawThemeShell(
         canvas,
         Rect.fromLTWH(left, top, outer, outer),
@@ -611,7 +659,12 @@ class _BoardPainter extends CustomPainter {
 
     final ins = cell * 0.64;
     final innerRect = Rect.fromLTRB(x1 + ins, y1 + ins, x2 - ins, y2 - ins);
-    final innerRR = RRect.fromRectXY(innerRect, cell * 0.35, cell * 0.35);
+    final corner = _theme == 'astral'
+        ? cell * 2.36
+        : _theme == 'volcano'
+            ? cell * .08
+            : cell * .35;
+    final innerRR = RRect.fromRectXY(innerRect, corner, corner);
     p.shader = ui.Gradient.linear(
       innerRect.topLeft,
       innerRect.bottomRight,
@@ -619,7 +672,13 @@ class _BoardPainter extends CustomPainter {
     );
     canvas.drawRRect(innerRR, p);
     p.shader = null;
-    if (_theme != 'classic') {
+    if (_adventure != null) {
+      canvas.save();
+      canvas.clipRRect(innerRR);
+      _adventure!.paintTexture(canvas, innerRect);
+      _adventure!.paintEmblem(canvas, innerRect.center, cell * .48);
+      canvas.restore();
+    } else if (_theme != 'classic') {
       canvas.save();
       canvas.clipRRect(innerRR);
       p
@@ -675,7 +734,7 @@ class _BoardPainter extends CustomPainter {
     final y2 = top + (gy + 6) * cell;
     final rect = Rect.fromLTRB(x1, y1, x2, y2);
 
-    final darkAmount = _theme == 'neon' ? 0.58 : 0.24;
+    final darkAmount = (_theme == 'neon' || _adventure != null) ? 0.58 : 0.24;
     final lightAmount = _theme == 'neon' ? 0.08 : 0.18;
     final dark = Color(_blend(_toInt(color), 0xFF000000, darkAmount));
     final light = Color(_blend(_toInt(color), 0xFFFFFFFF, lightAmount));
@@ -705,7 +764,12 @@ class _BoardPainter extends CustomPainter {
 
     final ins = cell * 0.64;
     final innerRect = Rect.fromLTRB(x1 + ins, y1 + ins, x2 - ins, y2 - ins);
-    final innerRR = RRect.fromRectXY(innerRect, cell * 0.35, cell * 0.35);
+    final corner = _theme == 'astral'
+        ? cell * 2.36
+        : _theme == 'volcano'
+            ? cell * .08
+            : cell * .35;
+    final innerRR = RRect.fromRectXY(innerRect, corner, corner);
     p.shader = ui.Gradient.linear(
       innerRect.topLeft,
       innerRect.bottomRight,

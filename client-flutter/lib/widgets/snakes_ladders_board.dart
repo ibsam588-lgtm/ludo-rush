@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import '../models/game_snapshot.dart';
 import '../theme/app_theme.dart';
+import 'adventure_board_art.dart';
 
 const _snakesTitlePlaqueAsset =
     'assets/images/rush/rush_snakes_ladders_title_plaque_mobile_v1.png';
@@ -25,7 +26,10 @@ const _snakeFrameAssets = {
 
 String _normalizedBoardTheme(String value) {
   final normalized = value.trim().toLowerCase();
-  return _snakeFrameAssets.containsKey(normalized) ? normalized : 'carnival';
+  return _snakeFrameAssets.containsKey(normalized) ||
+          AdventureBoardArt.themes.containsKey(normalized)
+      ? normalized
+      : 'carnival';
 }
 
 class SnakesLaddersBoard extends StatefulWidget {
@@ -88,9 +92,8 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
     final requestedTheme = _normalizedBoardTheme(widget.boardTheme);
     final title =
         widget.showTitle ? await _loadImage(_snakesTitlePlaqueAsset) : null;
-    final frame = await _loadImage(
-      _snakeFrameAssets[requestedTheme]!,
-    );
+    final frameAsset = _snakeFrameAssets[requestedTheme];
+    final frame = frameAsset == null ? null : await _loadImage(frameAsset);
     final pieces = <int, ui.Image>{};
     if (widget.showPieces) {
       for (var i = 0; i < _snakePieceAssets.length; i++) {
@@ -151,7 +154,8 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
 
   Future<void> _loadFrame(String theme) async {
     final normalized = _normalizedBoardTheme(theme);
-    final image = await _loadImage(_snakeFrameAssets[normalized]!);
+    final asset = _snakeFrameAssets[normalized];
+    final image = asset == null ? null : await _loadImage(asset);
     if (!mounted || _normalizedBoardTheme(widget.boardTheme) != normalized) {
       image?.dispose();
       return;
@@ -326,18 +330,11 @@ class _SnakesLaddersPainter extends CustomPainter {
     required this.showPieces,
   });
 
-  String get _theme {
-    final value = boardTheme.trim().toLowerCase();
-    if (value == 'royal' ||
-        value == 'neon' ||
-        value == 'classic' ||
-        value == 'jungle') {
-      return value;
-    }
-    return 'carnival';
-  }
+  String get _theme => _normalizedBoardTheme(boardTheme);
+  AdventureBoardArt? get _adventure => AdventureBoardArt.forTheme(_theme);
 
   List<Color> get _shellColors {
+    if (_adventure != null) return _adventure!.shell;
     switch (_theme) {
       case 'royal':
         return const [Color(0xFFFFF8C9), Color(0xFFD69BFF), Color(0xFF4B1688)];
@@ -354,6 +351,7 @@ class _SnakesLaddersPainter extends CustomPainter {
   }
 
   Color get _innerShellColor {
+    if (_adventure != null) return _adventure!.nests.last;
     switch (_theme) {
       case 'royal':
         return const Color(0xFFFFECFF);
@@ -370,6 +368,7 @@ class _SnakesLaddersPainter extends CustomPainter {
   }
 
   Color get _gridColor {
+    if (_adventure != null) return _adventure!.accent.withAlpha(70);
     switch (_theme) {
       case 'royal':
         return const Color(0xD18F58C9);
@@ -386,6 +385,7 @@ class _SnakesLaddersPainter extends CustomPainter {
   }
 
   Color get _outerGridColor {
+    if (_adventure != null) return _adventure!.accent;
     switch (_theme) {
       case 'royal':
         return const Color(0xFFE7B7FF);
@@ -402,7 +402,9 @@ class _SnakesLaddersPainter extends CustomPainter {
   }
 
   List<Color> _plainCellColors(int number) {
-    final even = (number + (number ~/ 10)).isEven;
+    final even = (number + ((number - 1) ~/ 10)).isEven;
+    if (_adventure != null)
+      return even ? _adventure!.tiles : _adventure!.tiles.reversed.toList();
     switch (_theme) {
       case 'royal':
         return even
@@ -429,6 +431,7 @@ class _SnakesLaddersPainter extends CustomPainter {
   }
 
   List<Color> get _snakePalette {
+    if (_adventure != null) return _adventure!.snakes;
     switch (_theme) {
       case 'royal':
         return const [
@@ -470,6 +473,7 @@ class _SnakesLaddersPainter extends CustomPainter {
   }
 
   String get _themeLabel {
+    if (_adventure != null) return _adventure!.label;
     switch (_theme) {
       case 'royal':
         return 'ROYAL COURT';
@@ -486,6 +490,7 @@ class _SnakesLaddersPainter extends CustomPainter {
   }
 
   List<Color> get _titleColors {
+    if (_adventure != null) return _adventure!.shell.reversed.toList();
     switch (_theme) {
       case 'royal':
         return const [Color(0xFF39106E), Color(0xFF9228BC), Color(0xFF250847)];
@@ -502,6 +507,7 @@ class _SnakesLaddersPainter extends CustomPainter {
   }
 
   List<Color> get _ladderColors {
+    if (_adventure != null) return _adventure!.ladder;
     switch (_theme) {
       case 'royal':
         return const [Color(0xFF7C3AA8), Color(0xFFFFC928), Color(0xFFFFF3A6)];
@@ -519,6 +525,7 @@ class _SnakesLaddersPainter extends CustomPainter {
 
   Color _numberColor(bool colored) {
     if (colored) return Colors.white;
+    if (_adventure != null) return _adventure!.ink;
     switch (_theme) {
       case 'royal':
         return const Color(0xFF4B176E);
@@ -535,6 +542,8 @@ class _SnakesLaddersPainter extends CustomPainter {
   }
 
   Color _themedCellColor(Color color) {
+    if (_adventure != null)
+      return Color.lerp(color, _adventure!.nests.last, .28)!;
     switch (_theme) {
       case 'royal':
         return Color.lerp(color, const Color(0xFFD886FF), 0.10)!;
@@ -579,6 +588,12 @@ class _SnakesLaddersPainter extends CustomPainter {
 
     if (showTitle) _drawTitle(canvas, titleRect);
     _drawShell(canvas, boardRect);
+    if (_adventure != null) {
+      canvas.save();
+      canvas.clipRRect(RRect.fromRectXY(boardRect, 24, 24));
+      _adventure!.paintTexture(canvas, boardRect);
+      canvas.restore();
+    }
 
     canvas.save();
     canvas.clipRRect(RRect.fromRectXY(playRect, cell * 0.12, cell * 0.12));
@@ -683,6 +698,7 @@ class _SnakesLaddersPainter extends CustomPainter {
       return;
     }
 
+    p.color = Colors.white;
     p.shader = LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
@@ -706,6 +722,9 @@ class _SnakesLaddersPainter extends CustomPainter {
     final p = Paint()..isAntiAlias = true;
     for (var n = 1; n <= 100; n++) {
       final r = _cellRect(rect, cell, n);
+      // Grid strokes are translucent. Reset the paint alpha before filling
+      // the next tile, otherwise the frame bleeds through almost every cell.
+      p.color = Colors.white;
       final cellColor = _coloredCells[n];
       if (cellColor != null) {
         final themedCellColor = _themedCellColor(cellColor);
@@ -766,6 +785,10 @@ class _SnakesLaddersPainter extends CustomPainter {
   }
 
   void _drawTileTexture(Canvas canvas, Rect rect, double cell, int number) {
+    if (_adventure != null) {
+      _adventure!.paintTexture(canvas, rect, opacity: .4);
+      return;
+    }
     final p = Paint()
       ..isAntiAlias = true
       ..strokeCap = StrokeCap.round;
@@ -1133,6 +1156,9 @@ class _SnakesLaddersPainter extends CustomPainter {
     final unit = dir / len;
     final normal = Offset(-unit.dy, unit.dx);
     final themeSeed = switch (_theme) {
+      'ocean' => 5,
+      'astral' => 6,
+      'volcano' => 7,
       'royal' => 1,
       'neon' => 2,
       'classic' => 3,
@@ -1141,6 +1167,9 @@ class _SnakesLaddersPainter extends CustomPainter {
     };
     final direction = (variant + themeSeed).isEven ? 1.0 : -1.0;
     final waveScale = switch (_theme) {
+      'ocean' => .32,
+      'astral' => .18,
+      'volcano' => .25,
       'royal' => 0.96,
       'neon' => 0.50,
       'classic' => 0.62,
@@ -1301,6 +1330,37 @@ class _SnakesLaddersPainter extends CustomPainter {
       ..isAntiAlias = true
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
+    if (_adventure != null) {
+      final p = Paint()
+        ..isAntiAlias = true
+        ..color = _adventure!.accent.withAlpha(210)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = cell * .028;
+      for (var i = 4; i < samples.length - 4; i += 7) {
+        final sample = samples[i];
+        if (_theme == 'ocean') {
+          canvas.drawCircle(sample.point, sample.radius * .45, p);
+        } else if (_theme == 'astral') {
+          final r = sample.radius * .55;
+          canvas.drawLine(
+              sample.point - Offset(r, 0), sample.point + Offset(r, 0), p);
+          canvas.drawLine(
+              sample.point - Offset(0, r), sample.point + Offset(0, r), p);
+        } else {
+          final side = sample.normal * sample.radius * .8;
+          final tangent =
+              Offset(-sample.normal.dy, sample.normal.dx) * sample.radius * .5;
+          canvas.drawPath(
+              Path()
+                ..moveTo(sample.point.dx - side.dx, sample.point.dy - side.dy)
+                ..lineTo(
+                    sample.point.dx + tangent.dx, sample.point.dy + tangent.dy)
+                ..lineTo(sample.point.dx + side.dx, sample.point.dy + side.dy),
+              p);
+        }
+      }
+      return;
+    }
     switch (_theme) {
       case 'royal':
         p
@@ -1948,6 +2008,7 @@ class _SnakesLaddersPainter extends CustomPainter {
         style: TextStyle(
           color: color,
           fontSize: size,
+          fontFamily: 'sans-serif',
           fontWeight: weight,
           height: 1,
           shadows: const [Shadow(color: Colors.black54, blurRadius: 2)],
