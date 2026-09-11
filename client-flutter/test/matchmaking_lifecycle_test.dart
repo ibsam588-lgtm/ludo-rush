@@ -191,7 +191,11 @@ void main() {
     expect(state.lastSnapshot!.status, 'finished');
     expect(state.coins, 500);
     expect(state.wins, 0);
+    expect(state.lastMatchRewards!.practice, isTrue);
+    expect(state.lastMatchRewards!.coins, 0);
+    expect(state.lastMatchRewards!.rating, 0);
     await state.startOfflineMatch(AppState.snakesLaddersMode);
+    expect(state.lastMatchRewards, isNull);
     await tester.pump(const Duration(seconds: 2));
     expect(state.routes, ['/game', '/game']);
     expect(state.lastSnapshot!.status, 'playing');

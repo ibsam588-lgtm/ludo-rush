@@ -8,6 +8,7 @@ import '../data/profile_catalog.dart';
 import '../data/economy.dart';
 import '../widgets/match_rules_sheet.dart';
 import '../models/game_snapshot.dart';
+import '../models/match_rewards.dart';
 import '../services/app_platform_service.dart';
 import '../services/prefs_service.dart';
 import '../services/sound_service.dart';
@@ -267,6 +268,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   String? lastRollPlayerId;
   int lastRollSequence = 0;
   bool _matchResultTracked = false;
+  MatchRewards? lastMatchRewards;
 
   // Navigation
   final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -1916,6 +1918,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _localBotTimer?.cancel();
     _localBotTimer = null;
     localMatchActive = false;
+    final previousCoins = coins;
+    final previousRating = rating;
     gamesPlayed++;
     final won = playerId != null && playerId == snap.winnerPlayerId;
     if (won) {
@@ -1932,6 +1936,10 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         coins += GameEconomy.onlineFinishCoins;
       }
     }
+    lastMatchRewards = MatchRewards(
+        coins: coins - previousCoins,
+        rating: rating - previousRating,
+        practice: !economyEligible);
     _prefs.gamesPlayed = gamesPlayed;
     _prefs.wins = wins;
     _prefs.rating = rating;
@@ -1978,6 +1986,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     lastReactionPlayerId = null;
     reactionSequence = 0;
     _matchResultTracked = false;
+    lastMatchRewards = null;
     notifyListeners();
   }
 

@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
@@ -14,14 +13,8 @@ import '../widgets/dice_widget.dart';
 import '../widgets/profile_avatar.dart';
 import '../widgets/six_celebration.dart';
 import '../data/table_reactions.dart';
-
-const _gameBackdropAsset =
-    'assets/images/rush/rush_game_backdrop_mobile_v1.jpg';
-const _gameMascotAsset = 'assets/images/rush/rush_game_mascot_mobile_v1.png';
-const _reactionSixAsset =
-    'assets/images/rush/rush_game_reaction_six_mobile_v1.png';
-const _reactionCrownAsset =
-    'assets/images/rush/rush_game_reaction_crown_mobile_v1.png';
+import '../widgets/match_style.dart';
+import '../models/match_moment.dart';
 
 String _shortNumber(int value) {
   if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
@@ -43,6 +36,28 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   final _diceKey = GlobalKey<DiceWidgetState>();
   int _prevRollSequence = 0;
   bool _rolling = false;
+  bool _piecesMoving = false;
+  GameSnapshot? _seenSnapshot;
+  MatchMoment? _moment;
+  int _avatarSequence = 0;
+  Timer? _momentTimer;
+
+  void _showMoment(MatchMoment moment) {
+    _momentTimer?.cancel();
+    setState(() {
+      _moment = moment;
+      _avatarSequence++;
+    });
+    _momentTimer = Timer(const Duration(milliseconds: 1700), () {
+      if (mounted) setState(() => _moment = null);
+    });
+  }
+
+  void _onMotionChanged(bool moving) {
+    if (mounted && _piecesMoving != moving)
+      setState(() => _piecesMoving = moving);
+  }
+
   int _sixSequence = 0;
   bool _quitDialogOpen = false;
   bool _quitting = false;
@@ -68,6 +83,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   void dispose() {
     _quickBubbleTimer?.cancel();
+    _momentTimer?.cancel();
     _bgCtrl.dispose();
     _turnPulse.dispose();
     super.dispose();
@@ -78,10 +94,26 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return Consumer<AppState>(
       builder: (context, state, _) {
         final snapshot = state.lastSnapshot;
+        final palette = MatchPalette.forTheme(
+            snapshot?.mode == AppState.snakesLaddersMode
+                ? state.snakesBoardTheme
+                : state.ludoBoardTheme);
+        final reduced = MediaQuery.disableAnimationsOf(context);
+        if (!identical(snapshot, _seenSnapshot)) {
+          final moment = snapshot == null
+              ? null
+              : MatchMoment.between(_seenSnapshot, snapshot);
+          _seenSnapshot = snapshot;
+          if (moment != null)
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _showMoment(moment);
+            });
+        }
 
         if (snapshot != null) {
           final rollSequence = state.lastRollSequence;
           final rollValue = state.lastRollValue;
+          final rollerId = state.lastRollPlayerId;
           if (rollSequence != _prevRollSequence && rollValue > 0) {
             _prevRollSequence = rollSequence;
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -95,6 +127,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   _rolling = false;
                   if (rollValue == 6) _sixSequence++;
                 });
+                if (rollValue == 6) {
+                  final roller =
+                      snapshot.seats.where((s) => s.playerId == rollerId);
+                  if (roller.isNotEmpty)
+                    _showMoment(MatchMoment(
+                        roller.first.seat, AvatarMood.lucky, 'Lucky six!'));
+                }
               });
             });
           }
@@ -119,159 +158,160 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         final canRoll = snapshot?.status == 'playing' &&
             myTurn &&
             (snapshot?.diceValue ?? 0) == 0 &&
-            !_rolling;
+            !_rolling &&
+            !_piecesMoving;
         final legalCount = snapshot?.availableMoves.length ?? 0;
         final seatColor =
             mySeat != null ? AppColors.seatColor(mySeat) : goldColor;
         final snakesTable = snapshot?.mode == AppState.snakesLaddersMode;
 
-        return PopScope(
-          canPop: false,
-          onPopInvokedWithResult: (didPop, _) {
-            if (!didPop) _showQuitDialog(context, state);
-          },
-          child: Scaffold(
-            backgroundColor: const Color(0xFF1A0520),
-            body: Stack(
-              children: [
-                Positioned.fill(
-                  child: Image.asset(
-                    _gameBackdropAsset,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                  ),
-                ),
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          const Color(0xFF120018).withAlpha(130),
-                          const Color(0x00120018),
-                          const Color(0xEE16001E),
-                        ],
-                        stops: const [0, 0.48, 1],
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned.fill(
-                  child: AnimatedBuilder(
-                    animation: _bgCtrl,
-                    builder: (_, __) => CustomPaint(
-                      painter: _GameBgPainter(_bgCtrl.value, seatColor),
-                    ),
-                  ),
-                ),
-                SafeArea(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final compact = constraints.maxHeight < 760;
-                      final topBarHeight = compact ? 50.0 : 58.0;
-                      final heroHeight = compact ? 90.0 : 108.0;
-                      final actionHeight = snakesTable
-                          ? (compact ? 158.0 : 188.0)
-                          : (compact ? 166.0 : 202.0);
-                      final boardGap = compact ? 5.0 : 8.0;
-                      final maxBoardFromHeight = math.max(
-                        240.0,
-                        constraints.maxHeight -
-                            topBarHeight -
-                            heroHeight -
-                            actionHeight -
-                            boardGap * 4 -
-                            6.0,
-                      );
-                      final boardAspect = snakesTable ? 1.13 : 1.0;
-                      final boardWidth = math.min(
-                        constraints.maxWidth - 14,
-                        maxBoardFromHeight / boardAspect,
-                      );
-                      final boardHeight = boardWidth * boardAspect;
+        return MatchStyle(
+            palette: palette,
+            child: PopScope(
+              canPop: false,
+              onPopInvokedWithResult: (didPop, _) {
+                if (!didPop) _showQuitDialog(context, state);
+              },
+              child: Scaffold(
+                backgroundColor: const Color(0xFF1A0520),
+                body: Stack(
+                  children: [
+                    Positioned.fill(
+                        child: AnimatedBuilder(
+                      animation: _bgCtrl,
+                      builder: (_, __) => MatchBackdrop(
+                          palette: palette, phase: reduced ? 0 : _bgCtrl.value),
+                    )),
+                    SafeArea(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final compact = constraints.maxHeight < 760;
+                          final topBarHeight = compact ? 50.0 : 58.0;
+                          final heroHeight = compact ? 90.0 : 108.0;
+                          final actionHeight = snakesTable
+                              ? (compact ? 158.0 : 188.0)
+                              : (compact ? 166.0 : 202.0);
+                          final boardGap = compact ? 5.0 : 8.0;
+                          final maxBoardFromHeight = math.max(
+                            240.0,
+                            constraints.maxHeight -
+                                topBarHeight -
+                                heroHeight -
+                                actionHeight -
+                                boardGap * 4 -
+                                6.0,
+                          );
+                          final boardAspect = snakesTable ? 1.13 : 1.0;
+                          final boardWidth = math.min(
+                            constraints.maxWidth - 14,
+                            maxBoardFromHeight / boardAspect,
+                          );
+                          final boardHeight = boardWidth * boardAspect;
 
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            height: topBarHeight,
-                            child: _GameTopBar(
-                              state: state,
-                              snapshot: snapshot,
-                              mySeat: mySeat,
-                              onMenu: () => _showQuitDialog(context, state),
-                            ),
-                          ),
-                          SizedBox(height: compact ? 4 : 6),
-                          SizedBox(
-                            height: heroHeight,
-                            child: _PlayerHeroBand(
-                              state: state,
-                              snapshot: snapshot,
-                              mySeat: mySeat,
-                              pulse: _turnPulse,
-                              compact: compact,
-                              snakesTable: snakesTable,
-                            ),
-                          ),
-                          SizedBox(height: boardGap),
-                          SizedBox(
-                            width: boardWidth,
-                            height: boardHeight,
-                            child: snakesTable
-                                ? SnakesLaddersBoard(
-                                    snapshot: snapshot,
-                                    mySeat: mySeat,
-                                    boardTheme: state.snakesBoardTheme,
-                                    onPieceTap: (id) => state.movePiece(id),
-                                  )
-                                : LudoBoard(
-                                    snapshot: snapshot,
-                                    mySeat: mySeat,
-                                    boardTheme: state.ludoBoardTheme,
-                                    onPieceTap: (id) => state.movePiece(id),
-                                    showWaitingOverlay: false,
-                                  ),
-                          ),
-                          const Spacer(),
-                          _PlayerActionRow(
-                            state: state,
-                            snapshot: snapshot,
-                            mySeat: mySeat,
-                            diceKey: _diceKey,
-                            canRoll: canRoll,
-                            legalCount: legalCount,
-                            rolling: _rolling,
-                            turnPulse: _turnPulse,
-                            height: actionHeight,
-                            onEmoji: () => _showEmojiPicker(context),
-                            onChat: () => _showChatPicker(context),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-                Positioned.fill(child: SixCelebration(sequence: _sixSequence)),
-                if (_quickBubbleText != null)
-                  Positioned(
-                    left: 18,
-                    right: 18,
-                    bottom: MediaQuery.of(context).padding.bottom + 172,
-                    child: IgnorePointer(
-                      child: _QuickBubble(
-                        text: _quickBubbleText!,
-                        isEmoji: _quickBubbleIsEmoji,
-                        color: seatColor,
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                height: topBarHeight,
+                                child: _GameTopBar(
+                                  state: state,
+                                  snapshot: snapshot,
+                                  mySeat: mySeat,
+                                  onMenu: () => _showQuitDialog(context, state),
+                                ),
+                              ),
+                              SizedBox(height: compact ? 4 : 6),
+                              SizedBox(
+                                height: heroHeight,
+                                child: _PlayerHeroBand(
+                                  state: state,
+                                  snapshot: snapshot,
+                                  mySeat: mySeat,
+                                  pulse: _turnPulse,
+                                  compact: compact,
+                                  snakesTable: snakesTable,
+                                  moment: _moment,
+                                  celebration: _avatarSequence,
+                                ),
+                              ),
+                              SizedBox(height: boardGap),
+                              SizedBox(
+                                width: boardWidth,
+                                height: boardHeight,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(18),
+                                      boxShadow: [
+                                        const BoxShadow(
+                                            color: Colors.black45,
+                                            blurRadius: 22,
+                                            offset: Offset(0, 10)),
+                                        BoxShadow(
+                                            color: palette.accent.withAlpha(18),
+                                            blurRadius: 16)
+                                      ]),
+                                  child: snakesTable
+                                      ? SnakesLaddersBoard(
+                                          snapshot: snapshot,
+                                          mySeat: mySeat,
+                                          onMotionChanged: _onMotionChanged,
+                                          boardTheme: state.snakesBoardTheme,
+                                          onPieceTap: (id) =>
+                                              state.movePiece(id),
+                                        )
+                                      : LudoBoard(
+                                          snapshot: snapshot,
+                                          mySeat: mySeat,
+                                          onMotionChanged: _onMotionChanged,
+                                          boardTheme: state.ludoBoardTheme,
+                                          onPieceTap: (id) =>
+                                              state.movePiece(id),
+                                          showWaitingOverlay: false,
+                                        ),
+                                ),
+                              ),
+                              const Spacer(),
+                              _PlayerActionRow(
+                                state: state,
+                                snapshot: snapshot,
+                                mySeat: mySeat,
+                                diceKey: _diceKey,
+                                canRoll: canRoll,
+                                legalCount: legalCount,
+                                rolling: _rolling,
+                                piecesMoving: _piecesMoving,
+                                moment: _moment,
+                                celebration: _avatarSequence,
+                                turnPulse: _turnPulse,
+                                height: actionHeight,
+                                onEmoji: () => _showEmojiPicker(context),
+                                onChat: () => _showChatPicker(context),
+                              ),
+                              const SizedBox(height: 8),
+                            ],
+                          );
+                        },
                       ),
                     ),
-                  ),
-              ],
-            ),
-          ),
-        );
+                    Positioned.fill(
+                        child: SixCelebration(sequence: _sixSequence)),
+                    if (_quickBubbleText != null)
+                      Positioned(
+                        left: 18,
+                        right: 18,
+                        bottom: MediaQuery.of(context).padding.bottom + 172,
+                        child: IgnorePointer(
+                          child: _QuickBubble(
+                            text: _quickBubbleText!,
+                            isEmoji: _quickBubbleIsEmoji,
+                            color: seatColor,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ));
       },
     );
   }
@@ -770,48 +810,6 @@ class _QuickBubble extends StatelessWidget {
 }
 // Game background
 
-class _GameBgPainter extends CustomPainter {
-  final double t;
-  final Color seatColor;
-  _GameBgPainter(this.t, this.seatColor);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = Paint()..style = PaintingStyle.fill;
-
-    p.shader = ui.Gradient.radial(
-      Offset(size.width * 0.5, size.height),
-      size.width * 0.6,
-      [seatColor.withAlpha(54), Colors.transparent],
-    );
-    canvas.drawRect(Offset.zero & size, p);
-    p.shader = null;
-
-    final ax = size.width * (0.5 + 0.3 * math.sin(t * math.pi * 2));
-    final ay = size.height * 0.15;
-    p.shader = ui.Gradient.radial(
-      Offset(ax, ay),
-      size.width * 0.4,
-      [const Color(0x26FF9A00), Colors.transparent],
-    );
-    canvas.drawRect(Offset.zero & size, p);
-    p.shader = null;
-
-    for (int i = 0; i < 36; i++) {
-      final sx = ((i * 137 + 41) % 1000) / 1000.0 * size.width;
-      final sy = ((i * 211 + 17) % 1000) / 1000.0 * size.height;
-      final flicker = 0.5 + 0.5 * math.sin(t * math.pi * 2 + i);
-      p.color = Colors.white.withAlpha((18 + flicker * 34).round());
-      canvas.drawCircle(Offset(sx, sy), 0.75 + flicker * 1.15, p);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_GameBgPainter old) => old.t != t;
-}
-
-// Game top bar
-
 class _GameTopBar extends StatelessWidget {
   final AppState state;
   final GameSnapshot? snapshot;
@@ -842,7 +840,7 @@ class _GameTopBar extends StatelessWidget {
                   height: menuSize,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(compact ? 11 : 13),
-                    color: const Color(0xAA250534),
+                    color: MatchStyle.of(context).surface,
                     border:
                         Border.all(color: const Color(0x66FFD426), width: 1.4),
                     boxShadow: const [
@@ -876,17 +874,9 @@ class _GameTopBar extends StatelessWidget {
                         ),
                         SizedBox(width: compact ? 4 : 6),
                         _CurrencyChip(
-                          icon: Icons.diamond_rounded,
-                          value: 30,
-                          color: const Color(0xFF27E99C),
-                          compact: compact,
-                        ),
-                        SizedBox(width: compact ? 4 : 6),
-                        _CurrencyChip(
                           icon: Icons.bolt_rounded,
-                          value: 12,
+                          value: state.energy,
                           color: const Color(0xFF38C8FF),
-                          plus: true,
                           compact: compact,
                         ),
                       ],
@@ -916,7 +906,7 @@ class _GameLogo extends StatelessWidget {
         children: [
           Positioned(
             left: 0,
-            top: compact ? -3 : -7,
+            top: 1,
             child: Text(
               'Ludo',
               style: TextStyle(
@@ -937,7 +927,7 @@ class _GameLogo extends StatelessWidget {
           ),
           Positioned(
             left: 2,
-            top: compact ? 15 : 17,
+            top: compact ? 21 : 25,
             child: Text(
               'Rush',
               style: TextStyle(
@@ -977,14 +967,12 @@ class _CurrencyChip extends StatelessWidget {
   final IconData icon;
   final int value;
   final Color color;
-  final bool plus;
   final bool compact;
 
   const _CurrencyChip({
     required this.icon,
     required this.value,
     required this.color,
-    this.plus = false,
     this.compact = false,
   });
 
@@ -993,7 +981,7 @@ class _CurrencyChip extends StatelessWidget {
     return Container(
       height: compact ? 30 : 34,
       constraints: BoxConstraints(minWidth: compact ? 56 : 72),
-      padding: EdgeInsets.only(left: 3, right: plus ? 3 : (compact ? 6 : 10)),
+      padding: EdgeInsets.only(left: 3, right: compact ? 6 : 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(22),
         color: const Color(0xC5140020),
@@ -1029,10 +1017,6 @@ class _CurrencyChip extends StatelessWidget {
               shadows: [Shadow(color: Colors.black, blurRadius: 3)],
             ),
           ),
-          if (plus) ...[
-            SizedBox(width: compact ? 3 : 5),
-            Icon(Icons.add_circle, color: goldColor, size: compact ? 16 : 19),
-          ],
         ],
       ),
     );
@@ -1046,194 +1030,105 @@ class _PlayerHeroBand extends StatelessWidget {
   final AnimationController pulse;
   final bool compact;
   final bool snakesTable;
-
-  const _PlayerHeroBand({
-    required this.state,
-    required this.snapshot,
-    required this.mySeat,
-    required this.pulse,
-    required this.compact,
-    required this.snakesTable,
-  });
-
+  final MatchMoment? moment;
+  final int celebration;
+  const _PlayerHeroBand(
+      {required this.state,
+      required this.snapshot,
+      required this.mySeat,
+      required this.pulse,
+      required this.compact,
+      required this.snakesTable,
+      required this.moment,
+      required this.celebration});
   @override
   Widget build(BuildContext context) {
-    final seat = mySeat ?? 0;
-    final activeSeat = snapshot?.currentTurnSeat;
-    final myTurn = activeSeat == mySeat;
-    final color = AppColors.seatColor(seat);
-    final displayName =
-        state.displayName.trim().isEmpty || state.displayName == 'Ludo Player'
-            ? 'Ibsam'
-            : state.displayName;
-    final sixActive = state.lastRollValue == 6;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      child: Row(
-        children: [
-          Expanded(
-            child: AnimatedBuilder(
-              animation: pulse,
-              builder: (_, __) {
-                final glow = myTurn ? (0.55 + pulse.value * 0.45) : 0.35;
-                return Container(
-                  height: double.infinity,
-                  padding: EdgeInsets.fromLTRB(
-                    compact ? 8 : 10,
-                    compact ? 8 : 10,
-                    compact ? 8 : 12,
-                    compact ? 7 : 10,
-                  ),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xEE8B146F), Color(0xD62A063B)],
-                    ),
-                    border: Border.all(color: goldColor, width: 2.2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withAlpha((80 * glow).round()),
-                        blurRadius: 22,
-                      ),
-                      const BoxShadow(
-                        color: Color(0x99000000),
-                        blurRadius: 16,
-                        offset: Offset(0, 7),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      SizedBox(
-                          width: compact ? 66 : 78,
-                          height: compact ? 66 : 78,
-                          child: ProfileAvatarView(
-                              preset: state.avatarPreset,
-                              imagePath: state.avatarImagePath,
-                              celebration: state.lastRollValue == 6 &&
-                                      state.lastRollPlayerId == state.playerId
-                                  ? state.lastRollSequence
-                                  : 0)),
-                      SizedBox(width: compact ? 8 : 12),
+    final palette = MatchStyle.of(context);
+    final playing = snapshot?.status == 'playing';
+    final myTurn = playing && snapshot?.currentTurnSeat == mySeat;
+    final active =
+        snapshot?.seats.where((s) => s.seat == snapshot?.currentTurnSeat);
+    final turn = !playing
+        ? 'Your table'
+        : myTurn
+            ? 'Your turn'
+            : "${active != null && active.isNotEmpty ? state.publicSeatName(active.first) : 'Opponent'}'s turn";
+    final ownMoment = moment?.seat == mySeat ? moment : null;
+    return AnimatedBuilder(
+        animation: pulse,
+        builder: (context, _) {
+          final glow =
+              MediaQuery.disableAnimationsOf(context) ? .5 : pulse.value;
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: LinearGradient(colors: palette.panel),
+                border: Border.all(
+                    color: myTurn ? palette.accent : Colors.white24,
+                    width: myTurn ? 1.8 : 1),
+                boxShadow: [
+                  BoxShadow(
+                      color: myTurn
+                          ? palette.accent.withAlpha((25 + glow * 35).round())
+                          : Colors.black26,
+                      blurRadius: 18,
+                      offset: const Offset(0, 5))
+                ]),
+            child: Row(children: [
+              SizedBox.square(
+                  dimension: compact ? 62 : 76,
+                  child: ProfileAvatarView(
+                      preset: state.avatarPreset,
+                      imagePath: state.avatarImagePath,
+                      celebration: celebration,
+                      mood: ownMoment?.mood ?? AvatarMood.idle)),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                    Row(children: [
                       Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    displayName,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: compact ? 20 : 23,
-                                      fontWeight: FontWeight.w900,
-                                      shadows: const [
-                                        Shadow(
-                                            color: Colors.black, blurRadius: 4)
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                _CountryPill(code: state.countryCode),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerLeft,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.emoji_events_rounded,
-                                        color: goldColor, size: 20),
-                                    const SizedBox(width: 5),
-                                    Text(
-                                      _shortNumber(state.rating),
-                                      style: TextStyle(
-                                        color: goldColor,
-                                        fontSize: compact ? 16 : 18,
-                                        fontWeight: FontWeight.w900,
-                                        shadows: const [
-                                          Shadow(
-                                              color: Colors.black,
-                                              blurRadius: 4)
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      width: compact ? 26 : 32,
-                                      height: compact ? 26 : 32,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: const LinearGradient(
-                                          colors: [
-                                            Color(0xFF4AA3FF),
-                                            Color(0xFF2246A6)
-                                          ],
-                                        ),
-                                        border: Border.all(
-                                            color: goldColor, width: 1.5),
-                                      ),
-                                      child: const Icon(Icons.shield_rounded,
-                                          color: goldColor, size: 17),
-                                    ),
-                                    if (state.privateInviteCode != null) ...[
-                                      const SizedBox(width: 8),
-                                      _InviteCodeChip(
-                                        code: state.privateInviteCode!,
-                                        compact: compact,
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-          SizedBox(width: compact ? 5 : 8),
-          SizedBox(
-            width: compact ? 106 : 124,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _ReactionBadge(
-                  asset: _reactionSixAsset,
-                  title: snakesTable ? 'Ladder' : 'Six!',
-                  subtitle: snakesTable ? 'Climb Boost' : 'Rush Boost',
-                  active: sixActive,
-                  compact: compact,
-                ),
-                _ReactionBadge(
-                  asset: _reactionCrownAsset,
-                  title: snakesTable ? 'Snake' : 'Leader',
-                  subtitle: snakesTable ? 'Shield' : 'Glow',
-                  active: myTurn,
-                  compact: compact,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+                          child: Text(
+                              state.displayName.trim().isEmpty
+                                  ? 'Player'
+                                  : state.displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: compact ? 18 : 22,
+                                  fontWeight: FontWeight.w800))),
+                      if (state.privateInviteCode != null)
+                        _InviteCodeChip(
+                            code: state.privateInviteCode!, compact: true)
+                    ]),
+                    const SizedBox(height: 5),
+                    Semantics(
+                        liveRegion: true,
+                        child: Text(ownMoment?.label ?? turn,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: palette.accent,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700))),
+                    if (!compact)
+                      Text('${state.rating} rating',
+                          style: const TextStyle(
+                              color: Colors.white60, fontSize: 12)),
+                  ])),
+              if (myTurn)
+                Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Icon(Icons.play_circle_fill_rounded,
+                        color: palette.accent, size: 28)),
+            ]),
+          );
+        });
   }
 }
 
@@ -1279,137 +1174,6 @@ class _InviteCodeChip extends StatelessWidget {
   }
 }
 
-class _CountryPill extends StatelessWidget {
-  final String code;
-
-  const _CountryPill({required this.code});
-
-  @override
-  Widget build(BuildContext context) {
-    final clean = code.trim().isEmpty ? 'US' : code.trim().toUpperCase();
-    return Container(
-      padding: const EdgeInsets.fromLTRB(7, 3, 8, 3),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(999),
-        color: const Color(0x880D0920),
-        border: Border.all(color: goldColor, width: 1.3),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 13,
-            height: 9,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(2),
-              border: Border.all(color: Colors.white, width: 0.7),
-              gradient: const LinearGradient(
-                colors: [Color(0xFF2544B8), Color(0xFFE13B42)],
-              ),
-            ),
-          ),
-          const SizedBox(width: 3),
-          Text(
-            clean,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReactionBadge extends StatelessWidget {
-  final String asset;
-  final String title;
-  final String subtitle;
-  final bool active;
-  final bool compact;
-
-  const _ReactionBadge({
-    required this.asset,
-    required this.title,
-    required this.subtitle,
-    required this.active,
-    required this.compact,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedOpacity(
-      opacity: active ? 1 : 0.86,
-      duration: const Duration(milliseconds: 180),
-      child: Container(
-        height: compact ? 40 : 48,
-        padding: const EdgeInsets.fromLTRB(4, 3, 6, 3),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: const LinearGradient(
-            colors: [Color(0xCC3A073E), Color(0xAA12051F)],
-          ),
-          border: Border.all(
-            color: active ? goldColor : Colors.white.withAlpha(58),
-            width: active ? 1.7 : 1,
-          ),
-          boxShadow: active
-              ? const [
-                  BoxShadow(color: Color(0x88FFD426), blurRadius: 13),
-                ]
-              : null,
-        ),
-        child: Row(
-          children: [
-            Image.asset(asset, width: compact ? 36 : 42, fit: BoxFit.contain),
-            const SizedBox(width: 3),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: compact ? 13 : 16,
-                      height: 0.9,
-                      fontWeight: FontWeight.w900,
-                      shadows: const [
-                        Shadow(color: Colors.black, blurRadius: 3)
-                      ],
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: goldColor,
-                      fontSize: compact ? 9 : 11,
-                      height: 1.0,
-                      fontWeight: FontWeight.w900,
-                      shadows: const [
-                        Shadow(color: Colors.black, blurRadius: 3)
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// Player action row
-
 class _PlayerActionRow extends StatelessWidget {
   final AppState state;
   final GameSnapshot? snapshot;
@@ -1418,6 +1182,9 @@ class _PlayerActionRow extends StatelessWidget {
   final bool canRoll;
   final int legalCount;
   final bool rolling;
+  final bool piecesMoving;
+  final MatchMoment? moment;
+  final int celebration;
   final AnimationController turnPulse;
   final double height;
   final VoidCallback onEmoji;
@@ -1431,6 +1198,9 @@ class _PlayerActionRow extends StatelessWidget {
     required this.canRoll,
     required this.legalCount,
     required this.rolling,
+    required this.piecesMoving,
+    required this.moment,
+    required this.celebration,
     required this.turnPulse,
     required this.height,
     required this.onEmoji,
@@ -1448,153 +1218,128 @@ class _PlayerActionRow extends StatelessWidget {
         hasDice &&
         legalCount > 0 &&
         isMyTurn &&
-        !rolling;
+        !rolling &&
+        !piecesMoving;
     final enabled = canRoll || showMove;
     final action =
         showMove ? state.moveBestPiece : (canRoll ? state.rollDice : null);
     final actionLabel = waitingForPlayers
         ? 'Waiting for players'
-        : rolling
-            ? 'Rolling'
-            : showMove
-                ? 'Tap to Move'
-                : canRoll
-                    ? 'Tap to Roll'
-                    : isMyTurn
-                        ? 'Choose Goti'
-                        : 'Wait Turn';
+        : piecesMoving
+            ? 'Moving...'
+            : rolling
+                ? 'Rolling'
+                : showMove
+                    ? 'Tap to Move'
+                    : canRoll
+                        ? 'Tap to Roll'
+                        : isMyTurn
+                            ? 'Choose Goti'
+                            : 'Wait Turn';
     final opponents =
         snapshot?.seats.where((s) => s.seat != mySeat).toList() ?? const [];
 
+    final palette = MatchStyle.of(context);
     return Container(
       width: double.infinity,
       height: height,
-      margin: const EdgeInsets.fromLTRB(8, 0, 8, 4),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final compact = constraints.maxHeight < 184;
-          final opponentDockHeight =
-              opponents.isEmpty ? 0.0 : (compact ? 38.0 : 44.0);
-          final diceSize = opponents.isEmpty
-              ? (compact ? 82.0 : 116.0)
-              : (compact ? 68.0 : 104.0);
-          final mascotWidth = compact ? 100.0 : 154.0;
-          final diceTop = opponentDockHeight + (compact ? 4.0 : 6.0);
-          return Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned(
-                left: -8,
-                bottom: compact ? 6 : 8,
-                width: mascotWidth,
-                child: IgnorePointer(
-                  child: Image.asset(
-                    _gameMascotAsset,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-              ),
-              if (opponents.isNotEmpty)
-                Positioned(
-                  left: compact ? 2 : 6,
-                  right: compact ? 2 : 6,
-                  top: 0,
-                  height: opponentDockHeight,
-                  child: _OpponentDock(
-                    seats: opponents,
-                    state: state,
-                    activeSeat: snapshot?.currentTurnSeat,
-                    compact: compact,
-                  ),
-                ),
-              Positioned(
-                top: diceTop,
-                left: (constraints.maxWidth - diceSize) / 2,
-                child: _DiceActionButton(
-                  diceKey: diceKey,
-                  enabled: enabled,
-                  moving: showMove,
-                  color: showMove ? boardGreen : seatColor,
-                  pulse: turnPulse,
-                  size: diceSize,
-                  skin: state.diceSkin,
-                  onTap: action,
-                ),
-              ),
-              Positioned(
-                top: diceTop + (compact ? 2 : 4),
-                right: compact ? 8 : 14,
-                child: _AutoRollChip(
-                  enabled: state.autoRollEnabled,
-                  compact: compact,
-                  onChanged: state.setAutoRollEnabled,
-                ),
-              ),
-              Positioned(
-                top: diceTop + diceSize + (compact ? 4 : 8),
-                left: (constraints.maxWidth - (compact ? 132 : 154)) / 2,
-                width: compact ? 132 : 154,
-                height: compact ? 34 : 40,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: action,
-                  child: Container(
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF61205E), Color(0xFF28072E)],
-                      ),
-                      border: Border.all(color: goldColor, width: 1.8),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0xAA000000),
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      actionLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: compact ? 15 : 18,
-                        fontWeight: FontWeight.w900,
-                        shadows: const [
-                          Shadow(color: Colors.black, blurRadius: 4)
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                right: compact ? 8 : 14,
-                bottom: compact ? 6 : 24,
-                child: Row(
-                  children: [
-                    _ActionPill(
-                      label: 'Emoji',
-                      icon: Icons.mood_rounded,
-                      compact: compact,
-                      onTap: onEmoji,
-                    ),
-                    SizedBox(width: compact ? 7 : 12),
-                    _ActionPill(
-                      label: 'Chat',
-                      icon: Icons.chat_bubble_rounded,
-                      compact: compact,
-                      onTap: onChat,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
-      ),
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+      child: Column(children: [
+        if (opponents.isNotEmpty)
+          SizedBox(
+              height: 40,
+              child: _OpponentDock(
+                  seats: opponents,
+                  state: state,
+                  activeSeat: snapshot?.status == 'playing'
+                      ? snapshot?.currentTurnSeat
+                      : null,
+                  moment: moment,
+                  celebration: celebration,
+                  compact: true)),
+        const SizedBox(height: 7),
+        Expanded(child: LayoutBuilder(builder: (context, box) {
+          final diceSize = math.min(96.0, math.max(48.0, box.maxHeight - 39));
+          return Row(children: [
+            SizedBox(
+                width: 48,
+                child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton(
+                          tooltip: 'Emoji',
+                          onPressed: onEmoji,
+                          style: IconButton.styleFrom(
+                              backgroundColor: palette.surface,
+                              foregroundColor: palette.accent),
+                          icon: const Icon(Icons.mood_rounded)),
+                      const SizedBox(height: 4),
+                      IconButton(
+                          tooltip: 'Chat',
+                          onPressed: onChat,
+                          style: IconButton.styleFrom(
+                              backgroundColor: palette.surface,
+                              foregroundColor: palette.accent),
+                          icon: const Icon(Icons.chat_bubble_outline_rounded)),
+                    ])),
+            const SizedBox(width: 8),
+            Expanded(
+                child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                  _DiceActionButton(
+                      diceKey: diceKey,
+                      enabled: enabled,
+                      moving: showMove,
+                      color: seatColor,
+                      pulse: turnPulse,
+                      size: diceSize,
+                      skin: state.diceSkin,
+                      onTap: action),
+                  const SizedBox(height: 5),
+                  SizedBox(
+                      height: 32,
+                      width: double.infinity,
+                      child: Semantics(
+                          button: true,
+                          enabled: enabled,
+                          child: GestureDetector(
+                              onTap: action,
+                              child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                      gradient:
+                                          LinearGradient(colors: palette.panel),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                          color: palette.accent
+                                              .withAlpha(enabled ? 200 : 70))),
+                                  child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 8),
+                                          child: Text(actionLabel,
+                                              style: TextStyle(
+                                                  color: enabled
+                                                      ? Colors.white
+                                                      : Colors.white60,
+                                                  fontSize: 15,
+                                                  fontWeight:
+                                                      FontWeight.w800)))))))),
+                ])),
+            const SizedBox(width: 8),
+            SizedBox(
+                width: 82,
+                child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: _AutoRollChip(
+                        enabled: state.autoRollEnabled,
+                        compact: true,
+                        onChanged: state.setAutoRollEnabled))),
+          ]);
+        })),
+      ]),
     );
   }
 }
@@ -1603,12 +1348,16 @@ class _OpponentDock extends StatelessWidget {
   final List<SeatState> seats;
   final AppState state;
   final int? activeSeat;
+  final MatchMoment? moment;
+  final int celebration;
   final bool compact;
 
   const _OpponentDock({
     required this.seats,
     required this.state,
     required this.activeSeat,
+    required this.moment,
+    required this.celebration,
     required this.compact,
   });
 
@@ -1622,6 +1371,10 @@ class _OpponentDock extends StatelessWidget {
               seat: seats[i],
               state: state,
               active: seats[i].seat == activeSeat,
+              mood: moment?.seat == seats[i].seat
+                  ? moment!.mood
+                  : AvatarMood.idle,
+              celebration: celebration,
               compact: true,
               dense: compact,
             ),
@@ -1639,6 +1392,8 @@ class _OpponentChip extends StatelessWidget {
   final bool active;
   final bool compact;
   final bool dense;
+  final AvatarMood mood;
+  final int celebration;
 
   const _OpponentChip({
     required this.seat,
@@ -1646,13 +1401,15 @@ class _OpponentChip extends StatelessWidget {
     required this.active,
     required this.compact,
     this.dense = false,
+    this.mood = AvatarMood.idle,
+    this.celebration = 0,
   });
 
   @override
   Widget build(BuildContext context) {
     final color = AppColors.seatColor(seat.seat);
     final name = state.publicSeatName(seat);
-    final score = 620 + seat.seat * 170;
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),
       height: dense ? 36 : (compact ? 43 : 50),
@@ -1694,8 +1451,8 @@ class _OpponentChip extends StatelessWidget {
               ),
               border: Border.all(color: goldColor, width: 1.4),
             ),
-            child: Icon(Icons.person_pin_circle_rounded,
-                color: Colors.white, size: dense ? 18 : (compact ? 20 : 24)),
+            child: ProfileAvatarView(
+                preset: 12 + seat.seat, mood: mood, celebration: celebration),
           ),
           SizedBox(width: dense ? 4 : 6),
           Expanded(
@@ -1718,11 +1475,18 @@ class _OpponentChip extends StatelessWidget {
                 const SizedBox(height: 2),
                 Row(
                   children: [
-                    const Icon(Icons.emoji_events_rounded,
-                        color: goldColor, size: 14),
+                    Icon(
+                        active
+                            ? Icons.play_arrow_rounded
+                            : Icons.circle_outlined,
+                        color: goldColor,
+                        size: 14),
                     const SizedBox(width: 3),
-                    Text(
-                      score.toString(),
+                    Flexible(
+                        child: Text(
+                      active ? 'Playing' : 'Waiting',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: goldColor,
                         fontSize: dense ? 9 : (compact ? 10 : 12),
@@ -1732,7 +1496,7 @@ class _OpponentChip extends StatelessWidget {
                           Shadow(color: Colors.black, blurRadius: 3)
                         ],
                       ),
-                    ),
+                    )),
                   ],
                 ),
               ],
@@ -1770,7 +1534,11 @@ class _DiceActionButton extends StatelessWidget {
     return AnimatedBuilder(
       animation: pulse,
       builder: (_, __) {
-        final glow = enabled ? (0.45 + pulse.value * 0.55) : 0.0;
+        final glow = enabled
+            ? (MediaQuery.disableAnimationsOf(context)
+                ? .5
+                : (0.45 + pulse.value * 0.55))
+            : 0.0;
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: onTap,
@@ -1787,10 +1555,10 @@ class _DiceActionButton extends StatelessWidget {
                     shape: BoxShape.circle,
                     gradient: SweepGradient(
                       colors: [
-                        goldColor,
+                        MatchStyle.of(context).accent,
                         color.withAlpha(210),
                         const Color(0xFFFFF6AE),
-                        goldColor,
+                        MatchStyle.of(context).accent,
                       ],
                     ),
                     boxShadow: [
@@ -1811,8 +1579,8 @@ class _DiceActionButton extends StatelessWidget {
                   height: size * 0.82,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: const RadialGradient(
-                      colors: [Color(0xFFFF2D3B), Color(0xFF530029)],
+                    gradient: RadialGradient(
+                      colors: MatchStyle.of(context).panel,
                     ),
                     border: Border.all(
                       color: enabled ? const Color(0xFFFFF0A0) : Colors.white,
@@ -1931,53 +1699,6 @@ class _AutoRollChip extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionPill extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-  final bool compact;
-
-  const _ActionPill({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-    this.compact = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: GestureDetector(
-        onTap: () {
-          SoundService.tap();
-          onTap();
-        },
-        child: Container(
-          width: compact ? 40 : 52,
-          height: compact ? 40 : 52,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFFFFEE8C), Color(0xFFFF9D00)],
-            ),
-            border: Border.all(
-                color: const Color(0xFFFFF3B0), width: compact ? 1.5 : 2),
-            boxShadow: const [
-              BoxShadow(color: Color(0xAA000000), blurRadius: 9),
-              BoxShadow(color: Color(0x77FFD426), blurRadius: 14),
-            ],
-          ),
-          child: Icon(icon,
-              color: const Color(0xFF38104A), size: compact ? 23 : 30),
         ),
       ),
     );

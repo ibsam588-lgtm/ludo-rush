@@ -27,7 +27,11 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Daily Coins'),
       500,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: find
+          .descendant(
+              of: find.byType(CustomScrollView),
+              matching: find.byType(Scrollable))
+          .first,
     );
     await tester.pump(const Duration(milliseconds: 250));
     await tester.tap(find.text('Daily Coins'));
@@ -59,7 +63,11 @@ void main() {
       await tester.scrollUntilVisible(
         find.text('Carnival Board'),
         500,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: find
+            .descendant(
+                of: find.byType(CustomScrollView),
+                matching: find.byType(Scrollable))
+            .first,
       );
       await tester.pump(const Duration(milliseconds: 250));
 

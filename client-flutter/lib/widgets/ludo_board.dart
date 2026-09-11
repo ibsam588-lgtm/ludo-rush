@@ -7,6 +7,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import '../models/game_snapshot.dart';
 import '../theme/app_theme.dart';
 import 'adventure_board_art.dart';
+import 'board_motion.dart';
 
 const _ludoThemeAssets = {
   'carnival': 'assets/images/rush/rush_ludo_board_carnival_mobile_v1.webp',
@@ -182,6 +183,7 @@ class LudoBoard extends StatefulWidget {
   final bool showWaitingOverlay;
   final String boardTheme;
   final bool animate;
+  final ValueChanged<bool>? onMotionChanged;
 
   const LudoBoard({
     super.key,
@@ -191,19 +193,46 @@ class LudoBoard extends StatefulWidget {
     this.showWaitingOverlay = true,
     this.boardTheme = 'carnival',
     this.animate = true,
+    this.onMotionChanged,
   });
 
   @override
   State<LudoBoard> createState() => _LudoBoardState();
 }
 
-class _LudoBoardState extends State<LudoBoard>
-    with SingleTickerProviderStateMixin {
+class _LudoBoardState extends State<LudoBoard> with TickerProviderStateMixin {
   late final AnimationController _pulse;
   late final Animation<double> _pulseAnim;
   final List<_PieceHit> _hits = [];
   Map<int, ui.Image> _pieceImages = const {};
   ui.Image? _themeImage;
+
+  late final BoardMotion _motion = BoardMotion(this)
+    ..addListener(_reportMotion);
+  bool _busy = false;
+  bool _reduceMotion = false;
+
+  void _reportMotion() {
+    final busy = _motion.isMoving;
+    if (busy == _busy) return;
+    _busy = busy;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onMotionChanged?.call(_motion.isMoving);
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
+    if (_reduceMotion) {
+      _motion.clear();
+      _pulse.stop();
+      _reportMotion();
+    } else if (widget.animate && !_pulse.isAnimating) {
+      _pulse.repeat(reverse: true);
+    }
+  }
 
   @override
   void initState() {
@@ -222,8 +251,11 @@ class _LudoBoardState extends State<LudoBoard>
   @override
   void didUpdateWidget(covariant LudoBoard oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _motion.update(oldWidget.snapshot, widget.snapshot,
+        animate: widget.animate && !_reduceMotion);
+    _reportMotion();
     if (oldWidget.animate != widget.animate) {
-      if (widget.animate) {
+      if (widget.animate && !_reduceMotion) {
         _pulse.repeat(reverse: true);
       } else {
         _pulse
@@ -239,6 +271,7 @@ class _LudoBoardState extends State<LudoBoard>
 
   @override
   void dispose() {
+    _motion.dispose();
     _pulse.dispose();
     for (final image in _pieceImages.values) {
       image.dispose();
@@ -300,6 +333,7 @@ class _LudoBoardState extends State<LudoBoard>
   }
 
   void _handleTap(Offset pos) {
+    if (_motion.isMoving) return;
     _PieceHit? best;
     double bestDist = double.infinity;
     for (final h in _hits) {
@@ -323,9 +357,11 @@ class _LudoBoardState extends State<LudoBoard>
       child: GestureDetector(
         onTapUp: (d) => _handleTap(d.localPosition),
         child: AnimatedBuilder(
-          animation: _pulseAnim,
+          animation: Listenable.merge([_pulseAnim, _motion]),
           builder: (_, __) => CustomPaint(
             painter: _BoardPainter(
+              motion: _motion,
+              motionRevision: _motion.revision,
               snapshot: widget.snapshot,
               mySeat: widget.mySeat,
               pulsePhase: _pulseAnim.value,
@@ -345,6 +381,8 @@ class _LudoBoardState extends State<LudoBoard>
 // ── CustomPainter ──────────────────────────────────────────────────────────────
 
 class _BoardPainter extends CustomPainter {
+  final BoardMotion motion;
+  final int motionRevision;
   final GameSnapshot? snapshot;
   final int? mySeat;
   final double pulsePhase;
@@ -402,6 +440,8 @@ class _BoardPainter extends CustomPainter {
       };
 
   _BoardPainter({
+    required this.motion,
+    required this.motionRevision,
     required this.snapshot,
     required this.mySeat,
     required this.pulsePhase,
@@ -1147,9 +1187,22 @@ class _BoardPainter extends CustomPainter {
       for (int i = 0; i < total; i++) {
         final draw = group[i];
         final piece = draw.piece;
-        final pos = _stackedPiecePos(draw.center, i, total, cell);
+        var pos = _stackedPiecePos(draw.center, i, total, cell);
+        final travel = motion.sample(piece.pieceId);
+        if (travel != null) {
+          final from =
+              _pieceDraw(travel.at(travel.leg.from), left, top, cell).center;
+          final to =
+              _pieceDraw(travel.at(travel.leg.to), left, top, cell).center;
+          pos = Offset.lerp(from, to, travel.fraction)! -
+              Offset(0, cell * travel.lift);
+        }
         final r = _stackedPieceRadius(cell, total);
-        final legal = avail.contains(piece.pieceId);
+        final legal = !motion.isMoving &&
+            snapshot!.status == 'playing' &&
+            activeSeat == mySeat &&
+            piece.seat == mySeat &&
+            avail.contains(piece.pieceId);
         hits.add(_PieceHit(piece.pieceId, pos.dx, pos.dy, r, legal));
         _drawPiece(canvas, pos.dx, pos.dy, r, _seatCol(piece.seat), legal,
             activeSeat == piece.seat,
@@ -1191,7 +1244,7 @@ class _BoardPainter extends CustomPainter {
     final p = Paint()..isAntiAlias = true;
 
     // Pulse / selection ring
-    if (legal || active) {
+    if (legal) {
       p.style = PaintingStyle.stroke;
       final alpha = legal ? pulsePhase : 0.55;
       p.color =
@@ -1201,6 +1254,12 @@ class _BoardPainter extends CustomPainter {
       p.style = PaintingStyle.fill;
     }
 
+    canvas.drawOval(
+        Rect.fromCenter(
+            center: Offset(cx, cy + r * .7), width: r * 1.8, height: r * .38),
+        Paint()
+          ..color = const Color(0x40000000)
+          ..maskFilter = MaskFilter.blur(BlurStyle.normal, r * .12));
     final image = pieceImages[seat.clamp(0, 3)];
     if (image != null) {
       final imageH = r * 2.34;
@@ -1459,7 +1518,8 @@ class _BoardPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_BoardPainter old) {
-    return old.snapshot != snapshot ||
+    return old.motionRevision != motionRevision ||
+        old.snapshot != snapshot ||
         old.pulsePhase != pulsePhase ||
         old.mySeat != mySeat ||
         old.showWaitingOverlay != showWaitingOverlay ||

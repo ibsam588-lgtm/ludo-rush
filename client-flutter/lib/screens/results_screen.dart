@@ -11,6 +11,10 @@ import '../services/levelplay_ad_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/levelplay_banner.dart';
+import '../widgets/profile_avatar.dart';
+import '../widgets/match_style.dart';
+import '../models/match_moment.dart';
+import '../models/match_rewards.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  RESULTS SCREEN — Celebratory match end screen
@@ -33,6 +37,7 @@ class _ResultsScreenState extends State<ResultsScreen>
   late final Animation<double> _entryFade;
   bool _rewardInFlight = false;
   bool _rewardClaimed = false;
+  bool _reduceMotion = false;
 
   @override
   void initState() {
@@ -41,7 +46,7 @@ class _ResultsScreenState extends State<ResultsScreen>
     _confettiCtrl = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 4),
-    )..repeat(reverse: true);
+    )..forward();
 
     _entryCtrl = AnimationController(
       vsync: this,
@@ -73,6 +78,27 @@ class _ResultsScreenState extends State<ResultsScreen>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final reduced = MediaQuery.disableAnimationsOf(context);
+    if (reduced) {
+      for (final controller in [
+        _confettiCtrl,
+        _glowCtrl,
+        _shimmerCtrl,
+        _entryCtrl
+      ]) {
+        controller.stop();
+        controller.value = 1;
+      }
+    } else if (_reduceMotion) {
+      _glowCtrl.repeat(reverse: true);
+      _shimmerCtrl.repeat(reverse: true);
+    }
+    _reduceMotion = reduced;
+  }
+
+  @override
   void dispose() {
     _confettiCtrl.dispose();
     _entryCtrl.dispose();
@@ -83,7 +109,7 @@ class _ResultsScreenState extends State<ResultsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final state = context.read<AppState>();
+    final state = context.watch<AppState>();
     final snapshot = state.lastSnapshot;
     final myId = state.playerId;
     final replayMode = snapshot?.mode ?? state.pendingMatchMode;
@@ -91,11 +117,17 @@ class _ResultsScreenState extends State<ResultsScreen>
 
     bool won = false;
     String winnerName = 'Unknown';
+    int? winnerSeat;
+    final palette = MatchPalette.forTheme(
+        replayMode == AppState.snakesLaddersMode
+            ? state.snakesBoardTheme
+            : state.ludoBoardTheme);
     if (snapshot != null) {
       won = myId != null && myId == snapshot.winnerPlayerId;
       for (final s in snapshot.seats) {
         if (s.playerId == snapshot.winnerPlayerId) {
           winnerName = state.publicSeatName(s);
+          winnerSeat = s.seat;
           break;
         }
       }
@@ -111,10 +143,10 @@ class _ResultsScreenState extends State<ResultsScreen>
         fit: StackFit.expand,
         children: [
           // Blurred dark backdrop
-          Container(color: const Color(0xEE1A0520)),
+          MatchBackdrop(palette: palette),
 
           // Confetti (winner only)
-          if (won)
+          if (won && !_reduceMotion)
             AnimatedBuilder(
               animation: _confettiCtrl,
               builder: (_, __) => CustomPaint(
@@ -141,7 +173,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E0830),
+                      color: palette.background.withAlpha(245),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
                         color: won
@@ -164,8 +196,12 @@ class _ResultsScreenState extends State<ResultsScreen>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         // Trophy / result icon
-                        _TrophyBadge(
-                            won: won, glow: _glowCtrl, shimmer: _shimmerCtrl),
+                        _WinnerPortrait(
+                            preset: won
+                                ? state.avatarPreset
+                                : 12 + (winnerSeat ?? 0),
+                            imagePath: won ? state.avatarImagePath : null,
+                            name: won ? 'You' : winnerName),
                         const SizedBox(height: 16),
 
                         // Result headline
@@ -174,7 +210,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                         const SizedBox(height: 18),
 
                         // Rewards row
-                        _RewardsRow(won: won),
+                        _RewardsRow(state: state),
                         const SizedBox(height: 10),
                         _RewardedBonusButton(
                           inFlight: _rewardInFlight,
@@ -328,93 +364,49 @@ class _RewardedBonusButton extends StatelessWidget {
 
 // ── Trophy badge ─────────────────────────────────────────────────────────────
 
-class _TrophyBadge extends StatelessWidget {
-  final bool won;
-  final AnimationController glow;
-  final AnimationController shimmer;
-  const _TrophyBadge(
-      {required this.won, required this.glow, required this.shimmer});
-
+class _WinnerPortrait extends StatelessWidget {
+  final int preset;
+  final String? imagePath;
+  final String name;
+  const _WinnerPortrait(
+      {required this.preset, required this.imagePath, required this.name});
   @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: glow,
-      builder: (_, __) {
-        final g = 0.4 + 0.6 * glow.value;
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Stars
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+  Widget build(BuildContext context) => Semantics(
+      label: '$name, match winner',
+      child: SizedBox(
+          width: 128,
+          height: 134,
+          child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
               children: [
-                Icon(Icons.star_rounded,
-                    color: won
-                        ? goldColor.withAlpha((g * 180).round())
-                        : Colors.grey.shade700,
-                    size: 28),
-                Icon(Icons.star_rounded,
-                    color: won
-                        ? goldColor.withAlpha((g * 220).round())
-                        : Colors.grey.shade700,
-                    size: 36),
-                // Center icon
                 Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: won
-                          ? [
-                              goldColor.withAlpha((g * 80).round()),
-                              const Color(0xFF1E0830),
-                            ]
-                          : [const Color(0x225A5A5A), const Color(0xFF1A0040)],
-                    ),
-                    border: Border.all(
-                      color: won
-                          ? goldColor.withAlpha((g * 200).round())
-                          : Colors.white24,
-                      width: 2,
-                    ),
-                    boxShadow: won
-                        ? [
-                            BoxShadow(
-                              color: goldColor.withAlpha((g * 80).round()),
-                              blurRadius: 20,
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: Center(
-                    child: Icon(
-                      won ? Icons.emoji_events_rounded : Icons.casino_rounded,
-                      color: won ? goldColor : Colors.white70,
-                      size: 34,
-                    ),
-                  ),
-                ),
-                Icon(Icons.star_rounded,
-                    color: won
-                        ? goldColor.withAlpha((g * 220).round())
-                        : Colors.grey.shade700,
-                    size: 36),
-                Icon(Icons.star_rounded,
-                    color: won
-                        ? goldColor.withAlpha((g * 180).round())
-                        : Colors.grey.shade700,
-                    size: 28),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-  }
+                    width: 108,
+                    height: 108,
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                            colors: [Color(0xFFFFEBB5), Color(0xFFB07832)]),
+                        boxShadow: [
+                          BoxShadow(
+                              color: goldColor.withAlpha(60),
+                              blurRadius: 26,
+                              spreadRadius: 2),
+                          const BoxShadow(
+                              color: Colors.black38,
+                              blurRadius: 14,
+                              offset: Offset(0, 8))
+                        ]),
+                    child: ProfileAvatarView(
+                        preset: preset,
+                        imagePath: imagePath,
+                        celebration: 1,
+                        mood: AvatarMood.winner)),
+                const Positioned(
+                    top: -5, child: Text('👑', style: TextStyle(fontSize: 36))),
+              ])));
 }
-
-// ── Result headline ──────────────────────────────────────────────────────────
 
 class _ResultHeadline extends StatelessWidget {
   final bool won;
@@ -469,42 +461,51 @@ class _ResultHeadline extends StatelessWidget {
 // ── Rewards row ──────────────────────────────────────────────────────────────
 
 class _RewardsRow extends StatelessWidget {
-  final bool won;
-  const _RewardsRow({required this.won});
-
+  final AppState state;
+  const _RewardsRow({required this.state});
   @override
   Widget build(BuildContext context) {
+    final reward = state.lastMatchRewards ??
+        (state.currentMatchIsBot || state.localMatchActive
+            ? const MatchRewards(coins: 0, rating: 0, practice: true)
+            : null);
+    String delta(int value) => value > 0 ? '+$value' : '$value';
     return Container(
+      key: const ValueKey('match-reward-receipt'),
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(8),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: goldColor.withAlpha(60)),
-      ),
-      child: Row(
-        children: [
-          _RewardItem(
-            icon: Icons.emoji_events_rounded,
-            label: 'RATING',
-            value: won ? '+12' : '-6',
-            color: won ? boardGreen : boardRed,
-          ),
-          _Divider(),
-          _RewardItem(
-            icon: Icons.monetization_on_rounded,
-            label: 'COINS',
-            value: won ? '+100' : '+15',
-            color: goldColor,
-          ),
-          _Divider(),
-          _RewardItem(
-            icon: Icons.star_rounded,
-            label: 'XP',
-            value: won ? '+150' : '+50',
-            color: const Color(0xFFFF9A00),
-          ),
+          color: Colors.white.withAlpha(8),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: goldColor.withAlpha(60))),
+      child: Column(children: [
+        const Text('MATCH REWARDS',
+            style: TextStyle(
+                color: Colors.white70, fontSize: 11, letterSpacing: 1.8)),
+        const SizedBox(height: 12),
+        if (reward == null)
+          const Text('Rewards pending', style: TextStyle(color: Colors.white70))
+        else ...[
+          Row(children: [
+            _RewardItem(
+                icon: Icons.monetization_on_rounded,
+                label: 'COINS',
+                value: delta(reward.coins),
+                color: goldColor),
+            _Divider(),
+            _RewardItem(
+                icon: Icons.emoji_events_rounded,
+                label: 'RATING',
+                value: delta(reward.rating),
+                color: reward.rating < 0 ? boardRed : boardGreen),
+          ]),
+          if (reward.practice)
+            const Padding(
+                padding: EdgeInsets.only(top: 12),
+                child: Text('Practice match · no coins or rating changes',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white60, fontSize: 12))),
         ],
-      ),
+      ]),
     );
   }
 }
@@ -568,8 +569,13 @@ class _PlayerList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final seats = [...snapshot.seats]..sort((a, b) {
+        if (a.playerId == snapshot.winnerPlayerId) return -1;
+        if (b.playerId == snapshot.winnerPlayerId) return 1;
+        return a.seat.compareTo(b.seat);
+      });
     return Column(
-      children: snapshot.seats.asMap().entries.map((e) {
+      children: seats.asMap().entries.map((e) {
         final i = e.key;
         final s = e.value;
         final isWinner = s.playerId == snapshot.winnerPlayerId;
@@ -744,16 +750,15 @@ class _ConfettiPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
+    if (t >= 1) return;
     final p = Paint();
     for (int i = 0; i < 80; i++) {
       final baseX = ((i * 137 + 11) % 1000) / 1000.0 * size.width;
-      final speed = 60.0 + (i % 7) * 30.0;
-      final y =
-          (((i * 0.1) + t * (speed / size.height)) % 1.0) * (size.height + 30) -
-              15;
+      final y = (t * 1.45 - (i % 10) * .035) * (size.height + 30) - 15;
       final x = baseX + math.sin(t * 5 + i * 0.4) * 22;
 
-      p.color = _colors[i % _colors.length].withAlpha(180 + (i % 3) * 25);
+      p.color = _colors[i % _colors.length].withAlpha(
+          ((180 + (i % 3) * 25) * ((1 - t) * 4).clamp(0, 1)).round());
 
       canvas.save();
       canvas.translate(x, y);
