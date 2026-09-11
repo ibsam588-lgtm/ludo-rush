@@ -2,17 +2,20 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../data/profile_catalog.dart';
+import '../models/match_moment.dart';
 
 class ProfileAvatarView extends StatefulWidget {
   final int preset;
   final bool animate;
   final int celebration;
+  final AvatarMood mood;
   final String? imagePath;
   const ProfileAvatarView(
       {super.key,
       required this.preset,
       this.animate = false,
       this.celebration = 0,
+      this.mood = AvatarMood.idle,
       this.imagePath});
   @override
   State<ProfileAvatarView> createState() => _ProfileAvatarViewState();
@@ -25,7 +28,11 @@ class _ProfileAvatarViewState extends State<ProfileAvatarView>
   @override
   void initState() {
     super.initState();
-    if (widget.animate) _motion.repeat();
+    if (widget.animate) {
+      _motion.repeat();
+    } else if (widget.celebration > 0) {
+      _motion.forward();
+    }
   }
 
   @override
@@ -82,10 +89,36 @@ class _ProfileAvatarViewState extends State<ProfileAvatarView>
             builder: (context, child) {
               final t =
                   MediaQuery.disableAnimationsOf(context) ? 0.0 : _motion.value;
-              return Transform.rotate(
-                  angle: math.sin(t * math.pi * 4) * 0.10,
-                  child: Transform.scale(
-                      scale: 1 + math.sin(t * math.pi) * 0.08, child: child));
+              final amplitude = widget.mood == AvatarMood.slide ? .16 : .08;
+              return Stack(
+                  clipBehavior: Clip.none,
+                  fit: StackFit.expand,
+                  children: [
+                    Transform.translate(
+                        offset: Offset(
+                            0,
+                            widget.mood == AvatarMood.climb
+                                ? -math.sin(t * math.pi) * 7
+                                : 0),
+                        child: Transform.rotate(
+                            angle: math.sin(t * math.pi * 4) * amplitude,
+                            child: Transform.scale(
+                                scale: 1 + math.sin(t * math.pi) * .08,
+                                child: child))),
+                    if (widget.mood != AvatarMood.idle && _motion.isAnimating)
+                      Positioned(
+                          right: -2,
+                          bottom: -2,
+                          child: Semantics(
+                              label: widget.mood.name,
+                              child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: const BoxDecoration(
+                                      color: Color(0xEE161426),
+                                      shape: BoxShape.circle),
+                                  child: Text(moodEmoji(widget.mood),
+                                      style: const TextStyle(fontSize: 18))))),
+                  ]);
             }));
   }
 }

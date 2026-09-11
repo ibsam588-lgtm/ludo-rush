@@ -21,6 +21,7 @@ class DiceWidget extends StatefulWidget {
 class DiceWidgetState extends State<DiceWidget>
     with SingleTickerProviderStateMixin {
   int _displayValue = 0;
+  bool _isRolling = false;
   late final AnimationController _bounceCtrl;
   late final Animation<double> _bounce;
   final List<Timer> _rollTimers = [];
@@ -35,9 +36,23 @@ class DiceWidgetState extends State<DiceWidget>
       vsync: this,
       duration: const Duration(milliseconds: 320),
     );
-    _bounce = Tween<double>(begin: 1.0, end: 1.14)
-        .chain(CurveTween(curve: Curves.bounceOut))
-        .animate(_bounceCtrl);
+    _bounce = TweenSequence<double>([
+      TweenSequenceItem(
+          tween: Tween(begin: 1.0, end: 1.12)
+              .chain(CurveTween(curve: Curves.easeOut)),
+          weight: 40),
+      TweenSequenceItem(
+          tween: Tween(begin: 1.12, end: 1.0)
+              .chain(CurveTween(curve: Curves.easeInOut)),
+          weight: 60),
+    ]).animate(_bounceCtrl);
+  }
+
+  @override
+  void didUpdateWidget(DiceWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_isRolling && widget.value != null && widget.value != oldWidget.value)
+      _displayValue = widget.value!;
   }
 
   @override
@@ -59,6 +74,14 @@ class DiceWidgetState extends State<DiceWidget>
       timer.cancel();
     }
     _rollTimers.clear();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _isRolling = false;
+      _bounceCtrl.reset();
+      setValue(finalValue);
+      onDone();
+      return;
+    }
+    _isRolling = true;
     const seq = [3, 1, 5, 2, 6, 4, 1, 3, 5, 2, 4];
     final frames = [...seq, finalValue];
     for (int i = 0; i < frames.length; i++) {
@@ -68,6 +91,7 @@ class DiceWidgetState extends State<DiceWidget>
         if (!mounted) return;
         setState(() => _displayValue = face);
         if (isLast) {
+          _isRolling = false;
           _bounceCtrl.forward(from: 0);
           onDone();
         }
@@ -118,6 +142,7 @@ class _DicePainter extends CustomPainter {
     canvas.drawRRect(
         RRect.fromRectXY(r.translate(0, s * 0.06), rad, rad), paint);
 
+    paint.color = Colors.white;
     // Face with selected skin gradient
     paint.shader = ui.Gradient.linear(
       Offset(left, top),

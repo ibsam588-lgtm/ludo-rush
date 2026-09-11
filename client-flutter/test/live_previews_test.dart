@@ -119,7 +119,11 @@ void main() {
     await tester.pumpWidget(app(const ShopScreen()));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.scrollUntilVisible(find.text('Teal Spark'), 350,
-        scrollable: find.byType(Scrollable).first);
+        scrollable: find
+            .descendant(
+                of: find.byType(CustomScrollView),
+                matching: find.byType(Scrollable))
+            .first);
     await tester.pump();
     await tester.tap(find.text('Teal Spark'));
     await tester.pump();
@@ -145,7 +149,11 @@ void main() {
     await tester.pumpWidget(app(const ShopScreen()));
     final picker = find.byKey(const ValueKey('snakes-theme-picker'));
     await tester.scrollUntilVisible(picker, 300,
-        scrollable: find.byType(Scrollable).first);
+        scrollable: find
+            .descendant(
+                of: find.byType(CustomScrollView),
+                matching: find.byType(Scrollable))
+            .first);
     final strip =
         find.descendant(of: picker, matching: find.byType(Scrollable));
     final ocean = find.byKey(const ValueKey('snakes-theme-ocean'));

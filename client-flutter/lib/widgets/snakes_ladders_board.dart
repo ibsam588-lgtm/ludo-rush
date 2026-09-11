@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import '../models/game_snapshot.dart';
 import '../theme/app_theme.dart';
 import 'adventure_board_art.dart';
+import 'board_motion.dart';
 
 const _snakesTitlePlaqueAsset =
     'assets/images/rush/rush_snakes_ladders_title_plaque_mobile_v1.png';
@@ -39,6 +40,7 @@ class SnakesLaddersBoard extends StatefulWidget {
   final bool showTitle;
   final bool showPieces;
   final bool animate;
+  final ValueChanged<bool>? onMotionChanged;
   final void Function(String pieceId) onPieceTap;
 
   const SnakesLaddersBoard({
@@ -49,6 +51,7 @@ class SnakesLaddersBoard extends StatefulWidget {
     this.showTitle = true,
     this.showPieces = true,
     this.animate = true,
+    this.onMotionChanged,
     required this.onPieceTap,
   });
 
@@ -57,12 +60,39 @@ class SnakesLaddersBoard extends StatefulWidget {
 }
 
 class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _pulse;
   final List<_SnakeHit> _hits = [];
   ui.Image? _titlePlaque;
   ui.Image? _frameImage;
   Map<int, ui.Image> _pieceImages = const {};
+
+  late final BoardMotion _motion = BoardMotion(this)
+    ..addListener(_reportMotion);
+  bool _busy = false;
+  bool _reduceMotion = false;
+
+  void _reportMotion() {
+    final busy = _motion.isMoving;
+    if (busy == _busy) return;
+    _busy = busy;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) widget.onMotionChanged?.call(_motion.isMoving);
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reduceMotion = MediaQuery.disableAnimationsOf(context);
+    if (_reduceMotion) {
+      _motion.clear();
+      _pulse.stop();
+      _reportMotion();
+    } else if (widget.animate && !_pulse.isAnimating) {
+      _pulse.repeat(reverse: true);
+    }
+  }
 
   @override
   void initState() {
@@ -79,6 +109,7 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
 
   @override
   void dispose() {
+    _motion.dispose();
     _pulse.dispose();
     _titlePlaque?.dispose();
     _frameImage?.dispose();
@@ -133,6 +164,9 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
   @override
   void didUpdateWidget(covariant SnakesLaddersBoard oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _motion.update(oldWidget.snapshot, widget.snapshot,
+        animate: widget.animate && !_reduceMotion);
+    _reportMotion();
     if (_normalizedBoardTheme(oldWidget.boardTheme) !=
         _normalizedBoardTheme(widget.boardTheme)) {
       _loadFrame(widget.boardTheme);
@@ -142,7 +176,7 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
       _loadAssets();
     }
     if (oldWidget.animate != widget.animate) {
-      if (widget.animate) {
+      if (widget.animate && !_reduceMotion) {
         _pulse.repeat(reverse: true);
       } else {
         _pulse
@@ -179,6 +213,7 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
   }
 
   void _handleTap(Offset pos) {
+    if (_motion.isMoving) return;
     _SnakeHit? best;
     var bestDistance = double.infinity;
     for (final hit in _hits) {
@@ -198,9 +233,11 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
       behavior: HitTestBehavior.opaque,
       onTapUp: (details) => _handleTap(details.localPosition),
       child: AnimatedBuilder(
-        animation: _pulse,
+        animation: Listenable.merge([_pulse, _motion]),
         builder: (_, __) => CustomPaint(
           painter: _SnakesLaddersPainter(
+            motion: _motion,
+            motionRevision: _motion.revision,
             snapshot: widget.snapshot,
             mySeat: widget.mySeat,
             pulse: _pulse.value,
@@ -256,6 +293,8 @@ class _SnakeSample {
 }
 
 class _SnakesLaddersPainter extends CustomPainter {
+  final BoardMotion motion;
+  final int motionRevision;
   static const Map<int, int> ladders = {
     6: 26,
     23: 37,
@@ -318,6 +357,8 @@ class _SnakesLaddersPainter extends CustomPainter {
   final bool showPieces;
 
   _SnakesLaddersPainter({
+    required this.motion,
+    required this.motionRevision,
     required this.snapshot,
     required this.mySeat,
     required this.pulse,
@@ -1142,17 +1183,11 @@ class _SnakesLaddersPainter extends CustomPainter {
     }
   }
 
-  void _drawSnake(
-    Canvas canvas,
-    Offset head,
-    Offset tail,
-    double cell,
-    Color color,
-    int variant,
-  ) {
+  (Offset, Offset) _snakeCurve(
+      Offset head, Offset tail, double cell, int variant) {
     final dir = tail - head;
     final len = dir.distance;
-    if (len <= 0) return;
+    if (len <= 0) return (head, tail);
     final unit = dir / len;
     final normal = Offset(-unit.dy, unit.dx);
     final themeSeed = switch (_theme) {
@@ -1192,6 +1227,20 @@ class _SnakesLaddersPainter extends CustomPainter {
     final wave = normal * cell * waveScale * direction;
     final c1 = head + dir * firstTurn + wave;
     final c2 = head + dir * secondTurn - wave * (_theme == 'jungle' ? 0.72 : 1);
+    return (c1, c2);
+  }
+
+  void _drawSnake(
+    Canvas canvas,
+    Offset head,
+    Offset tail,
+    double cell,
+    Color color,
+    int variant,
+  ) {
+    final curve = _snakeCurve(head, tail, cell, variant);
+    final c1 = curve.$1;
+    final c2 = curve.$2;
     final path = Path()
       ..moveTo(head.dx, head.dy)
       ..cubicTo(c1.dx, c1.dy, c2.dx, c2.dy, tail.dx, tail.dy);
@@ -1792,14 +1841,31 @@ class _SnakesLaddersPainter extends CustomPainter {
     }
 
     for (final draw in draws) {
-      final pos = _stackedPosition(draw.center, draw.index, draw.total, cell);
+      var pos = _stackedPosition(draw.center, draw.index, draw.total, cell);
+      final travel = motion.sample(draw.piece.pieceId);
+      if (travel != null) {
+        final from = _cellCenter(rect, cell, travel.leg.from.clamp(1, 100));
+        final to = _cellCenter(rect, cell, travel.leg.to.clamp(1, 100));
+        if (travel.leg.kind == TravelKind.slide) {
+          final variant = snakes.keys.toList().indexOf(travel.leg.from);
+          final curve = _snakeCurve(from, to, cell, variant < 0 ? 0 : variant);
+          pos = _cubicPoint(from, curve.$1, curve.$2, to, travel.fraction);
+        } else {
+          pos = Offset.lerp(from, to, travel.fraction)! -
+              Offset(0, cell * travel.lift);
+        }
+      }
       final radius = cell *
           (draw.total >= 4
               ? 0.18
               : draw.total == 3
                   ? 0.21
                   : 0.29);
-      final isLegal = legal.contains(draw.piece.pieceId);
+      final isLegal = !motion.isMoving &&
+          snap?.status == 'playing' &&
+          snap?.currentTurnSeat == mySeat &&
+          draw.piece.seat == mySeat &&
+          legal.contains(draw.piece.pieceId);
       hits.add(_SnakeHit(draw.piece.pieceId, pos, radius, isLegal));
       _drawToken(
         canvas,
@@ -1823,7 +1889,7 @@ class _SnakesLaddersPainter extends CustomPainter {
     required int seat,
   }) {
     final p = Paint()..isAntiAlias = true;
-    if (legal || active) {
+    if (legal) {
       p
         ..style = PaintingStyle.stroke
         ..strokeWidth = r * (legal ? 0.30 : 0.18)
@@ -2027,7 +2093,8 @@ class _SnakesLaddersPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SnakesLaddersPainter oldDelegate) {
-    return oldDelegate.snapshot != snapshot ||
+    return oldDelegate.motionRevision != motionRevision ||
+        oldDelegate.snapshot != snapshot ||
         oldDelegate.mySeat != mySeat ||
         oldDelegate.pulse != pulse ||
         oldDelegate.titlePlaque != titlePlaque ||

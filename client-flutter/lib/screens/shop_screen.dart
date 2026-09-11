@@ -33,6 +33,8 @@ class _ShopScreenState extends State<ShopScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _bg;
   bool _rewardInFlight = false;
+  String _category = 'All';
+  final _shopScroll = ScrollController();
 
   static const _items = [
     _ShopProduct('Daily Coins', 'FREE', '${GameEconomy.dailyCoins} coins',
@@ -95,6 +97,7 @@ class _ShopScreenState extends State<ShopScreen>
 
   @override
   void dispose() {
+    _shopScroll.dispose();
     _bg.dispose();
     super.dispose();
   }
@@ -105,6 +108,16 @@ class _ShopScreenState extends State<ShopScreen>
       builder: (context, state, _) {
         final dark = state.isDarkMode;
         final p = _ShopPalette.fromDark(dark);
+        final products = _items
+            .where((item) => switch (_category) {
+                  'Ludo' => item.ludoBoardTheme != null,
+                  'Dice' => item.diceSkin != null,
+                  'Rewards' =>
+                    item.ludoBoardTheme == null && item.diceSkin == null,
+                  'All' => true,
+                  _ => false,
+                })
+            .toList();
         return Scaffold(
           backgroundColor: p.bg,
           bottomNavigationBar: SafeArea(
@@ -142,10 +155,17 @@ class _ShopScreenState extends State<ShopScreen>
                               (box.maxHeight * (compactHeight ? 0.30 : 0.34))
                                   .clamp(narrow ? 210.0 : 230.0, 330.0)
                                   .toDouble();
-                          final columns = box.maxWidth < 360 ? 2 : 3;
-                          final cardAspect = columns == 2
-                              ? (compactHeight ? 0.76 : 0.82)
-                              : (compactHeight ? 0.66 : 0.70);
+                          final columns =
+                              _category == 'Ludo' && box.maxWidth < 600
+                                  ? 1
+                                  : box.maxWidth < 600
+                                      ? 2
+                                      : 3;
+                          final cardAspect = columns == 1
+                              ? 1.05
+                              : columns == 2
+                                  ? (compactHeight ? 0.76 : 0.82)
+                                  : (compactHeight ? 0.66 : 0.70);
                           final gridPad = EdgeInsets.fromLTRB(
                             narrow ? 12 : 16,
                             compactHeight ? 6 : 8,
@@ -156,47 +176,103 @@ class _ShopScreenState extends State<ShopScreen>
                           return Column(
                             children: [
                               _ShopResources(state: state, palette: p),
+                              SizedBox(
+                                  height: 52,
+                                  child: ListView(
+                                    scrollDirection: Axis.horizontal,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
+                                    children: [
+                                      for (final category in const [
+                                        'All',
+                                        'Ludo',
+                                        'Snakes',
+                                        'Dice',
+                                        'Avatars',
+                                        'Rewards'
+                                      ])
+                                        Padding(
+                                            padding:
+                                                const EdgeInsets.only(right: 7),
+                                            child: ChoiceChip(
+                                              key: ValueKey(
+                                                  'shop-category-$category'),
+                                              label: Text(category),
+                                              selected: category == _category,
+                                              selectedColor: dark
+                                                  ? const Color(0xFF674B20)
+                                                  : const Color(0xFFFFE5A4),
+                                              labelStyle: TextStyle(
+                                                  color: category == _category
+                                                      ? (dark
+                                                          ? goldColor
+                                                          : const Color(
+                                                              0xFF614200))
+                                                      : p.text,
+                                                  fontWeight: FontWeight.w700),
+                                              onSelected: (_) {
+                                                setState(
+                                                    () => _category = category);
+                                                if (_shopScroll.hasClients)
+                                                  _shopScroll.jumpTo(0);
+                                              },
+                                            ))
+                                    ],
+                                  )),
                               Expanded(
                                 child: CustomScrollView(
+                                  controller: _shopScroll,
                                   physics: const BouncingScrollPhysics(),
                                   slivers: [
-                                    SliverToBoxAdapter(
-                                      child: _ShopHero(
-                                        palette: p,
-                                        animation: _bg,
-                                        height: heroHeight,
+                                    if (_category == 'All')
+                                      SliverToBoxAdapter(
+                                        child: _ShopHero(
+                                          palette: p,
+                                          animation: _bg,
+                                          height: heroHeight,
+                                        ),
                                       ),
-                                    ),
-                                    if (!compactHeight || box.maxWidth >= 390)
+                                    if (_category == 'Rewards' &&
+                                        (!compactHeight || box.maxWidth >= 390))
                                       SliverToBoxAdapter(
                                         child: _BoosterBanner(palette: p),
                                       ),
-                                    SliverToBoxAdapter(
-                                      child: _RewardedPointsBanner(
-                                        palette: p,
-                                        loading: _rewardInFlight,
-                                        onWatch: () =>
-                                            _claimRewardedPoints(state),
+                                    if (_category == 'All' ||
+                                        _category == 'Rewards')
+                                      SliverToBoxAdapter(
+                                        child: _RewardedPointsBanner(
+                                          palette: p,
+                                          loading: _rewardInFlight,
+                                          onWatch: () =>
+                                              _claimRewardedPoints(state),
+                                        ),
                                       ),
-                                    ),
-                                    SliverToBoxAdapter(
-                                      child: _DiceSkinStrip(
-                                        palette: p,
-                                        state: state,
+                                    if (_category == 'All' ||
+                                        _category == 'Dice')
+                                      SliverToBoxAdapter(
+                                        child: _DiceSkinStrip(
+                                          palette: p,
+                                          state: state,
+                                        ),
                                       ),
-                                    ),
-                                    SliverToBoxAdapter(
-                                      child: _BoardThemeStrip(
-                                        palette: p,
-                                        state: state,
+                                    if (_category == 'All' ||
+                                        _category == 'Snakes')
+                                      SliverToBoxAdapter(
+                                        child: _BoardThemeStrip(
+                                          expanded: _category == 'Snakes',
+                                          palette: p,
+                                          state: state,
+                                        ),
                                       ),
-                                    ),
-                                    SliverToBoxAdapter(
-                                      child: _AvatarShopStrip(
-                                        palette: p,
-                                        state: state,
+                                    if (_category == 'All' ||
+                                        _category == 'Avatars')
+                                      SliverToBoxAdapter(
+                                        child: _AvatarShopStrip(
+                                          expanded: _category == 'Avatars',
+                                          palette: p,
+                                          state: state,
+                                        ),
                                       ),
-                                    ),
                                     SliverPadding(
                                       padding: gridPad,
                                       sliver: SliverGrid(
@@ -210,13 +286,13 @@ class _ShopScreenState extends State<ShopScreen>
                                         ),
                                         delegate: SliverChildBuilderDelegate(
                                           (context, i) => _ShopCard(
-                                            product: _items[i],
+                                            product: products[i],
                                             palette: p,
-                                            locked: _items[i].isLocked(state),
+                                            locked: products[i].isLocked(state),
                                             actionLabel:
-                                                _items[i].actionLabel(state),
+                                                products[i].actionLabel(state),
                                             onBuy: () async {
-                                              final product = _items[i];
+                                              final product = products[i];
                                               var message =
                                                   '${product.title} selected.';
                                               if (product.dailyReward) {
@@ -284,7 +360,7 @@ class _ShopScreenState extends State<ShopScreen>
                                                 );
                                             },
                                           ),
-                                          childCount: _items.length,
+                                          childCount: products.length,
                                         ),
                                       ),
                                     ),
@@ -489,15 +565,15 @@ class _ShopResources extends StatelessWidget {
                   compact: compact),
               SizedBox(width: gap),
               _ResourceChip(
-                  icon: Icons.diamond_rounded,
-                  value: '30',
+                  icon: Icons.emoji_events_rounded,
+                  value: '${state.wins}',
                   color: const Color(0xFF22E46C),
                   palette: palette,
                   compact: compact),
               SizedBox(width: gap),
               _ResourceChip(
                   icon: Icons.bolt_rounded,
-                  value: '${state.wins}',
+                  value: '${state.energy}',
                   color: const Color(0xFF35D6FF),
                   palette: palette,
                   compact: compact),
@@ -1553,11 +1629,52 @@ class _BoardThemeOption {
 class _AvatarShopStrip extends StatelessWidget {
   final _ShopPalette palette;
   final AppState state;
+  final bool expanded;
 
-  const _AvatarShopStrip({required this.palette, required this.state});
+  const _AvatarShopStrip(
+      {required this.palette, required this.state, this.expanded = false});
+
+  Widget _avatarButton(BuildContext context, int index) {
+    final avatar = profileAvatarCatalog[index];
+    final unlocked = state.isAvatarUnlocked(index);
+    final selected =
+        state.avatarPreset == index && state.avatarImagePath == null;
+    return _ShopAvatarButton(
+      expanded: expanded,
+      avatar: avatar,
+      selected: selected,
+      unlocked: unlocked,
+      actionLabel: selected ? 'Equipped' : state.avatarUnlockLabel(index),
+      onTap: () => showLiveItemPreview(context,
+          title: avatar.label,
+          preview: ProfileAvatarView(preset: index, animate: true),
+          description:
+              'Your avatar reacts to sixes, captures, climbs and victories.',
+          actionLabel:
+              unlocked ? 'Equip avatar' : state.avatarUnlockLabel(index),
+          onAction: unlocked
+              ? () => state.updateProfile(avatar: index, clearImage: true)
+              : null),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (expanded) {
+      return GridView.builder(
+        key: const ValueKey('avatar-gallery'),
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(12),
+        itemCount: profileAvatarCatalog.length,
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 190,
+            childAspectRatio: .9,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 12),
+        itemBuilder: _avatarButton,
+      );
+    }
     return Container(
       height: 128,
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
@@ -1610,29 +1727,7 @@ class _AvatarShopStrip extends StatelessWidget {
               physics: const BouncingScrollPhysics(),
               itemCount: profileAvatarCatalog.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final avatar = profileAvatarCatalog[index];
-                final unlocked = state.isAvatarUnlocked(index);
-                return _ShopAvatarButton(
-                  avatar: avatar,
-                  selected: state.avatarPreset == index &&
-                      state.avatarImagePath == null,
-                  unlocked: unlocked,
-                  actionLabel: state.avatarUnlockLabel(index),
-                  onTap: () => showLiveItemPreview(context,
-                      title: avatar.label,
-                      preview: ProfileAvatarView(preset: index, animate: true),
-                      description:
-                          'See your avatar move. It celebrates when you roll a six.',
-                      actionLabel: unlocked
-                          ? 'Equip avatar'
-                          : state.avatarUnlockLabel(index),
-                      onAction: unlocked
-                          ? () => state.updateProfile(
-                              avatar: index, clearImage: true)
-                          : null),
-                );
-              },
+              itemBuilder: _avatarButton,
             ),
           ),
         ],
@@ -1642,6 +1737,7 @@ class _AvatarShopStrip extends StatelessWidget {
 }
 
 class _ShopAvatarButton extends StatelessWidget {
+  final bool expanded;
   final ProfileAvatarSpec avatar;
   final bool selected;
   final bool unlocked;
@@ -1649,6 +1745,7 @@ class _ShopAvatarButton extends StatelessWidget {
   final VoidCallback onTap;
 
   const _ShopAvatarButton({
+    this.expanded = false,
     required this.avatar,
     required this.selected,
     required this.unlocked,
@@ -1715,9 +1812,9 @@ class _ShopAvatarButton extends StatelessWidget {
               avatar.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
-                fontSize: 10,
+                fontSize: expanded ? 14 : 10,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -1729,7 +1826,7 @@ class _ShopAvatarButton extends StatelessWidget {
                 color: avatar.rarity == AvatarRarity.premium
                     ? goldColor
                     : Colors.white70,
-                fontSize: 8,
+                fontSize: expanded ? 11 : 8,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -1751,8 +1848,10 @@ class _ShopAvatarImage extends StatelessWidget {
 class _BoardThemeStrip extends StatelessWidget {
   final _ShopPalette palette;
   final AppState state;
+  final bool expanded;
 
   const _BoardThemeStrip({
+    this.expanded = false,
     required this.palette,
     required this.state,
   });
@@ -1815,8 +1914,44 @@ class _BoardThemeStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (expanded) {
+      return GridView.builder(
+          key: const ValueKey('snakes-board-gallery'),
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(12),
+          itemCount: _options.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: .72,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 12),
+          itemBuilder: (context, index) {
+            final option = _options[index];
+            final unlocked = state.isBoardThemeUnlocked(option.id);
+            return _BoardThemeButton(
+                expanded: true,
+                option: option,
+                selected: state.snakesBoardTheme == option.id,
+                locked: !unlocked,
+                actionLabel: unlocked
+                    ? 'Owned'
+                    : state.boardThemePremiumPrice(option.id) ??
+                        '${state.boardThemeRequiredWins(option.id)} wins',
+                onTap: () => showLiveItemPreview(context,
+                    title: '${option.label} Snakes & Ladders',
+                    preview: LiveBoardPreview(theme: option.id, snakes: true),
+                    description: 'Try the board in motion before equipping it.',
+                    actionLabel: unlocked
+                        ? 'Equip board'
+                        : state.boardThemeUnlockLabel(option.id),
+                    onAction: unlocked
+                        ? () => state.setSnakesBoardTheme(option.id)
+                        : null));
+          });
+    }
     return Container(
-      height: 122,
+      height: expanded ? 260 : 122,
       margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       decoration: BoxDecoration(
@@ -1833,38 +1968,39 @@ class _BoardThemeStrip extends StatelessWidget {
       ),
       child: Row(
         children: [
-          SizedBox(
-            width: 84,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'Snakes',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: goldColor,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    shadows: [Shadow(color: Colors.black, blurRadius: 3)],
+          if (!expanded)
+            SizedBox(
+              width: 84,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'Snakes',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: goldColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      shadows: [Shadow(color: Colors.black, blurRadius: 3)],
+                    ),
                   ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Boards',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
+                  SizedBox(height: 2),
+                  Text(
+                    'Boards',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
+          if (!expanded) const SizedBox(width: 8),
           Expanded(
             child: ListView.separated(
               key: const ValueKey('snakes-theme-picker'),
@@ -1875,6 +2011,7 @@ class _BoardThemeStrip extends StatelessWidget {
               itemBuilder: (context, i) {
                 final option = _options[i];
                 return _BoardThemeButton(
+                  expanded: expanded,
                   key: ValueKey('snakes-theme-${option.id}'),
                   option: option,
                   selected: state.snakesBoardTheme == option.id,
@@ -1905,6 +2042,7 @@ class _BoardThemeStrip extends StatelessWidget {
 }
 
 class _BoardThemeButton extends StatelessWidget {
+  final bool expanded;
   final _BoardThemeOption option;
   final bool selected;
   final bool locked;
@@ -1912,6 +2050,7 @@ class _BoardThemeButton extends StatelessWidget {
   final VoidCallback onTap;
 
   const _BoardThemeButton({
+    this.expanded = false,
     super.key,
     required this.option,
     required this.selected,
@@ -1927,7 +2066,7 @@ class _BoardThemeButton extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        width: 124,
+        width: expanded ? 220 : 124,
         padding: const EdgeInsets.all(5),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(14),
@@ -1962,6 +2101,8 @@ class _BoardThemeButton extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     child: LiveBoardPreview(theme: option.id, snakes: true),
                   ),
+                  if (selected)
+                    const Positioned(right: 4, top: 4, child: _EquippedBadge()),
                   if (locked)
                     DecoratedBox(
                       decoration: BoxDecoration(
@@ -2552,10 +2693,12 @@ class _ShopCardState extends State<_ShopCard>
                       ),
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
-                        child: _RarityPill(
-                          label: widget.product.rarity,
-                          premium: widget.product.premium,
-                        ),
+                        child: widget.actionLabel == 'EQUIPPED'
+                            ? const _EquippedBadge()
+                            : _RarityPill(
+                                label: widget.product.rarity,
+                                premium: widget.product.premium,
+                              ),
                       ),
                       Expanded(
                         child: Padding(
@@ -4468,4 +4611,24 @@ class _ProductPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ProductPainter oldDelegate) => oldDelegate.art != art;
+}
+
+class _EquippedBadge extends StatelessWidget {
+  const _EquippedBadge();
+  @override
+  Widget build(BuildContext context) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+          color: const Color(0xFF164D40),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFF9CE7C5))),
+      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.check_circle_rounded, size: 11, color: Color(0xFFB8FFDC)),
+        SizedBox(width: 4),
+        Text('Equipped',
+            style: TextStyle(
+                color: Color(0xFFB8FFDC),
+                fontSize: 10,
+                fontWeight: FontWeight.w800)),
+      ]));
 }
