@@ -77,8 +77,9 @@ class _LiveBoardPreviewState extends State<LiveBoardPreview> {
       winnerPlayerId: '',
       mode: snakes ? 'snakes_ladders' : 'classic_4p',
     );
-    return IgnorePointer(
-        child: Stack(children: [
+    return RepaintBoundary(
+        child: IgnorePointer(
+            child: Stack(children: [
       Positioned.fill(
           child: snakes
               ? SnakesLaddersBoard(
@@ -100,6 +101,6 @@ class _LiveBoardPreviewState extends State<LiveBoardPreview> {
             bottom: 8,
             child: DiceWidget(
                 key: ValueKey(_step), value: _step % 6 + 1, size: 30)),
-    ]));
+    ])));
   }
 }

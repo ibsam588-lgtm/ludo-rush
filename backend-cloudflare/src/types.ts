@@ -63,6 +63,7 @@ export interface LudoPiece {
 
 export interface RoomSnapshot {
   roomId: string;
+  expectedPlayerIds?: string[];
   code?: string;
   mode: GameMode;
   region: Region;

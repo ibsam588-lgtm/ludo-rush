@@ -37,6 +37,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int _prevRollSequence = 0;
   bool _rolling = false;
   bool _piecesMoving = false;
+  final _boardScroll = ScrollController();
+  String? _positionedBoardMode;
   GameSnapshot? _seenSnapshot;
   MatchMoment? _moment;
   int _avatarSequence = 0;
@@ -84,6 +86,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void dispose() {
     _quickBubbleTimer?.cancel();
     _momentTimer?.cancel();
+    _boardScroll.dispose();
     _bgCtrl.dispose();
     _turnPulse.dispose();
     super.dispose();
@@ -164,6 +167,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         final seatColor =
             mySeat != null ? AppColors.seatColor(mySeat) : goldColor;
         final snakesTable = snapshot?.mode == AppState.snakesLaddersMode;
+        if (snapshot != null && _positionedBoardMode != snapshot.mode) {
+          _positionedBoardMode = snapshot.mode;
+          if (snakesTable) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _boardScroll.hasClients) {
+                // The starting squares are at the bottom of a Snakes board.
+                _boardScroll.jumpTo(_boardScroll.position.maxScrollExtent);
+              }
+            });
+          }
+        }
 
         return MatchStyle(
             palette: palette,
@@ -192,20 +206,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                               ? (compact ? 158.0 : 188.0)
                               : (compact ? 166.0 : 202.0);
                           final boardGap = compact ? 5.0 : 8.0;
-                          final maxBoardFromHeight = math.max(
-                            240.0,
-                            constraints.maxHeight -
-                                topBarHeight -
-                                heroHeight -
-                                actionHeight -
-                                boardGap * 4 -
-                                6.0,
-                          );
                           final boardAspect = snakesTable ? 1.13 : 1.0;
-                          final boardWidth = math.min(
-                            constraints.maxWidth - 14,
-                            maxBoardFromHeight / boardAspect,
-                          );
+                          final availableWidth =
+                              math.min(560.0, constraints.maxWidth - 14);
+                          final boardWidth = snakesTable
+                              ? availableWidth
+                              : math.min(
+                                  availableWidth,
+                                  math.max(
+                                      160.0,
+                                      constraints.maxHeight -
+                                          topBarHeight -
+                                          heroHeight -
+                                          actionHeight -
+                                          26));
                           final boardHeight = boardWidth * boardAspect;
 
                           return Column(
@@ -235,42 +249,60 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                 ),
                               ),
                               SizedBox(height: boardGap),
-                              SizedBox(
-                                width: boardWidth,
-                                height: boardHeight,
-                                child: DecoratedBox(
-                                  decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(18),
-                                      boxShadow: [
-                                        const BoxShadow(
-                                            color: Colors.black45,
-                                            blurRadius: 22,
-                                            offset: Offset(0, 10)),
-                                        BoxShadow(
-                                            color: palette.accent.withAlpha(18),
-                                            blurRadius: 16)
-                                      ]),
-                                  child: snakesTable
-                                      ? SnakesLaddersBoard(
-                                          snapshot: snapshot,
-                                          mySeat: mySeat,
-                                          onMotionChanged: _onMotionChanged,
-                                          boardTheme: state.snakesBoardTheme,
-                                          onPieceTap: (id) =>
-                                              state.movePiece(id),
-                                        )
-                                      : LudoBoard(
-                                          snapshot: snapshot,
-                                          mySeat: mySeat,
-                                          onMotionChanged: _onMotionChanged,
-                                          boardTheme: state.ludoBoardTheme,
-                                          onPieceTap: (id) =>
-                                              state.movePiece(id),
-                                          showWaitingOverlay: false,
-                                        ),
+                              Expanded(
+                                child: Scrollbar(
+                                  controller: _boardScroll,
+                                  thumbVisibility: true,
+                                  child: SingleChildScrollView(
+                                    key: const ValueKey('match-board-scroll'),
+                                    controller: _boardScroll,
+                                    physics: const ClampingScrollPhysics(),
+                                    padding: const EdgeInsets.only(bottom: 8),
+                                    child: Center(
+                                        child: SizedBox(
+                                      width: boardWidth,
+                                      height: boardHeight,
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(18),
+                                            boxShadow: [
+                                              const BoxShadow(
+                                                  color: Colors.black45,
+                                                  blurRadius: 22,
+                                                  offset: Offset(0, 10)),
+                                              BoxShadow(
+                                                  color: palette.accent
+                                                      .withAlpha(18),
+                                                  blurRadius: 16)
+                                            ]),
+                                        child: snakesTable
+                                            ? SnakesLaddersBoard(
+                                                snapshot: snapshot,
+                                                mySeat: mySeat,
+                                                onMotionChanged:
+                                                    _onMotionChanged,
+                                                boardTheme:
+                                                    state.snakesBoardTheme,
+                                                onPieceTap: (id) =>
+                                                    state.movePiece(id),
+                                              )
+                                            : LudoBoard(
+                                                snapshot: snapshot,
+                                                mySeat: mySeat,
+                                                onMotionChanged:
+                                                    _onMotionChanged,
+                                                boardTheme:
+                                                    state.ludoBoardTheme,
+                                                onPieceTap: (id) =>
+                                                    state.movePiece(id),
+                                                showWaitingOverlay: false,
+                                              ),
+                                      ),
+                                    )),
+                                  ),
                                 ),
                               ),
-                              const Spacer(),
                               _PlayerActionRow(
                                 state: state,
                                 snapshot: snapshot,
@@ -1223,19 +1255,21 @@ class _PlayerActionRow extends StatelessWidget {
     final enabled = canRoll || showMove;
     final action =
         showMove ? state.moveBestPiece : (canRoll ? state.rollDice : null);
-    final actionLabel = waitingForPlayers
-        ? 'Waiting for players'
-        : piecesMoving
-            ? 'Moving...'
-            : rolling
-                ? 'Rolling'
-                : showMove
-                    ? 'Tap to Move'
-                    : canRoll
-                        ? 'Tap to Roll'
-                        : isMyTurn
-                            ? 'Choose Goti'
-                            : 'Wait Turn';
+    final actionLabel = snapshot == null
+        ? 'Connecting...'
+        : waitingForPlayers
+            ? 'Waiting for players'
+            : piecesMoving
+                ? 'Moving...'
+                : rolling
+                    ? 'Rolling'
+                    : showMove
+                        ? 'Tap to Move'
+                        : canRoll
+                            ? 'Tap to Roll'
+                            : isMyTurn
+                                ? 'Choose Goti'
+                                : 'Wait Turn';
     final opponents =
         snapshot?.seats.where((s) => s.seat != mySeat).toList() ?? const [];
 
@@ -1289,6 +1323,9 @@ class _PlayerActionRow extends StatelessWidget {
                     children: [
                   _DiceActionButton(
                       diceKey: diceKey,
+                      value: state.lastRollValue > 0
+                          ? state.lastRollValue
+                          : snapshot?.diceValue,
                       enabled: enabled,
                       moving: showMove,
                       color: seatColor,
@@ -1510,6 +1547,7 @@ class _OpponentChip extends StatelessWidget {
 
 class _DiceActionButton extends StatelessWidget {
   final GlobalKey<DiceWidgetState> diceKey;
+  final int? value;
   final bool enabled;
   final bool moving;
   final Color color;
@@ -1520,6 +1558,7 @@ class _DiceActionButton extends StatelessWidget {
 
   const _DiceActionButton({
     required this.diceKey,
+    required this.value,
     required this.enabled,
     required this.moving,
     required this.color,
@@ -1588,7 +1627,8 @@ class _DiceActionButton extends StatelessWidget {
                     ),
                   ),
                 ),
-                DiceWidget(key: diceKey, size: size * 0.72, skin: skin),
+                DiceWidget(
+                    key: diceKey, value: value, size: size * 0.72, skin: skin),
                 if (moving)
                   Positioned(
                     right: size * 0.14,

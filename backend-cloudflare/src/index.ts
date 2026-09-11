@@ -2,6 +2,7 @@ import { buildAppConfig, parsePositiveInt } from "./app-config";
 import { authenticatedPlayerId, issueSession } from "./auth";
 import { ECONOMY } from "./economy";
 import { LudoRoom } from "./durable-objects/LudoRoom";
+import { enqueueMatch, matchWaitingTicket, type TicketRow } from "./matchmaking";
 import { MAX_PLAYERS_BY_MODE } from "./game/rules";
 import type { BackgroundJob, Env, GameMode, Region } from "./types";
 import { badRequest, json, notFound, readJson, unauthorized } from "./utils/http";
@@ -40,21 +41,6 @@ interface JoinPrivateRoomRequest {
   code: string;
 }
 
-interface TicketRow {
-  id: string;
-  player_id: string;
-  display_name: string;
-  mode: GameMode;
-  region: Region;
-  rating: number;
-  latency_ms: number | null;
-  status: "waiting" | "matched" | "cancelled" | "expired";
-  room_id: string | null;
-  requested_at: number;
-  updated_at: number;
-  expires_at: number;
-}
-
 interface PrivateRoomRow {
   code: string;
   room_id: string;
@@ -75,7 +61,6 @@ interface AppReleaseConfigRow {
 }
 
 const DEFAULT_REGION: Region = "auto";
-const MATCH_TICKET_TTL_MS = 45_000;
 const PRIVATE_ROOM_TTL_MS = 30 * 60_000;
 
 export default {
@@ -249,72 +234,11 @@ async function quickMatch(request: Request, env: Env): Promise<Response> {
   const now = Date.now();
   const region = body.region ?? DEFAULT_REGION;
   const rating = await ensureMatchmakingUser(env, body.playerId, body.displayName, region, now);
-  await expireOldTickets(env, now);
-
-  // A room only starts once MAX_PLAYERS_BY_MODE[mode] seats are filled, so the
-  // caller must be paired with enough waiting opponents for the mode — pairing
-  // exactly two players would leave 3p/4p rooms waiting forever.
-  const neededOpponents = (MAX_PLAYERS_BY_MODE[body.mode] ?? 2) - 1;
-  const waitingTickets = await env.DB.prepare(
-    "SELECT * FROM matchmaking_tickets WHERE status = ? AND mode = ? AND region = ? AND player_id <> ? AND expires_at > ? ORDER BY requested_at ASC LIMIT ?"
-  ).bind("waiting", body.mode, region, body.playerId, now, neededOpponents).all<TicketRow>();
-
-  const candidates = dedupeByPlayer(waitingTickets.results ?? []);
-  if (candidates.length >= neededOpponents) {
-    const roomId = createId("room");
-    const claimed: TicketRow[] = [];
-
-    // Claim each ticket with a status guard so two concurrent quickMatch calls
-    // cannot both pair against the same waiting ticket.
-    for (const ticket of candidates) {
-      const claim = await env.DB.prepare(
-        "UPDATE matchmaking_tickets SET status = ?, room_id = ?, updated_at = ? WHERE id = ? AND status = ?"
-      ).bind("matched", roomId, now, ticket.id, "waiting").run();
-
-      if (claim.meta.changes === 1) {
-        claimed.push(ticket);
-      }
-    }
-
-    if (claimed.length === neededOpponents) {
-      await createRoom(env, roomId, body.mode, region);
-      await env.DB.prepare(
-        "INSERT INTO matchmaking_tickets (id, player_id, display_name, mode, region, rating, latency_ms, status, room_id, requested_at, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-      ).bind(createId("ticket"), body.playerId, body.displayName, body.mode, region, rating, body.latencyMs ?? null, "matched", roomId, now, now, now + MATCH_TICKET_TTL_MS).run();
-
-      return json(matchReadyResponse(roomId, body.mode, region));
-    }
-
-    // Lost a race for at least one ticket: release the ones we claimed and
-    // fall through to waiting like any other unpaired caller.
-    for (const ticket of claimed) {
-      await env.DB.prepare(
-        "UPDATE matchmaking_tickets SET status = ?, room_id = NULL, updated_at = ? WHERE id = ? AND room_id = ?"
-      ).bind("waiting", now, ticket.id, roomId).run();
-    }
-  }
-
-  const activeTicket = await env.DB.prepare(
-    "SELECT * FROM matchmaking_tickets WHERE player_id = ? AND status = ? AND expires_at > ? ORDER BY requested_at DESC LIMIT 1"
-  ).bind(body.playerId, "waiting", now).first<TicketRow>();
-
-  if (activeTicket) {
-    return json(waitingResponse(activeTicket));
-  }
-
-  const ticketId = createId("ticket");
-  const expiresAt = now + MATCH_TICKET_TTL_MS;
-  await env.DB.prepare(
-    "INSERT INTO matchmaking_tickets (id, player_id, display_name, mode, region, rating, latency_ms, status, room_id, requested_at, updated_at, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-  ).bind(ticketId, body.playerId, body.displayName, body.mode, region, rating, body.latencyMs ?? null, "waiting", null, now, now, expiresAt).run();
-
-  return json({
-    status: "waiting",
-    ticketId,
-    mode: body.mode,
-    region,
-    expiresAt
-  });
+  const ticket = await enqueueMatch(env.DB, { ...body, region, rating },
+    (roomId, players) => createRoom(env, roomId, body.mode, region, undefined, players.map(p => p.player_id)), now);
+  return json(ticket.status === "matched" && ticket.room_id
+    ? matchReadyResponse(ticket.room_id, ticket.mode, ticket.region, ticket.id)
+    : waitingResponse(ticket));
 }
 
 async function createBotMatch(request: Request, env: Env): Promise<Response> {
@@ -343,13 +267,13 @@ async function getMatchTicket(request: Request, env: Env, url: URL): Promise<Res
   }
 
   const now = Date.now();
-  const ticket = await env.DB.prepare("SELECT * FROM matchmaking_tickets WHERE id = ?").bind(ticketId).first<TicketRow>();
+  let ticket = await env.DB.prepare("SELECT * FROM matchmaking_tickets WHERE id = ?").bind(ticketId).first<TicketRow>();
   if (!ticket) {
     return notFound();
   }
   if (ticket.player_id !== authenticated) return unauthorized();
 
-  if (ticket.status === "waiting" && ticket.expires_at <= now) {
+  if ((ticket.status === "waiting" || ticket.status === "preparing") && ticket.expires_at <= now) {
     await env.DB.prepare("UPDATE matchmaking_tickets SET status = ?, updated_at = ? WHERE id = ?")
       .bind("expired", now, ticket.id)
       .run();
@@ -360,6 +284,11 @@ async function getMatchTicket(request: Request, env: Env, url: URL): Promise<Res
       mode: ticket.mode,
       region: ticket.region
     });
+  }
+
+  if (ticket.status === "waiting") {
+    ticket = await matchWaitingTicket(env.DB, ticket,
+      (roomId, players) => createRoom(env, roomId, players[0].mode, players[0].region, undefined, players.map(p => p.player_id)), now);
   }
 
   if (ticket.status === "matched" && ticket.room_id) {
@@ -378,8 +307,8 @@ async function cancelMatchTicket(request: Request, env: Env, url: URL): Promise<
     return badRequest("Ticket id is required.");
   }
 
-  await env.DB.prepare("UPDATE matchmaking_tickets SET status = ?, updated_at = ? WHERE id = ? AND player_id = ? AND status = ?")
-    .bind("cancelled", Date.now(), ticketId, authenticated, "waiting")
+  await env.DB.prepare("UPDATE matchmaking_tickets SET status = ?, updated_at = ? WHERE id = ? AND player_id = ? AND status IN ('waiting','preparing')")
+    .bind("cancelled", Date.now(), ticketId, authenticated)
     .run();
 
   return json({ status: "cancelled", ticketId });
@@ -453,15 +382,16 @@ async function routeRoomRequest(request: Request, env: Env, url: URL): Promise<R
   return stub.fetch(new Request(roomUrl, request));
 }
 
-async function createRoom(env: Env, roomId: string, mode: GameMode, region: Region, code?: string): Promise<void> {
+async function createRoom(env: Env, roomId: string, mode: GameMode, region: Region, code?: string, expectedPlayerIds?: string[]): Promise<void> {
   const id = env.LUDO_ROOMS.idFromName(roomId);
   const stub = env.LUDO_ROOMS.get(id);
 
-  await stub.fetch("https://room/create", {
+  const response = await stub.fetch("https://room/create", {
     method: "POST",
-    body: JSON.stringify({ roomId, mode, region, code }),
+    body: JSON.stringify({ roomId, mode, region, code, expectedPlayerIds }),
     headers: { "content-type": "application/json" }
   });
+  if (!response.ok) throw new Error("Could not create the matched room.");
 }
 
 async function ensureMatchmakingUser(
@@ -490,24 +420,6 @@ async function ensureMatchmakingUser(
   return user?.rating ?? 1000;
 }
 
-function dedupeByPlayer(tickets: TicketRow[]): TicketRow[] {
-  const seen = new Set<string>();
-  return tickets.filter((ticket) => {
-    if (seen.has(ticket.player_id)) {
-      return false;
-    }
-
-    seen.add(ticket.player_id);
-    return true;
-  });
-}
-
-async function expireOldTickets(env: Env, now: number): Promise<void> {
-  await env.DB.prepare("UPDATE matchmaking_tickets SET status = ?, updated_at = ? WHERE status = ? AND expires_at <= ?")
-    .bind("expired", now, "waiting", now)
-    .run();
-}
-
 async function createUniqueRoomCode(env: Env): Promise<string> {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const code = createRoomCode();
@@ -533,7 +445,7 @@ function matchReadyResponse(roomId: string, mode: GameMode, region: Region, tick
 
 function waitingResponse(ticket: TicketRow): Record<string, unknown> {
   return {
-    status: "waiting",
+    status: ticket.status === "preparing" ? "waiting" : ticket.status,
     ticketId: ticket.id,
     mode: ticket.mode,
     region: ticket.region,

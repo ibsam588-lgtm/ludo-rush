@@ -25,6 +25,7 @@ interface ConnectionAttachment {
 
 interface CreateRoomRequest {
   roomId: string;
+  expectedPlayerIds?: string[];
   code?: string;
   mode: GameMode;
   region: Region;
@@ -127,6 +128,11 @@ export class LudoRoom extends DurableObject<Env> {
       return;
     }
 
+    // Closing an old socket must not disconnect a newer connection for the
+    // same player (for example after a mobile network handoff).
+    if (this.ctx.getWebSockets().some(other => other !== ws && other.readyState === 1 &&
+        (other.deserializeAttachment() as ConnectionAttachment | undefined)?.playerId === attachment.playerId)) return;
+
     let snapshot: RoomSnapshot;
     try {
       snapshot = await this.getSnapshot();
@@ -149,6 +155,7 @@ export class LudoRoom extends DurableObject<Env> {
 
     const snapshot = createInitialSnapshot({
       roomId: body.roomId,
+      expectedPlayerIds: body.expectedPlayerIds,
       code: body.code,
       mode: body.mode,
       region: body.region,
