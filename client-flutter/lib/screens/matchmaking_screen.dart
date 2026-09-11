@@ -139,9 +139,11 @@ class _MatchmakingTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = state.statusText.isNotEmpty
+    final status = !state.connecting && state.statusText.isNotEmpty
         ? state.statusText
-        : 'Searching for match...';
+        : state.currentMatchIsBot
+            ? 'Preparing your table...'
+            : 'Finding your table...';
     return Container(
       height: 82,
       padding: const EdgeInsets.fromLTRB(14, 9, 14, 9),

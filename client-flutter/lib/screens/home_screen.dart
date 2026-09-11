@@ -15,6 +15,7 @@ import '../services/soundtrack_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/levelplay_banner.dart';
 import '../widgets/snakes_ladders_board.dart';
+import '../widgets/live_board_preview.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -239,10 +240,9 @@ String _privateModeForPlayers(int players) {
 class _HomeBoardThemeOption {
   final String id;
   final String label;
-  final String asset;
   final List<Color> colors;
 
-  const _HomeBoardThemeOption(this.id, this.label, this.asset, this.colors);
+  const _HomeBoardThemeOption(this.id, this.label, this.colors);
 }
 
 class _GiftShopItem {
@@ -272,36 +272,37 @@ class _GiftShopItem {
 }
 
 const _homeBoardThemes = [
-  _HomeBoardThemeOption('carnival', 'Carnival',
-      'assets/images/rush/rush_snakes_frame_carnival_mobile_v1.jpg', [
+  _HomeBoardThemeOption('carnival', 'Carnival', [
     Color(0xFFFF36B8),
     Color(0xFFFFD426),
     Color(0xFF22B7FF),
   ]),
-  _HomeBoardThemeOption(
-      'royal', 'Royal', 'assets/images/rush/rush_board_royal_locked_v1.png', [
+  _HomeBoardThemeOption('royal', 'Royal', [
     Color(0xFF5B2CFF),
     Color(0xFFFFD426),
     Color(0xFFB145FF),
   ]),
-  _HomeBoardThemeOption(
-      'neon', 'Neon', 'assets/images/rush/rush_board_neon_locked_v1.png', [
+  _HomeBoardThemeOption('neon', 'Neon', [
     Color(0xFF00F5FF),
     Color(0xFFFF35D6),
     Color(0xFF6EFF3A),
   ]),
-  _HomeBoardThemeOption('classic', 'Classic',
-      'assets/images/rush/rush_snakes_frame_classic_mobile_v1.jpg', [
+  _HomeBoardThemeOption('classic', 'Classic', [
     Color(0xFFFF3B3F),
     Color(0xFF2DBB52),
     Color(0xFF1E9BFF),
   ]),
-  _HomeBoardThemeOption('jungle', 'Jungle Temple',
-      'assets/images/rush/rush_snakes_frame_jungle_mobile_v1.webp', [
+  _HomeBoardThemeOption('jungle', 'Jungle Temple', [
     Color(0xFF35B96D),
     Color(0xFFFFC93C),
     Color(0xFF21BDEB),
   ]),
+  _HomeBoardThemeOption('ocean', 'Ocean Voyage',
+      [Color(0xFF087E99), Color(0xFF9DF3EA), Color(0xFF033649)]),
+  _HomeBoardThemeOption('astral', 'Star Observatory',
+      [Color(0xFF574482), Color(0xFFF5DEAC), Color(0xFF11122D)]),
+  _HomeBoardThemeOption('volcano', 'Lava Citadel',
+      [Color(0xFF873D2D), Color(0xFFFFA24B), Color(0xFF241C20)]),
 ];
 
 const _giftShopItems = [
@@ -1605,19 +1606,7 @@ class _HomeThemeButton extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.asset(
-                        option.asset,
-                        fit: BoxFit.fill,
-                        errorBuilder: (_, __, ___) => CustomPaint(
-                          painter: _HomeThemePreviewPainter(option),
-                        ),
-                      ),
-                      CustomPaint(
-                        painter: _HomeThemePreviewPainter(
-                          option,
-                          paintShell: false,
-                        ),
-                      ),
+                      LiveBoardPreview(theme: option.id, snakes: true),
                       DecoratedBox(
                         decoration: BoxDecoration(
                           color: locked ? Colors.black.withAlpha(80) : null,
@@ -1694,352 +1683,6 @@ class _HomeThemeButton extends StatelessWidget {
       ),
     );
   }
-}
-
-class _HomeThemePreviewPainter extends CustomPainter {
-  static const Map<int, int> _ladders = {
-    6: 26,
-    23: 37,
-    48: 68,
-    65: 85,
-    79: 99,
-  };
-
-  static const Map<int, int> _snakes = {
-    47: 13,
-    57: 35,
-    84: 64,
-    93: 68,
-  };
-
-  static const Map<int, Color> _coloredCells = {
-    100: boardRed,
-    97: boardBlue,
-    94: boardGreen,
-    90: boardRed,
-    79: boardPurple,
-    67: boardRed,
-    60: boardBlue,
-    49: boardPurple,
-    36: boardGreen,
-    25: boardBlue,
-    20: boardRed,
-    9: boardPurple,
-  };
-
-  static const Set<int> _starCells = {
-    97,
-    94,
-    90,
-    79,
-    67,
-    49,
-    36,
-    25,
-    20,
-    9,
-  };
-
-  final _HomeBoardThemeOption option;
-  final bool paintShell;
-
-  const _HomeThemePreviewPainter(this.option, {this.paintShell = true});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final p = Paint()..isAntiAlias = true;
-    final shell = Offset.zero & size;
-    if (paintShell) {
-      p.shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: _shellColors,
-      ).createShader(shell);
-      canvas.drawRRect(RRect.fromRectXY(shell, 8, 8), p);
-      p.shader = null;
-    }
-
-    final side = paintShell
-        ? math.min(size.width, size.height) * 0.90
-        : math.min(size.height * 0.82, size.width * 0.56);
-    final board = Rect.fromCenter(
-      center: shell.center,
-      width: side,
-      height: side,
-    );
-    p.color = const Color(0x66000000);
-    canvas.drawRRect(
-      RRect.fromRectXY(board.shift(const Offset(2, 2)), 8, 8),
-      p,
-    );
-    p.color = const Color(0xFFFFF5C9);
-    canvas.drawRRect(RRect.fromRectXY(board, 8, 8), p);
-
-    final inner = board.deflate(side * 0.035);
-    final cell = inner.width / 10;
-    for (var number = 1; number <= 100; number++) {
-      final rect = _cellRect(number, inner, cell);
-      final themed = _coloredCells[number];
-      p.shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: themed == null ? _plainCellColors(number) : _themeCell(themed),
-      ).createShader(rect);
-      canvas.drawRect(rect, p);
-      p.shader = null;
-      p
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.55
-        ..color = _gridColor;
-      canvas.drawRect(rect, p);
-      p.style = PaintingStyle.fill;
-      if (_starCells.contains(number)) {
-        _drawStar(canvas, rect.center, cell * 0.24, p);
-      }
-    }
-
-    _drawLadders(canvas, inner, cell, p);
-    _drawSnakes(canvas, inner, cell, p);
-
-    p
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2
-      ..color = goldColor;
-    canvas.drawRRect(RRect.fromRectXY(board.deflate(1), 8, 8), p);
-    p.style = PaintingStyle.fill;
-  }
-
-  List<Color> get _shellColors {
-    switch (option.id) {
-      case 'royal':
-        return const [
-          Color(0xFFFFF8C9),
-          Color(0xFFD69BFF),
-          Color(0xFF4B1688),
-        ];
-      case 'neon':
-        return const [
-          Color(0xFFB9FFFF),
-          Color(0xFFFF4CE2),
-          Color(0xFF160051),
-        ];
-      case 'classic':
-        return const [
-          Color(0xFFFFF8D6),
-          Color(0xFFFFC448),
-          Color(0xFF7D430E),
-        ];
-      case 'carnival':
-      default:
-        return const [
-          Color(0xFFFFF7A6),
-          Color(0xFFFFB61C),
-          Color(0xFF713100),
-        ];
-    }
-  }
-
-  Color get _gridColor {
-    switch (option.id) {
-      case 'royal':
-        return const Color(0xD18F58C9);
-      case 'neon':
-        return const Color(0xD129BFFF);
-      case 'classic':
-        return const Color(0xD6BE8A25);
-      case 'carnival':
-      default:
-        return const Color(0xD9D8A115);
-    }
-  }
-
-  List<Color> _plainCellColors(int number) {
-    final even = (number + (number ~/ 10)).isEven;
-    switch (option.id) {
-      case 'royal':
-        return even
-            ? const [Color(0xFFFFF8FF), Color(0xFFF4DFFF)]
-            : const [Color(0xFFFFF2F8), Color(0xFFEAD8FF)];
-      case 'neon':
-        return even
-            ? const [Color(0xFFFFFFFF), Color(0xFFE1FBFF)]
-            : const [Color(0xFFFFF5FF), Color(0xFFEAF8FF)];
-      case 'classic':
-        return even
-            ? const [Color(0xFFFFFDF4), Color(0xFFFFE7B5)]
-            : const [Color(0xFFFFF7E1), Color(0xFFFFE0A0)];
-      case 'carnival':
-      default:
-        return even
-            ? const [Color(0xFFFFFDF0), Color(0xFFFFF0C7)]
-            : const [Color(0xFFFFF9E6), Color(0xFFFFEAB1)];
-    }
-  }
-
-  List<Color> _themeCell(Color color) {
-    switch (option.id) {
-      case 'royal':
-        return [Color.lerp(color, Colors.white, 0.34)!, color];
-      case 'neon':
-        return [Color.lerp(color, const Color(0xFF39F6FF), 0.24)!, color];
-      case 'classic':
-        return [Color.lerp(color, Colors.white, 0.22)!, color];
-      case 'carnival':
-      default:
-        return [Color.lerp(color, Colors.white, 0.20)!, color];
-    }
-  }
-
-  Rect _cellRect(int number, Rect board, double cell) {
-    final rowFromBottom = (number - 1) ~/ 10;
-    final rawCol = (number - 1) % 10;
-    final col = rowFromBottom.isEven ? rawCol : 9 - rawCol;
-    final row = 9 - rowFromBottom;
-    return Rect.fromLTWH(
-      board.left + col * cell,
-      board.top + row * cell,
-      cell,
-      cell,
-    );
-  }
-
-  Offset _cellCenter(int number, Rect board, double cell) =>
-      _cellRect(number, board, cell).center;
-
-  void _drawLadders(Canvas canvas, Rect board, double cell, Paint p) {
-    p
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeWidth = math.max(1.4, cell * 0.12)
-      ..color = const Color(0xFFFFD33F);
-    for (final entry in _ladders.entries) {
-      final a = _cellCenter(entry.key, board, cell);
-      final b = _cellCenter(entry.value, board, cell);
-      final dir = b - a;
-      final len = dir.distance;
-      if (len == 0) continue;
-      final unit = dir / len;
-      final normal = Offset(-unit.dy, unit.dx) * cell * 0.15;
-      canvas.drawLine(a - normal, b - normal, p);
-      canvas.drawLine(a + normal, b + normal, p);
-      p
-        ..strokeWidth = math.max(0.9, cell * 0.07)
-        ..color = const Color(0xFFFFF5A8);
-      for (var i = 1; i < 5; i++) {
-        final c = Offset.lerp(a, b, i / 5)!;
-        canvas.drawLine(c - normal * 1.15, c + normal * 1.15, p);
-      }
-      p
-        ..strokeWidth = math.max(1.4, cell * 0.12)
-        ..color = const Color(0xFFFFD33F);
-    }
-    p
-      ..style = PaintingStyle.fill
-      ..strokeCap = StrokeCap.butt;
-  }
-
-  void _drawSnakes(Canvas canvas, Rect board, double cell, Paint p) {
-    final colors = _snakeColors;
-    var i = 0;
-    for (final entry in _snakes.entries) {
-      final start = _cellCenter(entry.key, board, cell);
-      final end = _cellCenter(entry.value, board, cell);
-      final color = colors[i % colors.length];
-      final midY = (start.dy + end.dy) / 2;
-      final sway = (i.isEven ? -1 : 1) * cell * 1.15;
-      final path = Path()
-        ..moveTo(start.dx, start.dy)
-        ..cubicTo(start.dx + sway, midY, end.dx - sway, midY, end.dx, end.dy);
-      p
-        ..style = PaintingStyle.stroke
-        ..strokeCap = StrokeCap.round
-        ..strokeWidth = math.max(2.4, cell * 0.24)
-        ..color = Color.lerp(color, Colors.black, 0.18)!;
-      canvas.drawPath(path, p);
-      p
-        ..strokeWidth = math.max(1.5, cell * 0.14)
-        ..color = Color.lerp(color, Colors.white, 0.34)!;
-      canvas.drawPath(path, p);
-      p
-        ..style = PaintingStyle.fill
-        ..color = Color.lerp(color, Colors.white, 0.24)!;
-      canvas.drawCircle(start, cell * 0.16, p);
-      p.color = Colors.white.withAlpha(230);
-      canvas.drawCircle(
-        start.translate(-cell * 0.04, -cell * 0.03),
-        cell * 0.045,
-        p,
-      );
-      i++;
-    }
-    p
-      ..style = PaintingStyle.fill
-      ..strokeCap = StrokeCap.butt;
-  }
-
-  List<Color> get _snakeColors {
-    switch (option.id) {
-      case 'royal':
-        return const [
-          Color(0xFFFF873D),
-          Color(0xFFB85CFF),
-          Color(0xFF54DD78),
-          Color(0xFF33B9FF),
-        ];
-      case 'neon':
-        return const [
-          Color(0xFFFF7A00),
-          Color(0xFFFF4CFF),
-          Color(0xFF79FF35),
-          Color(0xFF20F0FF),
-        ];
-      case 'classic':
-        return const [
-          Color(0xFFFF8122),
-          Color(0xFFB15CE0),
-          Color(0xFF53C846),
-          Color(0xFF2AA8EA),
-        ];
-      case 'carnival':
-      default:
-        return const [
-          boardOrange,
-          boardPurple,
-          Color(0xFF56D82D),
-          Color(0xFF22B7FF),
-        ];
-    }
-  }
-
-  void _drawStar(Canvas canvas, Offset center, double radius, Paint p) {
-    final path = Path();
-    for (var i = 0; i < 10; i++) {
-      final r = i.isEven ? radius : radius * 0.43;
-      final a = -math.pi / 2 + i * math.pi / 5;
-      final point = center + Offset(math.cos(a) * r, math.sin(a) * r);
-      if (i == 0) {
-        path.moveTo(point.dx, point.dy);
-      } else {
-        path.lineTo(point.dx, point.dy);
-      }
-    }
-    path.close();
-    p
-      ..style = PaintingStyle.fill
-      ..color = Colors.white.withAlpha(235);
-    canvas.drawPath(path, p);
-    p
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = math.max(0.7, radius * 0.18)
-      ..color = const Color(0xFFFFD426);
-    canvas.drawPath(path, p);
-    p.style = PaintingStyle.fill;
-  }
-
-  @override
-  bool shouldRepaint(covariant _HomeThemePreviewPainter oldDelegate) =>
-      oldDelegate.option.id != option.id ||
-      oldDelegate.paintShell != paintShell;
 }
 
 class _StartChoiceOverlay extends StatelessWidget {

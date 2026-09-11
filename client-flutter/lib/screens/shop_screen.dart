@@ -65,6 +65,15 @@ class _ShopScreenState extends State<ShopScreen>
     _ShopProduct('Classic Board', '2 WINS', 'clean table',
         _ProductArt.classicBoard, false, 0,
         ludoBoardTheme: 'classic', rarity: 'COMMON'),
+    _ShopProduct('Ocean Voyage', 'EQUIP', 'waves & compass roses',
+        _ProductArt.classicBoard, false, 0,
+        ludoBoardTheme: 'ocean', rarity: 'COMMON'),
+    _ShopProduct('Star Observatory', '4 WINS', 'orbits & constellations',
+        _ProductArt.royalBoard, false, 0,
+        ludoBoardTheme: 'astral', rarity: 'RARE'),
+    _ShopProduct('Lava Citadel', '8 WINS', 'obsidian & glowing fissures',
+        _ProductArt.classicBoard, false, 0,
+        ludoBoardTheme: 'volcano', rarity: 'RARE'),
     _ShopProduct('Coin Stack', '0.99 USD', '1,200 coins', _ProductArt.coinPack,
         false, 1200,
         rarity: 'PREMIUM'),
@@ -1532,13 +1541,11 @@ class _BoardThemeOption {
   final String label;
   final List<Color> colors;
   final String rarity;
-  final String asset;
 
   const _BoardThemeOption(
     this.id,
     this.label,
     this.colors, {
-    required this.asset,
     this.rarity = 'COMMON',
   });
 }
@@ -1752,14 +1759,14 @@ class _BoardThemeStrip extends StatelessWidget {
 
   static const _options = [
     _BoardThemeOption(
-        'carnival',
-        'Carnival',
-        [
-          Color(0xFFFF36B8),
-          Color(0xFFFFD426),
-          Color(0xFF22B7FF),
-        ],
-        asset: 'assets/images/rush/rush_snakes_frame_carnival_mobile_v1.jpg'),
+      'carnival',
+      'Carnival',
+      [
+        Color(0xFFFF36B8),
+        Color(0xFFFFD426),
+        Color(0xFF22B7FF),
+      ],
+    ),
     _BoardThemeOption(
         'royal',
         'Royal',
@@ -1768,7 +1775,6 @@ class _BoardThemeStrip extends StatelessWidget {
           Color(0xFFFFD426),
           Color(0xFFB145FF),
         ],
-        asset: 'assets/images/rush/rush_board_royal_locked_v1.png',
         rarity: 'RARE'),
     _BoardThemeOption(
         'neon',
@@ -1778,17 +1784,16 @@ class _BoardThemeStrip extends StatelessWidget {
           Color(0xFFFF35D6),
           Color(0xFF6EFF3A),
         ],
-        asset: 'assets/images/rush/rush_board_neon_locked_v1.png',
         rarity: 'PREMIUM'),
     _BoardThemeOption(
-        'classic',
-        'Classic',
-        [
-          Color(0xFFFF3B3F),
-          Color(0xFF2DBB52),
-          Color(0xFF1E9BFF),
-        ],
-        asset: 'assets/images/rush/rush_snakes_frame_classic_mobile_v1.jpg'),
+      'classic',
+      'Classic',
+      [
+        Color(0xFFFF3B3F),
+        Color(0xFF2DBB52),
+        Color(0xFF1E9BFF),
+      ],
+    ),
     _BoardThemeOption(
         'jungle',
         'Jungle',
@@ -1797,7 +1802,14 @@ class _BoardThemeStrip extends StatelessWidget {
           Color(0xFFFFC93C),
           Color(0xFF21BDEB),
         ],
-        asset: 'assets/images/rush/rush_snakes_frame_jungle_mobile_v1.webp',
+        rarity: 'RARE'),
+    _BoardThemeOption('ocean', 'Ocean Voyage',
+        [Color(0xFF087E99), Color(0xFF9DF3EA), Color(0xFF033649)]),
+    _BoardThemeOption('astral', 'Star Observatory',
+        [Color(0xFF574482), Color(0xFFF5DEAC), Color(0xFF11122D)],
+        rarity: 'RARE'),
+    _BoardThemeOption('volcano', 'Lava Citadel',
+        [Color(0xFF873D2D), Color(0xFFFFA24B), Color(0xFF241C20)],
         rarity: 'RARE'),
   ];
 
@@ -1855,6 +1867,7 @@ class _BoardThemeStrip extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: ListView.separated(
+              key: const ValueKey('snakes-theme-picker'),
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
               itemCount: _options.length,
@@ -1862,6 +1875,7 @@ class _BoardThemeStrip extends StatelessWidget {
               itemBuilder: (context, i) {
                 final option = _options[i];
                 return _BoardThemeButton(
+                  key: ValueKey('snakes-theme-${option.id}'),
                   option: option,
                   selected: state.snakesBoardTheme == option.id,
                   locked: !state.isBoardThemeUnlocked(option.id),
@@ -1898,6 +1912,7 @@ class _BoardThemeButton extends StatelessWidget {
   final VoidCallback onTap;
 
   const _BoardThemeButton({
+    super.key,
     required this.option,
     required this.selected,
     required this.locked,
@@ -1945,11 +1960,7 @@ class _BoardThemeButton extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.asset(
-                      option.asset,
-                      fit: BoxFit.cover,
-                      filterQuality: FilterQuality.medium,
-                    ),
+                    child: LiveBoardPreview(theme: option.id, snakes: true),
                   ),
                   if (locked)
                     DecoratedBox(

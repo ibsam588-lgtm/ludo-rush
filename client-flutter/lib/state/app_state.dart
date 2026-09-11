@@ -151,6 +151,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     'classic': 2,
     'royal': 6,
     'jungle': 10,
+    'ocean': 0,
+    'astral': 4,
+    'volcano': 8,
   };
   static const Map<String, String> _premiumDicePrices = {
     'ruby': '0.99 USD',
@@ -244,6 +247,14 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       'A newer version of Ludo Rush is required to keep matchmaking, rewards, and game rules in sync.';
   String forceUpdateUrl = _defaultAndroidUpdateUrl;
   int _pollAttempts = 0;
+  int _matchGeneration = 0;
+  String? _matchmakingTicketId;
+  bool _disposed = false;
+  Timer? _resultsTimer;
+  final http.Client _matchmakingClient;
+
+  bool _isCurrentSearch(int generation) =>
+      !_disposed && connecting && generation == _matchGeneration;
   final math.Random _rng;
   Timer? _localBotTimer;
   Timer? _matchmakingTimer;
@@ -265,7 +276,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   // WS message subscription
   StreamSubscription<dynamic>? _wsSub;
 
-  AppState(this._prefs, {math.Random? random}) : _rng = random ?? math.Random();
+  AppState(this._prefs, {math.Random? random, http.Client? matchmakingClient})
+      : _rng = random ?? math.Random(),
+        _matchmakingClient = matchmakingClient ?? http.Client();
 
   Future<void> init() async {
     if (!_lifecycleObserverRegistered) {
@@ -341,6 +354,10 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _disposed = true;
+    _matchGeneration++;
+    _resultsTimer?.cancel();
+    _matchmakingClient.close();
     if (_lifecycleObserverRegistered) {
       WidgetsBinding.instance.removeObserver(this);
       _lifecycleObserverRegistered = false;
@@ -623,13 +640,15 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   // ── Matchmaking ────────────────────────────────────────────────────────────
 
   Future<void> startQuickMatch(String mode) async {
-    if (connecting || !await _confirmRules(mode)) return;
+    if (_disposed || connecting || !await _confirmRules(mode) || _disposed)
+      return;
     markStartChoiceSeen();
     _ensurePlayerIdentity();
     pendingMatchMode = mode;
     fallbackBotStarted = false;
     currentMatchIsBot = false;
     _resetLiveMatch();
+    final generation = _matchGeneration;
     connecting = true;
     _setStatus('Searching for match...');
     _openMatchmakingScreen();
@@ -645,9 +664,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
     if (authToken == null || authToken!.isEmpty) {
       _ensureAuthenticatedIdentity().then((_) {
-        if (!connecting || pendingMatchMode != mode) return;
+        if (!_isCurrentSearch(generation)) return;
         if (authToken == null || authToken!.isEmpty) {
-          _fallbackToBots('Online sign-in is unavailable.');
+          _fallbackToBots();
           return;
         }
         _requestOnlineMatch(mode);
@@ -673,7 +692,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         if (status == 'matched') {
           final socketUrl = j['socketUrl'] as String? ?? '';
           if (socketUrl.isEmpty) {
-            _fallbackToBots('Match server returned no game socket.');
+            _fallbackToBots();
             return;
           }
           _connectWs(socketUrl);
@@ -683,13 +702,14 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
         final ticketId = j['ticketId'] as String? ?? '';
         if (status == 'waiting' && ticketId.isNotEmpty) {
+          _matchmakingTicketId = ticketId;
           _setStatus('Searching for online players...');
           _pollTicket(ticketId);
           return;
         }
-        _fallbackToBots('No online table was available.');
+        _fallbackToBots();
       },
-      onError: () => _fallbackToBots('Online matchmaking is unavailable.'),
+      onError: () => _fallbackToBots(),
     );
   }
 
@@ -715,7 +735,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> startBotMatch(String mode) async {
-    if (connecting || !await _confirmRules(mode)) return;
+    if (_disposed || connecting || !await _confirmRules(mode) || _disposed)
+      return;
     pendingMatchMode = mode;
     fallbackBotStarted = false;
     currentMatchIsBot = true;
@@ -732,7 +753,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> startOfflineMatch(String mode) async {
-    if (connecting || !await _confirmRules(mode)) return;
+    if (_disposed || connecting || !await _confirmRules(mode) || _disposed)
+      return;
     markStartChoiceSeen();
     pendingMatchMode = mode;
     fallbackBotStarted = true;
@@ -748,20 +770,22 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> createPrivateRoom(String mode) async {
-    if (connecting || !await _confirmRules(mode)) return;
+    if (_disposed || connecting || !await _confirmRules(mode) || _disposed)
+      return;
     markStartChoiceSeen();
     _ensurePlayerIdentity();
     pendingMatchMode = mode;
     fallbackBotStarted = false;
     currentMatchIsBot = false;
     _resetLiveMatch();
+    final generation = _matchGeneration;
     connecting = true;
     privateInviteCode = null;
     _setStatus('Creating private room...');
     _openMatchmakingScreen();
     if (authToken == null || authToken!.isEmpty) {
       _ensureAuthenticatedIdentity().then((_) {
-        if (!connecting || pendingMatchMode != mode) return;
+        if (!_isCurrentSearch(generation)) return;
         if (authToken == null || authToken!.isEmpty) {
           connecting = false;
           _setStatus(
@@ -814,25 +838,26 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> joinPrivateRoom(String code) async {
-    if (connecting) return;
+    if (_disposed || connecting) return;
     final cleanCode = code.trim().toUpperCase();
     if (cleanCode.isEmpty) {
       _setStatus('Enter a private room code.');
       return;
     }
-    if (!await _confirmRules('classic_2p')) return;
+    if (!await _confirmRules('classic_2p') || _disposed) return;
     markStartChoiceSeen();
     _ensurePlayerIdentity();
     fallbackBotStarted = false;
     currentMatchIsBot = false;
     _resetLiveMatch();
+    final generation = _matchGeneration;
     connecting = true;
     privateInviteCode = cleanCode;
     _setStatus('Joining private room $cleanCode...');
     _openMatchmakingScreen();
     if (authToken == null || authToken!.isEmpty) {
       _ensureAuthenticatedIdentity().then((_) {
-        if (!connecting || privateInviteCode != cleanCode) return;
+        if (!_isCurrentSearch(generation)) return;
         if (authToken == null || authToken!.isEmpty) {
           connecting = false;
           privateInviteCode = null;
@@ -879,7 +904,30 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
+  void _cancelPendingTicket() {
+    final ticket = _matchmakingTicketId;
+    _matchmakingTicketId = null;
+    if (ticket != null) unawaited(_cancelServerTicket(ticket));
+  }
+
+  Future<void> _cancelServerTicket(String ticket) async {
+    try {
+      await _matchmakingClient
+          .post(
+            Uri.parse(
+                '$_backendUrl/api/v1/matchmaking/tickets/${Uri.encodeComponent(ticket)}/cancel'),
+            headers: _authorizedHeaders(),
+          )
+          .timeout(const Duration(seconds: 6));
+    } catch (_) {
+      // Best effort: the server also expires abandoned tickets.
+    }
+  }
+
   void cancelMatchmaking() {
+    _cancelPendingTicket();
+    _matchGeneration++;
+    privateInviteCode = null;
     _matchmakingTimer?.cancel();
     _matchmakingTimer = null;
     if (connecting) {
@@ -900,28 +948,40 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     Duration delay = const Duration(milliseconds: 2500),
     String setupStatus = 'Setting up your game...',
   }) {
+    final generation = _matchGeneration;
     _matchmakingTimer?.cancel();
     _matchmakingTimer = Timer(delay, () {
       _matchmakingTimer = null;
-      if (!connecting || pendingMatchMode != mode) return;
+      if (!_isCurrentSearch(generation)) return;
       _setStatus(setupStatus);
       _startLocalBotMatch(mode, reason: reason);
       replaceWith('/game');
     });
   }
 
-  // ignore: unused_element
   void _pollTicket(String ticketId) {
+    final generation = _matchGeneration;
+    if (!_isCurrentSearch(generation)) return;
     if (_pollAttempts >= 4) {
-      _fallbackToBots('No online players found.');
+      _fallbackToBots();
       return;
     }
-    Future.delayed(const Duration(seconds: 2), () async {
+    _matchmakingTimer?.cancel();
+    _matchmakingTimer = Timer(const Duration(seconds: 2), () async {
+      _matchmakingTimer = null;
+      if (!_isCurrentSearch(generation)) return;
       try {
-        final r = await http.get(
-          Uri.parse('$_backendUrl/api/v1/matchmaking/tickets/$ticketId'),
-          headers: _authorizedHeaders(),
-        );
+        final r = await _matchmakingClient
+            .get(
+              Uri.parse('$_backendUrl/api/v1/matchmaking/tickets/$ticketId'),
+              headers: _authorizedHeaders(),
+            )
+            .timeout(const Duration(seconds: 6));
+        if (!_isCurrentSearch(generation)) return;
+        if (r.statusCode != 200) {
+          _fallbackToBots();
+          return;
+        }
         final j = jsonDecode(r.body) as Map<String, dynamic>;
         final status = j['status'] as String? ?? 'waiting';
         if (status == 'matched') {
@@ -934,37 +994,28 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         }
         if (status == 'waiting') {
           _pollAttempts++;
-          _setStatus('Searching... ($_pollAttempts)');
+          _setStatus('Finding your table...');
           _pollTicket(ticketId);
         } else {
-          _fallbackToBots('No online players found.');
+          _fallbackToBots();
         }
       } catch (_) {
-        _fallbackToBots('Matchmaking check failed.');
+        if (_isCurrentSearch(generation)) _fallbackToBots();
       }
     });
   }
 
-  void _fallbackToBots(String reason) {
-    if (fallbackBotStarted) return;
+  void _fallbackToBots() {
+    if (_disposed || !connecting || fallbackBotStarted) return;
     fallbackBotStarted = true;
     currentMatchIsBot = true;
-    connecting = true;
-    final noLivePlayer = reason.toLowerCase().contains('no online') ||
-        reason.toLowerCase().contains('no table');
-    _setStatus(noLivePlayer
-        ? 'No live player found. Starting a bot match...'
-        : '$reason Starting a bot match...');
-    _matchmakingTimer?.cancel();
-    _matchmakingTimer = Timer(const Duration(milliseconds: 900), () {
-      _matchmakingTimer = null;
-      if (!connecting) return;
-      _startLocalBotMatch(
-        pendingMatchMode,
-        reason: 'Bot table ready. Roll when it is your turn.',
-      );
-      replaceWith('/game');
-    });
+    _cancelPendingTicket();
+    _setStatus('Preparing your table...');
+    _scheduleLocalBotMatch(
+      pendingMatchMode,
+      delay: const Duration(milliseconds: 900),
+      reason: 'Bot table ready. Roll when it is your turn.',
+    );
   }
 
   // ── WebSocket ──────────────────────────────────────────────────────────────
@@ -984,8 +1035,10 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _wsSub?.cancel();
     _wsSub = _ws.messages.listen(_handleMessage);
 
+    final generation = _matchGeneration;
     // Send join after connect (slight delay for WS handshake)
     Future.delayed(const Duration(milliseconds: 300), () {
+      if (_disposed || generation != _matchGeneration) return;
       _ws.send({
         'type': 'join',
         'playerId': playerId,
@@ -1000,6 +1053,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _handleMessage(dynamic raw) {
+    if (_disposed) return;
     try {
       final envelope = jsonDecode(raw.toString()) as Map<String, dynamic>;
       final type = envelope['type'] as String? ?? '';
@@ -1037,9 +1091,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
         if (lastSnapshot!.status == 'finished') {
           _trackMatchResult(lastSnapshot!);
-          Future.delayed(const Duration(milliseconds: 1500), () {
-            navigateTo('/results');
-          });
+          _scheduleResults(const Duration(milliseconds: 1500));
         }
       } else if (eventStatus != null && eventStatus.isNotEmpty) {
         _setStatus(eventStatus);
@@ -1304,9 +1356,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
             : 'You won the match.',
       );
       _trackMatchResult(after);
-      Future.delayed(const Duration(milliseconds: 1200), () {
-        navigateTo('/results');
-      });
+      _scheduleResults(const Duration(milliseconds: 1200));
       return;
     }
 
@@ -1455,9 +1505,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       if (after.status == 'finished') {
         _setStatus('$name won the match.');
         _trackMatchResult(after);
-        Future.delayed(const Duration(milliseconds: 1200), () {
-          navigateTo('/results');
-        });
+        _scheduleResults(const Duration(milliseconds: 1200));
         return;
       }
 
@@ -1519,9 +1567,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       if (after.status == 'finished') {
         _setStatus('$name reached 100 and won.');
         _trackMatchResult(after);
-        Future.delayed(const Duration(milliseconds: 1200), () {
-          navigateTo('/results');
-        });
+        _scheduleResults(const Duration(milliseconds: 1200));
         return;
       }
 
@@ -1897,7 +1943,24 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     if (economyEligible) unawaited(refreshSocial());
   }
 
+  void _scheduleResults(Duration delay) {
+    if (_resultsTimer != null) return;
+    final generation = _matchGeneration;
+    _resultsTimer = Timer(delay, () {
+      if (_disposed ||
+          generation != _matchGeneration ||
+          lastSnapshot?.status != 'finished') return;
+      navigateTo('/results');
+    });
+  }
+
   void _resetLiveMatch() {
+    _cancelPendingTicket();
+    _matchGeneration++;
+    _resultsTimer?.cancel();
+    _resultsTimer = null;
+    _wsSub?.cancel();
+    _wsSub = null;
     _matchmakingTimer?.cancel();
     _matchmakingTimer = null;
     _localBotTimer?.cancel();
@@ -2010,7 +2073,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     void Function(Map<String, dynamic>) onSuccess, {
     void Function()? onError,
   }) {
-    http
+    final generation = _matchGeneration;
+    _matchmakingClient
         .post(
           Uri.parse('$_backendUrl$path'),
           headers: _authorizedHeaders(),
@@ -2018,8 +2082,21 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         )
         .timeout(const Duration(seconds: 6))
         .then((r) {
+      if (!_isCurrentSearch(generation)) {
+        if (!_disposed &&
+            path == '/api/v1/matchmaking/quick' &&
+            r.statusCode == 200) {
+          final stale = jsonDecode(r.body) as Map<String, dynamic>;
+          final ticket = stale['ticketId'] as String?;
+          if (stale['status'] == 'waiting' &&
+              ticket != null &&
+              ticket.isNotEmpty) {
+            unawaited(_cancelServerTicket(ticket));
+          }
+        }
+        return;
+      }
       if (r.statusCode >= 400) {
-        connecting = false;
         if (onError != null) {
           onError();
         } else {
@@ -2029,7 +2106,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       }
       onSuccess(jsonDecode(r.body) as Map<String, dynamic>);
     }).catchError((_) {
-      connecting = false;
+      if (!_isCurrentSearch(generation)) return;
       if (onError != null) {
         onError();
       } else {
@@ -2672,6 +2749,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   String _normalizeSnakesBoardTheme(String value) {
     switch (value.trim().toLowerCase()) {
+      case 'ocean':
+      case 'astral':
+      case 'volcano':
       case 'royal':
       case 'neon':
       case 'classic':
@@ -2685,6 +2765,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   String _normalizeLudoBoardTheme(String value) {
     switch (value.trim().toLowerCase()) {
+      case 'ocean':
+      case 'astral':
+      case 'volcano':
       case 'royal':
       case 'neon':
       case 'classic':

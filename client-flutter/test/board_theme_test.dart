@@ -2,14 +2,51 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ludo_rush/widgets/ludo_board.dart';
 import 'package:ludo_rush/widgets/snakes_ladders_board.dart';
+import 'package:ludo_rush/services/prefs_service.dart';
+import 'package:ludo_rush/state/app_state.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('new boards enforce win unlocks and persist both selections',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = PrefsService();
+    await prefs.init();
+    final state = AppState(prefs);
+    state.setLudoBoardTheme(' OCEAN ');
+    state.setSnakesBoardTheme('ocean');
+    expect(state.ludoBoardTheme, 'ocean');
+    expect(prefs.snakesBoardTheme, 'ocean');
+    state.setLudoBoardTheme('astral');
+    state.setSnakesBoardTheme('volcano');
+    expect(state.ludoBoardTheme, 'ocean');
+    expect(state.snakesBoardTheme, 'ocean');
+    state.wins = 4;
+    state.setLudoBoardTheme('astral');
+    expect(prefs.ludoBoardTheme, 'astral');
+    expect(state.isBoardThemeUnlocked('volcano'), isFalse);
+    state.wins = 8;
+    state.setSnakesBoardTheme(' VOLCANO ');
+    expect(prefs.snakesBoardTheme, 'volcano');
+    expect(state.coins, 500);
+    expect(state.isBoardThemeUnlocked('neon'), isFalse);
+    state.dispose();
+  });
+
   testWidgets('generated Ludo themes paint and switch on a phone',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(411.4, 914.3));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    for (final theme in const ['carnival', 'royal', 'neon', 'classic']) {
+    for (final theme in const [
+      'carnival',
+      'royal',
+      'neon',
+      'classic',
+      'ocean',
+      'astral',
+      'volcano'
+    ]) {
       await tester.pumpWidget(
         MaterialApp(
           home: Center(
@@ -80,7 +117,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('static Snakes previews paint all five board themes',
+  testWidgets('static Snakes previews paint all eight board themes',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(360, 640));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -90,7 +127,10 @@ void main() {
       'royal',
       'neon',
       'classic',
-      'jungle'
+      'jungle',
+      'ocean',
+      'astral',
+      'volcano'
     ]) {
       await tester.pumpWidget(
         MaterialApp(
