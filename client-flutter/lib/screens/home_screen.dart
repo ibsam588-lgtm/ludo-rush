@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import '../data/profile_catalog.dart';
+import '../widgets/profile_avatar.dart';
 import '../data/economy.dart';
 import '../state/app_state.dart';
 import '../services/levelplay_ad_service.dart';
@@ -3541,39 +3542,10 @@ class _ProfileAvatarChoice extends StatelessWidget {
 
 class _ProfileAvatarImage extends StatelessWidget {
   final int preset;
-
   const _ProfileAvatarImage({required this.preset});
-
   @override
-  Widget build(BuildContext context) {
-    final avatar = avatarForPreset(preset);
-    return LayoutBuilder(
-      builder: (context, box) {
-        final width = box.maxWidth;
-        final height = box.maxHeight;
-        final column = avatar.atlasIndex % 2;
-        final row = avatar.atlasIndex ~/ 2;
-        return ClipRect(
-          child: Stack(
-            clipBehavior: Clip.hardEdge,
-            children: [
-              Positioned(
-                left: -column * width,
-                top: -row * height,
-                width: width * 2,
-                height: height * 2,
-                child: Image.asset(
-                  avatar.asset,
-                  fit: BoxFit.fill,
-                  filterQuality: FilterQuality.medium,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
+  Widget build(BuildContext context) =>
+      ProfileAvatarView(preset: preset, animate: true);
 }
 
 class _SheetLabel extends StatelessWidget {

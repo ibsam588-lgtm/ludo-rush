@@ -90,12 +90,12 @@ class _ReplayState extends AppState {
   _ReplayState(PrefsService prefs) : super(prefs);
 
   @override
-  void startQuickMatch(String mode) {
+  Future<void> startQuickMatch(String mode) async {
     replayedOnlineMode = mode;
   }
 
   @override
-  void startOfflineMatch(String mode) {
+  Future<void> startOfflineMatch(String mode) async {
     replayedOfflineMode = mode;
   }
 }

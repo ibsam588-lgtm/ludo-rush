@@ -175,6 +175,9 @@ export function rollDice(): number {
 }
 
 export function applyRoll(snapshot: RoomSnapshot, playerId: string, diceValue: number, now = Date.now()): RollResult {
+  if (!Number.isInteger(diceValue) || diceValue < 1 || diceValue > 6) {
+    throw new Error("Dice must be an integer from 1 to 6.");
+  }
   if (!canAct(snapshot, playerId)) {
     throw new Error("It is not your turn.");
   }

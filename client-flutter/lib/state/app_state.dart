@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../data/profile_catalog.dart';
 import '../data/economy.dart';
+import '../widgets/match_rules_sheet.dart';
 import '../models/game_snapshot.dart';
 import '../services/app_platform_service.dart';
 import '../services/prefs_service.dart';
@@ -183,6 +184,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   String displayName = 'Ludo Player';
   String countryCode = 'US';
   int avatarPreset = 0;
+  bool _rulesOpen = false;
   int age = 0;
   String? avatarImagePath;
   int coins = GameEconomy.startingCoins;
@@ -242,7 +244,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       'A newer version of Ludo Rush is required to keep matchmaking, rewards, and game rules in sync.';
   String forceUpdateUrl = _defaultAndroidUpdateUrl;
   int _pollAttempts = 0;
-  final math.Random _rng = math.Random();
+  final math.Random _rng;
   Timer? _localBotTimer;
   Timer? _matchmakingTimer;
   Timer? _autoRollTimer;
@@ -263,7 +265,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   // WS message subscription
   StreamSubscription<dynamic>? _wsSub;
 
-  AppState(this._prefs);
+  AppState(this._prefs, {math.Random? random}) : _rng = random ?? math.Random();
 
   Future<void> init() async {
     if (!_lifecycleObserverRegistered) {
@@ -620,8 +622,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Matchmaking ────────────────────────────────────────────────────────────
 
-  void startQuickMatch(String mode) {
-    if (connecting) return;
+  Future<void> startQuickMatch(String mode) async {
+    if (connecting || !await _confirmRules(mode)) return;
     markStartChoiceSeen();
     _ensurePlayerIdentity();
     pendingMatchMode = mode;
@@ -712,8 +714,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         defaultName;
   }
 
-  void startBotMatch(String mode) {
-    if (connecting) return;
+  Future<void> startBotMatch(String mode) async {
+    if (connecting || !await _confirmRules(mode)) return;
     pendingMatchMode = mode;
     fallbackBotStarted = false;
     currentMatchIsBot = true;
@@ -729,8 +731,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
-  void startOfflineMatch(String mode) {
-    if (connecting) return;
+  Future<void> startOfflineMatch(String mode) async {
+    if (connecting || !await _confirmRules(mode)) return;
     markStartChoiceSeen();
     pendingMatchMode = mode;
     fallbackBotStarted = true;
@@ -745,8 +747,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     replaceWith('/game');
   }
 
-  void createPrivateRoom(String mode) {
-    if (connecting) return;
+  Future<void> createPrivateRoom(String mode) async {
+    if (connecting || !await _confirmRules(mode)) return;
     markStartChoiceSeen();
     _ensurePlayerIdentity();
     pendingMatchMode = mode;
@@ -811,13 +813,14 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
-  void joinPrivateRoom(String code) {
+  Future<void> joinPrivateRoom(String code) async {
     if (connecting) return;
     final cleanCode = code.trim().toUpperCase();
     if (cleanCode.isEmpty) {
       _setStatus('Enter a private room code.');
       return;
     }
+    if (!await _confirmRules('classic_2p')) return;
     markStartChoiceSeen();
     _ensurePlayerIdentity();
     fallbackBotStarted = false;
@@ -1729,17 +1732,18 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     return nextProgress + (captures ? 100 : 0);
   }
 
-  int _nextLocalDice(GameSnapshot snap, int seat) {
-    if (_isSnakesLaddersMode(snap.mode)) {
-      return _rng.nextInt(6) + 1;
+  int _nextLocalDice(GameSnapshot snap, int seat) => _rng.nextInt(6) + 1;
+
+  Future<bool> _confirmRules(String mode) async {
+    if (_rulesOpen) return false;
+    final context = navigatorKey.currentContext;
+    if (context == null) return true;
+    _rulesOpen = true;
+    try {
+      return await showMatchRules(context, mode);
+    } finally {
+      _rulesOpen = false;
     }
-    final seatPieces = snap.pieces.where((piece) => piece.seat == seat);
-    final allInYard =
-        seatPieces.every((piece) => piece.progress == _yardProgress);
-    if (allInYard) {
-      return 6;
-    }
-    return _rng.nextInt(6) + 1;
   }
 
   String _currentTurnLabel(GameSnapshot snap) {
@@ -1872,7 +1876,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       SoundService.success();
       if (economyEligible) {
         wins++;
-        rating += 12;
+        rating = (rating + 12).clamp(0, 9999);
         coins += GameEconomy.onlineWinCoins;
       }
     } else {

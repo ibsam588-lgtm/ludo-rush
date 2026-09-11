@@ -310,3 +310,11 @@ describe("finish ranks", () => {
     expect(ranks.get("p2")).toBe(2);
   });
 });
+
+
+describe("dice validation", () => {
+  it.each([0, 7, -1, 1.5, Number.NaN])("rejects invalid dice value %s", (dice) => {
+    const snapshot = createInitialSnapshot({ roomId: "invalid", mode: "classic_2p", region: "us-east", now: 1 });
+    expect(() => applyRoll(snapshot, "p1", dice)).toThrow("Dice must be an integer from 1 to 6.");
+  });
+});

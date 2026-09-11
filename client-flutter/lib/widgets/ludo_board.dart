@@ -370,7 +370,7 @@ class _BoardPainter extends CustomPainter {
 
   List<Color> get _nestColors => switch (_theme) {
         'neon' => const [Color(0xFF17243B), Color(0xFF07101E)],
-        'royal' => const [Color(0xFFFFFBF0), Color(0xFFE7D3A5)],
+        'royal' => const [Color(0xFFF5E6FF), Color(0xFFCFA6EE)],
         'carnival' => const [Color(0xFFFFF9E9), Color(0xFFFFDFA1)],
         _ => const [Color(0xFFFFFCF4), Color(0xFFF2E5C8)],
       };
@@ -619,6 +619,36 @@ class _BoardPainter extends CustomPainter {
     );
     canvas.drawRRect(innerRR, p);
     p.shader = null;
+    if (_theme != 'classic') {
+      canvas.save();
+      canvas.clipRRect(innerRR);
+      p
+        ..color = _gold.withAlpha(65)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = cell * 0.025;
+      for (var i = 0; i < 8; i++) {
+        final x = innerRect.left + i * cell * 0.7;
+        if (_theme == 'carnival') {
+          for (var j = 0; j < 7; j++) {
+            canvas.drawCircle(
+                Offset(x, innerRect.top + j * cell * 0.7), cell * .07, p);
+          }
+        } else if (_theme == 'royal') {
+          canvas.drawLine(Offset(x, innerRect.top),
+              Offset(x + innerRect.height, innerRect.bottom), p);
+          canvas.drawLine(Offset(x, innerRect.top),
+              Offset(x - innerRect.height, innerRect.bottom), p);
+        } else {
+          canvas.drawLine(
+              Offset(x, innerRect.top), Offset(x, innerRect.bottom), p);
+          final y = innerRect.top + i * cell * 0.7;
+          canvas.drawLine(
+              Offset(innerRect.left, y), Offset(innerRect.right, y), p);
+        }
+      }
+      p.style = PaintingStyle.fill;
+      canvas.restore();
+    }
 
     p
       ..style = PaintingStyle.stroke

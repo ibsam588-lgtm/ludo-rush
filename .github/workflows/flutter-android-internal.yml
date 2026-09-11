@@ -50,6 +50,9 @@ jobs:
       - name: Analyze
         run: flutter analyze --no-fatal-infos
 
+      - name: Test gameplay and shop regressions
+        run: flutter test --no-pub
+
       - name: Validate production ad secrets
         env:
           LEVELPLAY_ANDROID_APP_KEY: ${{ secrets.LEVELPLAY_ANDROID_APP_KEY }}

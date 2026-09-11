@@ -1,11 +1,10 @@
 import { DurableObject } from "cloudflare:workers";
-import { ECONOMY } from "../economy";
+import { matchRewardStatements } from "../game/rewards";
 import {
   TURN_DURATION_MS,
   applyMove,
   applyRoll,
   chooseBotMove,
-  computeFinishRanks,
   createInitialSnapshot,
   fillBotSeats,
   getCurrentSeat,
@@ -474,43 +473,17 @@ export class LudoRoom extends DurableObject<Env> {
       return;
     }
 
-    const humanSeats = snapshot.seats.filter(isHumanSeat);
     const winnerSeat = snapshot.seats.find((seat) => seat.playerId === snapshot.winnerPlayerId);
     // A bot can be broadcast as the on-screen winner (e.g. the last human
     // resigned), but bot ids must never be persisted as winning users.
-    const winnerUserId = winnerSeat && isHumanSeat(winnerSeat) ? winnerSeat.playerId : null;
-    const ranks = computeFinishRanks(snapshot);
+    const winnerUserId = winnerSeat && isHumanSeat(winnerSeat) && !winnerSeat.isBot ? winnerSeat.playerId : null;
 
     const statements = [
       this.env.DB.prepare("UPDATE matches SET status = ?, winner_user_id = ?, ended_at = ? WHERE id = ?")
         .bind("finished", winnerUserId, snapshot.updatedAt, snapshot.roomId)
     ];
 
-    for (const seat of humanSeats) {
-      const won = seat.playerId === snapshot.winnerPlayerId;
-      const coinsDelta = won
-        ? ECONOMY.onlineWinCoins
-        : ECONOMY.onlineFinishCoins;
-      const clubContribution = won
-        ? ECONOMY.clubWinContribution
-        : ECONOMY.clubFinishContribution;
-      const ratingDelta = won ? 12 : -6;
-      const finishRank = seat.finishRank ?? ranks.get(seat.playerId) ?? (won ? 1 : snapshot.seats.length);
-
-      statements.push(
-        this.env.DB.prepare(
-          "UPDATE match_players SET finish_rank = ?, rating_delta = ?, coins_delta = ? WHERE match_id = ? AND user_id = ?"
-        ).bind(finishRank, ratingDelta, coinsDelta, snapshot.roomId, seat.playerId),
-        this.env.DB.prepare(
-          "INSERT INTO wallets (user_id, coins, updated_at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET coins = coins + ?, updated_at = ?"
-        ).bind(seat.playerId, coinsDelta, snapshot.updatedAt, coinsDelta, snapshot.updatedAt),
-        this.env.DB.prepare("UPDATE users SET rating = rating + ?, last_seen_at = ? WHERE id = ?")
-          .bind(ratingDelta, snapshot.updatedAt, seat.playerId),
-        this.env.DB.prepare(
-          "UPDATE club_members SET contribution = contribution + ? WHERE user_id = ?"
-        ).bind(clubContribution, seat.playerId)
-      );
-    }
+    statements.push(...matchRewardStatements(this.env.DB, snapshot));
 
     await this.env.DB.batch(statements);
     await this.ctx.storage.put(MATCH_FINISHED_KEY, true);
