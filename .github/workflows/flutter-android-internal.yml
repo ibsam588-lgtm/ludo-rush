@@ -23,6 +23,8 @@ jobs:
       LEVELPLAY_SHOP_REWARD_POINTS: 300
       LEVELPLAY_LEVEL_REWARD_POINTS: 150
       LEVELPLAY_LEVEL_REWARD_ENERGY: 1
+      LEVELPLAY_CHILD_DIRECTED: ${{ vars.LEVELPLAY_CHILD_DIRECTED || 'false' }}
+      LEVELPLAY_TEST_SUITE: ${{ vars.LEVELPLAY_TEST_SUITE || 'false' }}
     defaults:
       run:
         working-directory: client-flutter
@@ -101,6 +103,8 @@ jobs:
             --build-number="${BUILD_NUMBER}" \
             --build-name="${BUILD_NAME}" \
             --dart-define=LEVELPLAY_PRODUCTION=true \
+            --dart-define=LEVELPLAY_CHILD_DIRECTED="$LEVELPLAY_CHILD_DIRECTED" \
+            --dart-define=LEVELPLAY_TEST_SUITE="$LEVELPLAY_TEST_SUITE" \
             --dart-define=LEVELPLAY_ANDROID_APP_KEY="$LEVELPLAY_ANDROID_APP_KEY" \
             --dart-define=LEVELPLAY_ANDROID_BANNER_AD_UNIT="$LEVELPLAY_ANDROID_BANNER_AD_UNIT" \
             --dart-define=LEVELPLAY_ANDROID_INTERSTITIAL_AD_UNIT="$LEVELPLAY_ANDROID_INTERSTITIAL_AD_UNIT" \
@@ -127,3 +131,4 @@ jobs:
           tracks: internal
           releaseName: "Ludo Rush internal #${{ github.run_number }}"
           status: completed
+          changesNotSentForReview: true

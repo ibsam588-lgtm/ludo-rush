@@ -1352,7 +1352,6 @@ class _PlayerHeroBand extends StatelessWidget {
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700))),
                       ),
-                      _ConnectionChip(state: state),
                       if (playing && (snapshot?.turnDeadlineAt ?? 0) > 0) ...[
                         const SizedBox(width: 5),
                         _TurnTimerChip(snapshot: snapshot!),
@@ -1371,47 +1370,6 @@ class _PlayerHeroBand extends StatelessWidget {
             ]),
           );
         });
-  }
-}
-
-class _ConnectionChip extends StatelessWidget {
-  final AppState state;
-  const _ConnectionChip({required this.state});
-
-  @override
-  Widget build(BuildContext context) {
-    final local = state.localMatchActive;
-    final connected = state.isRoomConnected;
-    final color = local
-        ? boardBlue
-        : connected
-            ? boardGreen
-            : amberColor;
-    final icon = local
-        ? Icons.smartphone_rounded
-        : connected
-            ? Icons.wifi_rounded
-            : Icons.sync_rounded;
-    return Semantics(
-      label: local
-          ? 'Match type ${state.roomConnectionLabel}'
-          : 'Connection ${state.roomConnectionLabel}',
-      liveRegion: true,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          color: color.withAlpha(35),
-        ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 11, color: color),
-          const SizedBox(width: 3),
-          Text(local ? 'Local' : state.roomConnectionLabel,
-              style: TextStyle(
-                  color: color, fontSize: 9, fontWeight: FontWeight.w900)),
-        ]),
-      ),
-    );
   }
 }
 

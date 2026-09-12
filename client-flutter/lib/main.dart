@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'state/app_state.dart';
 import 'services/levelplay_ad_service.dart';
 import 'services/prefs_service.dart';
+import 'services/purchase_service.dart';
 import 'theme/app_theme.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
@@ -24,11 +25,12 @@ void main() async {
 
   final appState = AppState(prefs);
   unawaited(
-    appState.init().then(
-          (_) => LevelPlayAdService.instance.initialize(
-            userId: appState.playerId,
-          ),
-        ),
+    appState.init().then((_) async {
+      await Future.wait([
+        LevelPlayAdService.instance.initialize(userId: appState.playerId),
+        PurchaseService.instance.initialize(appState),
+      ]);
+    }),
   );
 
   runApp(

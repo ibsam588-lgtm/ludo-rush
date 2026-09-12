@@ -48,6 +48,9 @@ class LevelPlayAdService extends ChangeNotifier
     try {
       LevelPlay.addImpressionDataListener(this);
       await LevelPlay.setAdaptersDebug(!LevelPlayAdConfig.isProduction);
+      await LevelPlayPrivacySettings.setCOPPA(
+        LevelPlayAdConfig.childDirected,
+      );
       if (LevelPlayAdConfig.enableTestSuite) {
         await LevelPlay.setMetaData({
           'is_test_suite': ['enable']

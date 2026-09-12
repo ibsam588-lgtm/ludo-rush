@@ -8,6 +8,7 @@ export interface Env {
   FORCE_LATEST_ANDROID_BUILD?: string;
   ANDROID_UPDATE_URL?: string;
   FORCE_UPDATE_MESSAGE?: string;
+  GOOGLE_PLAY_SERVICE_ACCOUNT_JSON?: string;
 }
 
 export type Region = "auto" | "us-east" | "us-west" | "europe" | "middle-east" | "south-asia" | "east-asia";

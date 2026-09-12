@@ -130,6 +130,8 @@ void main() {
       ..playerId = 'me'
       ..autoRollEnabled = true;
     await state.startOfflineMatch(AppState.snakesLaddersMode);
+    expect(state.statusText.toLowerCase(), isNot(contains('offline')));
+    expect(state.statusText.toLowerCase(), isNot(contains('local')));
     for (var tick = 0;
         tick < 2000 && state.lastSnapshot!.status != 'finished';
         tick++) {
