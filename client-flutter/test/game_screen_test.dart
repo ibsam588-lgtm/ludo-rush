@@ -7,6 +7,40 @@ import 'package:ludo_rush/state/app_state.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  testWidgets('local matches use an accurate on-device status', (tester) async {
+    final state = AppState(PrefsService())
+      ..playerId = 'player_me'
+      ..localMatchActive = true
+      ..lastSnapshot = GameSnapshot.fromJson({
+        'status': 'playing',
+        'mode': 'snakes_ladders',
+        'diceValue': 0,
+        'currentTurnSeat': 0,
+        'availableMoves': <String>[],
+        'seats': [
+          {
+            'seat': 0,
+            'playerId': 'player_me',
+            'displayName': 'Me',
+            'isBot': false,
+          },
+        ],
+        'pieces': <Map<String, Object>>[],
+      });
+
+    await tester.pumpWidget(ChangeNotifierProvider.value(
+      value: state,
+      child: const MaterialApp(home: GameScreen()),
+    ));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Local'), findsOneWidget);
+    expect(state.roomConnectionLabel, 'Local game');
+    expect(find.text('Offline'), findsNothing);
+    expect(find.byIcon(Icons.smartphone_rounded), findsOneWidget);
+    state.dispose();
+  });
+
   testWidgets('first live match shows a short interactive guide',
       (tester) async {
     final state = AppState(PrefsService())

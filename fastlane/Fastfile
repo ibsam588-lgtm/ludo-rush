@@ -52,6 +52,37 @@ platform :android do
     )
   end
 
+  desc "Promote the current internal release to Google Play production"
+  lane :production do
+    package_name = ENV.fetch("ANDROID_PACKAGE_NAME", "com.ludorush.game")
+    json_key_data = ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"]
+    source_track = ENV.fetch("PLAY_SOURCE_TRACK", "internal")
+
+    UI.user_error!("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON is required") if json_key_data.to_s.empty?
+
+    version_codes = google_play_track_version_codes(
+      package_name: package_name,
+      json_key_data: json_key_data,
+      track: source_track
+    )
+    UI.user_error!("No release exists on the #{source_track} track") if version_codes.empty?
+
+    upload_to_play_store(
+      package_name: package_name,
+      json_key_data: json_key_data,
+      track: source_track,
+      track_promote_to: "production",
+      track_promote_release_status: "completed",
+      release_name: "Ludo Rush #{version_codes.max}",
+      skip_upload_aab: true,
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
   desc "Update Play Store app details and public contact info"
   lane :app_details do
     package_name = ENV.fetch("ANDROID_PACKAGE_NAME", "com.ludorush.game")

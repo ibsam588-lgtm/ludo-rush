@@ -120,6 +120,17 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   static const String _defaultAndroidUpdateUrl =
       'https://play.google.com/store/apps/details?id=com.ludorush.game';
   static const String snakesLaddersMode = 'snakes_ladders';
+
+  @visibleForTesting
+  static bool shouldForceUpdate({
+    required bool forceEnabled,
+    required int buildNumber,
+    required int minimumBuildNumber,
+  }) =>
+      forceEnabled &&
+      buildNumber > 0 &&
+      minimumBuildNumber > 0 &&
+      buildNumber < minimumBuildNumber;
   static const int _yardProgress = -1;
   static const int _classicFinishProgress = 57;
   static const int _snakeFinishProgress = 100;
@@ -299,7 +310,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       List.unmodifiable(_diagnosticEvents.reversed);
   bool get isRoomConnected => localMatchActive || _ws.isConnected;
   String get roomConnectionLabel => localMatchActive
-      ? 'Offline'
+      ? 'Local game'
       : switch (roomConnectionPhase) {
           SocketConnectionPhase.connected =>
             isSpectator ? 'Watching live' : 'Live',
@@ -515,7 +526,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       latestAvailableVersionName = latestVersion;
       forceUpdateUrl = updateUrl.isEmpty ? _defaultAndroidUpdateUrl : updateUrl;
       if (message.isNotEmpty) forceUpdateMessage = message;
-      forceUpdateRequired = forceEnabled && buildNumber > 0;
+      forceUpdateRequired = shouldForceUpdate(
+        forceEnabled: forceEnabled,
+        buildNumber: buildNumber,
+        minimumBuildNumber: minimum,
+      );
       updateCheckComplete = true;
       updateCheckFailed = false;
     } catch (_) {

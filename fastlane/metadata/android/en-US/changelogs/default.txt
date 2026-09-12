@@ -1,1 +1,1 @@
-Added production ads with bottom banners, automatic post-round interstitials, and optional Shop and level-complete reward videos. Updated the app icon and Play Store listing.
+Improved Ludo and Snakes & Ladders gameplay with smoother board scrolling, clearer local/live match status, turn timers, reconnect support, match history, accessibility options, live cosmetic previews, and more reliable online matching.

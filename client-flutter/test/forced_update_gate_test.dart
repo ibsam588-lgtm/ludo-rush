@@ -6,6 +6,33 @@ import 'package:ludo_rush/widgets/forced_update_gate.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  test('forced updates only block builds below the configured minimum', () {
+    expect(
+      AppState.shouldForceUpdate(
+        forceEnabled: true,
+        buildNumber: 10047,
+        minimumBuildNumber: 10048,
+      ),
+      isTrue,
+    );
+    expect(
+      AppState.shouldForceUpdate(
+        forceEnabled: true,
+        buildNumber: 10048,
+        minimumBuildNumber: 10048,
+      ),
+      isFalse,
+    );
+    expect(
+      AppState.shouldForceUpdate(
+        forceEnabled: true,
+        buildNumber: 10049,
+        minimumBuildNumber: 10048,
+      ),
+      isFalse,
+    );
+  });
+
   testWidgets('update verification has a visible blocking startup state',
       (tester) async {
     final state = AppState(PrefsService());
