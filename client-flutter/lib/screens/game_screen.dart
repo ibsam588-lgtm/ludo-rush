@@ -298,6 +298,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                         child: Scrollbar(
                                       controller: _boardScroll,
                                       thumbVisibility: true,
+                                      interactive: true,
+                                      thickness: compact ? 3 : 4,
+                                      radius: const Radius.circular(8),
                                       child: SingleChildScrollView(
                                         key: const ValueKey(
                                             'match-board-scroll'),
@@ -1377,25 +1380,35 @@ class _ConnectionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final local = state.localMatchActive;
     final connected = state.isRoomConnected;
+    final color = local
+        ? boardBlue
+        : connected
+            ? boardGreen
+            : amberColor;
+    final icon = local
+        ? Icons.smartphone_rounded
+        : connected
+            ? Icons.wifi_rounded
+            : Icons.sync_rounded;
     return Semantics(
-      label: 'Connection ${state.roomConnectionLabel}',
+      label: local
+          ? 'Match type ${state.roomConnectionLabel}'
+          : 'Connection ${state.roomConnectionLabel}',
       liveRegion: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
-          color: (connected ? boardGreen : amberColor).withAlpha(35),
+          color: color.withAlpha(35),
         ),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(connected ? Icons.wifi_rounded : Icons.sync_rounded,
-              size: 11, color: connected ? boardGreen : amberColor),
+          Icon(icon, size: 11, color: color),
           const SizedBox(width: 3),
-          Text(state.roomConnectionLabel,
+          Text(local ? 'Local' : state.roomConnectionLabel,
               style: TextStyle(
-                  color: connected ? boardGreen : amberColor,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w900)),
+                  color: color, fontSize: 9, fontWeight: FontWeight.w900)),
         ]),
       ),
     );

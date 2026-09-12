@@ -1,0 +1,38 @@
+name: Promote Google Play Production
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_name:
+        description: "Android package name"
+        required: true
+        default: "com.ludorush.game"
+      source_track:
+        description: "Test track to promote"
+        required: true
+        default: "internal"
+
+permissions:
+  contents: read
+
+jobs:
+  promote-production:
+    name: Promote latest internal build to production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Promote to production
+        run: bundle exec fastlane android production
+        env:
+          ANDROID_PACKAGE_NAME: ${{ inputs.package_name }}
+          PLAY_SOURCE_TRACK: ${{ inputs.source_track }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
