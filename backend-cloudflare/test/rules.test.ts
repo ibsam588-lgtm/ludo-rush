@@ -14,7 +14,7 @@ import {
 } from "../src/game/rules";
 import type { RoomSnapshot } from "../src/types";
 
-function playingSnapshot(playerIds: string[], mode: "classic_2p" | "classic_3p" | "classic_4p" = "classic_2p"): RoomSnapshot {
+function playingSnapshot(playerIds: string[], mode: "classic_2p" | "classic_3p" | "classic_4p" | "snakes_ladders" = "classic_2p"): RoomSnapshot {
   let snapshot = createInitialSnapshot({
     roomId: "room_1",
     mode,
@@ -30,6 +30,51 @@ function playingSnapshot(playerIds: string[], mode: "classic_2p" | "classic_3p" 
 }
 
 describe("room rules", () => {
+  it("runs server-authoritative Snakes rules with ladders, snakes, and exact finish", () => {
+    let snapshot = playingSnapshot(
+      ["p1", "p2", "p3", "p4"],
+      "snakes_ladders"
+    );
+    expect(snapshot.pieces).toHaveLength(4);
+    expect(snapshot.pieces.every(piece => piece.progress === 1)).toBe(true);
+
+    snapshot = applyRoll(snapshot, "p1", 5, 2).snapshot;
+    snapshot = applyMove(snapshot, "p1", "s0_snake", 3).snapshot;
+    expect(snapshot.pieces.find(piece => piece.pieceId === "s0_snake")?.progress).toBe(26);
+    expect(snapshot.currentTurnSeat).toBe(1);
+
+    snapshot = {
+      ...snapshot,
+      currentTurnSeat: 0,
+      pieces: snapshot.pieces.map(piece => piece.pieceId === "s0_snake"
+        ? { ...piece, progress: 46, trackIndex: 46 }
+        : piece),
+      diceValue: undefined,
+      availableMoves: []
+    };
+    snapshot = applyRoll(snapshot, "p1", 1, 4).snapshot;
+    snapshot = applyMove(snapshot, "p1", "s0_snake", 5).snapshot;
+    expect(snapshot.pieces.find(piece => piece.pieceId === "s0_snake")?.progress).toBe(13);
+
+    snapshot = {
+      ...snapshot,
+      currentTurnSeat: 0,
+      pieces: snapshot.pieces.map(piece => piece.pieceId === "s0_snake"
+        ? { ...piece, progress: 99, trackIndex: 99 }
+        : piece),
+      diceValue: undefined,
+      availableMoves: []
+    };
+    const overshoot = applyRoll(snapshot, "p1", 6, 6);
+    expect(overshoot.skipped).toBe(true);
+    expect(overshoot.snapshot.currentTurnSeat).toBe(1);
+
+    snapshot = { ...snapshot, diceValue: 1, availableMoves: ["s0_snake"] };
+    const finished = applyMove(snapshot, "p1", "s0_snake", 7);
+    expect(finished.finished).toBe(true);
+    expect(finished.snapshot.winnerPlayerId).toBe("p1");
+  });
+
   it("starts a 2-player room when the second player joins", () => {
     let snapshot = createInitialSnapshot({
       roomId: "room_1",

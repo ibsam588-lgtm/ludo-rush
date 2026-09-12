@@ -34,7 +34,7 @@ function harness() {
 }
 
 describe('online matching',()=>{
-  it.each([['classic_2p',2],['classic_3p',3],['classic_4p',4]] as const)('waits for every human in %s',async(mode,count)=>{
+  it.each([['classic_2p',2],['classic_3p',3],['classic_4p',4],['snakes_ladders',4]] as const)('waits for every human in %s',async(mode,count)=>{
     const {db,rooms,create,input,sqlite}=harness();
     for(let i=0;i<count-1;i++) expect((await enqueueMatch(db,input(i,mode),create,100+i)).status).toBe('waiting');
     expect(rooms.size).toBe(0);

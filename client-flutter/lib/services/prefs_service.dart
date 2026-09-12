@@ -94,6 +94,67 @@ class PrefsService {
   bool get musicEnabled => _prefs?.getBool('music_enabled') ?? true;
   set musicEnabled(bool v) => _prefs?.setBool('music_enabled', v);
 
+  bool get soundEffectsEnabled =>
+      _prefs?.getBool('sound_effects_enabled') ?? true;
+  set soundEffectsEnabled(bool v) =>
+      _prefs?.setBool('sound_effects_enabled', v);
+
+  bool get hapticsEnabled => _prefs?.getBool('haptics_enabled') ?? true;
+  set hapticsEnabled(bool v) => _prefs?.setBool('haptics_enabled', v);
+
+  bool get reducedMotionEnabled =>
+      _prefs?.getBool('reduced_motion_enabled') ?? false;
+  set reducedMotionEnabled(bool v) =>
+      _prefs?.setBool('reduced_motion_enabled', v);
+
+  bool get highContrastEnabled =>
+      _prefs?.getBool('high_contrast_enabled') ?? false;
+  set highContrastEnabled(bool v) =>
+      _prefs?.setBool('high_contrast_enabled', v);
+
+  bool get largeTextEnabled => _prefs?.getBool('large_text_enabled') ?? false;
+  set largeTextEnabled(bool v) => _prefs?.setBool('large_text_enabled', v);
+
+  bool get gameTutorialSeen => _prefs?.getBool('game_tutorial_seen') ?? false;
+  set gameTutorialSeen(bool v) => _prefs?.setBool('game_tutorial_seen', v);
+
+  String get matchHistoryJson =>
+      _prefs?.getString('match_history_json') ?? '[]';
+  set matchHistoryJson(String v) => _prefs?.setString('match_history_json', v);
+
+  String? get activeRoomSocketPath =>
+      _prefs?.getString('active_room_socket_path');
+  set activeRoomSocketPath(String? v) {
+    if (v == null || v.isEmpty) {
+      _prefs?.remove('active_room_socket_path');
+    } else {
+      _prefs?.setString('active_room_socket_path', v);
+    }
+  }
+
+  String? get activeRoomMode => _prefs?.getString('active_room_mode');
+  set activeRoomMode(String? v) {
+    if (v == null || v.isEmpty) {
+      _prefs?.remove('active_room_mode');
+    } else {
+      _prefs?.setString('active_room_mode', v);
+    }
+  }
+
+  String? get activeRoomCode => _prefs?.getString('active_room_code');
+  set activeRoomCode(String? v) {
+    if (v == null || v.isEmpty) {
+      _prefs?.remove('active_room_code');
+    } else {
+      _prefs?.setString('active_room_code', v);
+    }
+  }
+
+  bool get activeRoomSpectator =>
+      _prefs?.getBool('active_room_spectator') ?? false;
+  set activeRoomSpectator(bool v) =>
+      _prefs?.setBool('active_room_spectator', v);
+
   String get lastDailyRewardDate =>
       _prefs?.getString('last_daily_reward_date') ?? '';
   set lastDailyRewardDate(String v) =>

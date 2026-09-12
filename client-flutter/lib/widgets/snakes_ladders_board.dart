@@ -229,25 +229,36 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapUp: (details) => _handleTap(details.localPosition),
-      child: AnimatedBuilder(
-        animation: Listenable.merge([_pulse, _motion]),
-        builder: (_, __) => CustomPaint(
-          painter: _SnakesLaddersPainter(
-            motion: _motion,
-            motionRevision: _motion.revision,
-            snapshot: widget.snapshot,
-            mySeat: widget.mySeat,
-            pulse: _pulse.value,
-            hits: _hits,
-            titlePlaque: _titlePlaque,
-            frameImage: _frameImage,
-            pieceImages: _pieceImages,
-            boardTheme: widget.boardTheme,
-            showTitle: widget.showTitle,
-            showPieces: widget.showPieces,
+    final myProgress = widget.snapshot?.pieces
+        .where((piece) => piece.seat == widget.mySeat)
+        .map((piece) => piece.progress)
+        .firstOrNull;
+    return Semantics(
+      container: true,
+      label: 'Snakes and Ladders board',
+      value: myProgress == null
+          ? 'Live board'
+          : 'Your token is on square $myProgress',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapUp: (details) => _handleTap(details.localPosition),
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_pulse, _motion]),
+          builder: (_, __) => CustomPaint(
+            painter: _SnakesLaddersPainter(
+              motion: _motion,
+              motionRevision: _motion.revision,
+              snapshot: widget.snapshot,
+              mySeat: widget.mySeat,
+              pulse: _pulse.value,
+              hits: _hits,
+              titlePlaque: _titlePlaque,
+              frameImage: _frameImage,
+              pieceImages: _pieceImages,
+              boardTheme: widget.boardTheme,
+              showTitle: widget.showTitle,
+              showPieces: widget.showPieces,
+            ),
           ),
         ),
       ),

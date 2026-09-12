@@ -161,6 +161,25 @@ void main() {
     state.dispose();
   });
 
+  testWidgets('play now switches a waiting search to an immediate local table',
+      (tester) async {
+    final state = RecordingState(MockClient((_) async => response({})))
+      ..connecting = true
+      ..pendingMatchMode = 'classic_2p';
+    await tester.pumpWidget(ChangeNotifierProvider<AppState>.value(
+      value: state,
+      child: const MaterialApp(home: MatchmakingScreen()),
+    ));
+    await tester.tap(find.byKey(const ValueKey('play-now-with-bots')));
+    await tester.pump();
+    expect(state.currentMatchIsBot, isTrue);
+    await tester.pump(const Duration(seconds: 1));
+    expect(state.localMatchActive, isTrue);
+    expect(state.routes, contains('/game'));
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
+
   testWidgets('a finished game cannot open results over its replay',
       (tester) async {
     final state = RecordingState(MockClient((_) async => response({})));

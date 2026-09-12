@@ -7,6 +7,45 @@ import 'package:ludo_rush/state/app_state.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  testWidgets('first live match shows a short interactive guide',
+      (tester) async {
+    final state = AppState(PrefsService())
+      ..playerId = 'player_me'
+      ..gameTutorialSeen = false
+      ..lastSnapshot = GameSnapshot.fromJson({
+        'status': 'playing',
+        'mode': 'classic_2p',
+        'diceValue': 0,
+        'currentTurnSeat': 0,
+        'availableMoves': <String>[],
+        'seats': [
+          {
+            'seat': 0,
+            'playerId': 'player_me',
+            'displayName': 'Me',
+            'isBot': false,
+          },
+          {
+            'seat': 1,
+            'playerId': 'player_two',
+            'displayName': 'Two',
+            'isBot': false,
+          },
+        ],
+        'pieces': <Map<String, Object>>[],
+      });
+    await tester.pumpWidget(ChangeNotifierProvider.value(
+      value: state,
+      child: const MaterialApp(home: GameScreen()),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+    expect(find.text('Your first Ludo match'), findsOneWidget);
+    expect(find.text('Let’s play'), findsOneWidget);
+    expect(state.gameTutorialSeen, isTrue);
+    state.dispose();
+  });
+
   for (final size in const [Size(320, 568), Size(411.4, 914.3)]) {
     testWidgets(
         'private four-player game fits ${size.width.toInt()}x${size.height.toInt()}',

@@ -67,6 +67,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   String? _quickBubbleText;
   bool _quickBubbleIsEmoji = false;
   int _prevReactionSequence = 0;
+  Timer? _clockTimer;
+  int? _followedSnakeProgress;
+  int _lastWarnedDeadline = 0;
+  bool _tutorialScheduled = false;
 
   late final AnimationController _bgCtrl;
   late final AnimationController _turnPulse;
@@ -80,6 +84,23 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _turnPulse = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 900))
       ..repeat(reverse: true);
+    _clockTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (!mounted) return;
+      final state = context.read<AppState>();
+      state.expireLocalTurnIfNeeded();
+      final snap = state.lastSnapshot;
+      if (snap?.status != 'playing') return;
+      final left = snap!.turnDeadlineAt - DateTime.now().millisecondsSinceEpoch;
+      if (left > 0 &&
+          left <= 5000 &&
+          _lastWarnedDeadline != snap.turnDeadlineAt) {
+        _lastWarnedDeadline = snap.turnDeadlineAt;
+        if (snap.currentTurnSeat == state.mySeat) {
+          SoundService.warning();
+        }
+      }
+      setState(() {});
+    });
   }
 
   @override
@@ -87,6 +108,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _quickBubbleTimer?.cancel();
     _momentTimer?.cancel();
     _boardScroll.dispose();
+    _clockTimer?.cancel();
     _bgCtrl.dispose();
     _turnPulse.dispose();
     super.dispose();
@@ -167,6 +189,26 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         final seatColor =
             mySeat != null ? AppColors.seatColor(mySeat) : goldColor;
         final snakesTable = snapshot?.mode == AppState.snakesLaddersMode;
+        if (snapshot?.status == 'playing' &&
+            !state.gameTutorialSeen &&
+            !_tutorialScheduled) {
+          _tutorialScheduled = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _showFirstMatchGuide(context, state, snakesTable);
+          });
+        }
+        if (snakesTable && snapshot != null && mySeat != null) {
+          final progress = snapshot.pieces
+              .where((piece) => piece.seat == mySeat)
+              .map((piece) => piece.progress)
+              .firstOrNull;
+          if (progress != null && progress != _followedSnakeProgress) {
+            _followedSnakeProgress = progress;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _followMySnakesToken(progress, animated: true);
+            });
+          }
+        }
         if (snapshot != null && _positionedBoardMode != snapshot.mode) {
           _positionedBoardMode = snapshot.mode;
           if (snakesTable) {
@@ -250,57 +292,96 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                               ),
                               SizedBox(height: boardGap),
                               Expanded(
-                                child: Scrollbar(
-                                  controller: _boardScroll,
-                                  thumbVisibility: true,
-                                  child: SingleChildScrollView(
-                                    key: const ValueKey('match-board-scroll'),
-                                    controller: _boardScroll,
-                                    physics: const ClampingScrollPhysics(),
-                                    padding: const EdgeInsets.only(bottom: 8),
-                                    child: Center(
-                                        child: SizedBox(
-                                      width: boardWidth,
-                                      height: boardHeight,
-                                      child: DecoratedBox(
-                                        decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(18),
-                                            boxShadow: [
-                                              const BoxShadow(
-                                                  color: Colors.black45,
-                                                  blurRadius: 22,
-                                                  offset: Offset(0, 10)),
-                                              BoxShadow(
-                                                  color: palette.accent
-                                                      .withAlpha(18),
-                                                  blurRadius: 16)
-                                            ]),
-                                        child: snakesTable
-                                            ? SnakesLaddersBoard(
-                                                snapshot: snapshot,
-                                                mySeat: mySeat,
-                                                onMotionChanged:
-                                                    _onMotionChanged,
-                                                boardTheme:
-                                                    state.snakesBoardTheme,
-                                                onPieceTap: (id) =>
-                                                    state.movePiece(id),
-                                              )
-                                            : LudoBoard(
-                                                snapshot: snapshot,
-                                                mySeat: mySeat,
-                                                onMotionChanged:
-                                                    _onMotionChanged,
-                                                boardTheme:
-                                                    state.ludoBoardTheme,
-                                                onPieceTap: (id) =>
-                                                    state.movePiece(id),
-                                                showWaitingOverlay: false,
-                                              ),
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                        child: Scrollbar(
+                                      controller: _boardScroll,
+                                      thumbVisibility: true,
+                                      child: SingleChildScrollView(
+                                        key: const ValueKey(
+                                            'match-board-scroll'),
+                                        controller: _boardScroll,
+                                        physics: const ClampingScrollPhysics(),
+                                        padding:
+                                            const EdgeInsets.only(bottom: 8),
+                                        child: Center(
+                                            child: SizedBox(
+                                          width: boardWidth,
+                                          height: boardHeight,
+                                          child: DecoratedBox(
+                                            decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(18),
+                                                boxShadow: [
+                                                  const BoxShadow(
+                                                      color: Colors.black45,
+                                                      blurRadius: 22,
+                                                      offset: Offset(0, 10)),
+                                                  BoxShadow(
+                                                      color: palette.accent
+                                                          .withAlpha(18),
+                                                      blurRadius: 16)
+                                                ]),
+                                            child: snakesTable
+                                                ? SnakesLaddersBoard(
+                                                    snapshot: snapshot,
+                                                    mySeat: mySeat,
+                                                    onMotionChanged:
+                                                        _onMotionChanged,
+                                                    boardTheme:
+                                                        state.snakesBoardTheme,
+                                                    onPieceTap: (id) =>
+                                                        state.movePiece(id),
+                                                  )
+                                                : LudoBoard(
+                                                    snapshot: snapshot,
+                                                    mySeat: mySeat,
+                                                    onMotionChanged:
+                                                        _onMotionChanged,
+                                                    boardTheme:
+                                                        state.ludoBoardTheme,
+                                                    onPieceTap: (id) =>
+                                                        state.movePiece(id),
+                                                    showWaitingOverlay: false,
+                                                  ),
+                                          ),
+                                        )),
                                       ),
                                     )),
-                                  ),
+                                    if (snakesTable && mySeat != null)
+                                      Positioned(
+                                        right: 12,
+                                        bottom: 12,
+                                        child: Semantics(
+                                          button: true,
+                                          label: 'Find my token on the board',
+                                          child: FloatingActionButton.small(
+                                            key:
+                                                const ValueKey('find-my-token'),
+                                            heroTag: 'find-my-token',
+                                            tooltip: 'Find my token',
+                                            backgroundColor: palette.surface,
+                                            foregroundColor: palette.accent,
+                                            onPressed: () {
+                                              final progress = snapshot?.pieces
+                                                  .where((piece) =>
+                                                      piece.seat == mySeat)
+                                                  .map(
+                                                      (piece) => piece.progress)
+                                                  .firstOrNull;
+                                              if (progress != null) {
+                                                SoundService.tap();
+                                                _followMySnakesToken(progress,
+                                                    animated: true);
+                                              }
+                                            },
+                                            child: const Icon(
+                                                Icons.my_location_rounded),
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                               _PlayerActionRow(
@@ -345,6 +426,121 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ),
             ));
       },
+    );
+  }
+
+  void _followMySnakesToken(int progress, {required bool animated}) {
+    if (!_boardScroll.hasClients) return;
+    final position = _boardScroll.position;
+    if (position.maxScrollExtent <= 0) return;
+    final square = progress.clamp(1, 100);
+    final rowFromBottom = (square - 1) ~/ 10;
+    final rowFromTop = 9 - rowFromBottom;
+    final contentHeight = position.maxScrollExtent + position.viewportDimension;
+    final tokenY = contentHeight * (0.15 + ((rowFromTop + 0.5) / 10) * 0.84);
+    final target = (tokenY - position.viewportDimension / 2)
+        .clamp(0.0, position.maxScrollExtent)
+        .toDouble();
+    if (animated && !MediaQuery.disableAnimationsOf(context)) {
+      _boardScroll.animateTo(
+        target,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+    } else {
+      _boardScroll.jumpTo(target);
+    }
+  }
+
+  Future<void> _showFirstMatchGuide(
+      BuildContext context, AppState state, bool snakes) async {
+    state.markGameTutorialSeen();
+    final steps = snakes
+        ? const [
+            (
+              Icons.casino_rounded,
+              'Roll once',
+              'Your token moves automatically.'
+            ),
+            (
+              Icons.stairs_rounded,
+              'Climb ladders',
+              'Land on the bottom to jump ahead.'
+            ),
+            (
+              Icons.my_location_rounded,
+              'Follow your token',
+              'The board follows you. Use the target button any time.'
+            ),
+          ]
+        : const [
+            (
+              Icons.casino_rounded,
+              'Roll the dice',
+              'A six brings a goti onto the board.'
+            ),
+            (
+              Icons.touch_app_rounded,
+              'Choose a goti',
+              'Highlighted gotis are legal moves.'
+            ),
+            (
+              Icons.flag_rounded,
+              'Reach home',
+              'Bring all four gotis home to win.'
+            ),
+          ];
+    await showModalBottomSheet<void>(
+      context: context,
+      isDismissible: false,
+      enableDrag: false,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Container(
+          margin: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF32103C),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: goldColor, width: 1.5),
+          ),
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.82),
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(snakes ? 'Your first Snakes match' : 'Your first Ludo match',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 21,
+                      fontWeight: FontWeight.w900)),
+              const SizedBox(height: 12),
+              for (final step in steps)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: CircleAvatar(
+                    backgroundColor: goldColor.withAlpha(35),
+                    foregroundColor: goldColor,
+                    child: Icon(step.$1),
+                  ),
+                  title: Text(step.$2,
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w900)),
+                  subtitle: Text(step.$3,
+                      style: const TextStyle(color: Colors.white70)),
+                ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.pop(sheetContext),
+                  child: const Text('Let’s play'),
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1080,11 +1276,13 @@ class _PlayerHeroBand extends StatelessWidget {
     final myTurn = playing && snapshot?.currentTurnSeat == mySeat;
     final active =
         snapshot?.seats.where((s) => s.seat == snapshot?.currentTurnSeat);
-    final turn = !playing
-        ? 'Your table'
-        : myTurn
-            ? 'Your turn'
-            : "${active != null && active.isNotEmpty ? state.publicSeatName(active.first) : 'Opponent'}'s turn";
+    final turn = state.isSpectator
+        ? 'Spectating live'
+        : !playing
+            ? 'Your table'
+            : myTurn
+                ? 'Your turn'
+                : "${active != null && active.isNotEmpty ? state.publicSeatName(active.first) : 'Opponent'}'s turn";
     final ownMoment = moment?.seat == mySeat ? moment : null;
     return AnimatedBuilder(
         animation: pulse,
@@ -1139,15 +1337,24 @@ class _PlayerHeroBand extends StatelessWidget {
                             code: state.privateInviteCode!, compact: true)
                     ]),
                     const SizedBox(height: 5),
-                    Semantics(
-                        liveRegion: true,
-                        child: Text(ownMoment?.label ?? turn,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                                color: palette.accent,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700))),
+                    Row(children: [
+                      Expanded(
+                        child: Semantics(
+                            liveRegion: true,
+                            child: Text(ownMoment?.label ?? turn,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: palette.accent,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700))),
+                      ),
+                      _ConnectionChip(state: state),
+                      if (playing && (snapshot?.turnDeadlineAt ?? 0) > 0) ...[
+                        const SizedBox(width: 5),
+                        _TurnTimerChip(snapshot: snapshot!),
+                      ],
+                    ]),
                     if (!compact)
                       Text('${state.rating} rating',
                           style: const TextStyle(
@@ -1161,6 +1368,76 @@ class _PlayerHeroBand extends StatelessWidget {
             ]),
           );
         });
+  }
+}
+
+class _ConnectionChip extends StatelessWidget {
+  final AppState state;
+  const _ConnectionChip({required this.state});
+
+  @override
+  Widget build(BuildContext context) {
+    final connected = state.isRoomConnected;
+    return Semantics(
+      label: 'Connection ${state.roomConnectionLabel}',
+      liveRegion: true,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: (connected ? boardGreen : amberColor).withAlpha(35),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(connected ? Icons.wifi_rounded : Icons.sync_rounded,
+              size: 11, color: connected ? boardGreen : amberColor),
+          const SizedBox(width: 3),
+          Text(state.roomConnectionLabel,
+              style: TextStyle(
+                  color: connected ? boardGreen : amberColor,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900)),
+        ]),
+      ),
+    );
+  }
+}
+
+class _TurnTimerChip extends StatelessWidget {
+  final GameSnapshot snapshot;
+  const _TurnTimerChip({required this.snapshot});
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = math.max(
+        0,
+        ((snapshot.turnDeadlineAt - DateTime.now().millisecondsSinceEpoch) /
+                1000)
+            .ceil());
+    final urgent = remaining <= 5;
+    return Semantics(
+      label: '$remaining seconds left in this turn',
+      liveRegion: urgent,
+      child: Container(
+        key: const ValueKey('turn-timer'),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color: (urgent ? boardRed : Colors.white).withAlpha(28),
+          border: Border.all(color: urgent ? boardRed : Colors.white24),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(Icons.timer_outlined,
+              size: 11,
+              color: urgent ? const Color(0xFFFF8A80) : Colors.white70),
+          const SizedBox(width: 3),
+          Text('${remaining}s',
+              style: TextStyle(
+                  color: urgent ? const Color(0xFFFF8A80) : Colors.white,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900)),
+        ]),
+      ),
+    );
   }
 }
 
@@ -1255,21 +1532,23 @@ class _PlayerActionRow extends StatelessWidget {
     final enabled = canRoll || showMove;
     final action =
         showMove ? state.moveBestPiece : (canRoll ? state.rollDice : null);
-    final actionLabel = snapshot == null
-        ? 'Connecting...'
-        : waitingForPlayers
-            ? 'Waiting for players'
-            : piecesMoving
-                ? 'Moving...'
-                : rolling
-                    ? 'Rolling'
-                    : showMove
-                        ? 'Tap to Move'
-                        : canRoll
-                            ? 'Tap to Roll'
-                            : isMyTurn
-                                ? 'Choose Goti'
-                                : 'Wait Turn';
+    final actionLabel = state.isSpectator
+        ? 'Watching live'
+        : snapshot == null
+            ? 'Connecting...'
+            : waitingForPlayers
+                ? 'Waiting for players'
+                : piecesMoving
+                    ? 'Moving...'
+                    : rolling
+                        ? 'Rolling'
+                        : showMove
+                            ? 'Tap to Move'
+                            : canRoll
+                                ? 'Tap to Roll'
+                                : isMyTurn
+                                    ? 'Choose Goti'
+                                    : 'Wait Turn';
     final opponents =
         snapshot?.seats.where((s) => s.seat != mySeat).toList() ?? const [];
 
@@ -1302,7 +1581,7 @@ class _PlayerActionRow extends StatelessWidget {
                     children: [
                       IconButton(
                           tooltip: 'Emoji',
-                          onPressed: onEmoji,
+                          onPressed: state.isSpectator ? null : onEmoji,
                           style: IconButton.styleFrom(
                               backgroundColor: palette.surface,
                               foregroundColor: palette.accent),
@@ -1310,7 +1589,7 @@ class _PlayerActionRow extends StatelessWidget {
                       const SizedBox(height: 4),
                       IconButton(
                           tooltip: 'Chat',
-                          onPressed: onChat,
+                          onPressed: state.isSpectator ? null : onChat,
                           style: IconButton.styleFrom(
                               backgroundColor: palette.surface,
                               foregroundColor: palette.accent),
@@ -1370,10 +1649,13 @@ class _PlayerActionRow extends StatelessWidget {
                 width: 82,
                 child: FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: _AutoRollChip(
-                        enabled: state.autoRollEnabled,
-                        compact: true,
-                        onChanged: state.setAutoRollEnabled))),
+                    child: state.isSpectator
+                        ? const Icon(Icons.visibility_rounded,
+                            color: Colors.white70, size: 30)
+                        : _AutoRollChip(
+                            enabled: state.autoRollEnabled,
+                            compact: true,
+                            onChanged: state.setAutoRollEnabled))),
           ]);
         })),
       ]),
@@ -1513,19 +1795,25 @@ class _OpponentChip extends StatelessWidget {
                 Row(
                   children: [
                     Icon(
-                        active
-                            ? Icons.play_arrow_rounded
-                            : Icons.circle_outlined,
-                        color: goldColor,
+                        !seat.connected
+                            ? Icons.wifi_off_rounded
+                            : active
+                                ? Icons.play_arrow_rounded
+                                : Icons.circle_outlined,
+                        color: seat.connected ? goldColor : Colors.white54,
                         size: 14),
                     const SizedBox(width: 3),
                     Flexible(
                         child: Text(
-                      active ? 'Playing' : 'Waiting',
+                      !seat.connected
+                          ? 'Reconnecting'
+                          : active
+                              ? 'Playing'
+                              : 'Waiting',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: goldColor,
+                        color: seat.connected ? goldColor : Colors.white54,
                         fontSize: dense ? 9 : (compact ? 10 : 12),
                         height: 1,
                         fontWeight: FontWeight.w900,

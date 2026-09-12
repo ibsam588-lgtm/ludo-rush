@@ -90,6 +90,38 @@ Map<String, dynamic> onlineSnapshot({int dice = 0}) => {
       'availableMoves': dice == 6 ? ['s0_p0'] : <String>[],
     };
 
+Map<String, dynamic> onlineSnakesSnapshot({int dice = 0, int progress = 1}) => {
+      'roomId': 'snakes_room',
+      'status': 'playing',
+      'mode': AppState.snakesLaddersMode,
+      'currentTurnSeat': 0,
+      'diceValue': dice,
+      'turnDeadlineAt': DateTime.now()
+          .add(const Duration(seconds: 25))
+          .millisecondsSinceEpoch,
+      'seats': [
+        for (var seat = 0; seat < 4; seat++)
+          {
+            'seat': seat,
+            'playerId': seat == 0 ? 'me' : 'other_$seat',
+            'displayName': seat == 0 ? 'Me' : 'Other $seat',
+            'isBot': false,
+            'connected': true,
+          }
+      ],
+      'pieces': [
+        for (var seat = 0; seat < 4; seat++)
+          {
+            'pieceId': 's${seat}_snake',
+            'seat': seat,
+            'state': 'track',
+            'progress': seat == 0 ? progress : 1,
+            'trackIndex': seat == 0 ? progress : 1,
+          }
+      ],
+      'availableMoves': dice > 0 ? ['s0_snake'] : <String>[],
+    };
+
 void main() {
   testWidgets(
       'a complete seeded Snakes match finishes without manual token moves',
@@ -198,6 +230,8 @@ void main() {
         .first);
     expect(scrolling.position.maxScrollExtent, greaterThan(100));
     expect(scrolling.position.pixels, scrolling.position.maxScrollExtent);
+    expect(find.byKey(const ValueKey('find-my-token')), findsOneWidget);
+    expect(find.byKey(const ValueKey('turn-timer')), findsOneWidget);
     await tester.drag(
         find.byKey(const ValueKey('match-board-scroll')), const Offset(0, 100));
     await tester.pump(const Duration(milliseconds: 100));
@@ -265,6 +299,73 @@ void main() {
     }
   });
 
+  testWidgets('local turn timer advances an idle player safely',
+      (tester) async {
+    final state = AppState(PrefsService())..playerId = 'me';
+    await state.startOfflineMatch(AppState.snakesLaddersMode);
+    final snap = state.lastSnapshot!;
+    state.lastSnapshot = GameSnapshot(
+      roomId: snap.roomId,
+      seats: snap.seats,
+      pieces: snap.pieces,
+      diceValue: 0,
+      currentTurnSeat: 0,
+      status: 'playing',
+      availableMoves: const [],
+      winnerPlayerId: '',
+      mode: snap.mode,
+      turnStartedAt: DateTime.now().millisecondsSinceEpoch - 31000,
+      turnDeadlineAt: DateTime.now().millisecondsSinceEpoch - 1000,
+    );
+
+    state.expireLocalTurnIfNeeded();
+
+    expect(state.lastSnapshot!.currentTurnSeat, 1);
+    expect(state.statusText, contains('Time is up'));
+    state.dispose();
+  });
+
+  testWidgets(
+      'Snakes quick match connects online and auto-moves the single token',
+      (tester) async {
+    final socket = FakeSocket();
+    final service = WebSocketService(connector: (_) => socket);
+    String? requestedMode;
+    final state = AppState(PrefsService(), webSocketService: service,
+        matchmakingClient: MockClient((request) async {
+      requestedMode =
+          (jsonDecode(request.body) as Map<String, dynamic>)['mode'] as String?;
+      return http.Response(
+          jsonEncode({'status': 'matched', 'socketUrl': '/room/snakes'}), 200);
+    }))
+      ..playerId = 'me'
+      ..authToken = 'test-token';
+
+    await state.startQuickMatch(AppState.snakesLaddersMode);
+    await tester.pump();
+    expect(requestedMode, AppState.snakesLaddersMode);
+    expect(state.localMatchActive, isFalse);
+    expect(state.currentMatchIsBot, isFalse);
+    socket.complete();
+    await tester.pump();
+    socket.incoming.add(jsonEncode({
+      'type': 'snapshot',
+      'snapshot': onlineSnakesSnapshot(),
+    }));
+    await tester.pump();
+    socket.incoming.add(jsonEncode({
+      'type': 'dice_rolled',
+      'playerId': 'me',
+      'value': 5,
+      'snapshot': onlineSnakesSnapshot(dice: 5),
+    }));
+    await tester.pump(const Duration(milliseconds: 800));
+    expect(socket.sink.sent.map((message) => message['type']),
+        containsAllInOrder(['join', 'move_piece']));
+    expect(socket.sink.sent.last['pieceId'], 's0_snake');
+    state.dispose();
+  });
+
   testWidgets(
       'websocket waits for handshake, rejoins after drop, and ignores replaced connections',
       (tester) async {
@@ -297,6 +398,32 @@ void main() {
     expect(service.isConnected, isFalse);
     expect(sockets.last.sink.sent, isEmpty);
     expect(sockets.length, 3);
+    service.dispose();
+  });
+
+  testWidgets('spectator websocket remains read-only after reconnect',
+      (tester) async {
+    final sockets = <FakeSocket>[];
+    final service = WebSocketService(connector: (_) {
+      final socket = FakeSocket();
+      sockets.add(socket);
+      return socket;
+    })
+      ..playerId = 'viewer'
+      ..displayName = 'Viewer'
+      ..spectator = true;
+
+    service.connect('/room/watch?spectator=1');
+    sockets.first.complete();
+    await tester.pump();
+    expect(sockets.first.sink.sent.single['type'], 'spectate');
+
+    await sockets.first.incoming.close();
+    await tester.pump(const Duration(seconds: 3));
+    sockets.last.complete();
+    await tester.pump();
+    expect(sockets.last.sink.sent.single['type'], 'spectate');
+    expect(service.phase, SocketConnectionPhase.connected);
     service.dispose();
   });
 

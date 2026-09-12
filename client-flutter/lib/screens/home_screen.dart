@@ -970,6 +970,25 @@ Future<void> _showPrivateRoomSheet(
                       ),
                     ],
                   ),
+                  const SizedBox(height: 10),
+                  _HomeSheetButton(
+                    label: 'Watch Code',
+                    icon: Icons.visibility_rounded,
+                    color: boardGreen,
+                    onTap: () {
+                      final code = codeController.text.trim();
+                      if (code.isEmpty) {
+                        _showHomeSnack(context, 'Enter an invite code.');
+                        return;
+                      }
+                      SoundService.tap();
+                      Navigator.pop(sheetContext, (
+                        action: 'watch',
+                        mode: mode,
+                        code: code,
+                      ));
+                    },
+                  ),
                 ],
               ),
             );
@@ -986,6 +1005,9 @@ Future<void> _showPrivateRoomSheet(
       return;
     case 'join':
       state.joinPrivateRoom(intent.code);
+      return;
+    case 'watch':
+      state.watchPrivateRoom(intent.code);
       return;
     case 'offline':
       state.startOfflineMatch(intent.mode);
@@ -2672,6 +2694,39 @@ Future<void> _showProfileEditor(
                         ),
                       ],
                     ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        color: palette.dark
+                            ? const Color(0x55250A31)
+                            : const Color(0xAAFFF4FC),
+                        border:
+                            Border.all(color: palette.stroke.withAlpha(110)),
+                      ),
+                      child: Row(children: [
+                        Expanded(
+                          child: Text(
+                            '${state.gamesPlayed} games  •  ${state.wins} wins  •  ${state.rating} rating',
+                            style: TextStyle(
+                              color: palette.text,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            SoundService.tap();
+                            Navigator.pop(sheetContext);
+                            state.navigateTo('/history');
+                          },
+                          icon: const Icon(Icons.history_rounded, size: 18),
+                          label: const Text('History'),
+                        ),
+                      ]),
+                    ),
                     const SizedBox(height: 14),
                     TextField(
                       controller: nameController,
@@ -2877,6 +2932,74 @@ Future<void> _showProfileEditor(
                           },
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    _SheetLabel('Game feedback & accessibility',
+                        palette: palette),
+                    const SizedBox(height: 6),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Sound effects',
+                          style: TextStyle(
+                              color: palette.text,
+                              fontWeight: FontWeight.w800)),
+                      subtitle: Text('Dice, moves, ladders and snakes',
+                          style: TextStyle(color: palette.muted, fontSize: 11)),
+                      value: state.soundEffectsEnabled,
+                      onChanged: (value) {
+                        state.setSoundEffectsEnabled(value);
+                        setSheetState(() {});
+                      },
+                    ),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Haptics',
+                          style: TextStyle(
+                              color: palette.text,
+                              fontWeight: FontWeight.w800)),
+                      subtitle: Text('Touch feedback for rolls and movement',
+                          style: TextStyle(color: palette.muted, fontSize: 11)),
+                      value: state.hapticsEnabled,
+                      onChanged: (value) {
+                        state.setHapticsEnabled(value);
+                        setSheetState(() {});
+                      },
+                    ),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Reduce motion',
+                          style: TextStyle(
+                              color: palette.text,
+                              fontWeight: FontWeight.w800)),
+                      value: state.reducedMotionEnabled,
+                      onChanged: (value) {
+                        state.setReducedMotionEnabled(value);
+                        setSheetState(() {});
+                      },
+                    ),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('High contrast',
+                          style: TextStyle(
+                              color: palette.text,
+                              fontWeight: FontWeight.w800)),
+                      value: state.highContrastEnabled,
+                      onChanged: (value) {
+                        state.setHighContrastEnabled(value);
+                        setSheetState(() {});
+                      },
+                    ),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Larger text',
+                          style: TextStyle(
+                              color: palette.text,
+                              fontWeight: FontWeight.w800)),
+                      value: state.largeTextEnabled,
+                      onChanged: (value) {
+                        state.setLargeTextEnabled(value);
+                        setSheetState(() {});
+                      },
                     ),
                     const SizedBox(height: 7),
                     LayoutBuilder(

@@ -39,6 +39,7 @@ interface JoinPrivateRoomRequest {
   playerId: string;
   displayName: string;
   code: string;
+  spectate?: boolean;
 }
 
 interface PrivateRoomRow {
@@ -359,7 +360,12 @@ async function joinPrivateRoom(request: Request, env: Env): Promise<Response> {
     return json({ error: "Room code was not found or has expired." }, { status: 404 });
   }
 
-  return json(matchReadyResponse(room.room_id, room.mode, room.region));
+  const ready = matchReadyResponse(room.room_id, room.mode, room.region);
+  if (body.spectate) {
+    ready.socketUrl = `${ready.socketUrl}?spectator=1`;
+    ready.spectator = true;
+  }
+  return json(ready);
 }
 
 async function routeRoomRequest(request: Request, env: Env, url: URL): Promise<Response> {

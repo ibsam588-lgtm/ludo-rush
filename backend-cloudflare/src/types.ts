@@ -17,7 +17,8 @@ export type GameMode =
   | "classic_3p"
   | "classic_4p"
   | "rush_2p"
-  | "rush_4p";
+  | "rush_4p"
+  | "snakes_ladders";
 
 export interface PlayerProfile {
   id: string;
@@ -83,6 +84,7 @@ export interface RoomSnapshot {
 
 export type ClientRoomMessage =
   | { type: "join"; playerId: string; displayName: string }
+  | { type: "spectate"; playerId: string; displayName: string }
   | { type: "roll_dice"; playerId: string }
   | { type: "move_piece"; playerId: string; pieceId: string }
   | { type: "fill_bots"; playerId: string }

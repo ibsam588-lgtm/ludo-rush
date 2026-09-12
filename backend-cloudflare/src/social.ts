@@ -79,11 +79,26 @@ export async function routeSocialRequest(
 async function socialOverview(env: Env, playerId: string): Promise<Response> {
   if (!playerId) return badRequest("playerId is required.");
 
-  const [friends, incoming, outgoing, recent, gifts, wallet, stats, chestClaims, purchases, currentClub, clubs] = await Promise.all([
+  const [friends, incoming, outgoing, recent, history, gifts, wallet, stats, chestClaims, purchases, currentClub, clubs] = await Promise.all([
     socialUsers(env, playerId, "accepted"),
     socialUsers(env, playerId, "pending", "incoming"),
     socialUsers(env, playerId, "pending", "outgoing"),
     recentOpponents(env, playerId),
+    env.DB.prepare(
+      `SELECT m.id, m.mode, m.started_at AS startedAt, m.ended_at AS endedAt,
+              mp.finish_rank AS finishRank, mp.rating_delta AS ratingDelta,
+              mp.coins_delta AS coinsDelta,
+              CASE WHEN m.winner_user_id = ? THEN 1 ELSE 0 END AS won,
+              COALESCE((SELECT GROUP_CONCAT(u.display_name, ', ')
+                FROM match_players other
+                JOIN users u ON u.id = other.user_id
+                WHERE other.match_id = m.id AND other.user_id <> ?), '') AS opponents
+       FROM match_players mp
+       JOIN matches m ON m.id = mp.match_id
+       WHERE mp.user_id = ? AND m.status = 'finished'
+       ORDER BY m.ended_at DESC
+       LIMIT 20`
+    ).bind(playerId, playerId, playerId).all(),
     env.DB.prepare(
       `SELECT g.id, g.gift_id AS giftId, g.created_at AS createdAt,
               u.id AS senderId, u.display_name AS senderName
@@ -141,6 +156,7 @@ async function socialOverview(env: Env, playerId: string): Promise<Response> {
     incomingRequests: incoming,
     outgoingRequests: outgoing,
     recentOpponents: recent,
+    matchHistory: history.results ?? [],
     receivedGifts: gifts.results ?? [],
     coins: wallet?.coins ?? 0,
     gamesPlayed: stats?.gamesPlayed ?? 0,

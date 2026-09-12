@@ -5,7 +5,8 @@ export const MAX_PLAYERS_BY_MODE: Record<GameMode, number> = {
   classic_3p: 3,
   classic_4p: 4,
   rush_2p: 2,
-  rush_4p: 4
+  rush_4p: 4,
+  snakes_ladders: 4
 };
 
 export const TURN_DURATION_MS: Record<GameMode, number> = {
@@ -13,12 +14,28 @@ export const TURN_DURATION_MS: Record<GameMode, number> = {
   classic_3p: 30_000,
   classic_4p: 30_000,
   rush_2p: 15_000,
-  rush_4p: 15_000
+  rush_4p: 15_000,
+  snakes_ladders: 25_000
 };
 
 export const TRACK_LENGTH = 52;
 export const FINISH_PROGRESS = 57;
 export const YARD_PROGRESS = -1;
+export const SNAKES_FINISH_PROGRESS = 100;
+
+const LADDERS = new Map<number, number>([
+  [6, 26],
+  [23, 37],
+  [48, 68],
+  [65, 85],
+  [79, 99]
+]);
+const SNAKES = new Map<number, number>([
+  [47, 13],
+  [57, 35],
+  [84, 64],
+  [93, 68]
+]);
 
 const PIECES_PER_PLAYER = 4;
 const START_OFFSETS = [1, 14, 27, 40];
@@ -229,7 +246,9 @@ export function applyMove(snapshot: RoomSnapshot, playerId: string, pieceId: str
     throw new Error("That piece cannot move for this dice value.");
   }
 
-  const moved = movePiece(snapshot.pieces, pieceId, snapshot.diceValue, seat.seat);
+  const moved = snapshot.mode === "snakes_ladders"
+    ? moveSnakesPiece(snapshot.pieces, pieceId, snapshot.diceValue)
+    : movePiece(snapshot.pieces, pieceId, snapshot.diceValue, seat.seat);
   const moverFinished = hasSeatFinished(moved.pieces, seat.seat);
 
   let seats = snapshot.seats;
@@ -260,7 +279,8 @@ export function applyMove(snapshot: RoomSnapshot, playerId: string, pieceId: str
     };
   }
 
-  const shouldKeepTurn = snapshot.diceValue === 6 || moved.capturedPieceIds.length > 0;
+  const shouldKeepTurn = snapshot.mode !== "snakes_ladders" &&
+    (snapshot.diceValue === 6 || moved.capturedPieceIds.length > 0);
   const nextSnapshot: RoomSnapshot = shouldKeepTurn
     ? startTurn({
         ...snapshot,
@@ -447,7 +467,7 @@ function fallbackPlayerName(seat: number): string {
 export function getLegalMoves(snapshot: RoomSnapshot, seat: number, diceValue: number): string[] {
   return snapshot.pieces
     .filter((piece) => piece.seat === seat)
-    .filter((piece) => canMovePiece(piece, diceValue))
+    .filter((piece) => canMovePiece(piece, diceValue, snapshot.mode))
     .map((piece) => piece.pieceId);
 }
 
@@ -495,7 +515,7 @@ export function startIfReady(snapshot: RoomSnapshot): RoomSnapshot {
     {
       ...snapshot,
       status: "playing",
-      pieces: createPieces(snapshot.seats),
+      pieces: createPieces(snapshot.seats, snapshot.mode),
       currentTurnSeat: snapshot.seats[0].seat,
       updatedAt: now
     },
@@ -578,9 +598,37 @@ function movePiece(pieces: LudoPiece[], pieceId: string, diceValue: number, move
   return { pieces: nextPieces, capturedPieceIds };
 }
 
-function canMovePiece(piece: LudoPiece, diceValue: number): boolean {
+function moveSnakesPiece(pieces: LudoPiece[], pieceId: string, diceValue: number): {
+  pieces: LudoPiece[];
+  capturedPieceIds: string[];
+} {
+  const mover = pieces.find((piece) => piece.pieceId === pieceId);
+  if (!mover) throw new Error("Piece was not found.");
+  const landed = mover.progress + diceValue;
+  if (landed > SNAKES_FINISH_PROGRESS) {
+    throw new Error("An exact roll is required to reach 100.");
+  }
+  const nextProgress = LADDERS.get(landed) ?? SNAKES.get(landed) ?? landed;
+  return {
+    pieces: pieces.map((piece) => piece.pieceId === pieceId
+      ? {
+          ...piece,
+          progress: nextProgress,
+          state: nextProgress >= SNAKES_FINISH_PROGRESS ? "finished" : "track",
+          trackIndex: nextProgress
+        }
+      : piece),
+    capturedPieceIds: []
+  };
+}
+
+function canMovePiece(piece: LudoPiece, diceValue: number, mode: GameMode): boolean {
   if (piece.state === "finished") {
     return false;
+  }
+
+  if (mode === "snakes_ladders") {
+    return piece.progress + diceValue <= SNAKES_FINISH_PROGRESS;
   }
 
   if (piece.progress === YARD_PROGRESS) {
@@ -590,7 +638,16 @@ function canMovePiece(piece: LudoPiece, diceValue: number): boolean {
   return piece.progress + diceValue <= FINISH_PROGRESS;
 }
 
-function createPieces(seats: RoomSeat[]): LudoPiece[] {
+function createPieces(seats: RoomSeat[], mode: GameMode): LudoPiece[] {
+  if (mode === "snakes_ladders") {
+    return seats.map((seat) => ({
+      pieceId: `s${seat.seat}_snake`,
+      seat: seat.seat,
+      progress: 1,
+      state: "track" as const,
+      trackIndex: 1
+    }));
+  }
   return seats.flatMap((seat) =>
     Array.from({ length: PIECES_PER_PLAYER }, (_, index) => ({
       pieceId: `s${seat.seat}_p${index}`,
@@ -635,6 +692,12 @@ function scoreBotMove(snapshot: RoomSnapshot, pieceId: string): number {
   const piece = snapshot.pieces.find((candidate) => candidate.pieceId === pieceId);
   if (!piece || snapshot.diceValue === undefined) {
     return 0;
+  }
+
+  if (snapshot.mode === "snakes_ladders") {
+    const landed = piece.progress + snapshot.diceValue;
+    const destination = LADDERS.get(landed) ?? SNAKES.get(landed) ?? landed;
+    return destination + (LADDERS.has(landed) ? 100 : 0);
   }
 
   if (piece.progress === YARD_PROGRESS) {
