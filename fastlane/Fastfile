@@ -73,7 +73,6 @@ platform :android do
       track: source_track,
       track_promote_to: "production",
       track_promote_release_status: "completed",
-      release_name: "Ludo Rush #{version_codes.max}",
       skip_upload_aab: true,
       skip_upload_apk: true,
       skip_upload_metadata: true,
