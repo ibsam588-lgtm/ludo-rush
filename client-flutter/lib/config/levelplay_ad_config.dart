@@ -5,6 +5,8 @@ class LevelPlayAdConfig {
       bool.fromEnvironment('LEVELPLAY_PRODUCTION', defaultValue: kReleaseMode);
   static const bool enableTestSuite =
       bool.fromEnvironment('LEVELPLAY_TEST_SUITE', defaultValue: false);
+  static const bool childDirected =
+      bool.fromEnvironment('LEVELPLAY_CHILD_DIRECTED', defaultValue: false);
 
   static const int firstRoundInterstitial = int.fromEnvironment(
     'LEVELPLAY_FIRST_ROUND_INTERSTITIAL',

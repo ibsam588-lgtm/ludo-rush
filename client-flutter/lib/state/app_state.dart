@@ -828,13 +828,13 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     currentMatchIsBot = true;
     _resetLiveMatch();
     connecting = true;
-    _setStatus('Preparing a local table...');
+    _setStatus('Preparing your table...');
     _openMatchmakingScreen();
     _scheduleLocalBotMatch(
       mode,
       reason: _isSnakesLaddersMode(mode)
           ? 'Snakes & Ladders table ready. Roll to climb.'
-          : 'Local table ready. Roll when it is your turn.',
+          : 'Table ready. Roll when it is your turn.',
     );
   }
 
@@ -849,8 +849,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _startLocalBotMatch(
       mode,
       reason: _isSnakesLaddersMode(mode)
-          ? 'Offline Snakes & Ladders ready. Roll to climb.'
-          : 'Offline table ready. Roll when it is your turn.',
+          ? 'Snakes & Ladders ready. Roll to climb.'
+          : 'Table ready. Roll when it is your turn.',
     );
     replaceWith('/game');
   }
@@ -2706,6 +2706,42 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
           'Request failed (${response.statusCode}).');
     }
     return decoded;
+  }
+
+  Future<String> verifyGooglePlayPurchase({
+    required String productId,
+    required String purchaseToken,
+  }) async {
+    try {
+      final response = await _requestJson(
+        'POST',
+        '/api/v1/purchases/google-play/verify',
+        body: {
+          'productId': productId,
+          'purchaseToken': purchaseToken,
+        },
+      );
+      if (response['verified'] != true) {
+        return 'Google Play could not verify this purchase.';
+      }
+      coins = _readInt(response['coins'], fallback: coins);
+      _prefs.coins = coins;
+      final products =
+          response['ownedProductIds'] as List<dynamic>? ?? const [];
+      ownedProductIds = products
+          .whereType<String>()
+          .map((product) => product.trim())
+          .where((product) => product.isNotEmpty)
+          .toSet();
+      socialError = '';
+      notifyListeners();
+      return '';
+    } catch (error) {
+      final message = _cleanApiError(error);
+      socialError = message;
+      notifyListeners();
+      return message;
+    }
   }
 
   Map<String, String> _authorizedHeaders() {

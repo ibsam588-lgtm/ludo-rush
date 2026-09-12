@@ -1,5 +1,6 @@
 // ignore_for_file: unused_element
 
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import '../data/profile_catalog.dart';
 import '../data/economy.dart';
 import '../state/app_state.dart';
 import '../services/levelplay_ad_service.dart';
+import '../services/purchase_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/levelplay_banner.dart';
@@ -48,13 +50,13 @@ class _ShopScreenState extends State<ShopScreen>
         diceSkin: 'neon', rarity: 'RARE'),
     _ShopProduct('Ruby Dice', '0.99 USD', 'premium red gem',
         _ProductArt.rubyDice, false, 0,
-        diceSkin: 'ruby', rarity: 'PREMIUM'),
+        diceSkin: 'ruby', rarity: 'PREMIUM', productId: 'dice.ruby'),
     _ShopProduct('Emerald Dice', '8 WINS', 'rare green gem',
         _ProductArt.emeraldDice, false, 0,
         diceSkin: 'emerald', rarity: 'RARE'),
     _ShopProduct('Cosmic Dice', '1.99 USD', 'premium star glow',
         _ProductArt.cosmicDice, true, 0,
-        diceSkin: 'cosmic', rarity: 'PREMIUM'),
+        diceSkin: 'cosmic', rarity: 'PREMIUM', productId: 'dice.cosmic'),
     _ShopProduct('Carnival Board', 'EQUIP', 'approved theme',
         _ProductArt.carnivalBoard, false, 0,
         ludoBoardTheme: 'carnival', rarity: 'COMMON'),
@@ -63,7 +65,7 @@ class _ShopScreenState extends State<ShopScreen>
         ludoBoardTheme: 'royal', rarity: 'RARE'),
     _ShopProduct('Neon Board', '1.99 USD', 'premium arcade board',
         _ProductArt.neonBoard, false, 0,
-        ludoBoardTheme: 'neon', rarity: 'PREMIUM'),
+        ludoBoardTheme: 'neon', rarity: 'PREMIUM', productId: 'board.neon'),
     _ShopProduct('Classic Board', '2 WINS', 'clean table',
         _ProductArt.classicBoard, false, 0,
         ludoBoardTheme: 'classic', rarity: 'COMMON'),
@@ -78,13 +80,13 @@ class _ShopScreenState extends State<ShopScreen>
         ludoBoardTheme: 'volcano', rarity: 'RARE'),
     _ShopProduct('Coin Stack', '0.99 USD', '1,200 coins', _ProductArt.coinPack,
         false, 1200,
-        rarity: 'PREMIUM'),
+        rarity: 'PREMIUM', productId: 'coins.stack_1200'),
     _ShopProduct('Gem Chest', '1.49 USD', '3,500 coins', _ProductArt.clubChest,
         false, 3500,
-        rarity: 'PREMIUM'),
+        rarity: 'PREMIUM', productId: 'coins.chest_3500'),
     _ShopProduct('Royal Vault', '1.99 USD', '7,500 coins',
         _ProductArt.royalVault, true, 7500,
-        rarity: 'PREMIUM'),
+        rarity: 'PREMIUM', productId: 'coins.vault_7500'),
   ];
 
   @override
@@ -93,10 +95,16 @@ class _ShopScreenState extends State<ShopScreen>
     _bg =
         AnimationController(vsync: this, duration: const Duration(seconds: 12))
           ..repeat(reverse: true);
+    PurchaseService.instance.addListener(_purchaseChanged);
+  }
+
+  void _purchaseChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
+    PurchaseService.instance.removeListener(_purchaseChanged);
     _shopScroll.dispose();
     _bg.dispose();
     super.dispose();
@@ -273,6 +281,12 @@ class _ShopScreenState extends State<ShopScreen>
                                           expanded: true,
                                           palette: p,
                                           state: state),
+                                    SliverToBoxAdapter(
+                                      child: _PurchaseStatusBanner(
+                                        palette: p,
+                                        purchases: PurchaseService.instance,
+                                      ),
+                                    ),
                                     SliverPadding(
                                       padding: gridPad,
                                       sliver: SliverGrid(
@@ -307,8 +321,13 @@ class _ShopScreenState extends State<ShopScreen>
                                                         : 'Daily coins already claimed. Come back tomorrow.');
                                               } else if (product
                                                   .requiresPurchase(state)) {
-                                                message =
-                                                    '${product.title} is a ${product.price} preview. Google Play checkout is not available yet.';
+                                                final productId =
+                                                    product.productId;
+                                                message = productId == null
+                                                    ? '${product.title} is still being prepared for Google Play.'
+                                                    : await PurchaseService
+                                                        .instance
+                                                        .buy(productId);
                                               } else if (product.diceSkin !=
                                                   null) {
                                                 if (state.isDiceSkinUnlocked(
@@ -474,6 +493,58 @@ class _RewardedPointsBanner extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PurchaseStatusBanner extends StatelessWidget {
+  final _ShopPalette palette;
+  final PurchaseService purchases;
+
+  const _PurchaseStatusBanner({
+    required this.palette,
+    required this.purchases,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final busy = purchases.loading || purchases.activeProductId != null;
+    final message = purchases.statusMessage.isEmpty
+        ? 'Secure checkout and purchase restore are handled by Google Play.'
+        : purchases.statusMessage;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: palette.panel,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: palette.stroke.withAlpha(150)),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(children: [
+            if (busy)
+              const SizedBox.square(
+                dimension: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              const Icon(Icons.verified_user_rounded,
+                  size: 19, color: boardGreen),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(message,
+                  style: TextStyle(color: palette.muted, fontSize: 11.5)),
+            ),
+            TextButton(
+              onPressed: busy || !purchases.available
+                  ? null
+                  : () => unawaited(purchases.restorePurchases()),
+              child: const Text('Restore'),
+            ),
+          ]),
         ),
       ),
     );
@@ -1637,6 +1708,12 @@ class _AvatarShopStrip extends StatelessWidget {
   Widget _avatarButton(BuildContext context, int index) {
     final avatar = profileAvatarCatalog[index];
     final unlocked = state.isAvatarUnlocked(index);
+    final productId =
+        avatar.rarity == AvatarRarity.premium ? 'avatar.${avatar.id}' : null;
+    final purchaseLabel = productId == null
+        ? state.avatarUnlockLabel(index)
+        : PurchaseService.instance
+            .displayPrice(productId, avatar.price ?? 'Buy');
     final selected =
         state.avatarPreset == index && state.avatarImagePath == null;
     return _ShopAvatarButton(
@@ -1644,17 +1721,22 @@ class _AvatarShopStrip extends StatelessWidget {
       avatar: avatar,
       selected: selected,
       unlocked: unlocked,
-      actionLabel: selected ? 'Equipped' : state.avatarUnlockLabel(index),
+      actionLabel: selected
+          ? 'Equipped'
+          : unlocked
+              ? state.avatarUnlockLabel(index)
+              : purchaseLabel,
       onTap: () => showLiveItemPreview(context,
           title: avatar.label,
           preview: ProfileAvatarView(preset: index, animate: true),
           description:
               'Your avatar reacts to sixes, captures, climbs and victories.',
-          actionLabel:
-              unlocked ? 'Equip avatar' : state.avatarUnlockLabel(index),
+          actionLabel: unlocked ? 'Equip avatar' : purchaseLabel,
           onAction: unlocked
               ? () => state.updateProfile(avatar: index, clearImage: true)
-              : null),
+              : productId == null
+                  ? null
+                  : () => unawaited(PurchaseService.instance.buy(productId))),
     );
   }
 
@@ -1927,6 +2009,14 @@ class _BoardThemeStrip extends StatelessWidget {
               itemBuilder: (context, index) {
                 final option = _options[index];
                 final unlocked = state.isBoardThemeUnlocked(option.id);
+                final productId =
+                    option.rarity == 'PREMIUM' ? 'board.${option.id}' : null;
+                final purchaseLabel = productId == null
+                    ? state.boardThemeUnlockLabel(option.id)
+                    : PurchaseService.instance.displayPrice(
+                        productId,
+                        state.boardThemePremiumPrice(option.id) ?? 'Buy',
+                      );
                 return _BoardThemeButton(
                     expanded: true,
                     key: ValueKey('snakes-theme-${option.id}'),
@@ -1943,12 +2033,13 @@ class _BoardThemeStrip extends StatelessWidget {
                             LiveBoardPreview(theme: option.id, snakes: true),
                         description:
                             'Try the board in motion before equipping it.',
-                        actionLabel: unlocked
-                            ? 'Equip board'
-                            : state.boardThemeUnlockLabel(option.id),
+                        actionLabel: unlocked ? 'Equip board' : purchaseLabel,
                         onAction: unlocked
                             ? () => state.setSnakesBoardTheme(option.id)
-                            : null));
+                            : productId == null
+                                ? null
+                                : () => unawaited(
+                                    PurchaseService.instance.buy(productId))));
               }));
     }
     return Container(
@@ -2011,12 +2102,21 @@ class _BoardThemeStrip extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, i) {
                 final option = _options[i];
+                final unlocked = state.isBoardThemeUnlocked(option.id);
+                final productId =
+                    option.rarity == 'PREMIUM' ? 'board.${option.id}' : null;
+                final purchaseLabel = productId == null
+                    ? state.boardThemeUnlockLabel(option.id)
+                    : PurchaseService.instance.displayPrice(
+                        productId,
+                        state.boardThemePremiumPrice(option.id) ?? 'Buy',
+                      );
                 return _BoardThemeButton(
                   expanded: expanded,
                   key: ValueKey('snakes-theme-${option.id}'),
                   option: option,
                   selected: state.snakesBoardTheme == option.id,
-                  locked: !state.isBoardThemeUnlocked(option.id),
+                  locked: !unlocked,
                   actionLabel: state.boardThemePremiumPrice(option.id) ??
                       (state.isBoardThemeUnlocked(option.id)
                           ? 'Owned'
@@ -2026,12 +2126,13 @@ class _BoardThemeStrip extends StatelessWidget {
                       preview: LiveBoardPreview(theme: option.id, snakes: true),
                       description:
                           'Live board demo. Previewing never changes your equipped board or coins.',
-                      actionLabel: state.isBoardThemeUnlocked(option.id)
-                          ? 'Equip board'
-                          : state.boardThemeUnlockLabel(option.id),
-                      onAction: state.isBoardThemeUnlocked(option.id)
+                      actionLabel: unlocked ? 'Equip board' : purchaseLabel,
+                      onAction: unlocked
                           ? () => state.setSnakesBoardTheme(option.id)
-                          : null),
+                          : productId == null
+                              ? null
+                              : () => unawaited(
+                                  PurchaseService.instance.buy(productId))),
                 );
               },
             ),
@@ -2331,10 +2432,20 @@ class _DiceSkinStrip extends StatelessWidget {
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (context, i) {
                       final option = _options[i];
+                      final unlocked = state.isDiceSkinUnlocked(option.id);
+                      final productId = option.rarity == 'PREMIUM'
+                          ? 'dice.${option.id}'
+                          : null;
+                      final purchaseLabel = productId == null
+                          ? state.diceSkinUnlockLabel(option.id)
+                          : PurchaseService.instance.displayPrice(
+                              productId,
+                              state.diceSkinPremiumPrice(option.id) ?? 'Buy',
+                            );
                       return _DiceSkinButton(
                         option: option,
                         selected: state.diceSkin == option.id,
-                        locked: !state.isDiceSkinUnlocked(option.id),
+                        locked: !unlocked,
                         actionLabel: state.diceSkinPremiumPrice(option.id) ??
                             (state.isDiceSkinUnlocked(option.id)
                                 ? 'Owned'
@@ -2344,12 +2455,14 @@ class _DiceSkinStrip extends StatelessWidget {
                             preview: LiveDicePreview(skin: option.id),
                             description:
                                 'Watch this die roll. Skins never change the odds.',
-                            actionLabel: state.isDiceSkinUnlocked(option.id)
-                                ? 'Equip dice'
-                                : state.diceSkinUnlockLabel(option.id),
-                            onAction: state.isDiceSkinUnlocked(option.id)
+                            actionLabel:
+                                unlocked ? 'Equip dice' : purchaseLabel,
+                            onAction: unlocked
                                 ? () => state.setDiceSkin(option.id)
-                                : null),
+                                : productId == null
+                                    ? null
+                                    : () => unawaited(PurchaseService.instance
+                                        .buy(productId))),
                       );
                     },
                   ),
@@ -2512,6 +2625,7 @@ class _ShopProduct {
   final String? ludoBoardTheme;
   final bool dailyReward;
   final String rarity;
+  final String? productId;
 
   const _ShopProduct(
     this.title,
@@ -2524,6 +2638,7 @@ class _ShopProduct {
     this.ludoBoardTheme,
     this.dailyReward = false,
     this.rarity = 'COMMON',
+    this.productId,
   });
 
   bool isLocked(AppState state) {
@@ -2556,7 +2671,12 @@ class _ShopProduct {
       return state.canClaimDailyReward ? 'FREE' : 'CLAIMED';
     }
     if (isEquipped(state)) return 'EQUIPPED';
-    if (requiresPurchase(state)) return 'PREVIEW $price';
+    if (requiresPurchase(state)) {
+      final localized = productId == null
+          ? price
+          : PurchaseService.instance.displayPrice(productId!, price);
+      return 'BUY $localized';
+    }
     if (diceSkin != null && !state.isDiceSkinUnlocked(diceSkin!)) {
       return state.diceSkinPremiumPrice(diceSkin!) ?? price;
     }
@@ -2821,7 +2941,7 @@ void _showShopProductPreview(
               ? LiveBoardPreview(theme: product.ludoBoardTheme!)
               : PreviewMotion(child: _ShopProductVisual(product: product)),
       actionLabel: actionLabel,
-      onAction: locked ? null : onAction,
+      onAction: locked && !product.premium ? null : onAction,
     );
 
 class _RarityPill extends StatelessWidget {

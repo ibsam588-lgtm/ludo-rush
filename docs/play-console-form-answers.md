@@ -31,7 +31,7 @@ Features:
 - Captures, safe tiles, home path, and win detection
 - Reconnect-ready room state
 
-This internal test build is for gameplay, networking, and stability feedback before the final art, ads, purchases, and public launch polish are added.
+Play quick online matches, challenge friends with private room codes, practice with bots, customize animated boards, dice and avatars, and earn or purchase optional cosmetics and coin packs.
 ```
 
 ## Store Listing Contact
@@ -52,10 +52,10 @@ Testers can use guest login inside the app.
 ## Ads
 
 ```text
-Does the app contain ads? No for the current internal test build.
+Does the app contain ads? Yes.
 ```
 
-Change this to `Yes` only after real AdMob ad units are integrated.
+Ludo Rush uses Unity LevelPlay mediation for banner, interstitial, and rewarded ads.
 
 ## Privacy Policy
 
@@ -79,27 +79,35 @@ No real-money prizes.
 No user-generated public content in the current internal test build.
 ```
 
-## Data Safety Draft
-
-Current internal test build:
+## Data Safety
 
 ```text
 Data collected:
-- Personal info: User IDs
-- App activity: App interactions
+- Location: Approximate location
+- Personal info: Name, User IDs, Other info (age setting and selected country or matchmaking region)
+- Financial info: Purchase history
+- Messages: Other in-app messages
+- App activity: App interactions, Other app activity
 - App info and performance: Diagnostics
+- Device or other IDs: Device or other IDs
 
 Purpose:
 - App functionality
 - Analytics
+- Advertising or marketing
 - Fraud prevention, security, and compliance
 
 Data shared:
-- Not sold.
-- Not shared with third parties in the Play Console declaration.
+- Approximate location: shared for advertising or marketing, analytics, app functionality, and fraud prevention/security/compliance.
+- Purchase history: shared for advertising or marketing and analytics by the ad SDK; Google Play purchase data is also processed for app functionality and fraud prevention.
+- App interactions and other app activity: shared for advertising or marketing, analytics, and fraud prevention/security/compliance.
+- Diagnostics: shared for app functionality and analytics.
+- Device or other IDs: collected and shared for advertising or marketing, analytics, app functionality, and fraud prevention/security/compliance.
+- Guest profile and social data is processed by the app backend for app functionality and is not sold.
 
 Security:
-- Data is transmitted over secure connections in production.
+- Data is encrypted in transit.
+- Users can request deletion.
 
 Data deletion request URL:
 https://corsairlabs.com/data-deletion

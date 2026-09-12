@@ -8,6 +8,7 @@ import type { BackgroundJob, Env, GameMode, Region } from "./types";
 import { badRequest, json, notFound, readJson, unauthorized } from "./utils/http";
 import { createId, createRoomCode } from "./utils/id";
 import { routeSocialRequest } from "./social";
+import { routePurchaseRequest } from "./purchases";
 
 export { LudoRoom };
 
@@ -118,6 +119,10 @@ export default {
 
       if (url.pathname.startsWith("/api/v1/social/")) {
         return routeSocialRequest(request, env, url);
+      }
+
+      if (url.pathname.startsWith("/api/v1/purchases/")) {
+        return routePurchaseRequest(request, env, url);
       }
 
       if (url.pathname.startsWith("/api/v1/rooms/")) {

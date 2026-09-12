@@ -7,7 +7,7 @@ import 'package:ludo_rush/state/app_state.dart';
 import 'package:provider/provider.dart';
 
 void main() {
-  testWidgets('local matches use an accurate on-device status', (tester) async {
+  testWidgets('game header omits internal connection labels', (tester) async {
     final state = AppState(PrefsService())
       ..playerId = 'player_me'
       ..localMatchActive = true
@@ -34,10 +34,11 @@ void main() {
     ));
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Local'), findsOneWidget);
-    expect(state.roomConnectionLabel, 'Local game');
+    expect(find.text('Local'), findsNothing);
+    expect(find.text('Live'), findsNothing);
+    expect(find.text('Reconnecting'), findsNothing);
     expect(find.text('Offline'), findsNothing);
-    expect(find.byIcon(Icons.smartphone_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.smartphone_rounded), findsNothing);
     state.dispose();
   });
 
