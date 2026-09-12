@@ -20,6 +20,7 @@ import type { ClientRoomMessage, Env, GameMode, Region, RoomSnapshot, RoomSeat, 
 interface ConnectionAttachment {
   playerId?: string;
   displayName?: string;
+  spectator?: boolean;
   joinedAt: number;
 }
 
@@ -85,6 +86,11 @@ export class LudoRoom extends DurableObject<Env> {
         return;
       }
 
+      if (parsed.type === "spectate") {
+        await this.handleSpectate(ws, parsed.playerId, parsed.displayName);
+        return;
+      }
+
       if (parsed.type === "roll_dice") {
         await this.handleRoll(ws, this.requireActor(ws, parsed.playerId));
         return;
@@ -124,7 +130,7 @@ export class LudoRoom extends DurableObject<Env> {
 
   async webSocketClose(ws: WebSocket): Promise<void> {
     const attachment = ws.deserializeAttachment() as ConnectionAttachment | undefined;
-    if (!attachment?.playerId) {
+    if (!attachment?.playerId || attachment.spectator) {
       return;
     }
 
@@ -173,11 +179,13 @@ export class LudoRoom extends DurableObject<Env> {
     const url = new URL(request.url);
     const playerId = url.searchParams.get("playerId") ?? undefined;
     const displayName = url.searchParams.get("displayName") ?? undefined;
+    const spectator = url.searchParams.get("spectator") === "1";
 
     this.ctx.acceptWebSocket(server);
     server.serializeAttachment({
       playerId,
       displayName,
+      spectator,
       joinedAt: Date.now()
     } satisfies ConnectionAttachment);
 
@@ -210,10 +218,20 @@ export class LudoRoom extends DurableObject<Env> {
     await this.playBotsIfNeeded();
   }
 
+  private async handleSpectate(ws: WebSocket, playerId: string, displayName: string): Promise<void> {
+    ws.serializeAttachment({
+      playerId,
+      displayName,
+      spectator: true,
+      joinedAt: Date.now()
+    } satisfies ConnectionAttachment);
+    this.send(ws, { type: "snapshot", snapshot: await this.getSnapshot() });
+  }
+
   private requireActor(ws: WebSocket, claimedPlayerId: string): string {
     const attachment = ws.deserializeAttachment() as ConnectionAttachment | undefined;
     const actor = attachment?.playerId;
-    if (!actor) {
+    if (!actor || attachment?.spectator) {
       throw new Error("Join the room before playing.");
     }
 

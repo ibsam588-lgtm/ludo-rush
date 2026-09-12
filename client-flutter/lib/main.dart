@@ -12,6 +12,7 @@ import 'screens/matchmaking_screen.dart';
 import 'screens/game_screen.dart';
 import 'screens/results_screen.dart';
 import 'screens/shop_screen.dart';
+import 'screens/history_screen.dart';
 import 'widgets/forced_update_gate.dart';
 
 void main() async {
@@ -52,9 +53,22 @@ class LudoRushApp extends StatelessWidget {
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
         themeMode: state.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-        builder: (context, child) => ForcedUpdateGate(
-          child: child ?? const SizedBox.shrink(),
-        ),
+        builder: (context, child) {
+          final media = MediaQuery.of(context);
+          return MediaQuery(
+            data: media.copyWith(
+              disableAnimations:
+                  media.disableAnimations || state.reducedMotionEnabled,
+              highContrast: media.highContrast || state.highContrastEnabled,
+              textScaler: state.largeTextEnabled
+                  ? const TextScaler.linear(1.12)
+                  : media.textScaler,
+            ),
+            child: ForcedUpdateGate(
+              child: child ?? const SizedBox.shrink(),
+            ),
+          );
+        },
         initialRoute: '/splash',
         routes: {
           '/splash': (_) => const SplashScreen(),
@@ -64,6 +78,7 @@ class LudoRushApp extends StatelessWidget {
           '/game': (_) => const GameScreen(),
           '/results': (_) => const ResultsScreen(),
           '/shop': (_) => const ShopScreen(),
+          '/history': (_) => const HistoryScreen(),
         },
       ),
     );

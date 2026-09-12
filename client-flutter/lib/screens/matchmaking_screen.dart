@@ -97,7 +97,8 @@ class _MatchmakingScreenState extends State<MatchmakingScreen>
                                       : const Alignment(0, -0.18),
                                   child: SizedBox(
                                     width: panelWidth,
-                                    child: _WaitingPanel(pulse: _pulse),
+                                    child: _WaitingPanel(
+                                        pulse: _pulse, state: state),
                                   ),
                                 ),
                                 Positioned(
@@ -225,8 +226,9 @@ class _MascotStage extends StatelessWidget {
 
 class _WaitingPanel extends StatelessWidget {
   final Animation<double> pulse;
+  final AppState state;
 
-  const _WaitingPanel({required this.pulse});
+  const _WaitingPanel({required this.pulse, required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -295,6 +297,31 @@ class _WaitingPanel extends StatelessWidget {
                   painter: _SpinnerPainter(pulse.value),
                 ),
               ),
+              if (!state.currentMatchIsBot && state.connecting) ...[
+                const SizedBox(height: 18),
+                Semantics(
+                  button: true,
+                  label: 'Stop waiting and play immediately with local players',
+                  child: OutlinedButton.icon(
+                    key: const ValueKey('play-now-with-bots'),
+                    onPressed: state.playNowWithBots,
+                    icon: const Icon(Icons.flash_on_rounded),
+                    label: const Text('Play now'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: goldColor, width: 1.5),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 11),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 7),
+                const Text(
+                  'Start instantly against computer players.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white60, fontSize: 11),
+                ),
+              ],
             ],
           ),
         );

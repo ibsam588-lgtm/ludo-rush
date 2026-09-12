@@ -9,6 +9,7 @@ import '../data/economy.dart';
 import '../widgets/match_rules_sheet.dart';
 import '../models/game_snapshot.dart';
 import '../models/match_rewards.dart';
+import '../models/match_history_entry.dart';
 import '../services/app_platform_service.dart';
 import '../services/prefs_service.dart';
 import '../services/sound_service.dart';
@@ -205,6 +206,14 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   bool autoRollEnabled = false;
   String soundtrackId = SoundtrackCatalog.defaultId;
   bool musicEnabled = true;
+  bool soundEffectsEnabled = true;
+  bool hapticsEnabled = true;
+  bool reducedMotionEnabled = false;
+  bool highContrastEnabled = false;
+  bool largeTextEnabled = false;
+  // Defaults to seen for lightweight tests that construct AppState without
+  // init(); real installs load the persisted first-match flag in init().
+  bool gameTutorialSeen = true;
   String lastDailyRewardDate = '';
   bool startChoiceSeen = false;
   bool socialLoading = false;
@@ -216,6 +225,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   List<FriendChatMessage> friendMessages = const [];
   List<ReceivedFriendGift> receivedFriendGifts = const [];
   List<ClubSummary> clubs = const [];
+  List<MatchHistoryEntry> matchHistory = const [];
   ClubSummary? currentClub;
   Set<String> ownedProductIds = const {};
   bool economySynced = false;
@@ -227,6 +237,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   bool connecting = false;
   bool currentMatchIsBot = false;
   bool localMatchActive = false;
+  bool isSpectator = false;
+  SocketConnectionPhase roomConnectionPhase = SocketConnectionPhase.idle;
   String pendingMatchMode = 'classic_2p';
   String? privateInviteCode;
   bool fallbackBotStarted = false;
@@ -280,6 +292,21 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   // WS message subscription
   StreamSubscription<dynamic>? _wsSub;
   StreamSubscription<bool>? _wsConnectionSub;
+  StreamSubscription<SocketConnectionPhase>? _wsPhaseSub;
+  final List<String> _diagnosticEvents = [];
+
+  List<String> get diagnosticEvents =>
+      List.unmodifiable(_diagnosticEvents.reversed);
+  bool get isRoomConnected => localMatchActive || _ws.isConnected;
+  String get roomConnectionLabel => localMatchActive
+      ? 'Offline'
+      : switch (roomConnectionPhase) {
+          SocketConnectionPhase.connected =>
+            isSpectator ? 'Watching live' : 'Live',
+          SocketConnectionPhase.reconnecting => 'Reconnecting',
+          SocketConnectionPhase.connecting => 'Connecting',
+          SocketConnectionPhase.idle => 'Offline',
+        };
 
   AppState(this._prefs,
       {math.Random? random,
@@ -320,6 +347,25 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       _prefs.soundtrackId = soundtrackId;
     }
     musicEnabled = _prefs.musicEnabled;
+    soundEffectsEnabled = _prefs.soundEffectsEnabled;
+    hapticsEnabled = _prefs.hapticsEnabled;
+    reducedMotionEnabled = _prefs.reducedMotionEnabled;
+    highContrastEnabled = _prefs.highContrastEnabled;
+    largeTextEnabled = _prefs.largeTextEnabled;
+    gameTutorialSeen = _prefs.gameTutorialSeen;
+    try {
+      final history = jsonDecode(_prefs.matchHistoryJson) as List<dynamic>;
+      matchHistory = history
+          .whereType<Map<String, dynamic>>()
+          .map(MatchHistoryEntry.fromJson)
+          .toList(growable: false);
+    } catch (_) {
+      matchHistory = const [];
+    }
+    SoundService.configure(
+      sound: soundEffectsEnabled,
+      haptics: hapticsEnabled,
+    );
     if (!isBoardThemePremium(ludoBoardTheme) &&
         !isBoardThemeUnlocked(ludoBoardTheme)) {
       ludoBoardTheme = 'carnival';
@@ -359,6 +405,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     if (authToken == null || authToken!.isEmpty) return;
     await syncSocialProfile(notify: false);
     await refreshSocial();
+    await _restoreActiveRoom();
   }
 
   @override
@@ -378,6 +425,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _autoMoveTimer?.cancel();
     _roomReadyTimer?.cancel();
     _wsConnectionSub?.cancel();
+    _wsPhaseSub?.cancel();
     _ws.dispose();
     unawaited(_soundtrack.dispose());
     super.dispose();
@@ -397,8 +445,26 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       backendOnline = r.statusCode < 400;
     }).catchError((_) {
       backendOnline = false;
+      _recordDiagnostic('health', 'Backend health check failed');
     });
   }
+
+  void _recordDiagnostic(String category, String message) {
+    final stamp = DateTime.now().toUtc().toIso8601String();
+    _diagnosticEvents.add('$stamp [$category] $message');
+    if (_diagnosticEvents.length > 40) _diagnosticEvents.removeAt(0);
+  }
+
+  String diagnosticsSummary() => [
+        'Ludo Rush diagnostics',
+        'Player: ${playerId ?? 'unassigned'}',
+        'Mode: ${lastSnapshot?.mode ?? pendingMatchMode}',
+        'Room: ${lastSnapshot?.roomId ?? 'none'}',
+        'Connection: $roomConnectionLabel',
+        'Backend health: ${backendOnline ? 'online' : 'unavailable'}',
+        'Recent events:',
+        ...diagnosticEvents.take(12),
+      ].join('\n');
 
   Future<void> checkForForcedUpdate({bool notify = true}) async {
     updateCheckInProgress = true;
@@ -663,16 +729,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     final generation = _matchGeneration;
     connecting = true;
     _setStatus('Searching for match...');
+    _recordDiagnostic('matchmaking', 'Quick search started for $mode');
     _openMatchmakingScreen();
-
-    if (_isSnakesLaddersMode(mode)) {
-      currentMatchIsBot = true;
-      _scheduleLocalBotMatch(
-        mode,
-        reason: 'Snakes & Ladders table ready. Roll to climb.',
-      );
-      return;
-    }
 
     if (authToken == null || authToken!.isEmpty) {
       _ensureAuthenticatedIdentity().then((_) {
@@ -708,6 +766,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
             return;
           }
           _connectWs(socketUrl);
+          _recordDiagnostic('matchmaking', 'Matched online for $mode');
           replaceWith('/game');
           return;
         }
@@ -883,6 +942,62 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _sendJoinPrivateRoom(cleanCode);
   }
 
+  Future<void> watchPrivateRoom(String code) async {
+    if (_disposed || connecting) return;
+    final cleanCode = code.trim().toUpperCase();
+    if (cleanCode.isEmpty) {
+      _setStatus('Enter a private room code.');
+      return;
+    }
+    _ensurePlayerIdentity();
+    fallbackBotStarted = false;
+    currentMatchIsBot = false;
+    _resetLiveMatch();
+    final generation = _matchGeneration;
+    connecting = true;
+    isSpectator = true;
+    privateInviteCode = cleanCode;
+    _setStatus('Opening live room $cleanCode...');
+    _openMatchmakingScreen();
+    if (authToken == null || authToken!.isEmpty) {
+      await _ensureAuthenticatedIdentity();
+      if (!_isCurrentSearch(generation)) return;
+    }
+    if (authToken == null || authToken!.isEmpty) {
+      connecting = false;
+      _setStatus('Online sign-in is unavailable. Try again when connected.');
+      return;
+    }
+    _post(
+      '/api/v1/rooms/private/join',
+      {
+        'playerId': playerId,
+        'displayName': _humanDisplayName,
+        'code': cleanCode,
+        'spectate': true,
+      },
+      (j) {
+        pendingMatchMode = j['mode'] as String? ?? pendingMatchMode;
+        final socketUrl = j['socketUrl'] as String? ?? '';
+        if (socketUrl.isEmpty) {
+          connecting = false;
+          _setStatus('This room is not available to watch.');
+          return;
+        }
+        _connectWs(socketUrl,
+            readyStatus: 'Watching room $cleanCode live.', spectator: true);
+        replaceWith('/game');
+      },
+      onError: () {
+        connecting = false;
+        isSpectator = false;
+        privateInviteCode = null;
+        _setStatus(
+            'Room code was not found, expired, or could not be reached.');
+      },
+    );
+  }
+
   void _sendJoinPrivateRoom(String cleanCode) {
     _post(
       '/api/v1/rooms/private/join',
@@ -945,6 +1060,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       _wsSub?.cancel();
       _wsSub = null;
       _ws.disconnect();
+      _clearActiveRoom();
+      isSpectator = false;
+      roomConnectionPhase = SocketConnectionPhase.idle;
       connecting = false;
       pendingMatchMode = 'classic_2p';
       _setStatus('Matchmaking cancelled.');
@@ -1023,6 +1141,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     if (_disposed || !connecting || fallbackBotStarted) return;
     fallbackBotStarted = true;
     currentMatchIsBot = true;
+    _recordDiagnostic('matchmaking', 'Online search switched to local players');
     _cancelPendingTicket();
     _setStatus('Preparing your table...');
     _scheduleLocalBotMatch(
@@ -1032,11 +1151,18 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
+  void playNowWithBots() {
+    if (!connecting || fallbackBotStarted) return;
+    SoundService.tap();
+    _fallbackToBots();
+  }
+
   // ── WebSocket ──────────────────────────────────────────────────────────────
 
   void _connectWs(
     String socketPath, {
     String? readyStatus,
+    bool spectator = false,
   }) {
     localMatchActive = false;
     _localBotTimer?.cancel();
@@ -1044,6 +1170,13 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _ws.playerId = playerId;
     _ws.displayName = _humanDisplayName;
     _ws.authToken = authToken;
+    _ws.spectator = spectator;
+    isSpectator = spectator;
+    roomConnectionPhase = SocketConnectionPhase.connecting;
+    _prefs.activeRoomSocketPath = socketPath;
+    _prefs.activeRoomMode = pendingMatchMode;
+    _prefs.activeRoomCode = privateInviteCode;
+    _prefs.activeRoomSpectator = spectator;
     _wsSub?.cancel();
     _wsSub = _ws.messages.listen(_handleMessage);
     final generation = _matchGeneration;
@@ -1059,16 +1192,45 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         _setStatus(readyStatus ?? 'Connected. Waiting for the table...');
       }
     });
+    _wsPhaseSub?.cancel();
+    _wsPhaseSub = _ws.phases.listen((phase) {
+      if (_disposed || generation != _matchGeneration) return;
+      roomConnectionPhase = phase;
+      _recordDiagnostic('socket', phase.name);
+      notifyListeners();
+    });
     _ws.connect(socketPath);
     _matchmakingTicketId = null;
     _roomReadyTimer?.cancel();
     _roomReadyTimer = Timer(const Duration(seconds: 30), () {
       if (!_isCurrentSearch(generation)) return;
-      if (privateInviteCode != null && mySeat != null) return;
+      if (privateInviteCode != null && (mySeat != null || isSpectator)) return;
       _ws.disconnect();
       _wsSub?.cancel();
       _wsSub = null;
       _fallbackToBots();
+    });
+  }
+
+  Future<void> _restoreActiveRoom() async {
+    final socketPath = _prefs.activeRoomSocketPath;
+    if (_disposed || socketPath == null || socketPath.isEmpty) return;
+    if (lastSnapshot != null || connecting || authToken == null) return;
+    pendingMatchMode = _prefs.activeRoomMode ?? pendingMatchMode;
+    privateInviteCode = _prefs.activeRoomCode;
+    isSpectator = _prefs.activeRoomSpectator;
+    connecting = true;
+    _recordDiagnostic(
+        'restore', 'Restoring ${isSpectator ? 'spectator' : 'player'} room');
+    _connectWs(
+      socketPath,
+      spectator: isSpectator,
+      readyStatus:
+          isSpectator ? 'Restoring live room...' : 'Rejoining your table...',
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_disposed || !connecting) return;
+      navigatorKey.currentState?.pushNamedAndRemoveUntil('/game', (_) => false);
     });
   }
 
@@ -1092,11 +1254,21 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       final eventStatus = _rememberRoomEvent(type, envelope, snapRaw);
 
       if (snapRaw != null) {
+        final previousSnapshot = lastSnapshot;
         lastSnapshot = GameSnapshot.fromJson(snapRaw);
-        if (lastSnapshot!.status == 'playing' && mySeat != null) {
+        pendingMatchMode = lastSnapshot!.mode;
+        if ((lastSnapshot!.status == 'playing' && mySeat != null) ||
+            isSpectator) {
           connecting = false;
           _roomReadyTimer?.cancel();
           _roomReadyTimer = null;
+        }
+
+        if (previousSnapshot != null &&
+            lastSnapshot!.status == 'playing' &&
+            previousSnapshot.currentTurnSeat != lastSnapshot!.currentTurnSeat &&
+            lastSnapshot!.currentTurnSeat == mySeat) {
+          SoundService.turn();
         }
 
         // Track roll event
@@ -1104,6 +1276,26 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
           lastRollValue = envelope['value'] as int? ?? 0;
           lastRollPlayerId = envelope['playerId'] as String?;
           lastRollSequence++;
+        }
+
+        if (type == 'move_accepted' &&
+            lastSnapshot!.mode == snakesLaddersMode &&
+            previousSnapshot != null) {
+          final pieceId = envelope['pieceId'] as String? ?? '';
+          final before = previousSnapshot.pieces
+              .where((piece) => piece.pieceId == pieceId)
+              .firstOrNull;
+          final after = lastSnapshot!.pieces
+              .where((piece) => piece.pieceId == pieceId)
+              .firstOrNull;
+          if (before != null && after != null) {
+            final rolledLanding = before.progress + lastRollValue;
+            if (after.progress > rolledLanding) {
+              SoundService.ladder();
+            } else if (after.progress < rolledLanding) {
+              SoundService.snake();
+            }
+          }
         }
 
         notifyListeners();
@@ -1115,13 +1307,18 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         _scheduleAutomaticTurnAction();
 
         if (lastSnapshot!.status == 'finished') {
-          _trackMatchResult(lastSnapshot!);
-          _scheduleResults(const Duration(milliseconds: 1500));
+          _clearActiveRoom();
+          if (!isSpectator) {
+            _trackMatchResult(lastSnapshot!);
+            _scheduleResults(const Duration(milliseconds: 1500));
+          }
         }
       } else if (eventStatus != null && eventStatus.isNotEmpty) {
         _setStatus(eventStatus);
       }
-    } catch (_) {}
+    } catch (error) {
+      _recordDiagnostic('message', 'Invalid room message: $error');
+    }
   }
 
   String? _rememberRoomEvent(
@@ -1134,7 +1331,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       final hasMoves = moves != null && moves.isNotEmpty;
       if (mine) {
         return hasMoves
-            ? 'You rolled $val. Tap a highlighted piece.'
+            ? (snap?['mode'] == snakesLaddersMode
+                ? 'You rolled $val. Moving your token...'
+                : 'You rolled $val. Tap a highlighted piece.')
             : 'You rolled $val. No legal move, turn passed.';
       }
       return '${_playerName(snap, pid)} rolled $val.';
@@ -1261,6 +1460,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     lastRollSequence = 0;
     _matchResultTracked = false;
     lastSnapshot = GameSnapshot(
+      roomId: 'local_${DateTime.now().millisecondsSinceEpoch}',
       seats: seats,
       pieces: pieces,
       diceValue: 0,
@@ -1269,6 +1469,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       availableMoves: const [],
       winnerPlayerId: '',
       mode: mode,
+      turnStartedAt: DateTime.now().millisecondsSinceEpoch,
+      turnDeadlineAt: DateTime.now()
+          .add(const Duration(seconds: 30))
+          .millisecondsSinceEpoch,
+      updatedAt: DateTime.now().millisecondsSinceEpoch,
     );
     _setStatus(reason);
     _scheduleLocalBots();
@@ -1318,6 +1523,23 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     if (autoRollEnabled && moves.length == 1) {
       _scheduleAutoMove(moves.single);
     }
+  }
+
+  void expireLocalTurnIfNeeded() {
+    final snap = lastSnapshot;
+    if (!localMatchActive ||
+        snap == null ||
+        snap.status != 'playing' ||
+        snap.turnDeadlineAt <= 0 ||
+        DateTime.now().millisecondsSinceEpoch < snap.turnDeadlineAt) {
+      return;
+    }
+    final seat = _currentLocalSeat(snap);
+    if (seat == null || seat.isBot) return;
+    lastSnapshot = _advanceLocalTurn(snap);
+    SoundService.warning();
+    _setStatus('Time is up. ${_currentTurnLabel(lastSnapshot!)} is next.');
+    _scheduleLocalBots();
   }
 
   void _rollSnakesLaddersDice(GameSnapshot snap) {
@@ -1613,6 +1835,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     final nextProgress = _snakeLadders[rolledProgress] ??
         _snakeDrops[rolledProgress] ??
         rolledProgress;
+    if (nextProgress > rolledProgress) {
+      SoundService.ladder();
+    } else if (nextProgress < rolledProgress) {
+      SoundService.snake();
+    }
     final nextState =
         nextProgress >= _snakeFinishProgress ? 'finished' : 'track';
 
@@ -1772,11 +1999,15 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
     final index = activeSeats.indexOf(snap.currentTurnSeat);
     final nextIndex = index < 0 ? 0 : (index + 1) % activeSeats.length;
+    final now = DateTime.now().millisecondsSinceEpoch;
     return _copySnapshot(
       snap,
       currentTurnSeat: activeSeats[nextIndex],
       diceValue: 0,
       availableMoves: const [],
+      turnStartedAt: now,
+      turnDeadlineAt: now + 30000,
+      updatedAt: now,
     );
   }
 
@@ -1893,8 +2124,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     List<String>? availableMoves,
     String? winnerPlayerId,
     String? mode,
+    int? turnStartedAt,
+    int? turnDeadlineAt,
+    int? updatedAt,
   }) {
     return GameSnapshot(
+      roomId: snap.roomId,
       seats: seats ?? snap.seats,
       pieces: pieces ?? snap.pieces,
       diceValue: diceValue ?? snap.diceValue,
@@ -1903,6 +2138,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       availableMoves: availableMoves ?? snap.availableMoves,
       winnerPlayerId: winnerPlayerId ?? snap.winnerPlayerId,
       mode: mode ?? snap.mode,
+      turnStartedAt: turnStartedAt ?? snap.turnStartedAt,
+      turnDeadlineAt: turnDeadlineAt ?? snap.turnDeadlineAt,
+      updatedAt: updatedAt ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 
@@ -1939,7 +2177,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _trackMatchResult(GameSnapshot snap) {
-    if (_matchResultTracked) return;
+    if (_matchResultTracked || isSpectator) return;
     _matchResultTracked = true;
     final economyEligible = !localMatchActive && !currentMatchIsBot;
     _localBotTimer?.cancel();
@@ -1967,11 +2205,33 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         coins: coins - previousCoins,
         rating: rating - previousRating,
         practice: !economyEligible);
+    final opponents = snap.seats
+        .where((seat) => seat.playerId != playerId)
+        .map(publicSeatName)
+        .join(', ');
+    final entry = MatchHistoryEntry(
+      id: snap.roomId.isEmpty
+          ? 'local_${DateTime.now().millisecondsSinceEpoch}'
+          : snap.roomId,
+      mode: snap.mode,
+      won: won,
+      practice: !economyEligible,
+      playedAt: DateTime.now().millisecondsSinceEpoch,
+      finishRank: won ? 1 : 0,
+      ratingDelta: rating - previousRating,
+      coinsDelta: coins - previousCoins,
+      opponents: opponents,
+    );
+    matchHistory = [entry, ...matchHistory.where((item) => item.id != entry.id)]
+        .take(20)
+        .toList(growable: false);
+    _persistMatchHistory();
     _prefs.gamesPlayed = gamesPlayed;
     _prefs.wins = wins;
     _prefs.rating = rating;
     _prefs.coins = coins;
     _ws.disconnect();
+    _clearActiveRoom();
     lastRollValue = 0;
     lastRollPlayerId = null;
     notifyListeners();
@@ -2008,9 +2268,14 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _roomReadyTimer = null;
     _wsConnectionSub?.cancel();
     _wsConnectionSub = null;
+    _wsPhaseSub?.cancel();
+    _wsPhaseSub = null;
     connecting = false;
     localMatchActive = false;
+    isSpectator = false;
+    roomConnectionPhase = SocketConnectionPhase.idle;
     _ws.disconnect();
+    _clearActiveRoom();
     lastSnapshot = null;
     privateInviteCode = null;
     lastRollValue = 0;
@@ -2022,6 +2287,18 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _matchResultTracked = false;
     lastMatchRewards = null;
     notifyListeners();
+  }
+
+  void _clearActiveRoom() {
+    _prefs.activeRoomSocketPath = null;
+    _prefs.activeRoomMode = null;
+    _prefs.activeRoomCode = null;
+    _prefs.activeRoomSpectator = false;
+  }
+
+  void _persistMatchHistory() {
+    _prefs.matchHistoryJson =
+        jsonEncode(matchHistory.map((entry) => entry.toJson()).toList());
   }
 
   bool _canAct() {
@@ -2209,6 +2486,17 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
           .map((product) => product.trim())
           .where((product) => product.isNotEmpty)
           .toSet();
+      final historyRaw = json['matchHistory'] as List<dynamic>? ?? const [];
+      final onlineHistory = historyRaw
+          .whereType<Map<String, dynamic>>()
+          .map(MatchHistoryEntry.fromJson)
+          .where((entry) => entry.id.isNotEmpty)
+          .toList(growable: false);
+      final practiceHistory = matchHistory.where((entry) => entry.practice);
+      matchHistory = [...onlineHistory, ...practiceHistory]
+        ..sort((a, b) => b.playedAt.compareTo(a.playedAt));
+      matchHistory = matchHistory.take(20).toList(growable: false);
+      _persistMatchHistory();
       final clubsRaw = json['clubs'] as List<dynamic>? ?? const [];
       clubs = clubsRaw
           .whereType<Map<String, dynamic>>()
@@ -2503,6 +2791,49 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     musicEnabled = value;
     _prefs.musicEnabled = musicEnabled;
     unawaited(_soundtrack.setEnabled(musicEnabled));
+    notifyListeners();
+  }
+
+  void setSoundEffectsEnabled(bool value) {
+    if (soundEffectsEnabled == value) return;
+    soundEffectsEnabled = value;
+    _prefs.soundEffectsEnabled = value;
+    SoundService.configure(sound: value, haptics: hapticsEnabled);
+    if (value) SoundService.success();
+    notifyListeners();
+  }
+
+  void setHapticsEnabled(bool value) {
+    if (hapticsEnabled == value) return;
+    hapticsEnabled = value;
+    _prefs.hapticsEnabled = value;
+    SoundService.configure(sound: soundEffectsEnabled, haptics: value);
+    if (value) SoundService.tap();
+    notifyListeners();
+  }
+
+  void setReducedMotionEnabled(bool value) {
+    reducedMotionEnabled = value;
+    _prefs.reducedMotionEnabled = value;
+    notifyListeners();
+  }
+
+  void setHighContrastEnabled(bool value) {
+    highContrastEnabled = value;
+    _prefs.highContrastEnabled = value;
+    notifyListeners();
+  }
+
+  void setLargeTextEnabled(bool value) {
+    largeTextEnabled = value;
+    _prefs.largeTextEnabled = value;
+    notifyListeners();
+  }
+
+  void markGameTutorialSeen() {
+    if (gameTutorialSeen) return;
+    gameTutorialSeen = true;
+    _prefs.gameTutorialSeen = true;
     notifyListeners();
   }
 
