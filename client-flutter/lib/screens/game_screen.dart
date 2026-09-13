@@ -1500,9 +1500,14 @@ class _PlayerActionRow extends StatelessWidget {
         isMyTurn &&
         !rolling &&
         !piecesMoving;
-    final enabled = canRoll || showMove;
+    final snakesTable = snapshot?.mode == AppState.snakesLaddersMode;
+    // Snakes has one token, and a single legal Ludo move is unambiguous. When
+    // several Ludo gotis can move, the player must tap the highlighted goti so
+    // a central shortcut cannot silently choose a non-capturing move.
+    final canQuickMove = showMove && (snakesTable || legalCount == 1);
+    final enabled = canRoll || canQuickMove;
     final action =
-        showMove ? state.moveBestPiece : (canRoll ? state.rollDice : null);
+        canQuickMove ? state.moveBestPiece : (canRoll ? state.rollDice : null);
     final actionLabel = state.isSpectator
         ? 'Watching live'
         : snapshot == null
@@ -1514,7 +1519,11 @@ class _PlayerActionRow extends StatelessWidget {
                     : rolling
                         ? 'Rolling'
                         : showMove
-                            ? 'Tap to Move'
+                            ? canQuickMove
+                                ? snakesTable
+                                    ? 'Move Token'
+                                    : 'Move Goti'
+                                : 'Choose Goti'
                             : canRoll
                                 ? 'Tap to Roll'
                                 : isMyTurn
@@ -1577,7 +1586,7 @@ class _PlayerActionRow extends StatelessWidget {
                           ? state.lastRollValue
                           : snapshot?.diceValue,
                       enabled: enabled,
-                      moving: showMove,
+                      moving: canQuickMove,
                       color: seatColor,
                       pulse: turnPulse,
                       size: diceSize,

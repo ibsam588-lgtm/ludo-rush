@@ -1109,7 +1109,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   void _pollTicket(String ticketId) {
     final generation = _matchGeneration;
     if (!_isCurrentSearch(generation)) return;
-    if (_pollAttempts >= 15) {
+    // Snakes & Ladders needs four players, so an empty queue could otherwise
+    // leave the mode looking unplayable. Give live opponents a short window,
+    // then guarantee a playable table. Ludo keeps the longer search window.
+    final maxPollAttempts = _isSnakesLaddersMode(pendingMatchMode) ? 4 : 15;
+    if (_pollAttempts >= maxPollAttempts) {
       _fallbackToBots();
       return;
     }
@@ -1162,7 +1166,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _scheduleLocalBotMatch(
       pendingMatchMode,
       delay: const Duration(milliseconds: 900),
-      reason: 'Bot table ready. Roll when it is your turn.',
+      reason: _isSnakesLaddersMode(pendingMatchMode)
+          ? 'Snakes & Ladders ready. Tap the dice to move.'
+          : 'Table ready. Roll when it is your turn.',
     );
   }
 
@@ -2354,10 +2360,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   String _chooseBest(List<String> moves) {
     String best = moves.first;
     int bestScore = -1;
+    final snapshot = lastSnapshot;
     for (final id in moves) {
-      final piece =
-          lastSnapshot?.pieces.where((p) => p.pieceId == id).firstOrNull;
-      final score = piece?.progress ?? -1;
+      final score = snapshot == null ? -1 : _scoreLocalMove(snapshot, id);
       if (score > bestScore) {
         bestScore = score;
         best = id;
