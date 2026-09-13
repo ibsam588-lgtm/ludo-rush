@@ -81,6 +81,84 @@ void main() {
     state.dispose();
   });
 
+  testWidgets(
+      'rolling six with multiple legal gotis waits for the player capture choice',
+      (tester) async {
+    final state = AppState(PrefsService())
+      ..playerId = 'player_me'
+      ..localMatchActive = true
+      ..autoRollEnabled = false
+      ..lastSnapshot = GameSnapshot.fromJson({
+        'status': 'playing',
+        'mode': 'classic_2p',
+        'diceValue': 6,
+        'currentTurnSeat': 0,
+        'availableMoves': <String>['capture_goti', 'yard_goti'],
+        'seats': [
+          {
+            'seat': 0,
+            'playerId': 'player_me',
+            'displayName': 'Me',
+            'isBot': false,
+          },
+          {
+            'seat': 1,
+            'playerId': 'player_two',
+            'displayName': 'Two',
+            'isBot': false,
+          },
+        ],
+        'pieces': [
+          {
+            'pieceId': 'capture_goti',
+            'seat': 0,
+            'state': 'track',
+            'progress': 4,
+            'trackIndex': 5,
+          },
+          {
+            'pieceId': 'yard_goti',
+            'seat': 0,
+            'state': 'yard',
+            'progress': -1,
+            'trackIndex': -1,
+          },
+          {
+            'pieceId': 'opponent_goti',
+            'seat': 1,
+            'state': 'track',
+            'progress': 49,
+            'trackIndex': 11,
+          },
+        ],
+      });
+
+    await tester.pumpWidget(ChangeNotifierProvider.value(
+      value: state,
+      child: const MaterialApp(home: GameScreen()),
+    ));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.text('Choose Goti'), findsOneWidget);
+    expect(find.text('Move Goti'), findsNothing);
+    await tester.tap(find.text('Choose Goti'));
+    await tester.pump(const Duration(seconds: 1));
+    expect(
+        state.lastSnapshot!.pieces
+            .firstWhere((piece) => piece.pieceId == 'capture_goti')
+            .progress,
+        4);
+
+    state.movePiece('capture_goti');
+    await tester.pump();
+    final captured = state.lastSnapshot!.pieces
+        .firstWhere((piece) => piece.pieceId == 'opponent_goti');
+    expect(captured.state, 'yard');
+    expect(captured.progress, -1);
+    expect(state.lastSnapshot!.currentTurnSeat, 0);
+    state.dispose();
+  });
+
   for (final size in const [Size(320, 568), Size(411.4, 914.3)]) {
     testWidgets(
         'private four-player game fits ${size.width.toInt()}x${size.height.toInt()}',

@@ -369,6 +369,35 @@ void main() {
   });
 
   testWidgets(
+      'Snakes matchmaking guarantees a playable table when the live queue is empty',
+      (tester) async {
+    final state =
+        AppState(PrefsService(), matchmakingClient: MockClient((request) async {
+      if (request.url.path.endsWith('/cancel')) {
+        return http.Response(jsonEncode({'status': 'cancelled'}), 200);
+      }
+      return http.Response(
+          jsonEncode({'status': 'waiting', 'ticketId': 'snakes-waiting'}), 200);
+    }))
+          ..playerId = 'me'
+          ..authToken = 'test-token';
+
+    await state.startQuickMatch(AppState.snakesLaddersMode);
+    await tester.pump();
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(seconds: 2));
+    }
+
+    expect(state.fallbackBotStarted, isTrue);
+    expect(state.localMatchActive, isTrue);
+    expect(state.lastSnapshot?.mode, AppState.snakesLaddersMode);
+    expect(state.lastSnapshot?.status, 'playing');
+    expect(state.statusText.toLowerCase(), isNot(contains('offline')));
+    expect(state.statusText.toLowerCase(), isNot(contains('local')));
+    state.dispose();
+  });
+
+  testWidgets(
       'websocket waits for handshake, rejoins after drop, and ignores replaced connections',
       (tester) async {
     final sockets = <FakeSocket>[];
