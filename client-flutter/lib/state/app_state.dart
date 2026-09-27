@@ -270,6 +270,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   String forceUpdateMessage =
       'A newer version of Ludo Rush is required to keep matchmaking, rewards, and game rules in sync.';
   String forceUpdateUrl = _defaultAndroidUpdateUrl;
+  static const Duration _matchmakingPollInterval = Duration(milliseconds: 800);
+  static const int _ludoMatchmakingPollAttempts = 10;
+  static const int _snakesMatchmakingPollAttempts = 5;
   int _pollAttempts = 0;
   int _matchGeneration = 0;
   String? _matchmakingTicketId;
@@ -1109,16 +1112,18 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   void _pollTicket(String ticketId) {
     final generation = _matchGeneration;
     if (!_isCurrentSearch(generation)) return;
-    // Snakes & Ladders needs four players, so an empty queue could otherwise
-    // leave the mode looking unplayable. Give live opponents a short window,
-    // then guarantee a playable table. Ludo keeps the longer search window.
-    final maxPollAttempts = _isSnakesLaddersMode(pendingMatchMode) ? 4 : 15;
+    // Poll quickly so a ticket that has just been paired is picked up without
+    // making the player wait through a long refresh interval. If the live
+    // queue stays empty, guarantee a playable local table after a short wait.
+    final maxPollAttempts = _isSnakesLaddersMode(pendingMatchMode)
+        ? _snakesMatchmakingPollAttempts
+        : _ludoMatchmakingPollAttempts;
     if (_pollAttempts >= maxPollAttempts) {
       _fallbackToBots();
       return;
     }
     _matchmakingTimer?.cancel();
-    _matchmakingTimer = Timer(const Duration(seconds: 2), () async {
+    _matchmakingTimer = Timer(_matchmakingPollInterval, () async {
       _matchmakingTimer = null;
       if (!_isCurrentSearch(generation)) return;
       try {
