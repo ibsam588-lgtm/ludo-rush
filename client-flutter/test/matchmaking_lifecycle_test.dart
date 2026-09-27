@@ -100,6 +100,49 @@ void main() {
     state.dispose();
   });
 
+  testWidgets('ludo queue polls quickly and starts a table within ten seconds',
+      (tester) async {
+    final paths = <String>[];
+    final state = RecordingState(MockClient((request) async {
+      paths.add(request.url.path);
+      if (request.url.path.endsWith('/cancel')) {
+        return response({'status': 'cancelled'});
+      }
+      return response({'status': 'waiting', 'ticketId': 'queued'});
+    }));
+
+    await state.startQuickMatch('classic_2p');
+    await tester.pump();
+    expect(paths, ['/api/v1/matchmaking/quick']);
+
+    await tester.pump(const Duration(milliseconds: 799));
+    expect(paths, ['/api/v1/matchmaking/quick']);
+    await tester.pump(const Duration(milliseconds: 1));
+    await tester.pump();
+    expect(
+      paths.where((path) => path.endsWith('/tickets/queued')).length,
+      1,
+    );
+
+    for (var attempt = 1; attempt < 10; attempt++) {
+      await tester.pump(const Duration(milliseconds: 800));
+      await tester.pump();
+    }
+
+    expect(state.currentMatchIsBot, isTrue);
+    expect(state.fallbackBotStarted, isTrue);
+    expect(
+      paths.where((path) => path.endsWith('/tickets/queued')).length,
+      10,
+    );
+    expect(paths.last, '/api/v1/matchmaking/tickets/queued/cancel');
+
+    await tester.pump(const Duration(milliseconds: 900));
+    expect(state.localMatchActive, isTrue);
+    expect(state.routes, contains('/game'));
+    state.dispose();
+  });
+
   testWidgets('in-flight ticket result cannot replace a new offline game',
       (tester) async {
     final poll = Completer<http.Response>();
