@@ -131,4 +131,3 @@ jobs:
           tracks: internal
           releaseName: "Ludo Rush internal #${{ github.run_number }}"
           status: completed
-          changesNotSentForReview: true
