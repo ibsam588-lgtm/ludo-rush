@@ -159,7 +159,8 @@ void main() {
     state.dispose();
   });
 
-  testWidgets('online search gives humans time to join and remains cancellable',
+  testWidgets(
+      'online search gives humans eight seconds to join and remains cancellable',
       (tester) async {
     var requests = 0;
     final state =
@@ -172,8 +173,9 @@ void main() {
           ..authToken = 'test-token';
     await state.startQuickMatch('classic_4p');
     await tester.pump();
-    for (var i = 0; i < 6; i++) {
-      await tester.pump(const Duration(seconds: 2));
+    for (var i = 0; i < 9; i++) {
+      await tester.pump(const Duration(milliseconds: 800));
+      await tester.pump();
     }
     expect(state.connecting, isTrue);
     expect(state.currentMatchIsBot, isFalse);
