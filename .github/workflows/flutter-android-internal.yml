@@ -97,7 +97,10 @@ jobs:
           LEVELPLAY_ANDROID_REWARDED_AD_UNIT: ${{ secrets.LEVELPLAY_ANDROID_REWARDED_AD_UNIT }}
         run: |
           BUILD_NUMBER=$((GITHUB_RUN_NUMBER + 10000))
-          BUILD_NAME="1.0.${GITHUB_RUN_NUMBER}"
+          VERSION_SEQUENCE=$GITHUB_RUN_NUMBER
+          if [ "$BUILD_NUMBER" -lt 10070 ]; then BUILD_NUMBER=10070; fi
+          if [ "$VERSION_SEQUENCE" -lt 70 ]; then VERSION_SEQUENCE=70; fi
+          BUILD_NAME="1.0.${VERSION_SEQUENCE}"
           echo "Building Play internal release ${BUILD_NAME} (${BUILD_NUMBER})"
           flutter build appbundle --release \
             --build-number="${BUILD_NUMBER}" \

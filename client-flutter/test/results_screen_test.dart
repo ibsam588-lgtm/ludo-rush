@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ludo_rush/models/game_snapshot.dart';
 import 'package:ludo_rush/screens/results_screen.dart';
 import 'package:ludo_rush/services/prefs_service.dart';
+import 'package:ludo_rush/services/review_prompt_policy.dart';
 import 'package:ludo_rush/state/app_state.dart';
 import 'package:provider/provider.dart';
 
@@ -16,17 +17,18 @@ void main() {
         .setMockMethodCallHandler(platformChannel, null);
   });
 
-  testWidgets('results sharing works and replay preserves offline mode',
-      (tester) async {
+  testWidgets('results sharing works and replay preserves offline mode', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(411, 914));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     MethodCall? shareCall;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(platformChannel, (call) async {
-      if (call.method == 'shareText') shareCall = call;
-      return true;
-    });
+          if (call.method == 'shareText') shareCall = call;
+          return true;
+        });
 
     final state = _ReplayState(PrefsService())
       ..playerId = 'player_me'
@@ -81,6 +83,106 @@ void main() {
     expect(state.replayedOnlineMode, isNull);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('valid Android result reaches the review policy after settling', (
+    tester,
+  ) async {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final state = _ReviewRecordingState(PrefsService())
+      ..playerId = 'player_me'
+      ..startChoiceSeen = true
+      ..updateCheckComplete = true
+      ..lastSnapshot = GameSnapshot.fromJson({
+        'roomId': 'room-42',
+        'updatedAt': 123456,
+        'status': 'finished',
+        'mode': 'classic_2p',
+        'winnerPlayerId': 'player_me',
+        'diceValue': 0,
+        'currentTurnSeat': 0,
+        'availableMoves': <String>[],
+        'seats': [
+          {
+            'seat': 0,
+            'playerId': 'player_me',
+            'displayName': 'Ibsam',
+            'isBot': false,
+          },
+          {
+            'seat': 1,
+            'playerId': 'opponent',
+            'displayName': 'Maya',
+            'isBot': false,
+          },
+        ],
+        'pieces': <Map<String, Object>>[],
+      });
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppState>.value(
+        value: state,
+        child: MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.android),
+          home: const ResultsScreen(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pump();
+
+    expect(state.reviewMatchId, 'room-42:123456');
+    expect(state.reviewSafeToPrompt, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a loss does not reach the review policy', (tester) async {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final state = _ReviewRecordingState(PrefsService())
+      ..playerId = 'player_me'
+      ..startChoiceSeen = true
+      ..updateCheckComplete = true
+      ..lastSnapshot = GameSnapshot.fromJson({
+        'roomId': 'room-43',
+        'updatedAt': 123457,
+        'status': 'finished',
+        'mode': 'classic_2p',
+        'winnerPlayerId': 'opponent',
+        'diceValue': 0,
+        'currentTurnSeat': 0,
+        'availableMoves': <String>[],
+        'seats': [
+          {
+            'seat': 0,
+            'playerId': 'player_me',
+            'displayName': 'Ibsam',
+            'isBot': false,
+          },
+          {
+            'seat': 1,
+            'playerId': 'opponent',
+            'displayName': 'Maya',
+            'isBot': false,
+          },
+        ],
+        'pieces': <Map<String, Object>>[],
+      });
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider<AppState>.value(
+        value: state,
+        child: MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.android),
+          home: const ResultsScreen(),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 900));
+    await tester.pump();
+
+    expect(state.reviewMatchId, isNull);
+    expect(state.reviewSafeToPrompt, isNull);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 class _ReplayState extends AppState {
@@ -97,5 +199,22 @@ class _ReplayState extends AppState {
   @override
   Future<void> startOfflineMatch(String mode) async {
     replayedOfflineMode = mode;
+  }
+}
+
+class _ReviewRecordingState extends AppState {
+  String? reviewMatchId;
+  bool? reviewSafeToPrompt;
+
+  _ReviewRecordingState(PrefsService prefs) : super(prefs);
+
+  @override
+  Future<ReviewPromptDecision> recordCompletedMatchForReview({
+    required String matchId,
+    required bool safeToPrompt,
+  }) async {
+    reviewMatchId = matchId;
+    reviewSafeToPrompt = safeToPrompt;
+    return ReviewPromptDecision.recorded;
   }
 }

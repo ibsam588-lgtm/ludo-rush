@@ -1,0 +1,38 @@
+name: Flutter CI
+
+on:
+  pull_request:
+    paths:
+      - 'client-flutter/**'
+      - '.github/workflows/flutter-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Analyze and test Flutter app
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client-flutter
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.2'
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+
+      - name: Test Flutter app
+        run: flutter test --no-pub

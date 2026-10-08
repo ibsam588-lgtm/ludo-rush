@@ -12,6 +12,7 @@ import '../models/match_rewards.dart';
 import '../models/match_history_entry.dart';
 import '../services/app_platform_service.dart';
 import '../services/prefs_service.dart';
+import '../services/review_prompt_policy.dart';
 import '../services/sound_service.dart';
 import '../services/soundtrack_service.dart';
 import '../services/websocket_service.dart';
@@ -115,6 +116,8 @@ class ReceivedFriendGift {
 }
 
 class AppState extends ChangeNotifier with WidgetsBindingObserver {
+  static final String _appSessionId =
+      DateTime.now().toUtc().microsecondsSinceEpoch.toString();
   static const String _backendUrl =
       'https://ludo-rush-backend.ibsam588.workers.dev';
   static const String _defaultAndroidUpdateUrl =
@@ -191,6 +194,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   ];
 
   final PrefsService _prefs;
+  late final ReviewPromptPolicy _reviewPromptPolicy = ReviewPromptPolicy(
+    store: _prefs,
+    appSessionId: _appSessionId,
+    now: () async => DateTime.now(),
+    requestReview: AppPlatformService.requestInAppReview,
+  );
   final WebSocketService _ws;
   final SoundtrackService _soundtrack = SoundtrackService();
 
@@ -813,6 +822,16 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _prefs.startChoiceSeen = true;
     notifyListeners();
   }
+
+  Future<ReviewPromptDecision> recordCompletedMatchForReview({
+    required String matchId,
+    required bool safeToPrompt,
+  }) =>
+      _reviewPromptPolicy.recordCompletedMatch(
+        matchId: matchId,
+        onboardingComplete: startChoiceSeen,
+        safeToPrompt: safeToPrompt,
+      );
 
   bool get shouldShowStartChoice {
     final defaultName =
@@ -1486,7 +1505,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     lastRollSequence = 0;
     _matchResultTracked = false;
     lastSnapshot = GameSnapshot(
-      roomId: 'local_${DateTime.now().millisecondsSinceEpoch}',
+      roomId:
+          'local_${DateTime.now().millisecondsSinceEpoch}_$_matchGeneration',
       seats: seats,
       pieces: pieces,
       diceValue: 0,

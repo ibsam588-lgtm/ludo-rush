@@ -12,6 +12,8 @@ class AppVersionInfo {
 
 class AppPlatformService {
   static const MethodChannel _channel = MethodChannel('ludo_rush/app');
+  static const String playStoreListing =
+      'https://play.google.com/store/apps/details?id=com.ludorush.game';
 
   static Future<AppVersionInfo> getVersionInfo() async {
     try {
@@ -36,6 +38,10 @@ class AppPlatformService {
     } catch (_) {
       return false;
     }
+  }
+
+  static Future<void> requestInAppReview() async {
+    await _channel.invokeMethod<void>('requestInAppReview');
   }
 
   static Future<bool> shareText(String text) async {

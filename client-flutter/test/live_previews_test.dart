@@ -172,6 +172,7 @@ void main() {
     expect(state.snakesBoardTheme, 'ocean');
     final volcano = find.byKey(const ValueKey('snakes-theme-volcano'));
     await tester.scrollUntilVisible(volcano, 150, scrollable: strip);
+    await tester.pump();
     await tester.tap(volcano);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));

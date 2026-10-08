@@ -37,4 +37,18 @@ void main() {
     expect(await AppPlatformService.shareText('   '), isFalse);
     expect(called, isFalse);
   });
+
+  test('requestInAppReview invokes the native Play review flow', () async {
+    MethodCall? received;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+      received = call;
+      return null;
+    });
+
+    await AppPlatformService.requestInAppReview();
+
+    expect(received?.method, 'requestInAppReview');
+    expect(received?.arguments, isNull);
+  });
 }

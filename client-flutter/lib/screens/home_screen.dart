@@ -10,6 +10,7 @@ import '../widgets/profile_avatar.dart';
 import '../data/economy.dart';
 import '../state/app_state.dart';
 import '../services/levelplay_ad_service.dart';
+import '../services/app_platform_service.dart';
 import '../services/sound_service.dart';
 import '../services/soundtrack_service.dart';
 import '../theme/app_theme.dart';
@@ -2034,6 +2035,21 @@ class _BrandHeader extends StatelessWidget {
                   scale: compact ? 0.88 : 1.06,
                   alignment: Alignment.topCenter,
                   child: const _LudoRushLogo(),
+                ),
+              ),
+              Align(
+                alignment: Alignment.topRight,
+                child: IconButton(
+                  tooltip: 'Rate App',
+                  onPressed: () async {
+                    await AppPlatformService.openUrl(
+                      AppPlatformService.playStoreListing,
+                    );
+                  },
+                  icon: const Icon(Icons.star_rate_rounded),
+                  color: palette.text,
+                  iconSize: 23,
+                  padding: const EdgeInsets.all(10),
                 ),
               ),
             ],

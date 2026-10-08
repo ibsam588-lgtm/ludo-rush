@@ -19,8 +19,8 @@ if (localPropertiesFile.exists()) {
         localProperties.load(reader)
     }
 }
-def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '1'
-def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0.0'
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '10070'
+def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0.70'
 def playTargetApi = 36
 def minimumSupportedBillingMajor = 8
 
@@ -79,6 +79,7 @@ flutter {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation 'com.google.android.play:review:2.0.2'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
     implementation 'com.google.android.gms:play-services-ads-identifier:18.2.0'
     implementation 'com.google.android.gms:play-services-appset:16.1.0'

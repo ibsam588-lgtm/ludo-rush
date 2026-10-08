@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import com.google.android.play.core.review.ReviewManagerFactory
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -29,6 +30,7 @@ class MainActivity : FlutterActivity() {
                     "getVersionInfo" -> result.success(versionInfo())
                     "openUrl" -> result.success(openUrl(call.argument<String>("url") ?: ""))
                     "shareText" -> result.success(shareText(call.argument<String>("text") ?: ""))
+                    "requestInAppReview" -> requestInAppReview(result)
                     else -> result.notImplemented()
                 }
             }
@@ -82,6 +84,26 @@ class MainActivity : FlutterActivity() {
             true
         } catch (_: RuntimeException) {
             false
+        }
+    }
+
+    private fun requestInAppReview(result: MethodChannel.Result) {
+        try {
+            val manager = ReviewManagerFactory.create(this)
+            manager.requestReviewFlow().addOnCompleteListener { request ->
+                if (!request.isSuccessful) {
+                    result.success(null)
+                    return@addOnCompleteListener
+                }
+                try {
+                    manager.launchReviewFlow(this, request.result)
+                        .addOnCompleteListener { result.success(null) }
+                } catch (_: RuntimeException) {
+                    result.success(null)
+                }
+            }
+        } catch (_: RuntimeException) {
+            result.success(null)
         }
     }
 

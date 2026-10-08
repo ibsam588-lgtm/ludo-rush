@@ -35,6 +35,7 @@ class LevelPlayAdService extends ChangeNotifier
   bool get canShowBanner => isConfigured && _initialized;
   bool get canShowRewarded =>
       isConfigured && _initialized && _rewardedReady && !_rewardedShowing;
+  bool get isFullScreenAdShowing => _interstitialShowing || _rewardedShowing;
   int get completedRounds => _completedRounds;
 
   Future<void> initialize({String? userId}) async {
@@ -125,7 +126,7 @@ class LevelPlayAdService extends ChangeNotifier
     }
   }
 
-  Future<bool> showAfterCompletedRound() {
+  Future<bool> showAfterCompletedRound({bool waitForDismissal = false}) {
     _completedRounds++;
     if (!AdPlacementPolicy.shouldShowAfterCompletedRound(_completedRounds)) {
       return Future.value(false);
@@ -133,6 +134,7 @@ class LevelPlayAdService extends ChangeNotifier
     return showInterstitial(
       placementName: 'RoundComplete',
       minInterval: Duration.zero,
+      waitForDismissal: waitForDismissal,
     );
   }
 
