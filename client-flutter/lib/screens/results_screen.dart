@@ -38,6 +38,7 @@ class _ResultsScreenState extends State<ResultsScreen>
   bool _rewardInFlight = false;
   bool _rewardClaimed = false;
   bool _reduceMotion = false;
+  bool _reviewCheckStarted = false;
 
   @override
   void initState() {
@@ -73,8 +74,53 @@ class _ResultsScreenState extends State<ResultsScreen>
 
     _entryCtrl.forward();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(LevelPlayAdService.instance.showAfterCompletedRound());
+      unawaited(_finishRoundAndMaybeRequestReview());
     });
+  }
+
+  Future<void> _finishRoundAndMaybeRequestReview() async {
+    if (_reviewCheckStarted) return;
+    _reviewCheckStarted = true;
+
+    // Let the results transition settle, and never cover the round-complete ad.
+    await Future<void>.delayed(const Duration(milliseconds: 900));
+    if (!mounted) return;
+    await LevelPlayAdService.instance
+        .showAfterCompletedRound(waitForDismissal: true);
+    if (!mounted || Theme.of(context).platform != TargetPlatform.android) {
+      return;
+    }
+
+    final route = ModalRoute.of(context);
+    final media = MediaQuery.of(context);
+    final state = context.read<AppState>();
+    final snapshot = state.lastSnapshot;
+    if (snapshot == null ||
+        snapshot.status != 'finished' ||
+        snapshot.mode.trim().isEmpty ||
+        snapshot.roomId.trim().isEmpty ||
+        snapshot.updatedAt <= 0 ||
+        snapshot.winnerPlayerId.trim().isEmpty ||
+        snapshot.winnerPlayerId != state.playerId ||
+        !snapshot.seats
+            .any((seat) => seat.playerId == snapshot.winnerPlayerId)) {
+      return;
+    }
+
+    final focusedWidget = FocusManager.instance.primaryFocus?.context?.widget;
+    final safeToPrompt =
+        route?.isCurrent == true &&
+        state.updateCheckComplete &&
+        !state.forceUpdateRequired &&
+        WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed &&
+        media.viewInsets.bottom == 0 &&
+        focusedWidget is! EditableText &&
+        !LevelPlayAdService.instance.isFullScreenAdShowing;
+
+    await state.recordCompletedMatchForReview(
+          matchId: '${snapshot.roomId}:${snapshot.updatedAt}',
+          safeToPrompt: safeToPrompt,
+        );
   }
 
   @override

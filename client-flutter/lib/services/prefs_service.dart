@@ -1,8 +1,9 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/economy.dart';
+import 'review_prompt_policy.dart';
 import 'soundtrack_service.dart';
 
-class PrefsService {
+class PrefsService implements ReviewPromptStore {
   SharedPreferences? _prefs;
 
   Future<void> init() async {
@@ -162,4 +163,12 @@ class PrefsService {
 
   bool get startChoiceSeen => _prefs?.getBool('start_choice_seen') ?? false;
   set startChoiceSeen(bool v) => _prefs?.setBool('start_choice_seen', v);
+
+  @override
+  Future<String?> read() async => _prefs?.getString('play_review_policy');
+
+  @override
+  Future<void> write(String value) async {
+    await _prefs?.setString('play_review_policy', value);
+  }
 }

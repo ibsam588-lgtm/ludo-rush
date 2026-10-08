@@ -207,6 +207,7 @@ void main() {
         .first;
     final board = find.byKey(const ValueKey('snakes-theme-volcano'));
     await tester.scrollUntilVisible(board, 200, scrollable: scroll);
+    await tester.pump();
     await tester.tap(board);
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('LIVE PREVIEW'), findsOneWidget);
