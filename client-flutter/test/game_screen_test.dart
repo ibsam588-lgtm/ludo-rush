@@ -54,12 +54,12 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('Table Voice'), findsOneWidget);
-    expect(
-        find.text('Talk with the real players in this match'), findsOneWidget);
+    expect(find.text('Talk with players who join table voice'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('chat-table-voice')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.textContaining('Bots never join voice'), findsOneWidget);
+    expect(find.textContaining('Your microphone starts only'), findsOneWidget);
+    expect(find.textContaining('Bots'), findsNothing);
     expect(find.text('Join voice'), findsOneWidget);
     state.dispose();
   });
@@ -102,11 +102,71 @@ void main() {
     await tester.tap(find.byTooltip('Chat'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Waiting for another real player'), findsOneWidget);
+    expect(find.text('Voice is unavailable at this table'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('chat-table-voice')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Waiting for another real player'), findsOneWidget);
+    expect(find.text('Voice is unavailable at this table'), findsOneWidget);
+    expect(find.text('Join voice'), findsNothing);
+    state.dispose();
+  });
+
+  testWidgets('device-run fallback avoids claiming a live voice room',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(411, 914));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final state = AppState(PrefsService())
+      ..playerId = 'player_me'
+      ..age = 13
+      ..localMatchActive = true
+      ..lastSnapshot = GameSnapshot.fromJson({
+        'roomId': 'local_room',
+        'status': 'playing',
+        'mode': 'classic_4p',
+        'diceValue': 0,
+        'currentTurnSeat': 0,
+        'availableMoves': <String>[],
+        'seats': [
+          {
+            'seat': 0,
+            'playerId': 'player_me',
+            'displayName': 'Me',
+            'isBot': false
+          },
+          {
+            'seat': 1,
+            'playerId': 'local_1',
+            'displayName': 'Maya',
+            'isBot': true
+          },
+          {
+            'seat': 2,
+            'playerId': 'local_2',
+            'displayName': 'Leo',
+            'isBot': true
+          },
+          {
+            'seat': 3,
+            'playerId': 'local_3',
+            'displayName': 'Ava',
+            'isBot': true
+          },
+        ],
+        'pieces': <Map<String, Object>>[],
+      });
+    await tester.pumpWidget(ChangeNotifierProvider.value(
+      value: state,
+      child: const MaterialApp(home: GameScreen()),
+    ));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Chat'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Voice is unavailable at this table'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('chat-table-voice')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Voice is unavailable at this table'), findsOneWidget);
     expect(find.text('Join voice'), findsNothing);
     state.dispose();
   });
