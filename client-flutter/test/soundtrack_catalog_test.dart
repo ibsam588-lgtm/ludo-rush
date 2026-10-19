@@ -104,6 +104,19 @@ void main() {
       expect(audio.pauseCalls, 1);
       await service.dispose();
     });
+
+    test('music ducks while voice is joined and restores on leave', () async {
+      final audio = _FakeSoundtrackAudio();
+      final service = SoundtrackService(audio: audio);
+      await service.configure(
+          track: SoundtrackCatalog.victorySpark, enabled: true);
+      await service.setDucked(true);
+      await service.select(SoundtrackCatalog.carnivalCrown);
+      expect(audio.volumes.last, 0.08);
+      await service.setDucked(false);
+      expect(audio.volumes.last, SoundtrackCatalog.defaultVolume);
+      await service.dispose();
+    });
   });
 }
 

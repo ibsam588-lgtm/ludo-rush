@@ -9,6 +9,8 @@ export interface Env {
   ANDROID_UPDATE_URL?: string;
   FORCE_UPDATE_MESSAGE?: string;
   GOOGLE_PLAY_SERVICE_ACCOUNT_JSON?: string;
+  TURN_KEY_ID?: string;
+  TURN_KEY_API_TOKEN?: string;
 }
 
 export type Region = "auto" | "us-east" | "us-west" | "europe" | "middle-east" | "south-asia" | "east-asia";
@@ -91,6 +93,9 @@ export type ClientRoomMessage =
   | { type: "fill_bots"; playerId: string }
   | { type: "resign"; playerId: string }
   | { type: "reaction"; playerId: string; displayName?: string; text: string; isEmoji?: boolean }
+  | { type: "voice_join" }
+  | { type: "voice_leave" }
+  | { type: "voice_signal"; toPlayerId: string; signal: { type: "offer" | "answer" | "candidate"; sdp?: string; candidate?: string; sdpMid?: string; sdpMLineIndex?: number } }
   | { type: "heartbeat"; playerId: string };
 
 export type ServerRoomMessage =
@@ -107,6 +112,8 @@ export type ServerRoomMessage =
   | { type: "bots_filled"; snapshot: RoomSnapshot }
   | { type: "match_finished"; winnerPlayerId: string; snapshot: RoomSnapshot }
   | { type: "reaction"; playerId: string; displayName?: string; text: string; isEmoji: boolean }
+  | { type: "voice_state"; playerIds: string[] }
+  | { type: "voice_signal"; fromPlayerId: string; signal: { type: "offer" | "answer" | "candidate"; sdp?: string; candidate?: string; sdpMid?: string; sdpMLineIndex?: number } }
   | { type: "error"; code: string; message: string };
 
 export type BackgroundJob =

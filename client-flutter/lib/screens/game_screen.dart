@@ -274,6 +274,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                   snapshot: snapshot,
                                   mySeat: mySeat,
                                   onMenu: () => _showQuitDialog(context, state),
+                                  onVoice: () => _showVoiceSheet(context),
                                 ),
                               ),
                               SizedBox(height: compact ? 4 : 6),
@@ -734,6 +735,74 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     ).whenComplete(controller.dispose);
   }
 
+  void _showVoiceSheet(BuildContext context) {
+    SoundService.tap();
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Consumer<AppState>(builder: (sheetContext, state, __) {
+        final voice = state.voiceChat;
+        final snapshot = state.lastSnapshot;
+        final names = snapshot?.seats
+                .where((seat) => voice.participants.contains(seat.playerId))
+                .map((seat) => seat.displayName)
+                .join(', ') ??
+            '';
+        return _GameActionSheet(
+          title: 'Table Voice',
+          child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                    'Talk with the real players at this table. Bots never join voice. Your microphone starts only when you tap Join.',
+                    style: TextStyle(color: Colors.white70)),
+                const SizedBox(height: 12),
+                Text(
+                    voice.joined
+                        ? (names.isEmpty
+                            ? 'Waiting for other players to join voice…'
+                            : 'In voice: $names')
+                        : 'Voice is off',
+                    style: const TextStyle(color: Colors.white)),
+                if (voice.error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(voice.error!, style: const TextStyle(color: boardRed)),
+                ],
+                const SizedBox(height: 14),
+                if (voice.joined) ...[
+                  _SheetButton(
+                      label:
+                          voice.muted ? 'Unmute microphone' : 'Mute microphone',
+                      color: boardBlue,
+                      onTap: () => voice.setMuted(!voice.muted)),
+                  const SizedBox(height: 10),
+                  _SheetButton(
+                      label: 'Leave voice',
+                      color: boardRed,
+                      onTap: () => unawaited(voice.leave())),
+                ] else if (voice.joining) ...[
+                  const Center(child: CircularProgressIndicator()),
+                ] else ...[
+                  _SheetButton(
+                      label: 'Join voice',
+                      color: boardGreen,
+                      onTap: () {
+                        if (snapshot == null ||
+                            state.playerId == null ||
+                            state.authToken == null) return;
+                        unawaited(voice.join(
+                            roomId: snapshot.roomId,
+                            playerId: state.playerId!,
+                            authToken: state.authToken!));
+                      }),
+                ],
+              ]),
+        );
+      }),
+    );
+  }
+
   void _showChatUnlockSheet(BuildContext context, AppState state) {
     final needsAge = state.age == 0;
     showModalBottomSheet<void>(
@@ -1046,11 +1115,13 @@ class _GameTopBar extends StatelessWidget {
   final GameSnapshot? snapshot;
   final int? mySeat;
   final VoidCallback onMenu;
+  final VoidCallback onVoice;
   const _GameTopBar({
     required this.state,
     required this.snapshot,
     required this.mySeat,
     required this.onMenu,
+    required this.onVoice,
   });
 
   @override
@@ -1088,6 +1159,29 @@ class _GameTopBar extends StatelessWidget {
               ),
               SizedBox(width: compact ? 5 : 8),
               _GameLogo(compact: compact),
+              if (!state.localMatchActive &&
+                  !state.isSpectator &&
+                  state.canUseChat &&
+                  snapshot?.status == 'playing' &&
+                  (snapshot?.seats.where((seat) => !seat.isBot).length ?? 0) >=
+                      2) ...[
+                SizedBox(width: compact ? 2 : 5),
+                IconButton(
+                  tooltip: state.voiceChat.joined
+                      ? 'Table voice on'
+                      : 'Join table voice',
+                  icon: Icon(
+                      state.voiceChat.joined
+                          ? (state.voiceChat.muted
+                              ? Icons.mic_off_rounded
+                              : Icons.mic_rounded)
+                          : Icons.headset_mic_rounded,
+                      color: state.voiceChat.joined ? boardGreen : Colors.white,
+                      size: compact ? 21 : 24),
+                  onPressed: onVoice,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
               SizedBox(width: compact ? 4 : 8),
               Expanded(
                 child: Align(
@@ -1505,15 +1599,26 @@ class _PlayerActionRow extends StatelessWidget {
     // several Ludo gotis can move, the player must tap the highlighted goti so
     // a central shortcut cannot silently choose a non-capturing move.
     final canQuickMove = showMove && (snakesTable || legalCount == 1);
-    final enabled = canRoll || canQuickMove;
-    final action =
-        canQuickMove ? state.moveBestPiece : (canRoll ? state.rollDice : null);
+    final canFillBots = waitingForPlayers &&
+        state.privateInviteCode != null &&
+        state.isRoomConnected &&
+        mySeat == 0 &&
+        (snapshot?.seats.where((seat) => !seat.isBot).length ?? 0) >= 2 &&
+        (snapshot?.mode == 'classic_4p' ||
+            snapshot?.mode == 'rush_4p' ||
+            snakesTable);
+    final enabled = canRoll || canQuickMove || canFillBots;
+    final action = canFillBots
+        ? state.fillPrivateBots
+        : (canQuickMove
+            ? state.moveBestPiece
+            : (canRoll ? state.rollDice : null));
     final actionLabel = state.isSpectator
         ? 'Watching live'
         : snapshot == null
             ? 'Connecting...'
             : waitingForPlayers
-                ? 'Waiting for players'
+                ? (canFillBots ? 'Start with Bots' : 'Waiting for players')
                 : piecesMoving
                     ? 'Moving...'
                     : rolling

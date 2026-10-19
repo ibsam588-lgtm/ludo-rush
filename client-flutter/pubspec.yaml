@@ -18,6 +18,7 @@ dependencies:
   audioplayers: 6.8.1
   in_app_purchase: ^3.3.0
   unity_levelplay_mediation: ^9.2.0
+  flutter_webrtc: 1.6.2+hotfix.4
 dev_dependencies:
   flutter_test:
     sdk: flutter

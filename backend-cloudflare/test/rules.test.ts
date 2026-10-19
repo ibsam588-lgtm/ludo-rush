@@ -4,6 +4,7 @@ import {
   applyMove,
   applyRoll,
   computeFinishRanks,
+  chooseBotMove,
   createInitialSnapshot,
   fillBotSeats,
   getTrackIndex,
@@ -30,6 +31,40 @@ function playingSnapshot(playerIds: string[], mode: "classic_2p" | "classic_3p" 
 }
 
 describe("room rules", () => {
+  it("keeps a mixed four-seat match running when one human resigns", () => {
+    let snapshot = createInitialSnapshot({ roomId: "room_1", mode: "classic_4p", region: "us-east",
+      now: 1, expectedPlayerIds: ["p1", "p2"] });
+    snapshot = upsertSeat(snapshot, { playerId: "p1", displayName: "One" });
+    snapshot = upsertSeat(snapshot, { playerId: "p2", displayName: "Two" });
+    snapshot = fillBotSeats(snapshot);
+    const after = resignPlayer(snapshot, "p2", 2);
+    expect(after.status).toBe("playing");
+    expect(after.seats.find(seat => seat.playerId === "p2")?.isBot).toBe(true);
+    expect(after.winnerPlayerId).toBeUndefined();
+  });
+
+  it("starts a private four-seat table with two humans and invited bots", () => {
+    let snapshot = createInitialSnapshot({ roomId: "room_1", mode: "snakes_ladders", region: "us-east",
+      code: "123456", now: 1 });
+    snapshot = upsertSeat(snapshot, { playerId: "p1", displayName: "One" });
+    snapshot = upsertSeat(snapshot, { playerId: "p2", displayName: "Two" });
+    expect(fillBotSeats(snapshot).status).toBe("waiting");
+    snapshot = fillBotSeats(snapshot, true);
+    expect(snapshot.status).toBe("playing");
+    expect(snapshot.seats.filter(seat => seat.isBot)).toHaveLength(2);
+  });
+
+  it("prefers a Ludo capture to advancing another piece", () => {
+    const snapshot = playingSnapshot(["p1", "p2"]);
+    const pieces = snapshot.pieces.map(piece => {
+      if (piece.pieceId === "s0_p0") return { ...piece, state: "track" as const, progress: 4, trackIndex: getTrackIndex(0, 4) };
+      if (piece.pieceId === "s0_p1") return { ...piece, state: "track" as const, progress: 30, trackIndex: getTrackIndex(0, 30) };
+      if (piece.pieceId === "s1_p0") return { ...piece, state: "track" as const, progress: 46, trackIndex: getTrackIndex(1, 46) };
+      return piece;
+    });
+    expect(chooseBotMove({ ...snapshot, pieces, diceValue: 3,
+      availableMoves: ["s0_p0", "s0_p1"] })).toBe("s0_p0");
+  });
   it("runs server-authoritative Snakes rules with ladders, snakes, and exact finish", () => {
     let snapshot = playingSnapshot(
       ["p1", "p2", "p3", "p4"],

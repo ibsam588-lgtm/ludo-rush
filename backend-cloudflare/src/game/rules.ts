@@ -141,8 +141,9 @@ export function upsertSeat(
   });
 }
 
-export function fillBotSeats(snapshot: RoomSnapshot): RoomSnapshot {
-  if (snapshot.expectedPlayerIds || snapshot.code || snapshot.status !== "waiting") {
+export function fillBotSeats(snapshot: RoomSnapshot, allowPrivate = false): RoomSnapshot {
+  if ((snapshot.code && !allowPrivate) || snapshot.status !== "waiting" ||
+      (snapshot.expectedPlayerIds && !snapshot.expectedPlayerIds.every(id => snapshot.seats.some(seat => seat.playerId === id)))) {
     return snapshot;
   }
 
@@ -326,7 +327,7 @@ export function resignPlayer(snapshot: RoomSnapshot, playerId: string, now = Dat
 
   const remainingHumanSeats = snapshot.seats.filter((roomSeat) => roomSeat.playerId !== playerId && !roomSeat.isBot);
 
-  if (remainingHumanSeats.length <= 1) {
+  if (remainingHumanSeats.length === 0 || (snapshot.seats.length === 2 && remainingHumanSeats.length === 1)) {
     const winner = remainingHumanSeats.length === 1
       ? remainingHumanSeats[0]
       : snapshot.seats.find((roomSeat) => roomSeat.playerId !== playerId);
@@ -700,17 +701,23 @@ function scoreBotMove(snapshot: RoomSnapshot, pieceId: string): number {
     return destination + (LADDERS.has(landed) ? 100 : 0);
   }
 
-  if (piece.progress === YARD_PROGRESS) {
-    return 30;
-  }
-
-  const nextProgress = piece.progress + snapshot.diceValue;
+  const nextProgress = piece.progress === YARD_PROGRESS ? 0 : piece.progress + snapshot.diceValue;
   const trackIndex = getTrackIndex(piece.seat, nextProgress);
   const captures = trackIndex !== undefined && !isSafeTrack(trackIndex)
-    ? snapshot.pieces.some((candidate) => candidate.seat !== piece.seat && candidate.trackIndex === trackIndex)
+    ? snapshot.pieces.some((candidate) => candidate.seat !== piece.seat && candidate.state === "track" && candidate.trackIndex === trackIndex)
     : false;
-
-  return nextProgress + (captures ? 100 : 0);
+  const exposed = (index: number | undefined) => index !== undefined && !isSafeTrack(index) &&
+    snapshot.pieces.some(other => other.seat !== piece.seat && other.state === "track" &&
+      other.trackIndex !== undefined && (index - other.trackIndex + TRACK_LENGTH) % TRACK_LENGTH >= 1 &&
+      (index - other.trackIndex + TRACK_LENGTH) % TRACK_LENGTH <= 6);
+  const currentDanger = exposed(piece.trackIndex);
+  const futureDanger = exposed(trackIndex);
+  const finished = nextProgress === FINISH_PROGRESS;
+  return (finished ? 250 : 0) + (captures ? 180 : 0) +
+    (piece.progress === YARD_PROGRESS ? 45 : 0) +
+    (currentDanger && !futureDanger ? 60 : 0) +
+    (trackIndex !== undefined && isSafeTrack(trackIndex) ? 22 : 0) -
+    (futureDanger ? 55 : 0) + nextProgress;
 }
 
 function assertCanSeat(snapshot: RoomSnapshot): void {

@@ -7,6 +7,53 @@ import 'package:ludo_rush/state/app_state.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  testWidgets('mixed online table offers voice only to age-eligible humans',
+      (tester) async {
+    final state = AppState(PrefsService())
+      ..playerId = 'player_me'
+      ..age = 13
+      ..lastSnapshot = GameSnapshot.fromJson({
+        'roomId': 'room_voice',
+        'status': 'playing',
+        'mode': 'snakes_ladders',
+        'diceValue': 0,
+        'currentTurnSeat': 0,
+        'availableMoves': <String>[],
+        'seats': [
+          {
+            'seat': 0,
+            'playerId': 'player_me',
+            'displayName': 'Me',
+            'isBot': false
+          },
+          {
+            'seat': 1,
+            'playerId': 'player_two',
+            'displayName': 'Two',
+            'isBot': false
+          },
+          {
+            'seat': 2,
+            'playerId': 'bot_2',
+            'displayName': 'Maya',
+            'isBot': true
+          },
+          {'seat': 3, 'playerId': 'bot_3', 'displayName': 'Leo', 'isBot': true},
+        ],
+        'pieces': <Map<String, Object>>[],
+      });
+    await tester.pumpWidget(ChangeNotifierProvider.value(
+      value: state,
+      child: const MaterialApp(home: GameScreen()),
+    ));
+    await tester.pump();
+    expect(find.byTooltip('Join table voice'), findsOneWidget);
+    await tester.tap(find.byTooltip('Join table voice'));
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.textContaining('Bots never join voice'), findsOneWidget);
+    state.dispose();
+  });
+
   testWidgets('game header omits internal connection labels', (tester) async {
     final state = AppState(PrefsService())
       ..playerId = 'player_me'

@@ -93,6 +93,7 @@ class SoundtrackService {
   bool _configured = false;
   bool _pausedByLifecycle = false;
   bool _disposed = false;
+  bool _ducked = false;
   Future<void> _pendingOperation = Future.value();
 
   SoundtrackService({SoundtrackAudio? audio}) : _audio = audio;
@@ -113,7 +114,8 @@ class SoundtrackService {
       }
       if (!_configured) {
         await _output.setLooping();
-        await _output.setVolume(SoundtrackCatalog.defaultVolume);
+        await _output
+            .setVolume(_ducked ? 0.08 : SoundtrackCatalog.defaultVolume);
         _configured = true;
       }
       _pausedByLifecycle = false;
@@ -128,7 +130,8 @@ class SoundtrackService {
     return _enqueue(() async {
       if (!_configured) {
         await _output.setLooping();
-        await _output.setVolume(SoundtrackCatalog.defaultVolume);
+        await _output
+            .setVolume(_ducked ? 0.08 : SoundtrackCatalog.defaultVolume);
         _configured = true;
       }
       await _playSelectedTrack();
@@ -139,6 +142,16 @@ class SoundtrackService {
         track: _track,
         enabled: enabled,
       );
+
+  Future<void> setDucked(bool ducked) {
+    if (_ducked == ducked) return Future.value();
+    _ducked = ducked;
+    return _enqueue(() async {
+      if (_configured)
+        await _output
+            .setVolume(_ducked ? 0.08 : SoundtrackCatalog.defaultVolume);
+    });
+  }
 
   Future<void> pauseForLifecycle() {
     if (!_enabled) return Future.value();
@@ -164,7 +177,7 @@ class SoundtrackService {
 
   Future<void> _playSelectedTrack() => _output.playAsset(
         SoundtrackCatalog.assets[_track]!,
-        SoundtrackCatalog.defaultVolume,
+        _ducked ? 0.08 : SoundtrackCatalog.defaultVolume,
       );
 
   Future<void> dispose() async {
