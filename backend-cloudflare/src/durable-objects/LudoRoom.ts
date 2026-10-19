@@ -241,9 +241,22 @@ export class LudoRoom extends DurableObject<Env> {
       joinedAt: Date.now()
     } satisfies ConnectionAttachment);
 
+    // A reconnect may leave the previous socket half-open. Retire its voice
+    // attachment so signaling cannot be routed to a dead connection.
+    let replacedVoice = false;
+    for (const other of this.ctx.getWebSockets()) {
+      if (other === ws) continue;
+      const old = other.deserializeAttachment() as ConnectionAttachment | undefined;
+      if (old?.playerId === playerId && old.voiceJoined) {
+        other.serializeAttachment({ ...old, voiceJoined: false });
+        replacedVoice = true;
+      }
+    }
+
     await this.saveSnapshot(updated);
     await this.persistMatchStartIfNeeded(before, updated);
     this.broadcast({ type: "snapshot", snapshot: updated });
+    if (replacedVoice) this.broadcastVoiceState();
     await this.playBotsIfNeeded();
   }
 
