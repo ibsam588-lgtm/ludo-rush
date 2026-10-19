@@ -641,6 +641,62 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Consumer<AppState>(builder: (_, liveState, __) {
+                  final unavailable = _voiceUnavailableReason(liveState);
+                  final voice = liveState.voiceChat;
+                  return GestureDetector(
+                    key: const ValueKey('chat-table-voice'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      Future.microtask(() {
+                        if (mounted) _showVoiceSheet(context);
+                      });
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        color: const Color(0xAA250631),
+                        border: Border.all(color: const Color(0x88FFD426)),
+                      ),
+                      child: Row(children: [
+                        Icon(
+                          voice.joined
+                              ? Icons.mic_rounded
+                              : Icons.headset_mic_rounded,
+                          color: voice.joined ? boardGreen : goldColor,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Table Voice',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w900)),
+                              Text(
+                                voice.joined
+                                    ? (voice.muted
+                                        ? 'Microphone muted'
+                                        : 'Voice on')
+                                    : unavailable ??
+                                        'Talk with the real players in this match',
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded,
+                            color: Colors.white70),
+                      ]),
+                    ),
+                  );
+                }),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -735,6 +791,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     ).whenComplete(controller.dispose);
   }
 
+  String? _voiceUnavailableReason(AppState state) {
+    final snapshot = state.lastSnapshot;
+    if (state.localMatchActive) return 'Available in online matches';
+    if (state.isSpectator) return 'Only players can join table voice';
+    if (snapshot?.status != 'playing')
+      return 'Available after the match starts';
+    if (snapshot!.seats.where((seat) => !seat.isBot).length < 2) {
+      return 'Waiting for another real player';
+    }
+    return null;
+  }
+
   void _showVoiceSheet(BuildContext context) {
     SoundService.tap();
     showModalBottomSheet<void>(
@@ -743,6 +811,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       builder: (_) => Consumer<AppState>(builder: (sheetContext, state, __) {
         final voice = state.voiceChat;
         final snapshot = state.lastSnapshot;
+        final unavailable = _voiceUnavailableReason(state);
         final names = snapshot?.seats
                 .where((seat) => voice.participants.contains(seat.playerId))
                 .map((seat) => seat.displayName)
@@ -757,6 +826,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 const Text(
                     'Talk with the real players at this table. Bots never join voice. Your microphone starts only when you tap Join.',
                     style: TextStyle(color: Colors.white70)),
+                if (unavailable != null) ...[
+                  const SizedBox(height: 8),
+                  Text(unavailable, style: const TextStyle(color: goldColor)),
+                ],
                 const SizedBox(height: 12),
                 Text(
                     voice.joined
@@ -783,7 +856,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       onTap: () => unawaited(voice.leave())),
                 ] else if (voice.joining) ...[
                   const Center(child: CircularProgressIndicator()),
-                ] else ...[
+                ] else if (unavailable == null) ...[
                   _SheetButton(
                       label: 'Join voice',
                       color: boardGreen,

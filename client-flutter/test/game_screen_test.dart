@@ -9,6 +9,8 @@ import 'package:provider/provider.dart';
 void main() {
   testWidgets('mixed online table offers voice only to age-eligible humans',
       (tester) async {
+    await tester.binding.setSurfaceSize(const Size(411, 914));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     final state = AppState(PrefsService())
       ..playerId = 'player_me'
       ..age = 13
@@ -48,9 +50,64 @@ void main() {
     ));
     await tester.pump();
     expect(find.byTooltip('Join table voice'), findsOneWidget);
-    await tester.tap(find.byTooltip('Join table voice'));
+    await tester.tap(find.byTooltip('Chat'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Table Voice'), findsOneWidget);
+    expect(
+        find.text('Talk with the real players in this match'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('chat-table-voice')));
+    await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('Bots never join voice'), findsOneWidget);
+    expect(find.text('Join voice'), findsOneWidget);
+    state.dispose();
+  });
+
+  testWidgets('chat explains why voice is unavailable with one human',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(411, 914));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final state = AppState(PrefsService())
+      ..playerId = 'player_me'
+      ..age = 13
+      ..lastSnapshot = GameSnapshot.fromJson({
+        'roomId': 'room_solo',
+        'status': 'playing',
+        'mode': 'snakes_ladders',
+        'diceValue': 0,
+        'currentTurnSeat': 0,
+        'availableMoves': <String>[],
+        'seats': [
+          {
+            'seat': 0,
+            'playerId': 'player_me',
+            'displayName': 'Me',
+            'isBot': false
+          },
+          {
+            'seat': 1,
+            'playerId': 'bot_1',
+            'displayName': 'Maya',
+            'isBot': true
+          },
+        ],
+        'pieces': <Map<String, Object>>[],
+      });
+    await tester.pumpWidget(ChangeNotifierProvider.value(
+      value: state,
+      child: const MaterialApp(home: GameScreen()),
+    ));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Chat'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Waiting for another real player'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('chat-table-voice')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Waiting for another real player'), findsOneWidget);
+    expect(find.text('Join voice'), findsNothing);
     state.dispose();
   });
 
