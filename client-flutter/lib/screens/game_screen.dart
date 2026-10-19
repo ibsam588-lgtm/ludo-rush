@@ -684,7 +684,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                         ? 'Microphone muted'
                                         : 'Voice on')
                                     : unavailable ??
-                                        'Talk with the real players in this match',
+                                        'Talk with players who join table voice',
                                 style: const TextStyle(
                                     color: Colors.white70, fontSize: 12),
                               ),
@@ -793,12 +793,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   String? _voiceUnavailableReason(AppState state) {
     final snapshot = state.lastSnapshot;
-    if (state.localMatchActive) return 'Available in online matches';
+    if (state.localMatchActive) return 'Voice is unavailable at this table';
     if (state.isSpectator) return 'Only players can join table voice';
     if (snapshot?.status != 'playing')
       return 'Available after the match starts';
     if (snapshot!.seats.where((seat) => !seat.isBot).length < 2) {
-      return 'Waiting for another real player';
+      return 'Voice is unavailable at this table';
     }
     return null;
   }
@@ -824,7 +824,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                    'Talk with the real players at this table. Bots never join voice. Your microphone starts only when you tap Join.',
+                    'Talk with players at this table who join voice. Your microphone starts only when you tap Join.',
                     style: TextStyle(color: Colors.white70)),
                 if (unavailable != null) ...[
                   const SizedBox(height: 8),
