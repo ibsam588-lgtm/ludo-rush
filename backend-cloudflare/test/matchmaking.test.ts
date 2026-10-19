@@ -34,7 +34,7 @@ function harness() {
 }
 
 describe('online matching',()=>{
-  it.each([['classic_2p',2],['classic_3p',3],['classic_4p',4],['snakes_ladders',4]] as const)('waits for every human in %s',async(mode,count)=>{
+  it.each([['classic_2p',2],['classic_3p',3],['classic_4p',2],['rush_4p',2],['snakes_ladders',2]] as const)('matches %s after %s humans',async(mode,count)=>{
     const {db,rooms,create,input,sqlite}=harness();
     for(let i=0;i<count-1;i++) expect((await enqueueMatch(db,input(i,mode),create,100+i)).status).toBe('waiting');
     expect(rooms.size).toBe(0);
@@ -96,5 +96,16 @@ describe('online matching',()=>{
     room=upsertSeat(room,{playerId:'b',displayName:'B'});
     expect(room.status).toBe('playing');
     expect(room.seats.every(s=>!s.isBot)).toBe(true);
+  });
+  it.each(['classic_4p','rush_4p','snakes_ladders'] as const)('fills %s with two bots only after both matched humans join',mode=>{
+    let room=createInitialSnapshot({roomId:'r',mode,region:'auto',now:1,expectedPlayerIds:['a','b']});
+    room=upsertSeat(room,{playerId:'a',displayName:'A'});
+    expect(fillBotSeats(room).status).toBe('waiting');
+    room=upsertSeat(room,{playerId:'b',displayName:'B'});
+    room=fillBotSeats(room);
+    expect(room.status).toBe('playing');
+    expect(room.seats.filter(s=>s.isBot)).toHaveLength(2);
+    expect(room.seats.filter(s=>!s.isBot).map(s=>s.playerId)).toEqual(['a','b']);
+    expect(()=>upsertSeat(room,{playerId:'stranger',displayName:'X'})).toThrow('reserved');
   });
 });

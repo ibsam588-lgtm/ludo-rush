@@ -21,6 +21,7 @@ interface ConnectionAttachment {
   playerId?: string;
   displayName?: string;
   spectator?: boolean;
+  voiceJoined?: boolean;
   joinedAt: number;
 }
 
@@ -35,8 +36,8 @@ interface CreateRoomRequest {
 const SNAPSHOT_KEY = "snapshot";
 const MATCH_STARTED_KEY = "match_started";
 const MATCH_FINISHED_KEY = "match_finished";
-const MAX_BOT_ACTIONS_PER_TICK = 24;
-const BOT_CONTINUE_DELAY_MS = 250;
+const BOT_ROLL_DELAY_MS = 850;
+const BOT_MOVE_DELAY_MS = 700;
 const TURN_TIMEOUT_GRACE_MS = 1_000;
 const MAX_REACTION_LENGTH = 120;
 
@@ -69,6 +70,10 @@ export class LudoRoom extends DurableObject<Env> {
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     if (typeof message !== "string") {
       this.send(ws, { type: "error", code: "binary_not_supported", message: "Binary messages are not supported yet." });
+      return;
+    }
+    if (message.length > 24_000) {
+      this.send(ws, { type: "error", code: "message_too_large", message: "Room message is too large." });
       return;
     }
 
@@ -107,6 +112,7 @@ export class LudoRoom extends DurableObject<Env> {
       }
 
       if (parsed.type === "resign") {
+        this.handleVoiceLeave(ws);
         await this.handleResign(this.requireActor(ws, parsed.playerId));
         return;
       }
@@ -116,13 +122,28 @@ export class LudoRoom extends DurableObject<Env> {
         return;
       }
 
+      if (parsed.type === "voice_join") {
+        await this.handleVoiceJoin(ws);
+        return;
+      }
+
+      if (parsed.type === "voice_leave") {
+        this.handleVoiceLeave(ws);
+        return;
+      }
+
+      if (parsed.type === "voice_signal") {
+        await this.handleVoiceSignal(ws, parsed.toPlayerId, parsed.signal);
+        return;
+      }
+
       if (parsed.type === "heartbeat") {
         this.send(ws, { type: "snapshot", snapshot: await this.getSnapshot() });
       }
     } catch (error) {
       this.send(ws, {
         type: "error",
-        code: "room_error",
+        code: parsed.type.startsWith("voice_") ? "voice_error" : "room_error",
         message: error instanceof Error ? error.message : "Unknown room error."
       });
     }
@@ -145,6 +166,8 @@ export class LudoRoom extends DurableObject<Env> {
     } catch {
       return;
     }
+
+    if (attachment.voiceJoined) this.broadcastVoiceState(ws);
 
     const updated = markDisconnected(snapshot, attachment.playerId);
     await this.saveSnapshot(updated);
@@ -204,17 +227,36 @@ export class LudoRoom extends DurableObject<Env> {
     }
 
     const before = await this.getSnapshot();
-    const updated = upsertSeat(before, { playerId, displayName });
+    let updated = upsertSeat(before, { playerId, displayName });
+    if (updated.status === "waiting" && !updated.code &&
+      (!updated.expectedPlayerIds || updated.expectedPlayerIds.every(id =>
+        updated.seats.some(seat => seat.playerId === id)))) {
+      updated = fillBotSeats(updated);
+    }
 
     ws.serializeAttachment({
       playerId,
       displayName,
+      voiceJoined: attachment?.voiceJoined,
       joinedAt: Date.now()
     } satisfies ConnectionAttachment);
+
+    // A reconnect may leave the previous socket half-open. Retire its voice
+    // attachment so signaling cannot be routed to a dead connection.
+    let replacedVoice = false;
+    for (const other of this.ctx.getWebSockets()) {
+      if (other === ws) continue;
+      const old = other.deserializeAttachment() as ConnectionAttachment | undefined;
+      if (old?.playerId === playerId && old.voiceJoined) {
+        other.serializeAttachment({ ...old, voiceJoined: false });
+        replacedVoice = true;
+      }
+    }
 
     await this.saveSnapshot(updated);
     await this.persistMatchStartIfNeeded(before, updated);
     this.broadcast({ type: "snapshot", snapshot: updated });
+    if (replacedVoice) this.broadcastVoiceState();
     await this.playBotsIfNeeded();
   }
 
@@ -284,8 +326,12 @@ export class LudoRoom extends DurableObject<Env> {
     if (!attachment?.playerId || !before.seats.some((seat) => seat.playerId === attachment.playerId)) {
       throw new Error("Join the room before adding bots.");
     }
+    if (before.code && (before.seats[0]?.playerId !== attachment.playerId ||
+        before.seats.filter(seat => !seat.isBot).length < 2)) {
+      throw new Error("The host can start a private table with bots after two players join.");
+    }
 
-    const updated = fillBotSeats(before);
+    const updated = fillBotSeats(before, !!before.code);
 
     await this.saveSnapshot(updated);
     await this.persistMatchStartIfNeeded(before, updated);
@@ -323,6 +369,55 @@ export class LudoRoom extends DurableObject<Env> {
     this.broadcast({ type: "reaction", playerId: actor, displayName: seat.displayName, text, isEmoji });
   }
 
+  private async handleVoiceJoin(ws: WebSocket): Promise<void> {
+    const attachment = ws.deserializeAttachment() as ConnectionAttachment | undefined;
+    const actor = attachment?.playerId;
+    const snapshot = await this.getSnapshot();
+    const seat = snapshot.seats.find(roomSeat => roomSeat.playerId === actor);
+    if (!actor || attachment?.spectator || !seat || seat.isBot || !seat.connected || snapshot.status !== "playing") {
+      throw new Error("Only active human players can join match voice chat.");
+    }
+    const profile = await this.env.DB.prepare("SELECT age FROM users WHERE id = ?")
+      .bind(actor).first<{ age: number }>();
+    if ((profile?.age ?? 0) < 13) throw new Error("Voice chat is available to players age 13 or older.");
+    ws.serializeAttachment({ ...attachment, voiceJoined: true });
+    this.broadcastVoiceState();
+  }
+
+  private handleVoiceLeave(ws: WebSocket): void {
+    const attachment = ws.deserializeAttachment() as ConnectionAttachment | undefined;
+    if (!attachment?.voiceJoined) return;
+    ws.serializeAttachment({ ...attachment, voiceJoined: false });
+    this.broadcastVoiceState();
+  }
+
+  private async handleVoiceSignal(ws: WebSocket, toPlayerId: string,
+    signal: { type: "offer" | "answer" | "candidate"; sdp?: string; candidate?: string; sdpMid?: string; sdpMLineIndex?: number }): Promise<void> {
+    const attachment = ws.deserializeAttachment() as ConnectionAttachment | undefined;
+    const actor = attachment?.playerId;
+    const snapshot = await this.getSnapshot();
+    if (!actor || !attachment?.voiceJoined || snapshot.status !== "playing" ||
+      !snapshot.seats.some(seat => seat.playerId === actor && !seat.isBot)) return;
+    if (!signal || !["offer", "answer", "candidate"].includes(signal.type) ||
+      (signal.type === "candidate" ? typeof signal.candidate !== "string" || signal.candidate.length > 4_096 :
+        typeof signal.sdp !== "string" || signal.sdp.length > 20_000)) return;
+    if (!snapshot.seats.some(seat => seat.playerId === toPlayerId && !seat.isBot)) return;
+    const recipient = this.ctx.getWebSockets().find(peer => peer.readyState === 1 &&
+      (peer.deserializeAttachment() as ConnectionAttachment | undefined)?.playerId === toPlayerId &&
+      (peer.deserializeAttachment() as ConnectionAttachment | undefined)?.voiceJoined);
+    if (recipient) this.send(recipient, { type: "voice_signal", fromPlayerId: actor, signal });
+  }
+
+  private broadcastVoiceState(excluded?: WebSocket): void {
+    const playerIds = [...new Set(this.ctx.getWebSockets()
+      .filter(ws => ws !== excluded && ws.readyState === 1)
+      .map(ws => ws.deserializeAttachment() as ConnectionAttachment | undefined)
+      .filter((attachment): attachment is ConnectionAttachment => !!attachment?.voiceJoined && !attachment.spectator &&
+        !!attachment.playerId && !!this.snapshot?.seats.some(seat => seat.playerId === attachment.playerId && !seat.isBot))
+      .map(attachment => attachment.playerId!))];
+    this.broadcast({ type: "voice_state", playerIds });
+  }
+
   private async handleResign(playerId: string): Promise<void> {
     const snapshot = await this.getSnapshot();
     const updated = resignPlayer(snapshot, playerId);
@@ -351,9 +446,7 @@ export class LudoRoom extends DurableObject<Env> {
     }
 
     if (isBotTurn(snapshot)) {
-      // A bot chain hit MAX_BOT_ACTIONS_PER_TICK (or a resigned seat gained the
-      // turn with no client message in flight) — continue it here.
-      await this.playBotsIfNeeded();
+      await this.playBotAction(snapshot);
       return;
     }
 
@@ -372,6 +465,11 @@ export class LudoRoom extends DurableObject<Env> {
     }
 
     await this.saveSnapshot(result.snapshot);
+
+    if (timedOutSeat && !timedOutSeat.isBot &&
+        result.snapshot.seats.some(seat => seat.playerId === timedOutSeat.playerId && seat.isBot)) {
+      this.broadcastVoiceState();
+    }
 
     if (result.snapshot.status === "finished" && result.snapshot.winnerPlayerId) {
       await this.persistMatchFinishedIfNeeded(result.snapshot);
@@ -411,62 +509,40 @@ export class LudoRoom extends DurableObject<Env> {
 
     const now = Date.now();
     const target = isBotTurn(snapshot)
-      ? now + BOT_CONTINUE_DELAY_MS
+      ? now + (snapshot.diceValue === undefined ? BOT_ROLL_DELAY_MS : BOT_MOVE_DELAY_MS) + Math.floor(Math.random() * 450)
       : (snapshot.turnDeadlineAt ?? now + TURN_DURATION_MS[snapshot.mode]) + TURN_TIMEOUT_GRACE_MS;
     await this.ctx.storage.setAlarm(target);
   }
 
   private async playBotsIfNeeded(): Promise<void> {
-    let snapshot = await this.getSnapshot();
-    let actions = 0;
+    // The alarm drives one action at a time so rolls, choices, and moves are
+    // visible to players instead of an entire bot turn flashing by at once.
+    await this.scheduleTurnAlarm(await this.getSnapshot());
+  }
 
-    while (isBotTurn(snapshot) && snapshot.status === "playing" && actions < MAX_BOT_ACTIONS_PER_TICK) {
-      const botSeat = getCurrentSeat(snapshot);
-      if (!botSeat) {
-        return;
-      }
-
+  private async playBotAction(snapshot: RoomSnapshot): Promise<void> {
+    const botSeat = getCurrentSeat(snapshot);
+    if (!botSeat?.isBot) return;
+    if (snapshot.diceValue === undefined) {
       const value = rollDice();
-      const rollResult = applyRoll(snapshot, botSeat.playerId, value);
-      await this.saveSnapshot(rollResult.snapshot);
-      this.broadcast({ type: "dice_rolled", playerId: botSeat.playerId, value, snapshot: rollResult.snapshot });
-      actions += 1;
-
-      if (rollResult.skipped) {
-        this.broadcast({ type: "turn_skipped", playerId: botSeat.playerId, reason: "no_legal_moves", snapshot: rollResult.snapshot });
-        snapshot = rollResult.snapshot;
-        continue;
-      }
-
-      const pieceId = chooseBotMove(rollResult.snapshot);
-      if (!pieceId) {
-        snapshot = rollResult.snapshot;
-        break;
-      }
-
-      const moveResult = applyMove(rollResult.snapshot, botSeat.playerId, pieceId);
-      await this.saveSnapshot(moveResult.snapshot);
-
-      if (moveResult.finished && moveResult.snapshot.winnerPlayerId) {
-        await this.persistMatchFinishedIfNeeded(moveResult.snapshot);
-        this.broadcast({
-          type: "match_finished",
-          winnerPlayerId: moveResult.snapshot.winnerPlayerId,
-          snapshot: moveResult.snapshot
-        });
-        return;
-      }
-
-      this.broadcast({
-        type: "move_accepted",
-        playerId: botSeat.playerId,
-        pieceId,
-        capturedPieceIds: moveResult.capturedPieceIds,
-        snapshot: moveResult.snapshot
-      });
-      snapshot = moveResult.snapshot;
-      actions += 1;
+      const result = applyRoll(snapshot, botSeat.playerId, value);
+      await this.saveSnapshot(result.snapshot);
+      this.broadcast({ type: "dice_rolled", playerId: botSeat.playerId, value, snapshot: result.snapshot });
+      if (result.skipped) this.broadcast({ type: "turn_skipped", playerId: botSeat.playerId,
+        reason: "no_legal_moves", snapshot: result.snapshot });
+      return;
     }
+    const pieceId = chooseBotMove(snapshot);
+    if (!pieceId) return;
+    const result = applyMove(snapshot, botSeat.playerId, pieceId);
+    await this.saveSnapshot(result.snapshot);
+    if (result.finished && result.snapshot.winnerPlayerId) {
+      await this.persistMatchFinishedIfNeeded(result.snapshot);
+      this.broadcast({ type: "match_finished", winnerPlayerId: result.snapshot.winnerPlayerId, snapshot: result.snapshot });
+      return;
+    }
+    this.broadcast({ type: "move_accepted", playerId: botSeat.playerId, pieceId,
+      capturedPieceIds: result.capturedPieceIds, snapshot: result.snapshot });
   }
 
   private async persistMatchStartIfNeeded(before: RoomSnapshot, after: RoomSnapshot): Promise<void> {

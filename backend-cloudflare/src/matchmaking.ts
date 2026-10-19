@@ -45,7 +45,9 @@ export async function enqueueMatch(db: D1Database, input: {
 export async function matchWaitingTicket(db: D1Database, ticket: TicketRow, createRoom: CreateMatchedRoom,
   now = Date.now()): Promise<TicketRow> {
   if (ticket.status !== 'waiting' || ticket.expires_at <= now) return ticket;
-  const count = MAX_PLAYERS_BY_MODE[ticket.mode];
+  // Four-seat public tables start with two real opponents; the room fills the
+  // remaining seats with bots after both reserved humans have joined.
+  const count = MAX_PLAYERS_BY_MODE[ticket.mode] === 4 ? 2 : MAX_PLAYERS_BY_MODE[ticket.mode];
   const waiting = await db.prepare(`SELECT * FROM matchmaking_tickets WHERE status = 'waiting'
     AND mode = ? AND region = ? AND player_id <> ? AND expires_at > ? ORDER BY requested_at, id LIMIT 100`)
     .bind(ticket.mode, ticket.region, ticket.player_id, now).all<TicketRow>();

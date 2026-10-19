@@ -87,6 +87,7 @@ Data collected:
 - Personal info: Name, User IDs, Other info (age setting and selected country or matchmaking region)
 - Financial info: Purchase history
 - Messages: Other in-app messages
+- Audio files: Voice or sound recordings (optional live match voice; transmitted off-device only while joined, not recorded or stored by the app)
 - App activity: App interactions, Other app activity
 - App info and performance: Diagnostics
 - Device or other IDs: Device or other IDs
@@ -103,6 +104,7 @@ Data shared:
 - App interactions and other app activity: shared for advertising or marketing, analytics, and fraud prevention/security/compliance.
 - Diagnostics: shared for app functionality and analytics.
 - Device or other IDs: collected and shared for advertising or marketing, analytics, app functionality, and fraud prevention/security/compliance.
+- Live voice audio: collected when a player joins voice and shared with the other human players in that match for app functionality; Cloudflare TURN may relay it. Mark optional and ephemeral where the Play Console form permits, then confirm the final answers against the deployed voice implementation.
 - Guest profile and social data is processed by the app backend for app functionality and is not sold.
 
 Security:

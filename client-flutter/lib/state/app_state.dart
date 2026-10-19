@@ -16,6 +16,7 @@ import '../services/review_prompt_policy.dart';
 import '../services/sound_service.dart';
 import '../services/soundtrack_service.dart';
 import '../services/websocket_service.dart';
+import '../services/voice_chat_service.dart';
 
 class SocialPlayer {
   final String id;
@@ -201,6 +202,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     requestReview: AppPlatformService.requestInAppReview,
   );
   final WebSocketService _ws;
+  late final VoiceChatService voiceChat = VoiceChatService(_ws)
+    ..addListener(() {
+      unawaited(_soundtrack.setDucked(voiceChat.joined));
+      notifyListeners();
+    });
   final SoundtrackService _soundtrack = SoundtrackService();
 
   // Identity
@@ -450,6 +456,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _wsConnectionSub?.cancel();
     _wsPhaseSub?.cancel();
     _ws.dispose();
+    voiceChat.dispose();
     unawaited(_soundtrack.dispose());
     super.dispose();
   }
@@ -460,6 +467,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       unawaited(_soundtrack.resumeAfterLifecycle());
       return;
     }
+    if (state == AppLifecycleState.paused) unawaited(voiceChat.leave());
     unawaited(_soundtrack.pauseForLifecycle());
   }
 
@@ -706,6 +714,17 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         'isEmoji': isEmoji,
       });
     }
+  }
+
+  void fillPrivateBots() {
+    final snapshot = lastSnapshot;
+    if (privateInviteCode == null ||
+        !_ws.isConnected ||
+        snapshot?.status != 'waiting' ||
+        snapshot?.seats.firstOrNull?.playerId != playerId ||
+        (snapshot?.seats.where((seat) => !seat.isBot).length ?? 0) < 2) return;
+    _ws.send({'type': 'fill_bots', 'playerId': playerId});
+    _setStatus('Starting the match with bots...');
   }
 
   void resign() {
@@ -1209,6 +1228,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     String? readyStatus,
     bool spectator = false,
   }) {
+    unawaited(voiceChat.leave());
     localMatchActive = false;
     _localBotTimer?.cancel();
     _localBotTimer = null;
@@ -1232,6 +1252,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
           generation != _matchGeneration ||
           lastSnapshot?.status == 'finished') return;
       if (!connected) {
+        voiceChat.onSocketDisconnected();
         _setStatus('Reconnecting to your table...');
       } else {
         _setStatus(readyStatus ?? 'Connected. Waiting for the table...');
@@ -1286,6 +1307,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       final type = envelope['type'] as String? ?? '';
 
       if (type == 'error') {
+        if (envelope['code'] == 'voice_error') {
+          voiceChat.reportError(
+              envelope['message'] as String? ?? 'Voice is unavailable.');
+          return;
+        }
         _setStatus(envelope['message'] as String? ?? 'Room error');
         return;
       }
@@ -1295,12 +1321,29 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         return;
       }
 
+      if (type == 'voice_state') {
+        unawaited(voiceChat.onVoiceState(
+            (envelope['playerIds'] as List<dynamic>? ?? const [])
+                .whereType<String>()));
+        return;
+      }
+
+      if (type == 'voice_signal') {
+        final from = envelope['fromPlayerId'] as String?;
+        final signal = envelope['signal'] as Map<String, dynamic>?;
+        if (from != null && signal != null)
+          unawaited(voiceChat.onSignal(from, signal));
+        return;
+      }
+
       final snapRaw = envelope['snapshot'] as Map<String, dynamic>?;
       final eventStatus = _rememberRoomEvent(type, envelope, snapRaw);
 
       if (snapRaw != null) {
         final previousSnapshot = lastSnapshot;
         lastSnapshot = GameSnapshot.fromJson(snapRaw);
+        voiceChat.onRoomSnapshot(
+            lastSnapshot!.roomId, lastSnapshot!.status == 'playing');
         pendingMatchMode = lastSnapshot!.mode;
         if ((lastSnapshot!.status == 'playing' && mySeat != null) ||
             isSpectator) {
@@ -1784,7 +1827,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     );
     _setStatus('$name rolled $value.');
 
-    _localBotTimer = Timer(const Duration(milliseconds: 620), () {
+    _localBotTimer = Timer(Duration(milliseconds: 750 + _rng.nextInt(450)), () {
       if (!localMatchActive) return;
       final current = lastSnapshot;
       if (current == null ||
@@ -1846,7 +1889,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     );
     _setStatus('$name rolled $value.');
 
-    _localBotTimer = Timer(const Duration(milliseconds: 620), () {
+    _localBotTimer = Timer(Duration(milliseconds: 750 + _rng.nextInt(450)), () {
       if (!localMatchActive) return;
       final current = lastSnapshot;
       if (current == null ||
@@ -2071,9 +2114,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       final landed = _snakeLadders[rolled] ?? _snakeDrops[rolled] ?? rolled;
       return landed + (_snakeLadders.containsKey(rolled) ? 60 : 0);
     }
-    if (piece.progress == _yardProgress) return 30;
-
-    final nextProgress = piece.progress + snap.diceValue;
+    final nextProgress =
+        piece.progress == _yardProgress ? 0 : piece.progress + snap.diceValue;
     final nextTrack = _trackIndexFor(piece.seat, nextProgress, snap.mode);
     final captures = nextTrack != null &&
         !_safeTrackIndexesForMode(snap.mode).contains(nextTrack) &&
@@ -2081,7 +2123,32 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
             other.seat != piece.seat &&
             other.trackIndex == nextTrack &&
             other.state == 'track');
-    return nextProgress + (captures ? 100 : 0);
+    bool exposed(int? track) =>
+        track != null &&
+        track >= 0 &&
+        !_safeTrackIndexesForMode(snap.mode).contains(track) &&
+        snap.pieces.any((other) =>
+            other.seat != piece.seat &&
+            other.state == 'track' &&
+            other.trackIndex >= 0 &&
+            (track - other.trackIndex + _classicTrackLength) %
+                    _classicTrackLength >=
+                1 &&
+            (track - other.trackIndex + _classicTrackLength) %
+                    _classicTrackLength <=
+                6);
+    final currentDanger = exposed(piece.trackIndex);
+    final futureDanger = exposed(nextTrack);
+    return (nextProgress == _classicFinishProgress ? 250 : 0) +
+        (captures ? 180 : 0) +
+        (piece.progress == _yardProgress ? 45 : 0) +
+        (currentDanger && !futureDanger ? 60 : 0) +
+        (nextTrack != null &&
+                _safeTrackIndexesForMode(snap.mode).contains(nextTrack)
+            ? 22
+            : 0) -
+        (futureDanger ? 55 : 0) +
+        nextProgress;
   }
 
   int _nextLocalDice(GameSnapshot snap, int seat) => _rng.nextInt(6) + 1;
@@ -2296,6 +2363,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _resetLiveMatch() {
+    unawaited(voiceChat.leave());
     _cancelPendingTicket();
     _matchGeneration++;
     _resultsTimer?.cancel();

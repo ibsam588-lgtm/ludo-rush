@@ -93,6 +93,10 @@ export default {
         return createGuest(request, env);
       }
 
+      if (request.method === "GET" && url.pathname === "/api/v1/voice/ice") {
+        return getVoiceIceServers(request, env);
+      }
+
       if (request.method === "POST" && url.pathname === "/api/v1/matchmaking/quick") {
         return quickMatch(request, env);
       }
@@ -148,6 +152,37 @@ export default {
     }
   }
 };
+
+async function getVoiceIceServers(request: Request, env: Env): Promise<Response> {
+  const playerId = await authenticatedPlayerId(request, env);
+  if (!playerId) return unauthorized();
+  const roomId = new URL(request.url).searchParams.get("roomId") ?? "";
+  if (!/^room_[A-Za-z0-9_-]{6,100}$/.test(roomId)) return badRequest("An active room is required.");
+  let snapshot: { status?: string; seats?: Array<{ playerId: string; isBot: boolean; connected: boolean }> };
+  try {
+    const room = await env.LUDO_ROOMS.get(env.LUDO_ROOMS.idFromName(roomId)).fetch("https://room/");
+    if (!room.ok) return json({ error: "Room is unavailable." }, { status: 404 });
+    snapshot = await room.json() as typeof snapshot;
+  } catch {
+    return json({ error: "Room is unavailable." }, { status: 404 });
+  }
+  if (snapshot.status !== "playing" || !snapshot.seats?.some(seat => seat.playerId === playerId && !seat.isBot && seat.connected)) {
+    return json({ error: "Join an active table before using voice." }, { status: 403 });
+  }
+  const profile = await env.DB.prepare("SELECT age FROM users WHERE id = ?")
+    .bind(playerId).first<{ age: number }>();
+  if ((profile?.age ?? 0) < 13) return json({ error: "Voice chat is available to players age 13 or older." }, { status: 403 });
+  const fallback = { iceServers: [{ urls: ["stun:stun.cloudflare.com:3478"] }] };
+  if (!env.TURN_KEY_ID || !env.TURN_KEY_API_TOKEN) return json(fallback);
+  const response = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${encodeURIComponent(env.TURN_KEY_ID)}/credentials/generate-ice-servers`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${env.TURN_KEY_API_TOKEN}`, "content-type": "application/json" },
+    body: JSON.stringify({ ttl: 14400 })
+  });
+  if (!response.ok) return json({ error: "Voice connection is temporarily unavailable." }, { status: 503 });
+  const data = await response.json() as { iceServers?: unknown };
+  return json({ iceServers: data.iceServers });
+}
 
 async function getAppConfig(env: Env, url: URL): Promise<Response> {
   const platform = (url.searchParams.get("platform") ?? "android").toLowerCase();
