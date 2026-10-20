@@ -46,14 +46,12 @@ For production, create or connect each network in the Unity LevelPlay dashboard,
 - `ResultsBanner`
 - `DailyGift`
 - `RoundComplete`
-- `ConfirmedQuit`
-- `ConfirmedAppExit`
 - `ShopPoints300`
 - `LevelCompleteBonus`
 
 Use matching placement names in LevelPlay reporting so waterfalls, caps, and A/B tests are easy to read.
 
-`RoundComplete` starts after the first completed round and repeats after every completed round. Confirmed quit and app-exit placements wait for the full-screen ad to close before navigation or process exit. Reward balances are granted only from LevelPlay's reward callback.
+`RoundComplete` is eligible only after a win. A loss, match quit, and app exit never open a video ad. The optional `LevelCompleteBonus` video appears only on the victory screen and grants its balance from LevelPlay's reward callback.
 
 ## QA flow
 

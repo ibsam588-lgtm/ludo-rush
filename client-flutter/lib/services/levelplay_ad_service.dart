@@ -126,9 +126,13 @@ class LevelPlayAdService extends ChangeNotifier
     }
   }
 
-  Future<bool> showAfterCompletedRound({bool waitForDismissal = false}) {
+  Future<bool> showAfterCompletedRound({
+    required bool won,
+    bool waitForDismissal = false,
+  }) {
     _completedRounds++;
-    if (!AdPlacementPolicy.shouldShowAfterCompletedRound(_completedRounds)) {
+    if (!won ||
+        !AdPlacementPolicy.shouldShowAfterCompletedRound(_completedRounds)) {
       return Future.value(false);
     }
     return showInterstitial(
@@ -137,18 +141,6 @@ class LevelPlayAdService extends ChangeNotifier
       waitForDismissal: waitForDismissal,
     );
   }
-
-  Future<bool> showAfterConfirmedQuit() => showInterstitial(
-        placementName: 'ConfirmedQuit',
-        minInterval: Duration.zero,
-        waitForDismissal: true,
-      );
-
-  Future<bool> showBeforeAppExit() => showInterstitial(
-        placementName: 'ConfirmedAppExit',
-        minInterval: Duration.zero,
-        waitForDismissal: true,
-      );
 
   Future<bool> showRewarded({
     String placementName = 'DefaultRewarded',

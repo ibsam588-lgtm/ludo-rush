@@ -335,4 +335,30 @@ void main() {
       state.dispose();
     });
   }
+
+  testWidgets('loss results do not offer a video', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final finished = boardSnapshot(45, finished: true);
+    final state = AppState(PrefsService())
+      ..playerId = 'me'
+      ..displayName = 'Alex'
+      ..lastSnapshot = GameSnapshot(
+        roomId: 'room_loss',
+        seats: finished.seats,
+        pieces: finished.pieces,
+        diceValue: 0,
+        currentTurnSeat: 1,
+        status: 'finished',
+        availableMoves: const [],
+        winnerPlayerId: 'other',
+        mode: 'classic_2p',
+      );
+    await tester.pumpWidget(app(state, const ResultsScreen()));
+    await tester.pump(const Duration(milliseconds: 950));
+    expect(find.text('BETTER LUCK NEXT TIME'), findsOneWidget);
+    expect(find.textContaining('Watch video'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    state.dispose();
+  });
 }
