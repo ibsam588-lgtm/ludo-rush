@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ludo_rush/config/levelplay_ad_config.dart';
 import 'package:ludo_rush/services/ad_placement_policy.dart';
+import 'package:ludo_rush/services/levelplay_ad_service.dart';
 import 'package:ludo_rush/services/prefs_service.dart';
 import 'package:ludo_rush/state/app_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,6 +17,15 @@ void main() {
     expect(AdPlacementPolicy.shouldShowAfterCompletedRound(1), isTrue);
     expect(AdPlacementPolicy.shouldShowAfterCompletedRound(2), isTrue);
     expect(AdPlacementPolicy.shouldShowAfterCompletedRound(20), isTrue);
+  });
+
+  test('losing a round never requests a video ad', () async {
+    final ads = LevelPlayAdService.instance;
+    final completedBefore = ads.completedRounds;
+
+    expect(await ads.showAfterCompletedRound(won: false), isFalse);
+    expect(ads.completedRounds, completedBefore + 1);
+    expect(ads.isFullScreenAdShowing, isFalse);
   });
 
   test('rewarded placements persist configured points and energy', () async {

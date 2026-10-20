@@ -1,6 +1,6 @@
 # Match voice rollout
 
-Ludo Rush uses opt-in WebRTC audio between human seats. Signaling runs over the authenticated room socket. The microphone is requested only after a player taps **Join voice**, and voice is restricted to age-13+ human players in active matches. Bots and spectators cannot join. Leaving the table or backgrounding the app stops capture. Audio is not recorded by the game backend.
+Ludo Rush uses opt-in WebRTC audio between human seats. Signaling runs over the authenticated room socket. The microphone is requested only after a player taps **Join voice**, and voice is restricted to age-13+ human players in active matches. A server-hosted table allows its only human player to join voice; the microphone stays ready if another player joins. In a device-run fallback match, **Join voice** enables the microphone locally, with no room or remote listener. The UI says when only that player is in voice. Bots and spectators cannot receive voice. Finishing or leaving the match and backgrounding the app stop capture. Audio is not recorded by the game backend.
 
 Configure Cloudflare Realtime TURN before a production release so players behind restrictive mobile networks can connect. Create a TURN key in Cloudflare Realtime, then set its ID and API token as Worker secrets:
 

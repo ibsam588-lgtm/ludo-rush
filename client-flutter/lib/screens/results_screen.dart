@@ -82,19 +82,22 @@ class _ResultsScreenState extends State<ResultsScreen>
     if (_reviewCheckStarted) return;
     _reviewCheckStarted = true;
 
-    // Let the results transition settle, and never cover the round-complete ad.
+    // Let the results transition settle before a possible win ad or review prompt.
     await Future<void>.delayed(const Duration(milliseconds: 900));
     if (!mounted) return;
+    final state = context.read<AppState>();
+    final snapshot = state.lastSnapshot;
+    final won = snapshot?.status == 'finished' &&
+        snapshot?.winnerPlayerId.isNotEmpty == true &&
+        snapshot?.winnerPlayerId == state.playerId;
     await LevelPlayAdService.instance
-        .showAfterCompletedRound(waitForDismissal: true);
+        .showAfterCompletedRound(won: won, waitForDismissal: true);
     if (!mounted || Theme.of(context).platform != TargetPlatform.android) {
       return;
     }
 
     final route = ModalRoute.of(context);
     final media = MediaQuery.of(context);
-    final state = context.read<AppState>();
-    final snapshot = state.lastSnapshot;
     if (snapshot == null ||
         snapshot.status != 'finished' ||
         snapshot.mode.trim().isEmpty ||
@@ -108,8 +111,7 @@ class _ResultsScreenState extends State<ResultsScreen>
     }
 
     final focusedWidget = FocusManager.instance.primaryFocus?.context?.widget;
-    final safeToPrompt =
-        route?.isCurrent == true &&
+    final safeToPrompt = route?.isCurrent == true &&
         state.updateCheckComplete &&
         !state.forceUpdateRequired &&
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed &&
@@ -118,9 +120,9 @@ class _ResultsScreenState extends State<ResultsScreen>
         !LevelPlayAdService.instance.isFullScreenAdShowing;
 
     await state.recordCompletedMatchForReview(
-          matchId: '${snapshot.roomId}:${snapshot.updatedAt}',
-          safeToPrompt: safeToPrompt,
-        );
+      matchId: '${snapshot.roomId}:${snapshot.updatedAt}',
+      safeToPrompt: safeToPrompt,
+    );
   }
 
   @override
@@ -257,12 +259,14 @@ class _ResultsScreenState extends State<ResultsScreen>
 
                         // Rewards row
                         _RewardsRow(state: state),
-                        const SizedBox(height: 10),
-                        _RewardedBonusButton(
-                          inFlight: _rewardInFlight,
-                          claimed: _rewardClaimed,
-                          onPressed: () => _claimLevelCompleteReward(state),
-                        ),
+                        if (won) ...[
+                          const SizedBox(height: 10),
+                          _RewardedBonusButton(
+                            inFlight: _rewardInFlight,
+                            claimed: _rewardClaimed,
+                            onPressed: () => _claimLevelCompleteReward(state),
+                          ),
+                        ],
                         const SizedBox(height: 14),
 
                         // Player list

@@ -2292,6 +2292,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   void _trackMatchResult(GameSnapshot snap) {
     if (_matchResultTracked || isSpectator) return;
     _matchResultTracked = true;
+    unawaited(voiceChat.leave());
     final economyEligible = !localMatchActive && !currentMatchIsBot;
     _localBotTimer?.cancel();
     _localBotTimer = null;

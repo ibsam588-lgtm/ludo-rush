@@ -25,10 +25,14 @@ class _VoicePeer {
 /// SDP/ICE travel through the authenticated room socket; media is never sent
 /// through the game backend or recorded by the app.
 class VoiceChatService extends ChangeNotifier {
-  VoiceChatService(this._socket);
+  VoiceChatService(
+    this._socket, {
+    Future<MediaStream> Function()? microphoneCapture,
+  }) : _microphoneCapture = microphoneCapture;
 
   static const _backendUrl = 'https://ludo-rush-backend.ibsam588.workers.dev';
   final WebSocketService _socket;
+  final Future<MediaStream> Function()? _microphoneCapture;
   final Map<String, _VoicePeer> _peers = {};
   final Map<String, Future<_VoicePeer>> _openingPeers = {};
   final Set<String> _offering = {};
@@ -44,12 +48,63 @@ class VoiceChatService extends ChangeNotifier {
   bool _disposed = false;
   bool _announceOnSnapshot = false;
   bool _confirmedJoined = false;
+  bool _localOnly = false;
   int _generation = 0;
 
-  Future<void> join(
-      {required String roomId,
-      required String playerId,
-      required String authToken}) async {
+  Future<MediaStream> _captureMicrophone() async {
+    final capture = _microphoneCapture;
+    if (capture != null) return capture();
+    final microphone = await navigator.mediaDevices.getUserMedia({
+      'audio': {'echoCancellation': true, 'noiseSuppression': true},
+      'video': false,
+    });
+    try {
+      await Helper.setSpeakerphoneOnButPreferBluetooth();
+    } catch (_) {
+      /* Device route is optional. */
+    }
+    return microphone;
+  }
+
+  Future<void> joinLocal({required String playerId}) async {
+    if (joined || joining) return;
+    joining = true;
+    final generation = ++_generation;
+    error = null;
+    notifyListeners();
+    try {
+      final microphone = await _captureMicrophone();
+      if (generation != _generation) {
+        for (final track in microphone.getTracks()) {
+          track.stop();
+        }
+        await microphone.dispose();
+        return;
+      }
+      _microphone = microphone;
+      _playerId = playerId;
+      _localOnly = true;
+      joined = true;
+      muted = false;
+      participants = {playerId};
+    } catch (_) {
+      if (generation == _generation) {
+        error = 'Microphone unavailable. Check permission and try again.';
+        await leave();
+      }
+    } finally {
+      if (generation == _generation) {
+        joining = false;
+        if (!_disposed) notifyListeners();
+      }
+    }
+  }
+
+  Future<void> join({
+    required String roomId,
+    required String playerId,
+    required String authToken,
+  }) async {
     if (joined || joining) return;
     if (!_socket.isConnected) {
       error = 'Reconnect to the match before joining voice.';
@@ -61,12 +116,14 @@ class VoiceChatService extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
-      final response = await http.get(
-          Uri.parse('$_backendUrl/api/v1/voice/ice')
-              .replace(queryParameters: {'roomId': roomId}),
-          headers: {
-            'authorization': 'Bearer $authToken'
-          }).timeout(const Duration(seconds: 8));
+      final response = await http
+          .get(
+            Uri.parse(
+              '$_backendUrl/api/v1/voice/ice',
+            ).replace(queryParameters: {'roomId': roomId}),
+            headers: {'authorization': 'Bearer $authToken'},
+          )
+          .timeout(const Duration(seconds: 8));
       if (generation != _generation) return;
       if (response.statusCode != 200)
         throw StateError('Voice connection is unavailable.');
@@ -74,10 +131,7 @@ class VoiceChatService extends ChangeNotifier {
       _iceServers = config['iceServers'] as List<dynamic>? ?? const [];
       if (_iceServers.isEmpty)
         throw StateError('Voice server is not configured.');
-      final microphone = await navigator.mediaDevices.getUserMedia({
-        'audio': {'echoCancellation': true, 'noiseSuppression': true},
-        'video': false,
-      });
+      final microphone = await _captureMicrophone();
       if (generation != _generation) {
         for (final track in microphone.getTracks()) {
           track.stop();
@@ -86,12 +140,10 @@ class VoiceChatService extends ChangeNotifier {
         return;
       }
       _microphone = microphone;
-      try {
-        await Helper.setSpeakerphoneOnButPreferBluetooth();
-      } catch (_) {/* Device route is optional. */}
       if (generation != _generation) return;
       _roomId = roomId;
       _playerId = playerId;
+      _localOnly = false;
       joined = true;
       _confirmedJoined = false;
       muted = false;
@@ -124,6 +176,7 @@ class VoiceChatService extends ChangeNotifier {
   }
 
   void onSocketDisconnected() {
+    if (_localOnly) return;
     if (joining) {
       unawaited(leave());
       return;
@@ -170,16 +223,19 @@ class VoiceChatService extends ChangeNotifier {
   }
 
   Future<void> onSignal(
-      String fromPlayerId, Map<String, dynamic> signal) async {
-    if (!joined ||
-        fromPlayerId == _playerId ||
-        !participants.contains(fromPlayerId)) return;
+    String fromPlayerId,
+    Map<String, dynamic> signal,
+  ) async {
+    // The room authenticates both seats before forwarding a signal. Its
+    // voice_state broadcast can arrive just after an offer on another socket.
+    if (!joined || _localOnly || fromPlayerId == _playerId) return;
     try {
       final type = signal['type'] as String?;
       if (type == 'offer') {
         final peer = await _getPeer(fromPlayerId);
         await peer.connection.setRemoteDescription(
-            RTCSessionDescription(signal['sdp'] as String?, 'offer'));
+          RTCSessionDescription(signal['sdp'] as String?, 'offer'),
+        );
         peer.remoteDescriptionReady = true;
         await _flushCandidates(peer);
         final answer = await peer.connection.createAnswer();
@@ -189,15 +245,17 @@ class VoiceChatService extends ChangeNotifier {
         final peer = _peers[fromPlayerId];
         if (peer == null) return;
         await peer.connection.setRemoteDescription(
-            RTCSessionDescription(signal['sdp'] as String?, 'answer'));
+          RTCSessionDescription(signal['sdp'] as String?, 'answer'),
+        );
         peer.remoteDescriptionReady = true;
         await _flushCandidates(peer);
       } else if (type == 'candidate') {
         final peer = await _getPeer(fromPlayerId);
         final candidate = RTCIceCandidate(
-            signal['candidate'] as String?,
-            signal['sdpMid'] as String?,
-            (signal['sdpMLineIndex'] as num?)?.toInt());
+          signal['candidate'] as String?,
+          signal['sdpMid'] as String?,
+          (signal['sdpMLineIndex'] as num?)?.toInt(),
+        );
         if (peer.remoteDescriptionReady) {
           await peer.connection.addCandidate(candidate);
         } else {
@@ -219,9 +277,12 @@ class VoiceChatService extends ChangeNotifier {
   }
 
   Future<void> leave() async {
-    ++_generation;
-    if (joined && _socket.isConnected) _socket.send({'type': 'voice_leave'});
+    final generation = ++_generation;
+    if (joined && !_localOnly && _socket.isConnected) {
+      _socket.send({'type': 'voice_leave'});
+    }
     joined = false;
+    _localOnly = false;
     _confirmedJoined = false;
     joining = false;
     _announceOnSnapshot = false;
@@ -235,12 +296,12 @@ class VoiceChatService extends ChangeNotifier {
     _peers.clear();
     _openingPeers.clear();
     _offering.clear();
-    if (!_disposed) notifyListeners();
-    for (final peer in peers) await peer.close();
-    await microphone?.dispose();
     _roomId = null;
     _playerId = null;
     if (!_disposed) notifyListeners();
+    for (final peer in peers) await peer.close();
+    await microphone?.dispose();
+    if (!_disposed && generation == _generation) notifyListeners();
   }
 
   Future<_VoicePeer> _getPeer(String playerId) async {
@@ -262,8 +323,10 @@ class VoiceChatService extends ChangeNotifier {
     final generation = _generation;
     final renderer = RTCVideoRenderer();
     await renderer.initialize();
-    final connection = await createPeerConnection(
-        {'iceServers': _iceServers, 'sdpSemantics': 'unified-plan'});
+    final connection = await createPeerConnection({
+      'iceServers': _iceServers,
+      'sdpSemantics': 'unified-plan',
+    });
     final peer = _VoicePeer(connection, renderer);
     if (!joined || generation != _generation) {
       await peer.close();
@@ -276,7 +339,7 @@ class VoiceChatService extends ChangeNotifier {
           'type': 'candidate',
           'candidate': candidate.candidate,
           'sdpMid': candidate.sdpMid,
-          'sdpMLineIndex': candidate.sdpMLineIndex
+          'sdpMLineIndex': candidate.sdpMLineIndex,
         });
       }
     };
@@ -313,8 +376,11 @@ class VoiceChatService extends ChangeNotifier {
 
   void _sendSignal(String playerId, Map<String, dynamic> signal) {
     if (joined && _socket.isConnected) {
-      _socket.send(
-          {'type': 'voice_signal', 'toPlayerId': playerId, 'signal': signal});
+      _socket.send({
+        'type': 'voice_signal',
+        'toPlayerId': playerId,
+        'signal': signal,
+      });
     }
   }
 

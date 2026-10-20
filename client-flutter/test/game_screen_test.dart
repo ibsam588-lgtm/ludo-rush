@@ -64,8 +64,7 @@ void main() {
     state.dispose();
   });
 
-  testWidgets('chat explains why voice is unavailable with one human',
-      (tester) async {
+  testWidgets('server table offers voice with one human', (tester) async {
     await tester.binding.setSurfaceSize(const Size(411, 914));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final state = AppState(PrefsService())
@@ -99,19 +98,19 @@ void main() {
       child: const MaterialApp(home: GameScreen()),
     ));
     await tester.pump();
+    expect(find.byTooltip('Join table voice'), findsOneWidget);
     await tester.tap(find.byTooltip('Chat'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Voice is unavailable at this table'), findsOneWidget);
+    expect(find.text('Talk with players who join table voice'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('chat-table-voice')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Voice is unavailable at this table'), findsOneWidget);
-    expect(find.text('Join voice'), findsNothing);
+    expect(find.text('Join voice'), findsOneWidget);
     state.dispose();
   });
 
-  testWidgets('device-run fallback avoids claiming a live voice room',
+  testWidgets('device-run fallback offers opt-in solo microphone',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(411, 914));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -159,15 +158,15 @@ void main() {
       child: const MaterialApp(home: GameScreen()),
     ));
     await tester.pump();
+    expect(find.byTooltip('Join table voice'), findsOneWidget);
     await tester.tap(find.byTooltip('Chat'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Voice is unavailable at this table'), findsOneWidget);
+    expect(find.text('Talk with players who join table voice'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('chat-table-voice')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text('Voice is unavailable at this table'), findsOneWidget);
-    expect(find.text('Join voice'), findsNothing);
+    expect(find.text('Join voice'), findsOneWidget);
     state.dispose();
   });
 

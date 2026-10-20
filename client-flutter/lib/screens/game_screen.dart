@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../models/game_snapshot.dart';
-import '../services/levelplay_ad_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/ludo_board.dart';
@@ -793,13 +792,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   String? _voiceUnavailableReason(AppState state) {
     final snapshot = state.lastSnapshot;
-    if (state.localMatchActive) return 'Voice is unavailable at this table';
     if (state.isSpectator) return 'Only players can join table voice';
     if (snapshot?.status != 'playing')
       return 'Available after the match starts';
-    if (snapshot!.seats.where((seat) => !seat.isBot).length < 2) {
-      return 'Voice is unavailable at this table';
-    }
     return null;
   }
 
@@ -813,7 +808,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         final snapshot = state.lastSnapshot;
         final unavailable = _voiceUnavailableReason(state);
         final names = snapshot?.seats
-                .where((seat) => voice.participants.contains(seat.playerId))
+                .where((seat) =>
+                    seat.playerId != state.playerId &&
+                    voice.participants.contains(seat.playerId))
                 .map((seat) => seat.displayName)
                 .join(', ') ??
             '';
@@ -834,7 +831,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 Text(
                     voice.joined
                         ? (names.isEmpty
-                            ? 'Waiting for other players to join voice…'
+                            ? 'Microphone on. Only you are in voice.'
                             : 'In voice: $names')
                         : 'Voice is off',
                     style: const TextStyle(color: Colors.white)),
@@ -861,13 +858,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       label: 'Join voice',
                       color: boardGreen,
                       onTap: () {
-                        if (snapshot == null ||
-                            state.playerId == null ||
-                            state.authToken == null) return;
-                        unawaited(voice.join(
-                            roomId: snapshot.roomId,
-                            playerId: state.playerId!,
-                            authToken: state.authToken!));
+                        if (snapshot == null || state.playerId == null) return;
+                        if (state.localMatchActive) {
+                          unawaited(voice.joinLocal(playerId: state.playerId!));
+                        } else if (state.authToken != null) {
+                          unawaited(voice.join(
+                              roomId: snapshot.roomId,
+                              playerId: state.playerId!,
+                              authToken: state.authToken!));
+                        }
                       }),
                 ],
               ]),
@@ -983,7 +982,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     _quitting = true;
                     Navigator.pop(context);
                     state.resign();
-                    await LevelPlayAdService.instance.showAfterConfirmedQuit();
                     if (!mounted) return;
                     Navigator.of(context)
                         .pushNamedAndRemoveUntil('/home', (_) => false);
@@ -1232,12 +1230,9 @@ class _GameTopBar extends StatelessWidget {
               ),
               SizedBox(width: compact ? 5 : 8),
               _GameLogo(compact: compact),
-              if (!state.localMatchActive &&
-                  !state.isSpectator &&
+              if (!state.isSpectator &&
                   state.canUseChat &&
-                  snapshot?.status == 'playing' &&
-                  (snapshot?.seats.where((seat) => !seat.isBot).length ?? 0) >=
-                      2) ...[
+                  snapshot?.status == 'playing') ...[
                 SizedBox(width: compact ? 2 : 5),
                 IconButton(
                   tooltip: state.voiceChat.joined
