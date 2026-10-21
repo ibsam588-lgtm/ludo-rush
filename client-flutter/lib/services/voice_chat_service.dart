@@ -43,6 +43,9 @@ class VoiceChatService extends ChangeNotifier {
   bool joined = false;
   bool joining = false;
   bool muted = false;
+  final Set<String> mutedPlayerIds = <String>{};
+  final Set<String> blockedPlayerIds = <String>{};
+  String? lastReportedPlayerId;
   String? error;
   Set<String> participants = const {};
   bool _disposed = false;
@@ -147,7 +150,7 @@ class VoiceChatService extends ChangeNotifier {
       joined = true;
       _confirmedJoined = false;
       muted = false;
-      _socket.send({'type': 'voice_join'});
+      _socket.send({'type': 'voice_join', 'rulesAccepted': true});
       _announceOnSnapshot = false;
     } catch (e) {
       if (generation == _generation) {
@@ -170,7 +173,7 @@ class VoiceChatService extends ChangeNotifier {
     } else if (joined && _socket.isConnected && _announceOnSnapshot) {
       // A reconnection creates a new socket attachment; rejoin voice after the
       // ordinary room join has been processed.
-      _socket.send({'type': 'voice_join'});
+      _socket.send({'type': 'voice_join', 'rulesAccepted': true});
       _announceOnSnapshot = false;
     }
   }
@@ -215,7 +218,10 @@ class VoiceChatService extends ChangeNotifier {
       if (!next.contains(id)) await _removePeer(id);
     }
     for (final id in next) {
-      if (id == _playerId || _peers.containsKey(id) || _offering.contains(id))
+      if (id == _playerId ||
+          blockedPlayerIds.contains(id) ||
+          _peers.containsKey(id) ||
+          _offering.contains(id))
         continue;
       if (_playerId!.compareTo(id) < 0) await _offer(id);
     }
@@ -228,7 +234,11 @@ class VoiceChatService extends ChangeNotifier {
   ) async {
     // The room authenticates both seats before forwarding a signal. Its
     // voice_state broadcast can arrive just after an offer on another socket.
-    if (!joined || _localOnly || fromPlayerId == _playerId) return;
+    if (!joined ||
+        _localOnly ||
+        fromPlayerId == _playerId ||
+        blockedPlayerIds.contains(fromPlayerId))
+      return;
     try {
       final type = signal['type'] as String?;
       if (type == 'offer') {
@@ -276,6 +286,54 @@ class VoiceChatService extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
+  void setPeerMuted(String playerId, bool value) {
+    if (playerId == _playerId || blockedPlayerIds.contains(playerId)) return;
+    if (value) {
+      mutedPlayerIds.add(playerId);
+    } else {
+      mutedPlayerIds.remove(playerId);
+    }
+    for (final track
+        in _peers[playerId]?.renderer.srcObject?.getAudioTracks() ??
+            <MediaStreamTrack>[]) {
+      track.enabled = !value;
+    }
+    if (!_disposed) notifyListeners();
+  }
+
+  Future<void> blockPlayer(String playerId) async {
+    if (!joined || _localOnly || playerId == _playerId) return;
+    blockedPlayerIds.add(playerId);
+    mutedPlayerIds.remove(playerId);
+    if (_socket.isConnected) {
+      _socket.send({'type': 'voice_block', 'targetPlayerId': playerId});
+    }
+    await _removePeer(playerId);
+    if (!_disposed) notifyListeners();
+  }
+
+  void reportPlayer(String playerId, String reason) {
+    if (!joined || _localOnly || playerId == _playerId || !_socket.isConnected)
+      return;
+    _socket.send({
+      'type': 'voice_report',
+      'targetPlayerId': playerId,
+      'reason': reason,
+    });
+  }
+
+  Future<void> onPeerBlocked(String playerId) async {
+    blockedPlayerIds.add(playerId);
+    mutedPlayerIds.remove(playerId);
+    await _removePeer(playerId);
+    if (!_disposed) notifyListeners();
+  }
+
+  void onReportReceived(String playerId) {
+    lastReportedPlayerId = playerId;
+    if (!_disposed) notifyListeners();
+  }
+
   Future<void> leave() async {
     final generation = ++_generation;
     if (joined && !_localOnly && _socket.isConnected) {
@@ -287,6 +345,9 @@ class VoiceChatService extends ChangeNotifier {
     joining = false;
     _announceOnSnapshot = false;
     participants = const {};
+    mutedPlayerIds.clear();
+    blockedPlayerIds.clear();
+    lastReportedPlayerId = null;
     final microphone = _microphone;
     _microphone = null;
     for (final track in microphone?.getTracks() ?? <MediaStreamTrack>[]) {
@@ -328,7 +389,9 @@ class VoiceChatService extends ChangeNotifier {
       'sdpSemantics': 'unified-plan',
     });
     final peer = _VoicePeer(connection, renderer);
-    if (!joined || generation != _generation) {
+    if (!joined ||
+        generation != _generation ||
+        blockedPlayerIds.contains(playerId)) {
       await peer.close();
       throw StateError('Voice session ended.');
     }
@@ -344,7 +407,14 @@ class VoiceChatService extends ChangeNotifier {
       }
     };
     connection.onTrack = (event) {
-      if (event.streams.isNotEmpty) renderer.srcObject = event.streams.first;
+      if (event.streams.isNotEmpty) {
+        renderer.srcObject = event.streams.first;
+        for (final track in event.streams.first.getAudioTracks()) {
+          track.enabled =
+              !mutedPlayerIds.contains(playerId) &&
+              !blockedPlayerIds.contains(playerId);
+        }
+      }
     };
     for (final track in _microphone?.getAudioTracks() ?? <MediaStreamTrack>[]) {
       await connection.addTrack(track, _microphone!);
@@ -375,7 +445,7 @@ class VoiceChatService extends ChangeNotifier {
   }
 
   void _sendSignal(String playerId, Map<String, dynamic> signal) {
-    if (joined && _socket.isConnected) {
+    if (joined && _socket.isConnected && !blockedPlayerIds.contains(playerId)) {
       _socket.send({
         'type': 'voice_signal',
         'toPlayerId': playerId,

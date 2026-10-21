@@ -93,8 +93,10 @@ export type ClientRoomMessage =
   | { type: "fill_bots"; playerId: string }
   | { type: "resign"; playerId: string }
   | { type: "reaction"; playerId: string; displayName?: string; text: string; isEmoji?: boolean }
-  | { type: "voice_join" }
+  | { type: "voice_join"; rulesAccepted: boolean }
   | { type: "voice_leave" }
+  | { type: "voice_block"; targetPlayerId: string }
+  | { type: "voice_report"; targetPlayerId: string; reason: "harassment" | "hate" | "sexual" | "other" }
   | { type: "voice_signal"; toPlayerId: string; signal: { type: "offer" | "answer" | "candidate"; sdp?: string; candidate?: string; sdpMid?: string; sdpMLineIndex?: number } }
   | { type: "heartbeat"; playerId: string };
 
@@ -113,6 +115,8 @@ export type ServerRoomMessage =
   | { type: "match_finished"; winnerPlayerId: string; snapshot: RoomSnapshot }
   | { type: "reaction"; playerId: string; displayName?: string; text: string; isEmoji: boolean }
   | { type: "voice_state"; playerIds: string[] }
+  | { type: "voice_peer_blocked"; playerId: string }
+  | { type: "voice_report_received"; targetPlayerId: string }
   | { type: "voice_signal"; fromPlayerId: string; signal: { type: "offer" | "answer" | "candidate"; sdp?: string; candidate?: string; sdpMid?: string; sdpMLineIndex?: number } }
   | { type: "error"; code: string; message: string };
 

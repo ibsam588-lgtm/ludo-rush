@@ -1336,6 +1336,18 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         return;
       }
 
+      if (type == 'voice_peer_blocked') {
+        final playerId = envelope['playerId'] as String?;
+        if (playerId != null) unawaited(voiceChat.onPeerBlocked(playerId));
+        return;
+      }
+
+      if (type == 'voice_report_received') {
+        final playerId = envelope['targetPlayerId'] as String?;
+        if (playerId != null) voiceChat.onReportReceived(playerId);
+        return;
+      }
+
       final snapRaw = envelope['snapshot'] as Map<String, dynamic>?;
       final eventStatus = _rememberRoomEvent(type, envelope, snapRaw);
 

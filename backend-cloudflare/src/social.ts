@@ -364,6 +364,9 @@ async function requestFriend(request: Request, env: Env, authenticatedId: string
   if (ids instanceof Response) return ids;
   const [playerId, targetPlayerId] = ids;
   if (!(await userExists(env, targetPlayerId))) return notFound();
+  if (await areBlocked(env, playerId, targetPlayerId)) {
+    return json({ error: "This player is blocked." }, { status: 403 });
+  }
   if (!(await havePlayedTogether(env, playerId, targetPlayerId))) {
     return json({ error: "Only recent opponents can receive a friend request." }, { status: 403 });
   }
@@ -391,6 +394,9 @@ async function acceptFriend(request: Request, env: Env, authenticatedId: string)
   const ids = validatePair(body);
   if (ids instanceof Response) return ids;
   const [playerId, targetPlayerId] = ids;
+  if (await areBlocked(env, playerId, targetPlayerId)) {
+    return json({ error: "This player is blocked." }, { status: 403 });
+  }
   const [userA, userB] = orderedPair(playerId, targetPlayerId);
   const existing = await friendship(env, userA, userB);
   if (!existing || existing.status !== "pending" || existing.requested_by !== targetPlayerId) {
@@ -465,16 +471,21 @@ async function getMessages(env: Env, playerId: string): Promise<Response> {
             u.id AS senderId, u.display_name AS senderName
      FROM friend_messages m
      JOIN users u ON u.id = m.sender_user_id
-     WHERE m.sender_user_id = ?
+     WHERE (m.sender_user_id = ?
         OR EXISTS (
           SELECT 1 FROM friendships f
           WHERE f.status = 'accepted'
             AND ((f.user_a = ? AND f.user_b = m.sender_user_id)
               OR (f.user_b = ? AND f.user_a = m.sender_user_id))
-        )
+        ))
+       AND NOT EXISTS (
+         SELECT 1 FROM user_blocks b
+         WHERE (b.user_id = ? AND b.blocked_user_id = m.sender_user_id)
+            OR (b.user_id = m.sender_user_id AND b.blocked_user_id = ?)
+       )
      ORDER BY m.created_at DESC
      LIMIT 60`
-  ).bind(playerId, playerId, playerId).all();
+  ).bind(playerId, playerId, playerId, playerId, playerId).all();
   return json({ messages: (messages.results ?? []).reverse() });
 }
 
@@ -551,6 +562,13 @@ async function areFriends(env: Env, playerId: string, targetPlayerId: string): P
   const [userA, userB] = orderedPair(playerId, targetPlayerId);
   const row = await friendship(env, userA, userB);
   return row?.status === "accepted";
+}
+
+async function areBlocked(env: Env, a: string, b: string): Promise<boolean> {
+  const row = await env.DB.prepare(
+    "SELECT 1 AS blocked FROM user_blocks WHERE (user_id = ? AND blocked_user_id = ?) OR (user_id = ? AND blocked_user_id = ?) LIMIT 1"
+  ).bind(a, b, b, a).first();
+  return row !== null;
 }
 
 async function friendship(env: Env, userA: string, userB: string): Promise<FriendshipRow | null> {
