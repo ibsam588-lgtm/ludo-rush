@@ -812,7 +812,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         final names = snapshot?.seats
                 .where((seat) =>
                     seat.playerId != state.playerId &&
-                    voice.participants.contains(seat.playerId))
+                    voice.participants.contains(seat.playerId) &&
+                    !voice.blockedPlayerIds.contains(seat.playerId))
                 .map((seat) => seat.displayName)
                 .join(', ') ??
             '';
