@@ -16,6 +16,7 @@ import {
   upsertSeat
 } from "../game/rules";
 import type { ClientRoomMessage, Env, GameMode, Region, RoomSnapshot, RoomSeat, ServerRoomMessage } from "../types";
+import { createId } from "../utils/id";
 
 interface ConnectionAttachment {
   playerId?: string;
@@ -123,7 +124,7 @@ export class LudoRoom extends DurableObject<Env> {
       }
 
       if (parsed.type === "voice_join") {
-        await this.handleVoiceJoin(ws);
+        await this.handleVoiceJoin(ws, parsed.rulesAccepted);
         return;
       }
 
@@ -134,6 +135,16 @@ export class LudoRoom extends DurableObject<Env> {
 
       if (parsed.type === "voice_signal") {
         await this.handleVoiceSignal(ws, parsed.toPlayerId, parsed.signal);
+        return;
+      }
+
+      if (parsed.type === "voice_block") {
+        await this.handleVoiceBlock(ws, parsed.targetPlayerId);
+        return;
+      }
+
+      if (parsed.type === "voice_report") {
+        await this.handleVoiceReport(ws, parsed.targetPlayerId, parsed.reason);
         return;
       }
 
@@ -366,10 +377,18 @@ export class LudoRoom extends DurableObject<Env> {
       return;
     }
 
-    this.broadcast({ type: "reaction", playerId: actor, displayName: seat.displayName, text, isEmoji });
+    const reaction: ServerRoomMessage = { type: "reaction", playerId: actor,
+      displayName: seat.displayName, text, isEmoji };
+    for (const peer of this.ctx.getWebSockets()) {
+      const recipientId = (peer.deserializeAttachment() as ConnectionAttachment | undefined)?.playerId;
+      if (peer.readyState !== 1 || !recipientId) continue;
+      if (recipientId !== actor && await this.areVoiceBlocked(actor, recipientId)) continue;
+      this.send(peer, reaction);
+    }
   }
 
-  private async handleVoiceJoin(ws: WebSocket): Promise<void> {
+  private async handleVoiceJoin(ws: WebSocket, rulesAccepted: boolean): Promise<void> {
+    if (rulesAccepted !== true) throw new Error("Accept the table voice rules before joining.");
     const attachment = ws.deserializeAttachment() as ConnectionAttachment | undefined;
     const actor = attachment?.playerId;
     const snapshot = await this.getSnapshot();
@@ -382,6 +401,60 @@ export class LudoRoom extends DurableObject<Env> {
     if ((profile?.age ?? 0) < 13) throw new Error("Voice chat is available to players age 13 or older.");
     ws.serializeAttachment({ ...attachment, voiceJoined: true });
     this.broadcastVoiceState();
+    for (const peer of this.ctx.getWebSockets()) {
+      const other = peer.deserializeAttachment() as ConnectionAttachment | undefined;
+      if (!other?.voiceJoined || !other.playerId || other.playerId === actor) continue;
+      if (await this.areVoiceBlocked(actor, other.playerId)) {
+        this.send(ws, { type: "voice_peer_blocked", playerId: other.playerId });
+        this.send(peer, { type: "voice_peer_blocked", playerId: actor });
+      }
+    }
+  }
+
+  private async areVoiceBlocked(a: string, b: string): Promise<boolean> {
+    const row = await this.env.DB.prepare(
+      "SELECT 1 AS blocked FROM user_blocks WHERE (user_id = ? AND blocked_user_id = ?) OR (user_id = ? AND blocked_user_id = ?) LIMIT 1"
+    ).bind(a, b, b, a).first<{ blocked: number }>();
+    return !!row;
+  }
+
+  private async handleVoiceBlock(ws: WebSocket, targetPlayerId: string): Promise<void> {
+    const actor = (ws.deserializeAttachment() as ConnectionAttachment | undefined)?.playerId;
+    const snapshot = await this.getSnapshot();
+    if (!actor || actor === targetPlayerId || snapshot.status !== "playing" ||
+      !snapshot.seats.some(seat => seat.playerId === actor && !seat.isBot) ||
+      !snapshot.seats.some(seat => seat.playerId === targetPlayerId && !seat.isBot)) {
+      throw new Error("Choose another human player at this table to block.");
+    }
+    await this.env.DB.prepare(
+      "INSERT OR IGNORE INTO user_blocks (user_id, blocked_user_id, created_at) VALUES (?, ?, ?)"
+    ).bind(actor, targetPlayerId, Date.now()).run();
+    this.send(ws, { type: "voice_peer_blocked", playerId: targetPlayerId });
+    for (const peer of this.ctx.getWebSockets()) {
+      if ((peer.deserializeAttachment() as ConnectionAttachment | undefined)?.playerId === targetPlayerId) {
+        this.send(peer, { type: "voice_peer_blocked", playerId: actor });
+      }
+    }
+  }
+
+  private async handleVoiceReport(ws: WebSocket, targetPlayerId: string, reason: string): Promise<void> {
+    const actor = (ws.deserializeAttachment() as ConnectionAttachment | undefined)?.playerId;
+    const snapshot = await this.getSnapshot();
+    if (!actor || actor === targetPlayerId || snapshot.status !== "playing" ||
+      !snapshot.seats.some(seat => seat.playerId === actor && !seat.isBot) ||
+      !snapshot.seats.some(seat => seat.playerId === targetPlayerId && !seat.isBot) ||
+      !["harassment", "hate", "sexual", "other"].includes(reason)) {
+      throw new Error("Choose another human player and a report reason.");
+    }
+    const existing = await this.env.DB.prepare(
+      "SELECT 1 AS reported FROM user_reports WHERE reporter_user_id = ? AND reported_user_id = ? AND room_id = ? LIMIT 1"
+    ).bind(actor, targetPlayerId, snapshot.roomId).first();
+    if (!existing) {
+      await this.env.DB.prepare(
+        "INSERT INTO user_reports (id, reporter_user_id, reported_user_id, room_id, reason, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+      ).bind(createId("report"), actor, targetPlayerId, snapshot.roomId, reason, Date.now()).run();
+    }
+    this.send(ws, { type: "voice_report_received", targetPlayerId });
   }
 
   private handleVoiceLeave(ws: WebSocket): void {
@@ -402,6 +475,7 @@ export class LudoRoom extends DurableObject<Env> {
       (signal.type === "candidate" ? typeof signal.candidate !== "string" || signal.candidate.length > 4_096 :
         typeof signal.sdp !== "string" || signal.sdp.length > 20_000)) return;
     if (!snapshot.seats.some(seat => seat.playerId === toPlayerId && !seat.isBot)) return;
+    if (await this.areVoiceBlocked(actor, toPlayerId)) return;
     const recipient = this.ctx.getWebSockets().find(peer => peer.readyState === 1 &&
       (peer.deserializeAttachment() as ConnectionAttachment | undefined)?.playerId === toPlayerId &&
       (peer.deserializeAttachment() as ConnectionAttachment | undefined)?.voiceJoined);

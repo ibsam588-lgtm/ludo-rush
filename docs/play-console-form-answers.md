@@ -76,7 +76,7 @@ Not primarily directed at children.
 No real-money gambling.
 No cash-out.
 No real-money prizes.
-No user-generated public content in the current internal test build.
+Players can communicate with freeform table text and optional live voice during matches. The content-rating questionnaire must disclose interactive player communication and must be updated when those features change.
 ```
 
 ## Data Safety
@@ -104,7 +104,8 @@ Data shared:
 - App interactions and other app activity: shared for advertising or marketing, analytics, and fraud prevention/security/compliance.
 - Diagnostics: shared for app functionality and analytics.
 - Device or other IDs: collected and shared for advertising or marketing, analytics, app functionality, and fraud prevention/security/compliance.
-- Live voice audio: collected when a player joins voice and shared with the other human players in that match for app functionality; Cloudflare TURN may relay it. Mark optional and ephemeral where the Play Console form permits, then confirm the final answers against the deployed voice implementation.
+- Live voice audio: collected when a player joins voice and transmitted to other human players in that match for app functionality; Cloudflare TURN may relay it. Mark optional and ephemeral where the Play Console form permits. Under Google's Data safety exception, user-initiated transfers to another player do not necessarily count as "sharing" in the form; verify the answer against the current Play guidance and deployment.
+- Voice blocks and safety reports: player and room IDs, selected report reason, timestamp, and review status are stored on the backend for app functionality, safety, and compliance. No voice recording is attached.
 - Guest profile and social data is processed by the app backend for app functionality and is not sold.
 
 Security:

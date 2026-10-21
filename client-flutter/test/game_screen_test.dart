@@ -61,6 +61,17 @@ void main() {
     expect(find.textContaining('Your microphone starts only'), findsOneWidget);
     expect(find.textContaining('Bots'), findsNothing);
     expect(find.text('Join voice'), findsOneWidget);
+    await tester.tap(find.text('Join voice'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('Table voice rules'), findsOneWidget);
+    expect(find.textContaining('Harassment, hate speech'), findsOneWidget);
+    expect(tester.widget<TextButton>(find.widgetWithText(TextButton, 'Join voice'))
+        .onPressed, isNull);
+    await tester.tap(find.text('I agree to the table voice rules and Terms of Use'));
+    await tester.pump();
+    expect(tester.widget<TextButton>(find.widgetWithText(TextButton, 'Join voice'))
+        .onPressed, isNotNull);
     state.dispose();
   });
 

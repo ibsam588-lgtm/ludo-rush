@@ -50,10 +50,16 @@ void main() {
     expect(voice.joined, isTrue);
     voice.setMuted(true);
     expect(track.enabled, isFalse);
+    voice.setPeerMuted('player_two', true);
+    expect(voice.mutedPlayerIds, contains('player_two'));
+    await voice.onPeerBlocked('player_two');
+    expect(voice.blockedPlayerIds, contains('player_two'));
+    expect(voice.mutedPlayerIds, isNot(contains('player_two')));
 
     await voice.leave();
     expect(voice.joined, isFalse);
     expect(voice.participants, isEmpty);
+    expect(voice.blockedPlayerIds, isEmpty);
     expect(track.stopped, isTrue);
     expect(microphone.disposed, isTrue);
     voice.dispose();

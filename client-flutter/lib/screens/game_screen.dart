@@ -807,10 +807,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         final voice = state.voiceChat;
         final snapshot = state.lastSnapshot;
         final unavailable = _voiceUnavailableReason(state);
+        final otherHumans = snapshot?.seats.where((seat) =>
+            !seat.isBot && seat.playerId != state.playerId).toList() ?? [];
         final names = snapshot?.seats
                 .where((seat) =>
                     seat.playerId != state.playerId &&
-                    voice.participants.contains(seat.playerId))
+                    voice.participants.contains(seat.playerId) &&
+                    !voice.blockedPlayerIds.contains(seat.playerId))
                 .map((seat) => seat.displayName)
                 .join(', ') ??
             '';
@@ -841,12 +844,53 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ],
                 const SizedBox(height: 14),
                 if (voice.joined) ...[
+                  if (voice.lastReportedPlayerId != null) ...[
+                    const Text('Report received. Thank you for helping keep the table safe.',
+                        style: TextStyle(color: boardGreen)),
+                    const SizedBox(height: 10),
+                  ],
                   _SheetButton(
                       label:
                           voice.muted ? 'Unmute microphone' : 'Mute microphone',
                       color: boardBlue,
                       onTap: () => voice.setMuted(!voice.muted)),
                   const SizedBox(height: 10),
+                  for (final player in otherHumans) ...[
+                    Row(children: [
+                      Expanded(child: Text(player.displayName,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: Colors.white))),
+                      if (voice.blockedPlayerIds.contains(player.playerId))
+                        const Text('Blocked', style: TextStyle(color: Colors.white70))
+                      else ...[
+                        IconButton(
+                          tooltip: voice.mutedPlayerIds.contains(player.playerId)
+                              ? 'Unmute ${player.displayName}'
+                              : 'Mute ${player.displayName}',
+                          icon: Icon(voice.mutedPlayerIds.contains(player.playerId)
+                              ? Icons.volume_off : Icons.volume_up,
+                              color: Colors.white),
+                          onPressed: voice.participants.contains(player.playerId)
+                              ? () => voice.setPeerMuted(player.playerId,
+                                  !voice.mutedPlayerIds.contains(player.playerId))
+                              : null,
+                        ),
+                        IconButton(
+                          tooltip: 'Block ${player.displayName}',
+                          icon: const Icon(Icons.block, color: Colors.white),
+                          onPressed: () => _confirmVoiceBlock(
+                              sheetContext, player.playerId, player.displayName),
+                        ),
+                        IconButton(
+                          tooltip: 'Report ${player.displayName}',
+                          icon: const Icon(Icons.flag_outlined, color: Colors.white),
+                          onPressed: () => _reportVoicePlayer(
+                              sheetContext, player.playerId, player.displayName),
+                        ),
+                      ],
+                    ]),
+                  ],
+                  if (otherHumans.isNotEmpty) const SizedBox(height: 10),
                   _SheetButton(
                       label: 'Leave voice',
                       color: boardRed,
@@ -857,8 +901,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   _SheetButton(
                       label: 'Join voice',
                       color: boardGreen,
-                      onTap: () {
+                      onTap: () async {
                         if (snapshot == null || state.playerId == null) return;
+                        final accepted = await _acceptVoiceRules(sheetContext);
+                        if (!accepted || !sheetContext.mounted) return;
                         if (state.localMatchActive) {
                           unawaited(voice.joinLocal(playerId: state.playerId!));
                         } else if (state.authToken != null) {
@@ -873,6 +919,77 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         );
       }),
     );
+  }
+
+  Future<bool> _acceptVoiceRules(BuildContext context) async {
+    var accepted = false;
+    return await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Table voice rules'),
+          content: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Text('Be respectful. Harassment, hate speech, sexual content, threats, and illegal content are prohibited. You can mute, block, or report another player during a match. Voice is live and is not recorded by the game. Terms: corsairlabs.com/terms'),
+            CheckboxListTile(
+              value: accepted,
+              title: const Text('I agree to the table voice rules and Terms of Use'),
+              onChanged: (value) => setDialogState(() => accepted = value ?? false),
+            ),
+          ]),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel')),
+            TextButton(onPressed: accepted
+                ? () => Navigator.pop(dialogContext, true) : null,
+                child: const Text('Join voice')),
+          ],
+        ),
+      ),
+    ) ?? false;
+  }
+
+  Future<void> _confirmVoiceBlock(
+      BuildContext context, String playerId, String displayName) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Block $displayName?'),
+        content: const Text('You will no longer hear or connect to this player in table voice.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Block')),
+        ],
+      ),
+    );
+    if (confirmed == true && context.mounted) {
+      unawaited(context.read<AppState>().voiceChat.blockPlayer(playerId));
+    }
+  }
+
+  Future<void> _reportVoicePlayer(
+      BuildContext context, String playerId, String displayName) async {
+    final reason = await showModalBottomSheet<String>(
+      context: context,
+      builder: (sheetContext) => SafeArea(child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(title: Text('Report $displayName'), enabled: false),
+          for (final entry in const [
+            ('harassment', 'Harassment or bullying'),
+            ('hate', 'Hate speech'),
+            ('sexual', 'Sexual content'),
+            ('other', 'Other harmful behavior'),
+          ])
+            ListTile(title: Text(entry.$2),
+              onTap: () => Navigator.pop(sheetContext, entry.$1)),
+        ],
+      )),
+    );
+    if (reason != null && context.mounted) {
+      context.read<AppState>().voiceChat.reportPlayer(playerId, reason);
+    }
   }
 
   void _showChatUnlockSheet(BuildContext context, AppState state) {
