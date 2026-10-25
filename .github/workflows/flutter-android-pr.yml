@@ -29,5 +29,16 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze --no-fatal-infos
       - run: flutter test --no-pub
-      - name: Compile Android app and native Play Games bridge
-        run: flutter build apk --debug
+      - name: Create temporary CI signing key
+        run: >-
+          keytool -genkeypair -keystore "$RUNNER_TEMP/pr-signing.jks"
+          -storepass android -keypass android -alias pr-signing
+          -keyalg RSA -keysize 2048 -validity 1
+          -dname "CN=CI,O=Ludo Rush,C=US"
+      - name: Compile release Android app and native Play Games bridge
+        env:
+          KEYSTORE_PATH: ${{ runner.temp }}/pr-signing.jks
+          KEY_ALIAS: pr-signing
+          KEY_PASSWORD: android
+          STORE_PASSWORD: android
+        run: flutter build apk --release
