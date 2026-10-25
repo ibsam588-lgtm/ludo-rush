@@ -98,8 +98,8 @@ jobs:
         run: |
           BUILD_NUMBER=$((GITHUB_RUN_NUMBER + 10000))
           VERSION_SEQUENCE=$GITHUB_RUN_NUMBER
-          if [ "$BUILD_NUMBER" -lt 10077 ]; then BUILD_NUMBER=10077; fi
-          if [ "$VERSION_SEQUENCE" -lt 77 ]; then VERSION_SEQUENCE=77; fi
+          if [ "$BUILD_NUMBER" -lt 10078 ]; then BUILD_NUMBER=10078; fi
+          if [ "$VERSION_SEQUENCE" -lt 78 ]; then VERSION_SEQUENCE=78; fi
           BUILD_NAME="1.0.${VERSION_SEQUENCE}"
           echo "Building Play internal release ${BUILD_NAME} (${BUILD_NUMBER})"
           flutter build appbundle --release \
@@ -117,6 +117,11 @@ jobs:
             --dart-define=LEVELPLAY_SHOP_REWARD_POINTS="$LEVELPLAY_SHOP_REWARD_POINTS" \
             --dart-define=LEVELPLAY_LEVEL_REWARD_POINTS="$LEVELPLAY_LEVEL_REWARD_POINTS" \
             --dart-define=LEVELPLAY_LEVEL_REWARD_ENERGY="$LEVELPLAY_LEVEL_REWARD_ENERGY"
+
+      - name: Check WorkManager startup database survives R8
+        run: |
+          unzip -q build/app/outputs/bundle/release/app-release.aab 'base/dex/classes*.dex' -d "$RUNNER_TEMP/release-dex"
+          grep -a -l 'WorkDatabase_Impl' "$RUNNER_TEMP"/release-dex/base/dex/classes*.dex
 
       - name: Upload AAB artifact
         uses: actions/upload-artifact@v4

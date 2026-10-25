@@ -11,6 +11,11 @@
 # Suppress all R8 missing-class warnings from flutter_tools internals
 -dontwarn io.flutter.app.FlutterPlayStoreSplitApplication
 
+# Room loads WorkManager's generated database implementation by its original
+# name (WorkDatabase_Impl). R8 otherwise removes/renames it and the app crashes
+# in InitializationProvider before Flutter can render its first frame.
+-keep class androidx.work.impl.WorkDatabase_Impl { *; }
+
 # Unity LevelPlay / ironSource
 -keepclassmembers class com.ironsource.sdk.controller.IronSourceWebView$JSInterface { public *; }
 -keepclassmembers class * implements android.os.Parcelable { public static final android.os.Parcelable$Creator *; }
