@@ -11,6 +11,7 @@ import '../data/economy.dart';
 import '../state/app_state.dart';
 import '../services/levelplay_ad_service.dart';
 import '../services/app_platform_service.dart';
+import '../services/play_games_service.dart';
 import '../services/sound_service.dart';
 import '../services/soundtrack_service.dart';
 import '../theme/app_theme.dart';
@@ -4964,12 +4965,52 @@ class _HomeTabStage extends StatelessWidget {
                   ),
                   if (i != rows.length - 1) const SizedBox(height: 8),
                 ],
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _FeatureActionButton(
+                        label: 'Play Games leaders',
+                        accent: const Color(0xFF278CDB),
+                        compact: true,
+                        onTap: () => unawaited(_openPlayGames(
+                          context,
+                          PlayGamesService.instance.showLeaderboard(state.wins),
+                        )),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _FeatureActionButton(
+                        label: 'Achievements',
+                        accent: const Color(0xFFAC65C7),
+                        compact: true,
+                        onTap: () => unawaited(_openPlayGames(
+                          context,
+                          PlayGamesService.instance
+                              .showAchievements(state.wins),
+                        )),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
         );
       },
     );
+  }
+
+  Future<void> _openPlayGames(
+    BuildContext context,
+    Future<bool> action,
+  ) async {
+    if (await action || !context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text(
+          'Google Play Games is unavailable. Check your connection and Play Games sign-in.'),
+    ));
   }
 
   void _showClubJoinSheet(BuildContext context, AppState state) {

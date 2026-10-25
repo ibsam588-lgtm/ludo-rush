@@ -12,6 +12,7 @@ import '../models/match_rewards.dart';
 import '../models/match_history_entry.dart';
 import '../services/app_platform_service.dart';
 import '../services/prefs_service.dart';
+import '../services/play_games_service.dart';
 import '../services/review_prompt_policy.dart';
 import '../services/sound_service.dart';
 import '../services/soundtrack_service.dart';
@@ -2317,6 +2318,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       SoundService.success();
       if (economyEligible) {
         wins++;
+        unawaited(PlayGamesService.instance.reportOnlineWin(wins));
         rating = (rating + 12).clamp(0, 9999);
         coins += GameEconomy.onlineWinCoins;
       }

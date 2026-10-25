@@ -1,5 +1,5 @@
--keep class io.flutter.** { *; }
--keep class io.flutter.plugins.** { *; }
+# Flutter's engine and registered plugins ship their own consumer rules. A
+# blanket keep here prevented R8 from shrinking most of the packaged code.
 -dontwarn io.flutter.embedding.**
 
 # Google Play Core — referenced by Flutter split-install classes but not used in our app
@@ -23,8 +23,7 @@
 -keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }
 
 # Mediated networks
--keep class com.unity3d.ads.** { *; }
--keep class com.unity3d.services.** { *; }
+# Recent Unity Ads and mediation artifacts include their own consumer rules.
 -dontwarn com.unity3d.services.**
 -dontwarn com.ironsource.adapters.unityads.**
 -keeppackagenames com.facebook.*
@@ -38,7 +37,6 @@
 -keep public class com.applovin.mediation.ads.* { public protected *; }
 -keep class com.applovin.mediation.adapters.** { *; }
 -keep class com.applovin.mediation.adapter.** { *; }
--keep class com.vungle.** { *; }
 -dontwarn com.vungle.**
 -keepattributes Signature,*Annotation*
 -keep class com.mbridge.** { *; }
@@ -46,7 +44,6 @@
 -dontwarn com.mbridge.**
 -keep class **.R$* { public static final int mbridge*; }
 -keep class com.bytedance.sdk.** { *; }
--keep class com.inmobi.** { *; }
 -dontwarn com.inmobi.**
 -dontwarn com.squareup.picasso.**
 -keep class com.squareup.picasso.** { *; }
