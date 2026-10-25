@@ -23,7 +23,8 @@
 -keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }
 
 # Mediated networks
-# Recent Unity Ads and mediation artifacts include their own consumer rules.
+-keep class com.unity3d.ads.** { *; }
+-keep class com.unity3d.services.** { *; }
 -dontwarn com.unity3d.services.**
 -dontwarn com.ironsource.adapters.unityads.**
 -keeppackagenames com.facebook.*
@@ -37,6 +38,7 @@
 -keep public class com.applovin.mediation.ads.* { public protected *; }
 -keep class com.applovin.mediation.adapters.** { *; }
 -keep class com.applovin.mediation.adapter.** { *; }
+-keep class com.vungle.** { *; }
 -dontwarn com.vungle.**
 -keepattributes Signature,*Annotation*
 -keep class com.mbridge.** { *; }
@@ -44,6 +46,7 @@
 -dontwarn com.mbridge.**
 -keep class **.R$* { public static final int mbridge*; }
 -keep class com.bytedance.sdk.** { *; }
+-keep class com.inmobi.** { *; }
 -dontwarn com.inmobi.**
 -dontwarn com.squareup.picasso.**
 -keep class com.squareup.picasso.** { *; }
