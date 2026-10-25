@@ -1,5 +1,5 @@
--keep class io.flutter.** { *; }
--keep class io.flutter.plugins.** { *; }
+# Flutter's engine and registered plugins ship their own consumer rules. A
+# blanket keep here prevented R8 from shrinking most of the packaged code.
 -dontwarn io.flutter.embedding.**
 
 # Google Play Core — referenced by Flutter split-install classes but not used in our app

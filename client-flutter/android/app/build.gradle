@@ -83,6 +83,7 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
     implementation 'com.google.android.gms:play-services-ads-identifier:18.2.0'
     implementation 'com.google.android.gms:play-services-appset:16.1.0'
+    implementation 'com.google.android.gms:play-services-games-v2:22.1.0'
 
     // Only ship networks configured for this LevelPlay account. ironSource Ads
     // is bundled by the LevelPlay plugin; these are its active mediated peers.

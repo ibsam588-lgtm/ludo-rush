@@ -8,7 +8,10 @@ import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.os.Bundle
 import com.google.android.play.core.review.ReviewManagerFactory
+import com.google.android.gms.games.PlayGames
+import com.google.android.gms.games.PlayGamesSdk
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -21,6 +24,11 @@ class MainActivity : FlutterActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private val sampleRate = 22050
     private val activeTracks = mutableSetOf<AudioTrack>()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        PlayGamesSdk.initialize(this)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -44,6 +52,56 @@ class MainActivity : FlutterActivity() {
 
                 playEffect(call.arguments as? String ?: "tap")
                 result.success(null)
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "ludo_rush/play_games")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "isAuthenticated" -> PlayGames.getGamesSignInClient(this)
+                        .isAuthenticated.addOnCompleteListener { task ->
+                            result.success(task.isSuccessful && task.result.isAuthenticated)
+                        }
+                    "signIn" -> PlayGames.getGamesSignInClient(this)
+                        .signIn().addOnCompleteListener { task ->
+                            result.success(task.isSuccessful && task.result.isAuthenticated)
+                        }
+                    "showAchievements" -> PlayGames.getAchievementsClient(this)
+                        .achievementsIntent.addOnCompleteListener { task ->
+                            if (task.isSuccessful) {
+                                startActivityForResult(task.result, 9003)
+                                result.success(true)
+                            } else result.success(false)
+                        }
+                    "showLeaderboard" -> {
+                        val id = call.argument<String>("id") ?: ""
+                        if (id.isBlank()) result.success(false)
+                        else PlayGames.getLeaderboardsClient(this)
+                            .getLeaderboardIntent(id).addOnCompleteListener { task ->
+                                if (task.isSuccessful) {
+                                    startActivityForResult(task.result, 9004)
+                                    result.success(true)
+                                } else result.success(false)
+                            }
+                    }
+                    "submitScore" -> {
+                        val id = call.argument<String>("id") ?: ""
+                        val score = call.argument<Number>("score")?.toLong()
+                        if (id.isBlank() || score == null) result.success(false)
+                        else {
+                            PlayGames.getLeaderboardsClient(this).submitScore(id, score)
+                            result.success(true)
+                        }
+                    }
+                    "unlockAchievement" -> {
+                        val id = call.argument<String>("id") ?: ""
+                        if (id.isBlank()) result.success(false)
+                        else {
+                            PlayGames.getAchievementsClient(this).unlock(id)
+                            result.success(true)
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
             }
     }
 

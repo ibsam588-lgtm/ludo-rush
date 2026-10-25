@@ -263,6 +263,140 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                           26));
                           final boardHeight = boardWidth * boardAspect;
 
+                          // On a wide window the portrait stack leaves almost
+                          // no room for the board. Put the board beside the
+                          // players and controls instead of forcing scrolling
+                          // through a tiny strip on tablets and foldables.
+                          if (constraints.maxWidth >
+                              constraints.maxHeight * 1.35) {
+                            final landscapeBoardWidth = math.max(
+                                1.0,
+                                math.min(
+                                    (constraints.maxHeight -
+                                            topBarHeight -
+                                            18) /
+                                        boardAspect,
+                                    constraints.maxWidth / 2 - 16));
+                            final landscapeActionHeight = math.max(
+                                100.0,
+                                math.min(
+                                    158.0,
+                                    constraints.maxHeight -
+                                        topBarHeight -
+                                        heroHeight -
+                                        14));
+                            return Column(children: [
+                              SizedBox(
+                                height: topBarHeight,
+                                child: _GameTopBar(
+                                  state: state,
+                                  snapshot: snapshot,
+                                  mySeat: mySeat,
+                                  onMenu: () => _showQuitDialog(context, state),
+                                  onVoice: () => _showVoiceSheet(context),
+                                ),
+                              ),
+                              Expanded(
+                                  child: Row(children: [
+                                Expanded(
+                                    child: Stack(children: [
+                                  Positioned.fill(
+                                      child: Scrollbar(
+                                    controller: _boardScroll,
+                                    thumbVisibility: true,
+                                    interactive: true,
+                                    child: SingleChildScrollView(
+                                      key: const ValueKey('match-board-scroll'),
+                                      controller: _boardScroll,
+                                      physics: const ClampingScrollPhysics(),
+                                      child: Center(
+                                          child: SizedBox(
+                                        width: landscapeBoardWidth,
+                                        height:
+                                            landscapeBoardWidth * boardAspect,
+                                        child: snakesTable
+                                            ? SnakesLaddersBoard(
+                                                snapshot: snapshot,
+                                                mySeat: mySeat,
+                                                onMotionChanged:
+                                                    _onMotionChanged,
+                                                boardTheme:
+                                                    state.snakesBoardTheme,
+                                                onPieceTap: state.movePiece,
+                                              )
+                                            : LudoBoard(
+                                                snapshot: snapshot,
+                                                mySeat: mySeat,
+                                                onMotionChanged:
+                                                    _onMotionChanged,
+                                                boardTheme:
+                                                    state.ludoBoardTheme,
+                                                onPieceTap: state.movePiece,
+                                                showWaitingOverlay: false,
+                                              ),
+                                      )),
+                                    ),
+                                  )),
+                                  if (snakesTable && mySeat != null)
+                                    Positioned(
+                                        right: 8,
+                                        bottom: 8,
+                                        child: FloatingActionButton.small(
+                                          heroTag: 'find-my-token',
+                                          tooltip: 'Find my token',
+                                          backgroundColor: palette.surface,
+                                          foregroundColor: palette.accent,
+                                          onPressed: () {
+                                            final progress = snapshot?.pieces
+                                                .where((piece) =>
+                                                    piece.seat == mySeat)
+                                                .map((piece) => piece.progress)
+                                                .firstOrNull;
+                                            if (progress != null) {
+                                              _followMySnakesToken(progress,
+                                                  animated: true);
+                                            }
+                                          },
+                                          child: const Icon(
+                                              Icons.my_location_rounded),
+                                        )),
+                                ])),
+                                Expanded(
+                                    child: Column(children: [
+                                  SizedBox(
+                                      height: heroHeight,
+                                      child: _PlayerHeroBand(
+                                        state: state,
+                                        snapshot: snapshot,
+                                        mySeat: mySeat,
+                                        pulse: _turnPulse,
+                                        compact: true,
+                                        snakesTable: snakesTable,
+                                        moment: _moment,
+                                        celebration: _avatarSequence,
+                                      )),
+                                  const Spacer(),
+                                  _PlayerActionRow(
+                                    state: state,
+                                    snapshot: snapshot,
+                                    mySeat: mySeat,
+                                    diceKey: _diceKey,
+                                    canRoll: canRoll,
+                                    legalCount: legalCount,
+                                    rolling: _rolling,
+                                    piecesMoving: _piecesMoving,
+                                    moment: _moment,
+                                    celebration: _avatarSequence,
+                                    turnPulse: _turnPulse,
+                                    height: landscapeActionHeight,
+                                    onEmoji: () => _showEmojiPicker(context),
+                                    onChat: () => _showChatPicker(context),
+                                  ),
+                                ])),
+                              ])),
+                            ]);
+                          }
+
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [

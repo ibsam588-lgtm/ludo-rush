@@ -18,7 +18,14 @@ import 'widgets/forced_update_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  // Android 15+ draws behind system bars. Keep the surfaces transparent so
+  // SafeArea can protect interactive content on phones, tablets and foldables.
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarContrastEnforced: false,
+  ));
 
   final prefs = PrefsService();
   await prefs.init();
