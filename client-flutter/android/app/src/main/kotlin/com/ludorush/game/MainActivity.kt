@@ -36,6 +36,7 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler { call, result ->
                 when (call.method) {
                     "getVersionInfo" -> result.success(versionInfo())
+                    "getUiStrings" -> result.success(uiStrings())
                     "openUrl" -> result.success(openUrl(call.argument<String>("url") ?: ""))
                     "shareText" -> result.success(shareText(call.argument<String>("text") ?: ""))
                     "requestInAppReview" -> requestInAppReview(result)
@@ -117,6 +118,12 @@ class MainActivity : FlutterActivity() {
             "versionName" to (info.versionName ?: ""),
             "buildNumber" to buildNumber
         )
+    }
+
+    private fun uiStrings(): Map<String, String> {
+        val keys = resources.getStringArray(R.array.ludo_ui_string_keys)
+        val values = resources.getStringArray(R.array.ludo_ui_string_values)
+        return keys.zip(values).toMap()
     }
 
     private fun openUrl(url: String): Boolean {

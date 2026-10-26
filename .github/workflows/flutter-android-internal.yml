@@ -98,8 +98,8 @@ jobs:
         run: |
           BUILD_NUMBER=$((GITHUB_RUN_NUMBER + 10000))
           VERSION_SEQUENCE=$GITHUB_RUN_NUMBER
-          if [ "$BUILD_NUMBER" -lt 10078 ]; then BUILD_NUMBER=10078; fi
-          if [ "$VERSION_SEQUENCE" -lt 78 ]; then VERSION_SEQUENCE=78; fi
+          if [ "$BUILD_NUMBER" -lt 10079 ]; then BUILD_NUMBER=10079; fi
+          if [ "$VERSION_SEQUENCE" -lt 79 ]; then VERSION_SEQUENCE=79; fi
           BUILD_NAME="1.0.${VERSION_SEQUENCE}"
           echo "Building Play internal release ${BUILD_NAME} (${BUILD_NUMBER})"
           flutter build appbundle --release \

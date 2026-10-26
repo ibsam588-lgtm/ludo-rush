@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/levelplay_banner.dart';
+import '../l10n/localized_text.dart';
 
 class MatchmakingScreen extends StatefulWidget {
   const MatchmakingScreen({super.key});
@@ -177,7 +178,7 @@ class _MatchmakingTopBar extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Expanded(
-            child: Text(
+            child: LocalizedText(
               status,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -261,7 +262,7 @@ class _WaitingPanel extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              const LocalizedText(
                 'Waiting for match',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -279,7 +280,7 @@ class _WaitingPanel extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              Text(
+              LocalizedText(
                 'Setting up your game...',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -306,7 +307,7 @@ class _WaitingPanel extends StatelessWidget {
                     key: const ValueKey('play-now-with-bots'),
                     onPressed: state.playNowWithBots,
                     icon: const Icon(Icons.flash_on_rounded),
-                    label: const Text('Play now'),
+                    label: const LocalizedText('Play now'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: goldColor, width: 1.5),
@@ -316,7 +317,7 @@ class _WaitingPanel extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 7),
-                const Text(
+                const LocalizedText(
                   'Start instantly against computer players.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white60, fontSize: 11),
@@ -357,7 +358,7 @@ class _CancelButton extends StatelessWidget {
             ),
           ],
         ),
-        child: const Text(
+        child: const LocalizedText(
           'Cancel',
           style: TextStyle(
             color: Colors.white,

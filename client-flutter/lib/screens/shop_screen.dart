@@ -18,6 +18,8 @@ import '../widgets/dice_widget.dart';
 import '../widgets/live_board_preview.dart';
 import '../widgets/live_item_preview.dart';
 import '../widgets/profile_avatar.dart';
+import '../l10n/localized_text.dart';
+import '../l10n/ludo_strings.dart';
 
 const _shopDiceAtlasAsset =
     'assets/images/rush/rush_shop_dice_showcase_mobile_v1.jpg';
@@ -205,7 +207,7 @@ class _ShopScreenState extends State<ShopScreen>
                                             child: ChoiceChip(
                                               key: ValueKey(
                                                   'shop-category-$category'),
-                                              label: Text(category),
+                                              label: LocalizedText(category),
                                               selected: category == _category,
                                               selectedColor: dark
                                                   ? const Color(0xFF674B20)
@@ -374,7 +376,7 @@ class _ShopScreenState extends State<ShopScreen>
                                                         const Color(0xEE22082E),
                                                     duration: const Duration(
                                                         milliseconds: 1200),
-                                                    content: Text(message),
+                                                    content: LocalizedText(message),
                                                   ),
                                                 );
                                             },
@@ -421,7 +423,7 @@ class _ShopScreenState extends State<ShopScreen>
         SnackBar(
           behavior: SnackBarBehavior.floating,
           backgroundColor: const Color(0xEE22082E),
-          content: Text(
+          content: LocalizedText(
             earned
                 ? '+${LevelPlayAdConfig.shopRewardPoints} points added.'
                 : 'Reward video is loading. Try again shortly.',
@@ -466,14 +468,14 @@ class _RewardedPointsBanner extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    LocalizedText(
                       'Free points',
                       style: TextStyle(
                         color: palette.text,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    Text(
+                    LocalizedText(
                       'Watch a video for ${LevelPlayAdConfig.shopRewardPoints} points',
                       style: TextStyle(color: palette.muted, fontSize: 12),
                     ),
@@ -483,7 +485,10 @@ class _RewardedPointsBanner extends StatelessWidget {
               const SizedBox(width: 8),
               IconButton.filled(
                 onPressed: loading ? null : onWatch,
-                tooltip: loading ? 'Loading video' : 'Watch reward video',
+                tooltip: LudoStringsScope.translate(
+                  context,
+                  loading ? 'Loading video' : 'Watch reward video',
+                ),
                 icon: loading
                     ? const SizedBox.square(
                         dimension: 18,
@@ -535,14 +540,14 @@ class _PurchaseStatusBanner extends StatelessWidget {
                   size: 19, color: boardGreen),
             const SizedBox(width: 9),
             Expanded(
-              child: Text(message,
+              child: LocalizedText(message,
                   style: TextStyle(color: palette.muted, fontSize: 11.5)),
             ),
             TextButton(
               onPressed: busy || !purchases.available
                   ? null
                   : () => unawaited(purchases.restorePurchases()),
-              child: const Text('Restore'),
+              child: const LocalizedText('Restore'),
             ),
           ]),
         ),
@@ -622,7 +627,7 @@ class _ShopResources extends StatelessWidget {
                   height: 38,
                 ),
                 padding: EdgeInsets.zero,
-                tooltip: 'Back',
+                tooltip: LudoStringsScope.translate(context, 'Back'),
                 onPressed: () => Navigator.pop(context),
                 icon: Icon(Icons.arrow_back_ios_new_rounded,
                     color: palette.text, size: compact ? 18 : 20),
@@ -699,7 +704,7 @@ class _ResourceChip extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Text(value,
+              child: LocalizedText(value,
                   maxLines: 1,
                   style: TextStyle(
                       color: palette.text,
@@ -812,7 +817,7 @@ class _ShopHeroCopy extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            LocalizedText(
               'Dice Shop',
               style: TextStyle(
                 color: goldColor,
@@ -828,7 +833,7 @@ class _ShopHeroCopy extends StatelessWidget {
               ),
             ),
             SizedBox(height: 1),
-            Text(
+            LocalizedText(
               'Daily coins and custom rolls',
               style: TextStyle(
                 color: Colors.white,
@@ -956,7 +961,7 @@ class _AnimatedShopSign extends StatelessWidget {
                     Center(
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: Text(
+                        child: LocalizedText(
                           'SHOP',
                           style: TextStyle(
                             color: Colors.white,
@@ -1667,7 +1672,7 @@ class _BoosterBanner extends StatelessWidget {
         border: Border.all(
             color: palette.dark ? Colors.transparent : const Color(0x22A00073)),
       ),
-      child: Text(
+      child: LocalizedText(
         'Win +${GameEconomy.onlineWinCoins} | Finish +${GameEconomy.onlineFinishCoins} | Daily +${GameEconomy.dailyCoins} | Chest +${GameEconomy.goldChestCoins} every ${GameEconomy.winsPerGoldChest} wins',
         textAlign: TextAlign.center,
         style: TextStyle(
@@ -1780,7 +1785,7 @@ class _AvatarShopStrip extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                LocalizedText(
                   'Avatar',
                   style: TextStyle(
                     color: goldColor,
@@ -1790,7 +1795,7 @@ class _AvatarShopStrip extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: 2),
-                Text(
+                LocalizedText(
                   'Styles',
                   style: TextStyle(
                     color: Colors.white,
@@ -1889,7 +1894,7 @@ class _ShopAvatarButton extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 2),
-            Text(
+            LocalizedText(
               avatar.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1899,7 +1904,7 @@ class _ShopAvatarButton extends StatelessWidget {
                 fontWeight: FontWeight.w900,
               ),
             ),
-            Text(
+            LocalizedText(
               actionLabel,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -2067,7 +2072,7 @@ class _BoardThemeStrip extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: const [
-                  Text(
+                  LocalizedText(
                     'Snakes',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -2079,7 +2084,7 @@ class _BoardThemeStrip extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 2),
-                  Text(
+                  LocalizedText(
                     'Boards',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -2227,7 +2232,7 @@ class _BoardThemeButton extends StatelessWidget {
               fit: BoxFit.scaleDown,
               child: Column(
                 children: [
-                  Text(
+                  LocalizedText(
                     option.label,
                     maxLines: 1,
                     style: const TextStyle(
@@ -2237,7 +2242,7 @@ class _BoardThemeButton extends StatelessWidget {
                       shadows: [Shadow(color: Colors.black, blurRadius: 3)],
                     ),
                   ),
-                  Text(
+                  LocalizedText(
                     actionLabel,
                     maxLines: 1,
                     style: TextStyle(
@@ -2397,7 +2402,7 @@ class _DiceSkinStrip extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      LocalizedText(
                         'Dice',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -2409,7 +2414,7 @@ class _DiceSkinStrip extends StatelessWidget {
                         ),
                       ),
                       SizedBox(height: 2),
-                      Text(
+                      LocalizedText(
                         'Skins',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -2560,7 +2565,7 @@ class _DiceSkinButton extends StatelessWidget {
             const SizedBox(height: 2),
             FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text(
+              child: LocalizedText(
                 option.label,
                 maxLines: 1,
                 style: const TextStyle(
@@ -2573,7 +2578,7 @@ class _DiceSkinButton extends StatelessWidget {
             ),
             FittedBox(
               fit: BoxFit.scaleDown,
-              child: Text(
+              child: LocalizedText(
                 actionLabel,
                 maxLines: 1,
                 style: TextStyle(
@@ -2780,7 +2785,7 @@ class _ShopCardState extends State<_ShopCard>
                       const SizedBox(height: 7),
                       FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: Text(
+                        child: LocalizedText(
                           widget.product.title,
                           style: const TextStyle(
                             color: Colors.white,
@@ -2797,7 +2802,7 @@ class _ShopCardState extends State<_ShopCard>
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 6),
-                        child: Text(
+                        child: LocalizedText(
                           widget.product.description,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -2844,7 +2849,7 @@ class _ShopCardState extends State<_ShopCard>
                         ),
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
-                          child: Text(
+                          child: LocalizedText(
                             widget.actionLabel,
                             style: const TextStyle(
                               color: Colors.white,
@@ -2878,7 +2883,7 @@ class _ShopCardState extends State<_ShopCard>
                               topLeft: Radius.circular(4),
                               bottomLeft: Radius.circular(4)),
                         ),
-                        child: const Text('BEST',
+                        child: const LocalizedText('BEST',
                             style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 10,
@@ -2961,7 +2966,7 @@ class _RarityPill extends StatelessWidget {
           color: premium ? const Color(0xFFFFF08A) : const Color(0x55FFD426),
         ),
       ),
-      child: Text(
+      child: LocalizedText(
         label,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -3159,7 +3164,7 @@ class _ShopBottomNav extends StatelessWidget {
                           active ? palette.stroke : palette.text.withAlpha(205),
                       size: active ? 31 : 27),
                   const SizedBox(height: 2),
-                  Text(
+                  LocalizedText(
                     items[i].label,
                     style: TextStyle(
                       color:
@@ -4746,7 +4751,7 @@ class _EquippedBadge extends StatelessWidget {
       child: const Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.check_circle_rounded, size: 11, color: Color(0xFFB8FFDC)),
         SizedBox(width: 4),
-        Text('Equipped',
+        LocalizedText('Equipped',
             style: TextStyle(
                 color: Color(0xFFB8FFDC),
                 fontSize: 10,

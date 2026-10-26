@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'dice_widget.dart';
+import '../l10n/localized_text.dart';
+import '../l10n/ludo_strings.dart';
 
 void showLiveItemPreview(BuildContext context,
     {required String title,
@@ -24,21 +26,21 @@ void showLiveItemPreview(BuildContext context,
                       children: [
                         Row(children: [
                           Expanded(
-                              child: Text(title,
+                              child: LocalizedText(title,
                                   style:
                                       Theme.of(context).textTheme.titleLarge)),
                           IconButton(
-                              tooltip: 'Close preview',
+                              tooltip: LudoStringsScope.translate(context, 'Close preview'),
                               onPressed: () => Navigator.pop(context),
                               icon: const Icon(Icons.close))
                         ]),
-                        const Text('LIVE PREVIEW', textAlign: TextAlign.center),
+                        const LocalizedText('LIVE PREVIEW', textAlign: TextAlign.center),
                         const SizedBox(height: 12),
                         AspectRatio(
                             aspectRatio: 1,
                             child: RepaintBoundary(child: preview)),
                         const SizedBox(height: 12),
-                        Text(description, textAlign: TextAlign.center),
+                        LocalizedText(description, textAlign: TextAlign.center),
                         const SizedBox(height: 16),
                         FilledButton(
                             onPressed: onAction == null
@@ -48,7 +50,7 @@ void showLiveItemPreview(BuildContext context,
                                     onAction();
                                   },
                             child:
-                                Text(actionLabel, textAlign: TextAlign.center)),
+                                LocalizedText(actionLabel, textAlign: TextAlign.center)),
                       ])),
             ),
           ));

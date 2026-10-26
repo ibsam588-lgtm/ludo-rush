@@ -1,0 +1,2210 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Ludo Rush</string>
+    <string name="ludo_ui_00c011af5d7e" formatted="false">1,200 coins</string>
+    <string name="ludo_ui_1df12c7cbe7f" formatted="false">2 Player</string>
+    <string name="ludo_ui_6ab4812ee264" formatted="false">2 Player Ludo</string>
+    <string name="ludo_ui_569e69a151b7" formatted="false">2 Player Rush</string>
+    <string name="ludo_ui_a66c7be7625c" formatted="false">2 WINS</string>
+    <string name="ludo_ui_ccd1d166b3f7" formatted="false">3 Player Ludo</string>
+    <string name="ludo_ui_6411de2d8eb6" formatted="false">3 WINS</string>
+    <string name="ludo_ui_43a954cd6ffe" formatted="false">3,500 coins</string>
+    <string name="ludo_ui_2302e50748ae" formatted="false">3p</string>
+    <string name="ludo_ui_e19a67143181" formatted="false">4 Player</string>
+    <string name="ludo_ui_a8029288de36" formatted="false">4 Player Ludo</string>
+    <string name="ludo_ui_55e501e56563" formatted="false">4 Player Rush</string>
+    <string name="ludo_ui_88b1cb04de50" formatted="false">4 WINS</string>
+    <string name="ludo_ui_81a205dd77ec" formatted="false">4p</string>
+    <string name="ludo_ui_9f4ce156b4a2" formatted="false">5 WINS</string>
+    <string name="ludo_ui_e8426e28a39b" formatted="false">6 WINS</string>
+    <string name="ludo_ui_67cf70802afe" formatted="false">7,500 coins</string>
+    <string name="ludo_ui_6c18999cf5da" formatted="false">8 WINS</string>
+    <string name="ludo_ui_b2b26974f392" formatted="false">A full celebration animation</string>
+    <string name="ludo_ui_27c6f2cc0669" formatted="false">A newer version of Ludo Rush is required to keep matchmaking, rewards, and game rules in sync.</string>
+    <string name="ludo_ui_013f4ac34d6f" formatted="false">A royal high-five reaction</string>
+    <string name="ludo_ui_684cc316ad4c" formatted="false">A six brings a goti onto the board.</string>
+    <string name="ludo_ui_fbb2cf43b43d" formatted="false">Accept requests before they join your friends circle.</string>
+    <string name="ludo_ui_a1745b84ec87" formatted="false">Accepted friend</string>
+    <string name="ludo_ui_a6634f24b2db" formatted="false">Achievements</string>
+    <string name="ludo_ui_61cc55aa0453" formatted="false">Add</string>
+    <string name="ludo_ui_b0c493dd9773" formatted="false">Add a friend first</string>
+    <string name="ludo_ui_6841238e3902" formatted="false">Add a recent opponent first</string>
+    <string name="ludo_ui_bbe0b7000598" formatted="false">Add a recent opponent first, or create a code and share it outside the app.</string>
+    <string name="ludo_ui_8e0ab9ead3eb" formatted="false">Add a recent opponent from the Friends tab first.</string>
+    <string name="ludo_ui_4926fa4e3961" formatted="false">Add and accept a recent opponent before sending gifts.</string>
+    <string name="ludo_ui_c69153687791" formatted="false">Afghanistan</string>
+    <string name="ludo_ui_ff9f1ff32120" formatted="false">Age</string>
+    <string name="ludo_ui_0f537fab0169" formatted="false">Aland Islands</string>
+    <string name="ludo_ui_79b9d273ac6d" formatted="false">Albania</string>
+    <string name="ludo_ui_bd6acc8626d1" formatted="false">Algeria</string>
+    <string name="ludo_ui_694c14c7cdb2" formatted="false">Alien</string>
+    <string name="ludo_ui_6a72085653e4" formatted="false">All</string>
+    <string name="ludo_ui_ca0b36fec74b" formatted="false">American Samoa</string>
+    <string name="ludo_ui_9d3bd1fb5278" formatted="false">Andorra</string>
+    <string name="ludo_ui_a42522a0cdd6" formatted="false">Angola</string>
+    <string name="ludo_ui_5722849f2ccb" formatted="false">Anguilla</string>
+    <string name="ludo_ui_00f33fc530d3" formatted="false">Antarctica</string>
+    <string name="ludo_ui_530670dca740" formatted="false">Antigua and Barbuda</string>
+    <string name="ludo_ui_354bf9892583" formatted="false">Argentina</string>
+    <string name="ludo_ui_54e15dd1f9ec" formatted="false">Arjun</string>
+    <string name="ludo_ui_5f4599daa341" formatted="false">Armenia</string>
+    <string name="ludo_ui_f3a826101b9a" formatted="false">Aruba</string>
+    <string name="ludo_ui_ceafb51e2b07" formatted="false">Australia</string>
+    <string name="ludo_ui_593905b31972" formatted="false">Austria</string>
+    <string name="ludo_ui_5e25ce007aa9" formatted="false">Authorization</string>
+    <string name="ludo_ui_c614ba7c453c" formatted="false">Auto</string>
+    <string name="ludo_ui_c501742ba88a" formatted="false">Auto roll</string>
+    <string name="ludo_ui_0f752f56d57f" formatted="false">Ava</string>
+    <string name="ludo_ui_ae507b91b299" formatted="false">Available after the match starts</string>
+    <string name="ludo_ui_7631b26ea80b" formatted="false">Avatar</string>
+    <string name="ludo_ui_fc022ebccbe9" formatted="false">Avatars</string>
+    <string name="ludo_ui_213598a7e922" formatted="false">Azerbaijan</string>
+    <string name="ludo_ui_7c1120a8a82b" formatted="false">BEST</string>
+    <string name="ludo_ui_4429f3ca2d65" formatted="false">BETTER LUCK NEXT TIME</string>
+    <string name="ludo_ui_b52b36b7269f" formatted="false">Back</string>
+    <string name="ludo_ui_639892c312cb" formatted="false">Back to Lobby</string>
+    <string name="ludo_ui_f6be1be64443" formatted="false">Backend health check failed</string>
+    <string name="ludo_ui_237724107d5a" formatted="false">Bad state: </string>
+    <string name="ludo_ui_1f797564f784" formatted="false">Bahamas</string>
+    <string name="ludo_ui_3ae11c725c30" formatted="false">Bahrain</string>
+    <string name="ludo_ui_fa6c3752cd00" formatted="false">Bangladesh</string>
+    <string name="ludo_ui_93409af2f208" formatted="false">Barbados</string>
+    <string name="ludo_ui_027a12c2fc85" formatted="false">Belarus</string>
+    <string name="ludo_ui_5cb4c9d82817" formatted="false">Belgium</string>
+    <string name="ludo_ui_42ab0c94a1e3" formatted="false">Belize</string>
+    <string name="ludo_ui_373616e39fb4" formatted="false">Benin</string>
+    <string name="ludo_ui_027ed37f00fb" formatted="false">Bermuda</string>
+    <string name="ludo_ui_bb2254a806f4" formatted="false">Bhutan</string>
+    <string name="ludo_ui_82dd2cdf36f9" formatted="false">Block</string>
+    <string name="ludo_ui_99613c74ce01" formatted="false">Blocked</string>
+    <string name="ludo_ui_3d3d9d394f28" formatted="false">Boards</string>
+    <string name="ludo_ui_a001af75ee89" formatted="false">Bolivia</string>
+    <string name="ludo_ui_96744d827a0f" formatted="false">Bonaire, Sint Eustatius and Saba</string>
+    <string name="ludo_ui_ea9045b9bcd7" formatted="false">Bonus claimed</string>
+    <string name="ludo_ui_62ac59b7255c" formatted="false">Bosnia and Herzegovina</string>
+    <string name="ludo_ui_180c89bf50c8" formatted="false">Botswana</string>
+    <string name="ludo_ui_290125ef9fc2" formatted="false">Bouvet Island</string>
+    <string name="ludo_ui_37497aa5a227" formatted="false">Brazil</string>
+    <string name="ludo_ui_5577d2a2748f" formatted="false">Bring all four gotis home to win.</string>
+    <string name="ludo_ui_9bb835f4f91b" formatted="false">British Indian Ocean Territory</string>
+    <string name="ludo_ui_2f3b5c55bc27" formatted="false">Browse</string>
+    <string name="ludo_ui_0ed5311a6941" formatted="false">Browse Clubs</string>
+    <string name="ludo_ui_309007d4c621" formatted="false">Browse a club that matches your rating</string>
+    <string name="ludo_ui_130e4a34f1b8" formatted="false">Brunei</string>
+    <string name="ludo_ui_5c77726358c5" formatted="false">Bulgaria</string>
+    <string name="ludo_ui_e71b56d92347" formatted="false">Burkina Faso</string>
+    <string name="ludo_ui_4617585b8749" formatted="false">Burundi</string>
+    <string name="ludo_ui_7ceca51fcafe" formatted="false">Buy</string>
+    <string name="ludo_ui_9ce257aad3b6" formatted="false">CARNIVAL</string>
+    <string name="ludo_ui_28f176c17b3d" formatted="false">CLAIMED</string>
+    <string name="ludo_ui_7f025ec3f529" formatted="false">CLASSIC TABLE</string>
+    <string name="ludo_ui_6536e0450199" formatted="false">COINS</string>
+    <string name="ludo_ui_e4636d467ea5" formatted="false">COMMON</string>
+    <string name="ludo_ui_07dee45ea568" formatted="false">Cabo Verde</string>
+    <string name="ludo_ui_314ccd964ef6" formatted="false">Cambodia</string>
+    <string name="ludo_ui_73a7ddd505f2" formatted="false">Cameroon</string>
+    <string name="ludo_ui_cd6a7b876852" formatted="false">Canada</string>
+    <string name="ludo_ui_77dfd2135f4d" formatted="false">Cancel</string>
+    <string name="ludo_ui_909907a57141" formatted="false">Capture! You get a free turn.</string>
+    <string name="ludo_ui_e38ede065e67" formatted="false">Carnival</string>
+    <string name="ludo_ui_09a560fe5f18" formatted="false">Carnival Board</string>
+    <string name="ludo_ui_09c0c3df4b66" formatted="false">Carnival Crown</string>
+    <string name="ludo_ui_e9e21c35ab34" formatted="false">Cayman Islands</string>
+    <string name="ludo_ui_dba86789b53e" formatted="false">Central African Republic</string>
+    <string name="ludo_ui_6c6b1b2b3ecc" formatted="false">Chad</string>
+    <string name="ludo_ui_2ced57f12591" formatted="false">Chat</string>
+    <string name="ludo_ui_e208206e5a1b" formatted="false">Chat 13+</string>
+    <string name="ludo_ui_458fce8a0957" formatted="false">Chat Locked</string>
+    <string name="ludo_ui_6448535a2c2b" formatted="false">Chat locked</string>
+    <string name="ludo_ui_870f36da6076" formatted="false">Chat unlocks for players 13+.</string>
+    <string name="ludo_ui_3ddb9e7bf12c" formatted="false">Chat unlocks for players age 13 and older.</string>
+    <string name="ludo_ui_e6a1ed95a00e" formatted="false">Check Again</string>
+    <string name="ludo_ui_8141c3c5aa30" formatted="false">Checking Update</string>
+    <string name="ludo_ui_6ae9a17853b9" formatted="false">Chest Locked</string>
+    <string name="ludo_ui_349507e41dd8" formatted="false">Chile</string>
+    <string name="ludo_ui_d2eaf2aa1512" formatted="false">China</string>
+    <string name="ludo_ui_77de189161e5" formatted="false">Choose Goti</string>
+    <string name="ludo_ui_df09f0640f48" formatted="false">Choose a goti</string>
+    <string name="ludo_ui_bc850fa299e9" formatted="false">Choose the approved board design before starting.</string>
+    <string name="ludo_ui_c6dfa97a611d" formatted="false">Christmas Island</string>
+    <string name="ludo_ui_03d9c10fee4d" formatted="false">Claim Daily</string>
+    <string name="ludo_ui_83c87884b09b" formatted="false">Claimed</string>
+    <string name="ludo_ui_130cd7fe3334" formatted="false">Classic</string>
+    <string name="ludo_ui_4cad864ba71d" formatted="false">Classic Board</string>
+    <string name="ludo_ui_9f0e14a96ab7" formatted="false">Climb ladders</string>
+    <string name="ludo_ui_bbfa773e5a63" formatted="false">Close</string>
+    <string name="ludo_ui_3c30d1ee6e0f" formatted="false">Close one!</string>
+    <string name="ludo_ui_baa5503537a8" formatted="false">Close preview</string>
+    <string name="ludo_ui_4014019824fd" formatted="false">Club</string>
+    <string name="ludo_ui_49ae8a1d9d6b" formatted="false">Club Progress</string>
+    <string name="ludo_ui_32c9c4c1145c" formatted="false">Club joined.</string>
+    <string name="ludo_ui_de4d64732274" formatted="false">Club left.</string>
+    <string name="ludo_ui_1be893ca34c5" formatted="false">Clubs</string>
+    <string name="ludo_ui_06dc26b59788" formatted="false">Cocos Islands</string>
+    <string name="ludo_ui_adac69379a62" formatted="false">Code</string>
+    <string name="ludo_ui_73834db36d39" formatted="false">Coin Ship</string>
+    <string name="ludo_ui_c832f75cc878" formatted="false">Coin Stack</string>
+    <string name="ludo_ui_04aac4c04182" formatted="false">Collect</string>
+    <string name="ludo_ui_2f7373996064" formatted="false">Colombia</string>
+    <string name="ludo_ui_5d26256d604b" formatted="false">Comeback time!</string>
+    <string name="ludo_ui_e5bb59a27319" formatted="false">Comoros</string>
+    <string name="ludo_ui_77f256b43643" formatted="false">Congo</string>
+    <string name="ludo_ui_6f387b673a75" formatted="false">Congo, Democratic Republic</string>
+    <string name="ludo_ui_c1f3b71fdf88" formatted="false">Connecting</string>
+    <string name="ludo_ui_bde1d8f5ca3e" formatted="false">Connection Required</string>
+    <string name="ludo_ui_85c08d2c56ce" formatted="false">Connection diagnostics</string>
+    <string name="ludo_ui_77d12b97ba61" formatted="false">Content-Type</string>
+    <string name="ludo_ui_4bacfe2535ec" formatted="false">Cook Islands</string>
+    <string name="ludo_ui_2060b6806e60" formatted="false">Cosmic</string>
+    <string name="ludo_ui_ced26434ea11" formatted="false">Cosmic Dice</string>
+    <string name="ludo_ui_a8ed2677ac6b" formatted="false">Cosmic Empress</string>
+    <string name="ludo_ui_1bf429f94068" formatted="false">Costa Rica</string>
+    <string name="ludo_ui_58f76ad9b377" formatted="false">Cote d\'Ivoire</string>
+    <string name="ludo_ui_d48dcb73870a" formatted="false">Could not reach the social service.</string>
+    <string name="ludo_ui_d523ebbd1014" formatted="false">Country</string>
+    <string name="ludo_ui_6e157c5da441" formatted="false">Create</string>
+    <string name="ludo_ui_9ac59abe8462" formatted="false">Create Code</string>
+    <string name="ludo_ui_7b37d3f455d9" formatted="false">Create Private Code</string>
+    <string name="ludo_ui_d7e0453bb4af" formatted="false">Croatia</string>
+    <string name="ludo_ui_8b033e8b4c7b" formatted="false">Crown Chest</string>
+    <string name="ludo_ui_c484b137e2d1" formatted="false">Cuba</string>
+    <string name="ludo_ui_de58331a6338" formatted="false">Curacao</string>
+    <string name="ludo_ui_6c89c1683731" formatted="false">Current Club</string>
+    <string name="ludo_ui_852addab901c" formatted="false">Cyprus</string>
+    <string name="ludo_ui_045e2f1d6c4d" formatted="false">Czechia</string>
+    <string name="ludo_ui_728298d3dbf4" formatted="false">Daily</string>
+    <string name="ludo_ui_ed83793e57dd" formatted="false">Daily +150</string>
+    <string name="ludo_ui_0defbb031add" formatted="false">Daily Claimed</string>
+    <string name="ludo_ui_86ad0f979384" formatted="false">Daily Coins</string>
+    <string name="ludo_ui_26f077508f91" formatted="false">Daily Coins Claimed</string>
+    <string name="ludo_ui_17b902de1662" formatted="false">Daily Coins Ready</string>
+    <string name="ludo_ui_fdc0ce7968aa" formatted="false">Daily coins and custom rolls</string>
+    <string name="ludo_ui_4dc593cb130f" formatted="false">Daily coins are already claimed.</string>
+    <string name="ludo_ui_77bf95d60e7e" formatted="false">DailyGift</string>
+    <string name="ludo_ui_7b37259e1496" formatted="false">Daniel</string>
+    <string name="ludo_ui_89da124e04df" formatted="false">Denmark</string>
+    <string name="ludo_ui_5dfa90784e1d" formatted="false">Desert Star</string>
+    <string name="ludo_ui_7927f138711a" formatted="false">Dice</string>
+    <string name="ludo_ui_a5207ad4fc95" formatted="false">Dice Parade</string>
+    <string name="ludo_ui_599546c10d15" formatted="false">Dice Shop</string>
+    <string name="ludo_ui_1f7b3145f26b" formatted="false">Dice unlocked.</string>
+    <string name="ludo_ui_fb6145690e88" formatted="false">Dice, moves, ladders and snakes</string>
+    <string name="ludo_ui_60a8b0c6de6f" formatted="false">Djibouti</string>
+    <string name="ludo_ui_bc1cd4f07d82" formatted="false">Dominica</string>
+    <string name="ludo_ui_8a4bf12e17b2" formatted="false">Dominican Republic</string>
+    <string name="ludo_ui_eb22c5e28adf" formatted="false">Dragon</string>
+    <string name="ludo_ui_df39fedad614" formatted="false">EQUIP</string>
+    <string name="ludo_ui_1e5a19cdd267" formatted="false">EQUIPPED</string>
+    <string name="ludo_ui_357ab81020c6" formatted="false">Earn one Gold Chest every 3 online wins.</string>
+    <string name="ludo_ui_135ce40380c7" formatted="false">Earn one every 3 online wins</string>
+    <string name="ludo_ui_00f03137e155" formatted="false">Easy</string>
+    <string name="ludo_ui_09f199d25132" formatted="false">Ecuador</string>
+    <string name="ludo_ui_15141eab3a28" formatted="false">Edit profile</string>
+    <string name="ludo_ui_1c39abf68e93" formatted="false">Egypt</string>
+    <string name="ludo_ui_259a6e935b84" formatted="false">El Salvador</string>
+    <string name="ludo_ui_da32ecab00cd" formatted="false">Emerald</string>
+    <string name="ludo_ui_c595d3fc0566" formatted="false">Emerald Dice</string>
+    <string name="ludo_ui_8aeef015cc99" formatted="false">Emerald Prince</string>
+    <string name="ludo_ui_2b0b33a9533a" formatted="false">Emerald Smile</string>
+    <string name="ludo_ui_5090a9e78c89" formatted="false">Emoji</string>
+    <string name="ludo_ui_68e6a910db6d" formatted="false">Emoji only account</string>
+    <string name="ludo_ui_6ab05be1c205" formatted="false">Enter a message first.</string>
+    <string name="ludo_ui_7bb1675d4093" formatted="false">Enter a private room code.</string>
+    <string name="ludo_ui_0cdfe1a8f2f0" formatted="false">Enter an invite code.</string>
+    <string name="ludo_ui_80eaf3087b0b" formatted="false">Equatorial Guinea</string>
+    <string name="ludo_ui_48fdec333e8f" formatted="false">Equip avatar</string>
+    <string name="ludo_ui_3f1e9642bce4" formatted="false">Equip board</string>
+    <string name="ludo_ui_f8dc9813a53b" formatted="false">Equip dice</string>
+    <string name="ludo_ui_689532b4d3bc" formatted="false">Equipped</string>
+    <string name="ludo_ui_18740af5bcec" formatted="false">Eritrea</string>
+    <string name="ludo_ui_f0a96da3f86a" formatted="false">Estonia</string>
+    <string name="ludo_ui_16cc7f843a3e" formatted="false">Eswatini</string>
+    <string name="ludo_ui_2f8f37e09f76" formatted="false">Ethan</string>
+    <string name="ludo_ui_3d91f7631ba8" formatted="false">Ethiopia</string>
+    <string name="ludo_ui_f83b6fe3aebf" formatted="false">Exit</string>
+    <string name="ludo_ui_8f7a3d32ed47" formatted="false">Exit Ludo Rush?</string>
+    <string name="ludo_ui_c61a7c7f39fc" formatted="false">FAIR</string>
+    <string name="ludo_ui_4a9768fab062" formatted="false">FREE</string>
+    <string name="ludo_ui_11499959510c" formatted="false">Falkland Islands</string>
+    <string name="ludo_ui_1082f8911562" formatted="false">Faroe Islands</string>
+    <string name="ludo_ui_bbb7ef7f2ec9" formatted="false">Fiji</string>
+    <string name="ludo_ui_6cf4b5b94b33" formatted="false">Find my token</string>
+    <string name="ludo_ui_1011eeb27ed5" formatted="false">Find my token on the board</string>
+    <string name="ludo_ui_c909b138eba8" formatted="false">Finland</string>
+    <string name="ludo_ui_05f5561dbd79" formatted="false">Firework Castle</string>
+    <string name="ludo_ui_c0820b5b597b" formatted="false">Follow your token</string>
+    <string name="ludo_ui_dfcd3454bbea" formatted="false">Fox</string>
+    <string name="ludo_ui_e3772ac4b4db" formatted="false">France</string>
+    <string name="ludo_ui_c1c331bc3736" formatted="false">Free points</string>
+    <string name="ludo_ui_07090aa7d613" formatted="false">French Guiana</string>
+    <string name="ludo_ui_40f39cdcd3ac" formatted="false">French Polynesia</string>
+    <string name="ludo_ui_ced852bf5c06" formatted="false">French Southern Territories</string>
+    <string name="ludo_ui_2394299d6feb" formatted="false">Friend</string>
+    <string name="ludo_ui_907b2ba81ed2" formatted="false">Friend removed.</string>
+    <string name="ludo_ui_e21ce053de52" formatted="false">Friend request accepted.</string>
+    <string name="ludo_ui_c5283d4829b4" formatted="false">Friend request pending</string>
+    <string name="ludo_ui_05a290ea7dc7" formatted="false">Friend request sent.</string>
+    <string name="ludo_ui_c11d5e1d35fb" formatted="false">Friends</string>
+    <string name="ludo_ui_4e4452810ee2" formatted="false">Friends chat is available for age 13+ profiles.</string>
+    <string name="ludo_ui_705c61e1b82c" formatted="false">Friendship Heart</string>
+    <string name="ludo_ui_a06dcd71328f" formatted="false">Gabon</string>
+    <string name="ludo_ui_7c39974f44b2" formatted="false">Gambia</string>
+    <string name="ludo_ui_a894063faec2" formatted="false">Game feedback &amp; accessibility</string>
+    <string name="ludo_ui_398ed3298149" formatted="false">Games</string>
+    <string name="ludo_ui_d5f998a403b7" formatted="false">Gem Chest</string>
+    <string name="ludo_ui_9113c6c0c1f9" formatted="false">Georgia</string>
+    <string name="ludo_ui_17d53e0e6a68" formatted="false">Germany</string>
+    <string name="ludo_ui_317dbac90743" formatted="false">Ghana</string>
+    <string name="ludo_ui_e51335897c0e" formatted="false">Gibraltar</string>
+    <string name="ludo_ui_8d0a32ed6339" formatted="false">Gift</string>
+    <string name="ludo_ui_1251337f44bf" formatted="false">Gift Shop</string>
+    <string name="ludo_ui_2fb7d7f8054b" formatted="false">Gift boat with coins</string>
+    <string name="ludo_ui_65a2d1f9cce1" formatted="false">Gift sent.</string>
+    <string name="ludo_ui_6f1e2c915818" formatted="false">Gold Champion</string>
+    <string name="ludo_ui_d9f44edd52a7" formatted="false">Gold Chest</string>
+    <string name="ludo_ui_8ac9a5090057" formatted="false">Gold Hoodie</string>
+    <string name="ludo_ui_f08bdc8d0c0c" formatted="false">Good game!</string>
+    <string name="ludo_ui_8e30d6aac813" formatted="false">Good luck!</string>
+    <string name="ludo_ui_a600154da4fb" formatted="false">Google Play could not verify this purchase.</string>
+    <string name="ludo_ui_0018b3443f7d" formatted="false">Got it — start match</string>
+    <string name="ludo_ui_1a9360a0e998" formatted="false">Great capture!</string>
+    <string name="ludo_ui_4902a456caa9" formatted="false">Greece</string>
+    <string name="ludo_ui_1ba0cfa55029" formatted="false">Greenland</string>
+    <string name="ludo_ui_dbf2a2da6458" formatted="false">Grenada</string>
+    <string name="ludo_ui_f0f524ff3b9c" formatted="false">Guadeloupe</string>
+    <string name="ludo_ui_f8aa3a934ee3" formatted="false">Guam</string>
+    <string name="ludo_ui_11760e1aac43" formatted="false">Guatemala</string>
+    <string name="ludo_ui_180c97abdb80" formatted="false">Guernsey</string>
+    <string name="ludo_ui_b47b54fd3a46" formatted="false">Guinea</string>
+    <string name="ludo_ui_b07cb9a2b248" formatted="false">Guinea-Bissau</string>
+    <string name="ludo_ui_bc88a24030a1" formatted="false">Guyana</string>
+    <string name="ludo_ui_a4842f0234d7" formatted="false">Haiti</string>
+    <string name="ludo_ui_020d6b5ecf82" formatted="false">Haptics</string>
+    <string name="ludo_ui_b110b0dd78dc" formatted="false">Harassment or bullying</string>
+    <string name="ludo_ui_20a89915f18c" formatted="false">Hard</string>
+    <string name="ludo_ui_84c4456c82c2" formatted="false">Hate speech</string>
+    <string name="ludo_ui_130447083d0b" formatted="false">Heard Island and McDonald Islands</string>
+    <string name="ludo_ui_5add073ddb4a" formatted="false">High contrast</string>
+    <string name="ludo_ui_8a7fecc4350c" formatted="false">High five!</string>
+    <string name="ludo_ui_74bcb5f14ee9" formatted="false">Highlighted gotis are legal moves.</string>
+    <string name="ludo_ui_90ccd6497400" formatted="false">History</string>
+    <string name="ludo_ui_0f3f60b7c574" formatted="false">Holy See</string>
+    <string name="ludo_ui_70f8bb9a8a53" formatted="false">Home</string>
+    <string name="ludo_ui_5aa588714ab4" formatted="false">Honduras</string>
+    <string name="ludo_ui_2f488ffc82cc" formatted="false">Hong Kong</string>
+    <string name="ludo_ui_f14e46ce7d09" formatted="false">Hungary</string>
+    <string name="ludo_ui_4dabfb26fa78" formatted="false">I agree to the table voice rules and Terms of Use</string>
+    <string name="ludo_ui_bcdc18a50d5a" formatted="false">I am 13+</string>
+    <string name="ludo_ui_b325dab367bc" formatted="false">I need a six!</string>
+    <string name="ludo_ui_ae1d91a2a7b3" formatted="false">Ibsam</string>
+    <string name="ludo_ui_72d75745e517" formatted="false">Ice Champion</string>
+    <string name="ludo_ui_b3c92eecf0aa" formatted="false">Iceland</string>
+    <string name="ludo_ui_3e2c5704094d" formatted="false">Included</string>
+    <string name="ludo_ui_bbd88bff92de" formatted="false">Incoming request</string>
+    <string name="ludo_ui_967ce367d89d" formatted="false">India</string>
+    <string name="ludo_ui_35536a41b209" formatted="false">Indonesia</string>
+    <string name="ludo_ui_b136609f0684" formatted="false">Invite</string>
+    <string name="ludo_ui_7ae0933a3884" formatted="false">Invite Friends</string>
+    <string name="ludo_ui_e91cf27d1adf" formatted="false">Invite code</string>
+    <string name="ludo_ui_20cfec91c6d6" formatted="false">Invite ready</string>
+    <string name="ludo_ui_0179e8431590" formatted="false">Invites create a private room code so friends land on the same table.</string>
+    <string name="ludo_ui_889224e3fca2" formatted="false">Iran</string>
+    <string name="ludo_ui_1aed9ecc6e1b" formatted="false">Iraq</string>
+    <string name="ludo_ui_eb2131ece0ef" formatted="false">Ireland</string>
+    <string name="ludo_ui_76733f338bb2" formatted="false">Isle of Man</string>
+    <string name="ludo_ui_4c197dfd67f1" formatted="false">Israel</string>
+    <string name="ludo_ui_ad79ef0f076d" formatted="false">Italy</string>
+    <string name="ludo_ui_c789954268c3" formatted="false">JUNGLE TEMPLE</string>
+    <string name="ludo_ui_5eedd6a16ab8" formatted="false">Jamaica</string>
+    <string name="ludo_ui_fcf29f6cad32" formatted="false">Japan</string>
+    <string name="ludo_ui_ff4636d0caf6" formatted="false">Jersey</string>
+    <string name="ludo_ui_24c80ef942c3" formatted="false">Join Code</string>
+    <string name="ludo_ui_165b6cfdc9df" formatted="false">Join a Club</string>
+    <string name="ludo_ui_4459d14e9422" formatted="false">Join one club to earn contribution points from completed online matches.</string>
+    <string name="ludo_ui_9292be3a838e" formatted="false">Join one persistent club at a time</string>
+    <string name="ludo_ui_fb8e84a9c2ff" formatted="false">Join table voice</string>
+    <string name="ludo_ui_99d6d24f6e84" formatted="false">Join voice</string>
+    <string name="ludo_ui_674027e17b0e" formatted="false">Jordan</string>
+    <string name="ludo_ui_3a682b2fa18a" formatted="false">Jungle</string>
+    <string name="ludo_ui_84e2924b8865" formatted="false">Jungle Temple</string>
+    <string name="ludo_ui_2f36b6bb1852" formatted="false">Kazakhstan</string>
+    <string name="ludo_ui_a84f56f2e6a7" formatted="false">Kenya</string>
+    <string name="ludo_ui_3f57adf2c06c" formatted="false">Kiribati</string>
+    <string name="ludo_ui_2133c45255e5" formatted="false">Korea, North</string>
+    <string name="ludo_ui_6544b2fecc0e" formatted="false">Korea, South</string>
+    <string name="ludo_ui_93295b0c76b9" formatted="false">Kuwait</string>
+    <string name="ludo_ui_c78791a3f0e1" formatted="false">Kyrgyzstan</string>
+    <string name="ludo_ui_73a393390615" formatted="false">LAVA CITADEL</string>
+    <string name="ludo_ui_5ae481644a06" formatted="false">LIVE PREVIEW</string>
+    <string name="ludo_ui_7ee89b418040" formatted="false">Ladders</string>
+    <string name="ludo_ui_aeec316868da" formatted="false">Land at a ladder’s foot to climb; a snake’s head sends you down.</string>
+    <string name="ludo_ui_79194ba16f36" formatted="false">Land on the bottom to jump ahead.</string>
+    <string name="ludo_ui_7998be8d446d" formatted="false">Laos</string>
+    <string name="ludo_ui_118f9b2b3021" formatted="false">Larger text</string>
+    <string name="ludo_ui_c5f5bb3b3507" formatted="false">Latvia</string>
+    <string name="ludo_ui_4e87aded1494" formatted="false">Lava Citadel</string>
+    <string name="ludo_ui_027de9d1ce67" formatted="false">Leaders</string>
+    <string name="ludo_ui_7e3520a97331" formatted="false">Leave</string>
+    <string name="ludo_ui_3676c372bfc0" formatted="false">Leave voice</string>
+    <string name="ludo_ui_5c9bea81a942" formatted="false">Leaving now will resign this match.</string>
+    <string name="ludo_ui_5caa7f811b5a" formatted="false">Lebanon</string>
+    <string name="ludo_ui_cfaf50ac3721" formatted="false">Leo</string>
+    <string name="ludo_ui_93b12bf57f18" formatted="false">Lesotho</string>
+    <string name="ludo_ui_c38a582abbd1" formatted="false">Let’s go!</string>
+    <string name="ludo_ui_d76e786fb2aa" formatted="false">Let’s play</string>
+    <string name="ludo_ui_1ed5dd9d833f" formatted="false">Liberia</string>
+    <string name="ludo_ui_55949d4c1663" formatted="false">Libya</string>
+    <string name="ludo_ui_b0ddce0f54c9" formatted="false">Liechtenstein</string>
+    <string name="ludo_ui_9f19d4dcd451" formatted="false">Lion</string>
+    <string name="ludo_ui_74a788cee27d" formatted="false">Lithuania</string>
+    <string name="ludo_ui_65c821a596ce" formatted="false">Live</string>
+    <string name="ludo_ui_5247f376b4f2" formatted="false">Live board</string>
+    <string name="ludo_ui_c18920c370b7" formatted="false">Loading video</string>
+    <string name="ludo_ui_762379d64d72" formatted="false">LobbyBanner</string>
+    <string name="ludo_ui_23f2ec0a7133" formatted="false">Local game</string>
+    <string name="ludo_ui_3e7dc459e718" formatted="false">Locked Board</string>
+    <string name="ludo_ui_cff01302121c" formatted="false">Lucky Dice</string>
+    <string name="ludo_ui_cfb6dd4663ed" formatted="false">Lucky me!</string>
+    <string name="ludo_ui_5fcfb0864ab6" formatted="false">Lucky six!</string>
+    <string name="ludo_ui_7b8f959b6fb7" formatted="false">Ludo</string>
+    <string name="ludo_ui_21796852cf71" formatted="false">Ludo Player</string>
+    <string name="ludo_ui_6fc6c6c60b28" formatted="false">Ludo Rush diagnostics</string>
+    <string name="ludo_ui_b50d45ff9748" formatted="false">Ludo rules</string>
+    <string name="ludo_ui_5076721c4060" formatted="false">Luxembourg</string>
+    <string name="ludo_ui_424d6d3ea59e" formatted="false">MATCH REWARDS</string>
+    <string name="ludo_ui_918c53a2d612" formatted="false">Macao</string>
+    <string name="ludo_ui_f92bcb6a06d2" formatted="false">Madagascar</string>
+    <string name="ludo_ui_0ce65b26dcd3" formatted="false">Malawi</string>
+    <string name="ludo_ui_ff3ea3bec182" formatted="false">Malaysia</string>
+    <string name="ludo_ui_213cb2045092" formatted="false">Maldives</string>
+    <string name="ludo_ui_daa6a489dbca" formatted="false">Mali</string>
+    <string name="ludo_ui_1a591a3e91fc" formatted="false">Malta</string>
+    <string name="ludo_ui_bb130626b42c" formatted="false">Marshall Islands</string>
+    <string name="ludo_ui_66f1a98a952d" formatted="false">Martinique</string>
+    <string name="ludo_ui_3a22d2b93c3f" formatted="false">Mascot Cheer</string>
+    <string name="ludo_ui_62b328f98f50" formatted="false">Match History</string>
+    <string name="ludo_ui_3f7c3259d133" formatted="false">Match complete</string>
+    <string name="ludo_ui_623eb5f6dc49" formatted="false">Match is not connected.</string>
+    <string name="ludo_ui_0ec91c5a20c8" formatted="false">Match resigned.</string>
+    <string name="ludo_ui_1700c24d6087" formatted="false">Matchmaking cancelled.</string>
+    <string name="ludo_ui_85fa355bdb4f" formatted="false">Mauritania</string>
+    <string name="ludo_ui_26160d23fb07" formatted="false">Mauritius</string>
+    <string name="ludo_ui_26414e770f8c" formatted="false">Maya</string>
+    <string name="ludo_ui_dcc64425eed0" formatted="false">Mayotte</string>
+    <string name="ludo_ui_d404968ea90b" formatted="false">Medium</string>
+    <string name="ludo_ui_f99fb0f86ae7" formatted="false">Message your friends circle</string>
+    <string name="ludo_ui_41937b20fbe8" formatted="false">Mexico</string>
+    <string name="ludo_ui_3aa06745f0af" formatted="false">Mia</string>
+    <string name="ludo_ui_5a7d7bc91620" formatted="false">Micronesia</string>
+    <string name="ludo_ui_66ec628cb55d" formatted="false">Microphone muted</string>
+    <string name="ludo_ui_9791bc4d7273" formatted="false">Moldova</string>
+    <string name="ludo_ui_35ab1c3de6da" formatted="false">Monaco</string>
+    <string name="ludo_ui_f54da380bade" formatted="false">Mongolia</string>
+    <string name="ludo_ui_479fb34bdbf4" formatted="false">Montenegro</string>
+    <string name="ludo_ui_35f005157cfd" formatted="false">Montserrat</string>
+    <string name="ludo_ui_32e087f099be" formatted="false">Morocco</string>
+    <string name="ludo_ui_3520cf6de570" formatted="false">Move Goti</string>
+    <string name="ludo_ui_71fb0c9b4bb7" formatted="false">Move Token</string>
+    <string name="ludo_ui_7748a492c37f" formatted="false">Move a highlighted piece first.</string>
+    <string name="ludo_ui_a40a9be00a9a" formatted="false">Mozambique</string>
+    <string name="ludo_ui_43b19811192e" formatted="false">Music off</string>
+    <string name="ludo_ui_7f19ae34bd22" formatted="false">Music on</string>
+    <string name="ludo_ui_f83cc9942f62" formatted="false">Mute microphone</string>
+    <string name="ludo_ui_928b7c48a60a" formatted="false">Myanmar</string>
+    <string name="ludo_ui_64b683f2d569" formatted="false">NEON CIRCUIT</string>
+    <string name="ludo_ui_bfe79debcedd" formatted="false">Namibia</string>
+    <string name="ludo_ui_f648c72a69c3" formatted="false">Nauru</string>
+    <string name="ludo_ui_00706b5e9ede" formatted="false">Neon</string>
+    <string name="ludo_ui_f4aeb24f4f7e" formatted="false">Neon Board</string>
+    <string name="ludo_ui_68a299dcc0cb" formatted="false">Neon Dice</string>
+    <string name="ludo_ui_a41fb86a3a2a" formatted="false">Neon Heroine</string>
+    <string name="ludo_ui_0e1d589f58b7" formatted="false">Nepal</string>
+    <string name="ludo_ui_fb61c8a8eba2" formatted="false">Netherlands</string>
+    <string name="ludo_ui_b9967e88983d" formatted="false">New Caledonia</string>
+    <string name="ludo_ui_a2238e91907f" formatted="false">New Zealand</string>
+    <string name="ludo_ui_6a6c9d2fc817" formatted="false">Next player</string>
+    <string name="ludo_ui_4812648c8a89" formatted="false">Nicaragua</string>
+    <string name="ludo_ui_23da23886783" formatted="false">Nice move!</string>
+    <string name="ludo_ui_6687e1896dd8" formatted="false">Niger</string>
+    <string name="ludo_ui_9742d008c420" formatted="false">Nigeria</string>
+    <string name="ludo_ui_f4904bf63ad4" formatted="false">Nina</string>
+    <string name="ludo_ui_c635e30148c3" formatted="false">Niue</string>
+    <string name="ludo_ui_e9df93736ba0" formatted="false">No club joined</string>
+    <string name="ludo_ui_b31326e60dfa" formatted="false">No clubs are available right now.</string>
+    <string name="ludo_ui_bcdce03b121f" formatted="false">No friends</string>
+    <string name="ludo_ui_604d0461955f" formatted="false">No friends yet</string>
+    <string name="ludo_ui_40dea8cd6fa9" formatted="false">No legal pieces to move.</string>
+    <string name="ludo_ui_2bbb1146890a" formatted="false">Noah</string>
+    <string name="ludo_ui_fedb20736102" formatted="false">Norfolk Island</string>
+    <string name="ludo_ui_e2ac50f5a2be" formatted="false">North Macedonia</string>
+    <string name="ludo_ui_28a117f17363" formatted="false">Northern Mariana Islands</string>
+    <string name="ludo_ui_988455e67df7" formatted="false">Norway</string>
+    <string name="ludo_ui_ddaae88a3355" formatted="false">OCEAN VOYAGE</string>
+    <string name="ludo_ui_33906a7dfdec" formatted="false">OPEN</string>
+    <string name="ludo_ui_bd5302381aa0" formatted="false">OWNED</string>
+    <string name="ludo_ui_7db01dac9e87" formatted="false">Ocean Voyage</string>
+    <string name="ludo_ui_c10a60e4dac3" formatted="false">Octopus</string>
+    <string name="ludo_ui_e01fa717bacc" formatted="false">Offline</string>
+    <string name="ludo_ui_c14c36dffca6" formatted="false">Oman</string>
+    <string name="ludo_ui_b109762fd872" formatted="false">Omar</string>
+    <string name="ludo_ui_2c9b424eb7ad" formatted="false">One bright dice reaction</string>
+    <string name="ludo_ui_5fc7fcfa9e7c" formatted="false">One claim per calendar day</string>
+    <string name="ludo_ui_1ad04511fc3e" formatted="false">One more game?</string>
+    <string name="ludo_ui_afdbb04e2cde" formatted="false">Online Match</string>
+    <string name="ludo_ui_b4f15cd85e80" formatted="false">Online Rush turns last 15 seconds; the board and winning rules are the same.</string>
+    <string name="ludo_ui_6f08ab00eb61" formatted="false">Online rivals and quick invites</string>
+    <string name="ludo_ui_88b188229a3c" formatted="false">Online search switched to local players</string>
+    <string name="ludo_ui_e7817053bafb" formatted="false">Only players can join table voice</string>
+    <string name="ludo_ui_f6443e9cced6" formatted="false">Oops!</string>
+    <string name="ludo_ui_d529030d2db6" formatted="false">Open Chest</string>
+    <string name="ludo_ui_c14f4054214f" formatted="false">Other harmful behavior</string>
+    <string name="ludo_ui_05198a3d9b46" formatted="false">Owl</string>
+    <string name="ludo_ui_b62ff5ccd122" formatted="false">Owned</string>
+    <string name="ludo_ui_61ff81c30aa3" formatted="false">POST</string>
+    <string name="ludo_ui_71c772586f07" formatted="false">PREMIUM</string>
+    <string name="ludo_ui_82d220df17ce" formatted="false">Pakistan</string>
+    <string name="ludo_ui_e5e0b68adfac" formatted="false">Palau</string>
+    <string name="ludo_ui_05a15c18a203" formatted="false">Palestine</string>
+    <string name="ludo_ui_1e36b31e7882" formatted="false">Panama</string>
+    <string name="ludo_ui_65c91fe4e3e7" formatted="false">Panda</string>
+    <string name="ludo_ui_fbaa3c3e9e1b" formatted="false">Papua New Guinea</string>
+    <string name="ludo_ui_71a45296474d" formatted="false">Paraguay</string>
+    <string name="ludo_ui_e1df2eb673fe" formatted="false">Penguin</string>
+    <string name="ludo_ui_36c57243155b" formatted="false">Peru</string>
+    <string name="ludo_ui_8067364d44f5" formatted="false">Philippines</string>
+    <string name="ludo_ui_f83d166a5111" formatted="false">Pick a friend, choose a gift, then send it.</string>
+    <string name="ludo_ui_379dc279e5e7" formatted="false">Pitcairn</string>
+    <string name="ludo_ui_65a69337ad2f" formatted="false">Play Again</string>
+    <string name="ludo_ui_90d87c649dba" formatted="false">Play Games leaders</string>
+    <string name="ludo_ui_a33b801ed44c" formatted="false">Play Ludo Rush globally with friends and matched players</string>
+    <string name="ludo_ui_218a7aae123e" formatted="false">Play Offline</string>
+    <string name="ludo_ui_a1bc5e5a8263" formatted="false">Play This Board</string>
+    <string name="ludo_ui_1c003b19b650" formatted="false">Play as guest or sign up</string>
+    <string name="ludo_ui_14109fb22c67" formatted="false">Play now</string>
+    <string name="ludo_ui_6457101757c9" formatted="false">Play online to meet recent opponents</string>
+    <string name="ludo_ui_e53407cfe1a5" formatted="false">Player</string>
+    <string name="ludo_ui_2e4f5ba7b9a5" formatted="false">Player name</string>
+    <string name="ludo_ui_298c39056151" formatted="false">Playing</string>
+    <string name="ludo_ui_5ff03b7273b1" formatted="false">Poland</string>
+    <string name="ludo_ui_a495190bcc2e" formatted="false">Portugal</string>
+    <string name="ludo_ui_1c14905906a3" formatted="false">Practice match</string>
+    <string name="ludo_ui_7d8ce1432689" formatted="false">Practice match · no coins or rating changes</string>
+    <string name="ludo_ui_6c2f2888c561" formatted="false">Premium</string>
+    <string name="ludo_ui_a66e99deec4a" formatted="false">Premium friend gift</string>
+    <string name="ludo_ui_16d765a4c83a" formatted="false">Premium gift purchases are currently unavailable.</string>
+    <string name="ludo_ui_f1fbb2b43dca" formatted="false">Preview</string>
+    <string name="ludo_ui_237dfa0a21c8" formatted="false">Private</string>
+    <string name="ludo_ui_cb19eb7a6c27" formatted="false">Private room created.</string>
+    <string name="ludo_ui_a3477f4ea5e8" formatted="false">Private room found, but socket was missing.</string>
+    <string name="ludo_ui_1b90271d66cf" formatted="false">Progress</string>
+    <string name="ludo_ui_fe23c52dc244" formatted="false">Puerto Rico</string>
+    <string name="ludo_ui_83ef3e6cee83" formatted="false">Qatar</string>
+    <string name="ludo_ui_6f675f9eb4f7" formatted="false">Quit Match?</string>
+    <string name="ludo_ui_647bf4ae5c62" formatted="false">RARE</string>
+    <string name="ludo_ui_1042d6afbaa2" formatted="false">RATING</string>
+    <string name="ludo_ui_a89e6448fed9" formatted="false">ROYAL COURT</string>
+    <string name="ludo_ui_4522c6c193dd" formatted="false">RUSH</string>
+    <string name="ludo_ui_9306fa43de14" formatted="false">Race you home!</string>
+    <string name="ludo_ui_7e7e302f85da" formatted="false">Rare chest animation</string>
+    <string name="ludo_ui_6c21f53a0e2e" formatted="false">Rate App</string>
+    <string name="ludo_ui_72b6832509cf" formatted="false">Reach home</string>
+    <string name="ludo_ui_76eec760c9b6" formatted="false">Recent</string>
+    <string name="ludo_ui_5252c4778494" formatted="false">Recent Opponents</string>
+    <string name="ludo_ui_1a337d149fad" formatted="false">Recent local events for troubleshooting</string>
+    <string name="ludo_ui_74db540257e2" formatted="false">Recent opponent</string>
+    <string name="ludo_ui_9d80f91f7fd0" formatted="false">Reconnecting</string>
+    <string name="ludo_ui_5af7e4c32235" formatted="false">Red Racer</string>
+    <string name="ludo_ui_25a5aef56243" formatted="false">Reduce motion</string>
+    <string name="ludo_ui_9835b11f4a9c" formatted="false">Refresh Clubs</string>
+    <string name="ludo_ui_e963907dac5c" formatted="false">Remove</string>
+    <string name="ludo_ui_cea56068de17" formatted="false">Remove Friend</string>
+    <string name="ludo_ui_efc90c2d6a1a" formatted="false">Remove Selected</string>
+    <string name="ludo_ui_659eba121958" formatted="false">Repeat</string>
+    <string name="ludo_ui_92a0d7d4d561" formatted="false">Request failed.</string>
+    <string name="ludo_ui_9e4f4002089e" formatted="false">Request waiting for you</string>
+    <string name="ludo_ui_3cbe6d6b9a8d" formatted="false">Restore</string>
+    <string name="ludo_ui_56133caba699" formatted="false">ResultsBanner</string>
+    <string name="ludo_ui_9c734a6ebd60" formatted="false">Reunion</string>
+    <string name="ludo_ui_2f4f4b7fbc81" formatted="false">Rewards</string>
+    <string name="ludo_ui_dc30865a73b3" formatted="false">Rewards pending</string>
+    <string name="ludo_ui_451ea8e159e1" formatted="false">Ringmaster</string>
+    <string name="ludo_ui_7cd45b9c3aba" formatted="false">Robot</string>
+    <string name="ludo_ui_186cd7400991" formatted="false">Rocket</string>
+    <string name="ludo_ui_c58ca911794f" formatted="false">Roll again!</string>
+    <string name="ludo_ui_140f9785d041" formatted="false">Roll before moving a piece.</string>
+    <string name="ludo_ui_0f4dfa4d3ac7" formatted="false">Roll once</string>
+    <string name="ludo_ui_a255233a0083" formatted="false">Roll the dice</string>
+    <string name="ludo_ui_cfdccd8f1fcd" formatted="false">Rolling</string>
+    <string name="ludo_ui_d6b897fd145a" formatted="false">Romania</string>
+    <string name="ludo_ui_f0c1046d11e2" formatted="false">Room code was not found, expired, or could not be reached.</string>
+    <string name="ludo_ui_33572e4958ee" formatted="false">Room error</string>
+    <string name="ludo_ui_2c16ea11eedf" formatted="false">Royal</string>
+    <string name="ludo_ui_6a4319bfe8f5" formatted="false">Royal Board</string>
+    <string name="ludo_ui_a0e2141fe764" formatted="false">Royal Crown</string>
+    <string name="ludo_ui_6a316d33e96e" formatted="false">Royal Dice</string>
+    <string name="ludo_ui_03100d8eb83d" formatted="false">Royal Knight</string>
+    <string name="ludo_ui_7031b62abf9f" formatted="false">Royal Vault</string>
+    <string name="ludo_ui_b217e98c3bf7" formatted="false">Ruby</string>
+    <string name="ludo_ui_92bd30faa901" formatted="false">Ruby Dice</string>
+    <string name="ludo_ui_cc4a564197f4" formatted="false">Rush</string>
+    <string name="ludo_ui_6754fe3cd831" formatted="false">Russia</string>
+    <string name="ludo_ui_7266a1da7e3a" formatted="false">Rwanda</string>
+    <string name="ludo_ui_f2e1c7fad591" formatted="false">SHOP</string>
+    <string name="ludo_ui_923c86f65dbe" formatted="false">STAR OBSERVATORY</string>
+    <string name="ludo_ui_9f1d7a855245" formatted="false">Safe at last!</string>
+    <string name="ludo_ui_ebdfc8c77200" formatted="false">Saint Barthelemy</string>
+    <string name="ludo_ui_5e397fcfba2a" formatted="false">Saint Helena, Ascension and Tristan da Cunha</string>
+    <string name="ludo_ui_3ad2dd829664" formatted="false">Saint Kitts and Nevis</string>
+    <string name="ludo_ui_673b1cf863c8" formatted="false">Saint Lucia</string>
+    <string name="ludo_ui_854ccc29cc22" formatted="false">Saint Martin</string>
+    <string name="ludo_ui_70e53283edb6" formatted="false">Saint Pierre and Miquelon</string>
+    <string name="ludo_ui_3fa9b2dd85d2" formatted="false">Saint Vincent and the Grenadines</string>
+    <string name="ludo_ui_f5680604ea9e" formatted="false">Samoa</string>
+    <string name="ludo_ui_87fd3befcce6" formatted="false">San Marino</string>
+    <string name="ludo_ui_6ddcb9e4747f" formatted="false">Sao Tome and Principe</string>
+    <string name="ludo_ui_5d569dfc1300" formatted="false">Sara</string>
+    <string name="ludo_ui_6f49c31192f5" formatted="false">Saudi Arabia</string>
+    <string name="ludo_ui_efc007a393f6" formatted="false">Save</string>
+    <string name="ludo_ui_ef42723dcd47" formatted="false">Save your country, avatar, and age, or jump straight into a match.</string>
+    <string name="ludo_ui_88ab74c9a1de" formatted="false">Secure checkout and purchase restore are handled by Google Play.</string>
+    <string name="ludo_ui_61c8443efd1d" formatted="false">Select Opponents</string>
+    <string name="ludo_ui_101ac5e932c0" formatted="false">Select a friend first.</string>
+    <string name="ludo_ui_9a976fc228b6" formatted="false">Selected</string>
+    <string name="ludo_ui_3df75622b335" formatted="false">Selected for removal</string>
+    <string name="ludo_ui_c70a890d1411" formatted="false">Send message</string>
+    <string name="ludo_ui_d8973b8edfe5" formatted="false">Senegal</string>
+    <string name="ludo_ui_6d31bf00d7ed" formatted="false">Serbia</string>
+    <string name="ludo_ui_29cd612b0c9d" formatted="false">Sexual content</string>
+    <string name="ludo_ui_3d2d7b1c3400" formatted="false">Seychelles</string>
+    <string name="ludo_ui_3260f6002c54" formatted="false">Share Result</string>
+    <string name="ludo_ui_338809e1bb8e" formatted="false">Share diagnostics</string>
+    <string name="ludo_ui_55de88709232" formatted="false">Shop</string>
+    <string name="ludo_ui_d08e5c86a128" formatted="false">ShopBanner</string>
+    <string name="ludo_ui_37e04930372c" formatted="false">ShopPoints300</string>
+    <string name="ludo_ui_50df2d658581" formatted="false">Sierra Leone</string>
+    <string name="ludo_ui_0b81497c8589" formatted="false">Sign up</string>
+    <string name="ludo_ui_20c0b7bdab70" formatted="false">Singapore</string>
+    <string name="ludo_ui_ad7c3cc73f9c" formatted="false">Sint Maarten</string>
+    <string name="ludo_ui_3e03229d39e4" formatted="false">Skins</string>
+    <string name="ludo_ui_b6c149c3e004" formatted="false">Slovakia</string>
+    <string name="ludo_ui_d1aa0503612a" formatted="false">Slovenia</string>
+    <string name="ludo_ui_854ec0cee32c" formatted="false">Snake surprise!</string>
+    <string name="ludo_ui_df8cc3ab57ff" formatted="false">Snakes</string>
+    <string name="ludo_ui_6beaeefe7b88" formatted="false">Snakes &amp; Ladders</string>
+    <string name="ludo_ui_a8ea299fbe3a" formatted="false">Snakes &amp; Ladders rules</string>
+    <string name="ludo_ui_b9f80439a4f0" formatted="false">Snakes Board</string>
+    <string name="ludo_ui_2090db25bf88" formatted="false">Snakes and Ladders board</string>
+    <string name="ludo_ui_6af055dbcaca" formatted="false">So close!</string>
+    <string name="ludo_ui_ae75f3912db3" formatted="false">Solo play</string>
+    <string name="ludo_ui_ecae78abec52" formatted="false">Solomon Islands</string>
+    <string name="ludo_ui_4dfdf195ecb7" formatted="false">Somalia</string>
+    <string name="ludo_ui_a41e30af5e2d" formatted="false">Sound effects</string>
+    <string name="ludo_ui_5ea1bbc91843" formatted="false">Soundtrack</string>
+    <string name="ludo_ui_35fda17ff05f" formatted="false">South Africa</string>
+    <string name="ludo_ui_e8dbbad71cb1" formatted="false">South Georgia and South Sandwich Islands</string>
+    <string name="ludo_ui_6981f4026cf8" formatted="false">South Sudan</string>
+    <string name="ludo_ui_20a8df9b7603" formatted="false">Spain</string>
+    <string name="ludo_ui_559a931bf717" formatted="false">Spectating live</string>
+    <string name="ludo_ui_197042c4de91" formatted="false">Sri Lanka</string>
+    <string name="ludo_ui_7ae9996e920a" formatted="false">Star Observatory</string>
+    <string name="ludo_ui_85090c4431cc" formatted="false">Starlight</string>
+    <string name="ludo_ui_2b7f23c8cf81" formatted="false">Start instantly against computer players.</string>
+    <string name="ludo_ui_c4bd32510475" formatted="false">Start playing</string>
+    <string name="ludo_ui_090fbc8b1dfa" formatted="false">Start with Bots</string>
+    <string name="ludo_ui_ae768f766f75" formatted="false">Stay</string>
+    <string name="ludo_ui_0844d6deb0d0" formatted="false">Stop waiting and play immediately with local players</string>
+    <string name="ludo_ui_52db564b0ad8" formatted="false">Styles</string>
+    <string name="ludo_ui_1193ba31f109" formatted="false">Sudan</string>
+    <string name="ludo_ui_b17fc6f05c07" formatted="false">Suriname</string>
+    <string name="ludo_ui_ac99404d12d6" formatted="false">Svalbard and Jan Mayen</string>
+    <string name="ludo_ui_72ddd2b619af" formatted="false">Sweden</string>
+    <string name="ludo_ui_2d3d79661ce7" formatted="false">Switch Club</string>
+    <string name="ludo_ui_c29220f9585c" formatted="false">Switch to dark mode</string>
+    <string name="ludo_ui_fc4509124987" formatted="false">Switch to light mode</string>
+    <string name="ludo_ui_77dcd849e550" formatted="false">Switzerland</string>
+    <string name="ludo_ui_3ed104337eb1" formatted="false">Syria</string>
+    <string name="ludo_ui_879f5e50e694" formatted="false">Table Voice</string>
+    <string name="ludo_ui_b43b602282ca" formatted="false">Table voice on</string>
+    <string name="ludo_ui_3f01873465e7" formatted="false">Table voice rules</string>
+    <string name="ludo_ui_094d515b3608" formatted="false">Taiwan</string>
+    <string name="ludo_ui_279c771ae60c" formatted="false">Tajikistan</string>
+    <string name="ludo_ui_f4b9b7b937be" formatted="false">Talk with players who join table voice</string>
+    <string name="ludo_ui_7e380be8dc28" formatted="false">Tanzania</string>
+    <string name="ludo_ui_9a0ec1597684" formatted="false">Tap to Roll</string>
+    <string name="ludo_ui_ed053ef265d4" formatted="false">Teal Spark</string>
+    <string name="ludo_ui_a2b7c120c93a" formatted="false">Thailand</string>
+    <string name="ludo_ui_1da20795f84b" formatted="false">Thanks!</string>
+    <string name="ludo_ui_4a4269a35ee8" formatted="false">That piece cannot move.</string>
+    <string name="ludo_ui_2f4f0e5cd054" formatted="false">That was fun!</string>
+    <string name="ludo_ui_9bab4b24cb85" formatted="false">There are no accepted friends to remove.</string>
+    <string name="ludo_ui_b5515f4a1172" formatted="false">This room is not available to watch.</string>
+    <string name="ludo_ui_dd697aa8cce5" formatted="false">Tiger</string>
+    <string name="ludo_ui_2d79f6dbae28" formatted="false">Timor-Leste</string>
+    <string name="ludo_ui_30949d5f4a69" formatted="false">Togo</string>
+    <string name="ludo_ui_a08c1ca2fca3" formatted="false">Tokelau</string>
+    <string name="ludo_ui_e8a1234b8442" formatted="false">Tonga</string>
+    <string name="ludo_ui_f4cd438b049f" formatted="false">Touch feedback for rolls and movement</string>
+    <string name="ludo_ui_4d206a8103d3" formatted="false">Trinidad and Tobago</string>
+    <string name="ludo_ui_cfee1d9fb44d" formatted="false">Trophy cart and dancing dice</string>
+    <string name="ludo_ui_cef2fe093b68" formatted="false">Try Again</string>
+    <string name="ludo_ui_f5eeb94b4168" formatted="false">Try the board in motion before equipping it.</string>
+    <string name="ludo_ui_edf404d0db32" formatted="false">Tunisia</string>
+    <string name="ludo_ui_c8c5d5d936ef" formatted="false">Turkiye</string>
+    <string name="ludo_ui_1f8dc1a6076e" formatted="false">Turkmenistan</string>
+    <string name="ludo_ui_611bc125b7ad" formatted="false">Turks and Caicos Islands</string>
+    <string name="ludo_ui_9a2248f7c4de" formatted="false">Tuvalu</string>
+    <string name="ludo_ui_ecca88090fa6" formatted="false">Two goti share a ruby heart</string>
+    <string name="ludo_ui_ab7cd7333778" formatted="false">Type message</string>
+    <string name="ludo_ui_e92904bce802" formatted="false">Uganda</string>
+    <string name="ludo_ui_c951ec00f123" formatted="false">Ukraine</string>
+    <string name="ludo_ui_c94ac7cc3b7b" formatted="false">Under 13</string>
+    <string name="ludo_ui_c04888dcb0ae" formatted="false">Unicorn</string>
+    <string name="ludo_ui_d115b8d5acb8" formatted="false">United Arab Emirates</string>
+    <string name="ludo_ui_9769121f10f7" formatted="false">United Kingdom</string>
+    <string name="ludo_ui_768685ca582a" formatted="false">United States</string>
+    <string name="ludo_ui_ede34a33eb69" formatted="false">United States Minor Outlying Islands</string>
+    <string name="ludo_ui_bc7819b34ff8" formatted="false">Unknown</string>
+    <string name="ludo_ui_b3da70258296" formatted="false">Unlocked</string>
+    <string name="ludo_ui_da15692ca2d5" formatted="false">Unmute microphone</string>
+    <string name="ludo_ui_db4e4ef96af7" formatted="false">Up we go!</string>
+    <string name="ludo_ui_e875d3a416e9" formatted="false">Update Required</string>
+    <string name="ludo_ui_d0ec78c12d0a" formatted="false">Update on Play Store</string>
+    <string name="ludo_ui_eb634e962b0d" formatted="false">Upload avatar</string>
+    <string name="ludo_ui_66b98924b384" formatted="false">Uruguay</string>
+    <string name="ludo_ui_d4264d40182d" formatted="false">Use Emoji</string>
+    <string name="ludo_ui_db800e86e9f3" formatted="false">Uzbekistan</string>
+    <string name="ludo_ui_3b62b4e7ef0b" formatted="false">VICTORY!</string>
+    <string name="ludo_ui_d16ad2dcc6af" formatted="false">Vanuatu</string>
+    <string name="ludo_ui_9d4ac43d5e24" formatted="false">Venezuela</string>
+    <string name="ludo_ui_f60180e1681f" formatted="false">Verified payouts and unlocks</string>
+    <string name="ludo_ui_194bd4f9c7be" formatted="false">Verifying that you are on the latest Play Store build.</string>
+    <string name="ludo_ui_e71f1539a41b" formatted="false">Victory</string>
+    <string name="ludo_ui_cc8374cfe9ab" formatted="false">Victory Parade</string>
+    <string name="ludo_ui_2f4699b3561a" formatted="false">Victory Spark</string>
+    <string name="ludo_ui_681101d8f9fa" formatted="false">Vietnam</string>
+    <string name="ludo_ui_c3ee632658d0" formatted="false">View Cosmetic Shop</string>
+    <string name="ludo_ui_69e3b8f7ae93" formatted="false">View Shop</string>
+    <string name="ludo_ui_7ec8c935546b" formatted="false">Virgin Islands, British</string>
+    <string name="ludo_ui_8962b4b3badf" formatted="false">Voice is off</string>
+    <string name="ludo_ui_cc1889618588" formatted="false">Voice is unavailable.</string>
+    <string name="ludo_ui_30b686daceae" formatted="false">Voice on</string>
+    <string name="ludo_ui_ffc6933e9929" formatted="false">Wait Turn</string>
+    <string name="ludo_ui_8cddf031638e" formatted="false">Wait for your turn.</string>
+    <string name="ludo_ui_33d30632848d" formatted="false">Waiting</string>
+    <string name="ludo_ui_94dfbc349ccb" formatted="false">Waiting for match</string>
+    <string name="ludo_ui_c26c33fa1c5a" formatted="false">Waiting for players</string>
+    <string name="ludo_ui_a187509aa2af" formatted="false">Wallis and Futuna</string>
+    <string name="ludo_ui_678826b14b59" formatted="false">Watch Code</string>
+    <string name="ludo_ui_c7b5a7b0cbaf" formatted="false">Watch reward video</string>
+    <string name="ludo_ui_3538651781ba" formatted="false">Watching live</string>
+    <string name="ludo_ui_e52e5e6cd50e" formatted="false">Welcome!</string>
+    <string name="ludo_ui_58361b407af3" formatted="false">Well played!</string>
+    <string name="ludo_ui_fab1a5239120" formatted="false">Western Sahara</string>
+    <string name="ludo_ui_984d2720f42d" formatted="false">What a roll!</string>
+    <string name="ludo_ui_4e3adcfe37c3" formatted="false">Winner</string>
+    <string name="ludo_ui_b6c015d12e1b" formatted="false">Wins</string>
+    <string name="ludo_ui_ac33d641f4c9" formatted="false">Yemen</string>
+    <string name="ludo_ui_905cb326c779" formatted="false">You</string>
+    <string name="ludo_ui_c332ea8353dc" formatted="false">You got this!</string>
+    <string name="ludo_ui_df8b589c00ef" formatted="false">You reached 100 and won.</string>
+    <string name="ludo_ui_92500d4a0f2d" formatted="false">You will no longer hear or connect to this player in table voice.</string>
+    <string name="ludo_ui_d113c983a8d8" formatted="false">You won the match.</string>
+    <string name="ludo_ui_9ffdae19741a" formatted="false">Your avatar reacts to sixes, captures, climbs and victories.</string>
+    <string name="ludo_ui_7df634b6ad84" formatted="false">Your completed matches will appear here.</string>
+    <string name="ludo_ui_1c473aaf1e0b" formatted="false">Your current progress is saved.</string>
+    <string name="ludo_ui_7f4be31ac385" formatted="false">Your first Ludo match</string>
+    <string name="ludo_ui_77f0436d3e8e" formatted="false">Your first Snakes match</string>
+    <string name="ludo_ui_f22b59b21027" formatted="false">Your table</string>
+    <string name="ludo_ui_82dfe45b4d10" formatted="false">Your token moves automatically.</string>
+    <string name="ludo_ui_8a4e60471b34" formatted="false">Your turn</string>
+    <string name="ludo_ui_276cf52477ab" formatted="false">Your turn!</string>
+    <string name="ludo_ui_dcf25ed56c95" formatted="false">Zambia</string>
+    <string name="ludo_ui_3e08adebe59f" formatted="false">Zara</string>
+    <string name="ludo_ui_5922f5ceeff3" formatted="false">Zimbabwe</string>
+    <string name="ludo_ui_267a5ddc8da1" formatted="false">approved theme</string>
+    <string name="ludo_ui_20e42c888353" formatted="false">arcade reward</string>
+    <string name="ludo_ui_4a4ea87c0bf0" formatted="false">clean table</string>
+    <string name="ludo_ui_6848117261bf" formatted="false">gold palace</string>
+    <string name="ludo_ui_5c7760d2d83f" formatted="false">obsidian &amp; glowing fissures</string>
+    <string name="ludo_ui_f57290e45e78" formatted="false">online wins</string>
+    <string name="ludo_ui_c348a92662f7" formatted="false">orbits &amp; constellations</string>
+    <string name="ludo_ui_63e198412d67" formatted="false">premium arcade board</string>
+    <string name="ludo_ui_2d155fe16d9f" formatted="false">premium red gem</string>
+    <string name="ludo_ui_a6019390a099" formatted="false">premium star glow</string>
+    <string name="ludo_ui_076903f4cb25" formatted="false">rare green gem</string>
+    <string name="ludo_ui_f592b5315e0a" formatted="false">rare win reward</string>
+    <string name="ludo_ui_32b211f8e6ab" formatted="false">waves &amp; compass roses</string>
+    <string name="ludo_ui_4c52d61bb3b2" formatted="false">🎲 SIX!</string>
+    <string-array name="ludo_ui_string_keys" translatable="false">
+        <item>ludo_ui_00c011af5d7e</item>
+        <item>ludo_ui_1df12c7cbe7f</item>
+        <item>ludo_ui_6ab4812ee264</item>
+        <item>ludo_ui_569e69a151b7</item>
+        <item>ludo_ui_a66c7be7625c</item>
+        <item>ludo_ui_ccd1d166b3f7</item>
+        <item>ludo_ui_6411de2d8eb6</item>
+        <item>ludo_ui_43a954cd6ffe</item>
+        <item>ludo_ui_2302e50748ae</item>
+        <item>ludo_ui_e19a67143181</item>
+        <item>ludo_ui_a8029288de36</item>
+        <item>ludo_ui_55e501e56563</item>
+        <item>ludo_ui_88b1cb04de50</item>
+        <item>ludo_ui_81a205dd77ec</item>
+        <item>ludo_ui_9f4ce156b4a2</item>
+        <item>ludo_ui_e8426e28a39b</item>
+        <item>ludo_ui_67cf70802afe</item>
+        <item>ludo_ui_6c18999cf5da</item>
+        <item>ludo_ui_b2b26974f392</item>
+        <item>ludo_ui_27c6f2cc0669</item>
+        <item>ludo_ui_013f4ac34d6f</item>
+        <item>ludo_ui_684cc316ad4c</item>
+        <item>ludo_ui_fbb2cf43b43d</item>
+        <item>ludo_ui_a1745b84ec87</item>
+        <item>ludo_ui_a6634f24b2db</item>
+        <item>ludo_ui_61cc55aa0453</item>
+        <item>ludo_ui_b0c493dd9773</item>
+        <item>ludo_ui_6841238e3902</item>
+        <item>ludo_ui_bbe0b7000598</item>
+        <item>ludo_ui_8e0ab9ead3eb</item>
+        <item>ludo_ui_4926fa4e3961</item>
+        <item>ludo_ui_c69153687791</item>
+        <item>ludo_ui_ff9f1ff32120</item>
+        <item>ludo_ui_0f537fab0169</item>
+        <item>ludo_ui_79b9d273ac6d</item>
+        <item>ludo_ui_bd6acc8626d1</item>
+        <item>ludo_ui_694c14c7cdb2</item>
+        <item>ludo_ui_6a72085653e4</item>
+        <item>ludo_ui_ca0b36fec74b</item>
+        <item>ludo_ui_9d3bd1fb5278</item>
+        <item>ludo_ui_a42522a0cdd6</item>
+        <item>ludo_ui_5722849f2ccb</item>
+        <item>ludo_ui_00f33fc530d3</item>
+        <item>ludo_ui_530670dca740</item>
+        <item>ludo_ui_354bf9892583</item>
+        <item>ludo_ui_54e15dd1f9ec</item>
+        <item>ludo_ui_5f4599daa341</item>
+        <item>ludo_ui_f3a826101b9a</item>
+        <item>ludo_ui_ceafb51e2b07</item>
+        <item>ludo_ui_593905b31972</item>
+        <item>ludo_ui_5e25ce007aa9</item>
+        <item>ludo_ui_c614ba7c453c</item>
+        <item>ludo_ui_c501742ba88a</item>
+        <item>ludo_ui_0f752f56d57f</item>
+        <item>ludo_ui_ae507b91b299</item>
+        <item>ludo_ui_7631b26ea80b</item>
+        <item>ludo_ui_fc022ebccbe9</item>
+        <item>ludo_ui_213598a7e922</item>
+        <item>ludo_ui_7c1120a8a82b</item>
+        <item>ludo_ui_4429f3ca2d65</item>
+        <item>ludo_ui_b52b36b7269f</item>
+        <item>ludo_ui_639892c312cb</item>
+        <item>ludo_ui_f6be1be64443</item>
+        <item>ludo_ui_237724107d5a</item>
+        <item>ludo_ui_1f797564f784</item>
+        <item>ludo_ui_3ae11c725c30</item>
+        <item>ludo_ui_fa6c3752cd00</item>
+        <item>ludo_ui_93409af2f208</item>
+        <item>ludo_ui_027a12c2fc85</item>
+        <item>ludo_ui_5cb4c9d82817</item>
+        <item>ludo_ui_42ab0c94a1e3</item>
+        <item>ludo_ui_373616e39fb4</item>
+        <item>ludo_ui_027ed37f00fb</item>
+        <item>ludo_ui_bb2254a806f4</item>
+        <item>ludo_ui_82dd2cdf36f9</item>
+        <item>ludo_ui_99613c74ce01</item>
+        <item>ludo_ui_3d3d9d394f28</item>
+        <item>ludo_ui_a001af75ee89</item>
+        <item>ludo_ui_96744d827a0f</item>
+        <item>ludo_ui_ea9045b9bcd7</item>
+        <item>ludo_ui_62ac59b7255c</item>
+        <item>ludo_ui_180c89bf50c8</item>
+        <item>ludo_ui_290125ef9fc2</item>
+        <item>ludo_ui_37497aa5a227</item>
+        <item>ludo_ui_5577d2a2748f</item>
+        <item>ludo_ui_9bb835f4f91b</item>
+        <item>ludo_ui_2f3b5c55bc27</item>
+        <item>ludo_ui_0ed5311a6941</item>
+        <item>ludo_ui_309007d4c621</item>
+        <item>ludo_ui_130e4a34f1b8</item>
+        <item>ludo_ui_5c77726358c5</item>
+        <item>ludo_ui_e71b56d92347</item>
+        <item>ludo_ui_4617585b8749</item>
+        <item>ludo_ui_7ceca51fcafe</item>
+        <item>ludo_ui_9ce257aad3b6</item>
+        <item>ludo_ui_28f176c17b3d</item>
+        <item>ludo_ui_7f025ec3f529</item>
+        <item>ludo_ui_6536e0450199</item>
+        <item>ludo_ui_e4636d467ea5</item>
+        <item>ludo_ui_07dee45ea568</item>
+        <item>ludo_ui_314ccd964ef6</item>
+        <item>ludo_ui_73a7ddd505f2</item>
+        <item>ludo_ui_cd6a7b876852</item>
+        <item>ludo_ui_77dfd2135f4d</item>
+        <item>ludo_ui_909907a57141</item>
+        <item>ludo_ui_e38ede065e67</item>
+        <item>ludo_ui_09a560fe5f18</item>
+        <item>ludo_ui_09c0c3df4b66</item>
+        <item>ludo_ui_e9e21c35ab34</item>
+        <item>ludo_ui_dba86789b53e</item>
+        <item>ludo_ui_6c6b1b2b3ecc</item>
+        <item>ludo_ui_2ced57f12591</item>
+        <item>ludo_ui_e208206e5a1b</item>
+        <item>ludo_ui_458fce8a0957</item>
+        <item>ludo_ui_6448535a2c2b</item>
+        <item>ludo_ui_870f36da6076</item>
+        <item>ludo_ui_3ddb9e7bf12c</item>
+        <item>ludo_ui_e6a1ed95a00e</item>
+        <item>ludo_ui_8141c3c5aa30</item>
+        <item>ludo_ui_6ae9a17853b9</item>
+        <item>ludo_ui_349507e41dd8</item>
+        <item>ludo_ui_d2eaf2aa1512</item>
+        <item>ludo_ui_77de189161e5</item>
+        <item>ludo_ui_df09f0640f48</item>
+        <item>ludo_ui_bc850fa299e9</item>
+        <item>ludo_ui_c6dfa97a611d</item>
+        <item>ludo_ui_03d9c10fee4d</item>
+        <item>ludo_ui_83c87884b09b</item>
+        <item>ludo_ui_130cd7fe3334</item>
+        <item>ludo_ui_4cad864ba71d</item>
+        <item>ludo_ui_9f0e14a96ab7</item>
+        <item>ludo_ui_bbfa773e5a63</item>
+        <item>ludo_ui_3c30d1ee6e0f</item>
+        <item>ludo_ui_baa5503537a8</item>
+        <item>ludo_ui_4014019824fd</item>
+        <item>ludo_ui_49ae8a1d9d6b</item>
+        <item>ludo_ui_32c9c4c1145c</item>
+        <item>ludo_ui_de4d64732274</item>
+        <item>ludo_ui_1be893ca34c5</item>
+        <item>ludo_ui_06dc26b59788</item>
+        <item>ludo_ui_adac69379a62</item>
+        <item>ludo_ui_73834db36d39</item>
+        <item>ludo_ui_c832f75cc878</item>
+        <item>ludo_ui_04aac4c04182</item>
+        <item>ludo_ui_2f7373996064</item>
+        <item>ludo_ui_5d26256d604b</item>
+        <item>ludo_ui_e5bb59a27319</item>
+        <item>ludo_ui_77f256b43643</item>
+        <item>ludo_ui_6f387b673a75</item>
+        <item>ludo_ui_c1f3b71fdf88</item>
+        <item>ludo_ui_bde1d8f5ca3e</item>
+        <item>ludo_ui_85c08d2c56ce</item>
+        <item>ludo_ui_77d12b97ba61</item>
+        <item>ludo_ui_4bacfe2535ec</item>
+        <item>ludo_ui_2060b6806e60</item>
+        <item>ludo_ui_ced26434ea11</item>
+        <item>ludo_ui_a8ed2677ac6b</item>
+        <item>ludo_ui_1bf429f94068</item>
+        <item>ludo_ui_58f76ad9b377</item>
+        <item>ludo_ui_d48dcb73870a</item>
+        <item>ludo_ui_d523ebbd1014</item>
+        <item>ludo_ui_6e157c5da441</item>
+        <item>ludo_ui_9ac59abe8462</item>
+        <item>ludo_ui_7b37d3f455d9</item>
+        <item>ludo_ui_d7e0453bb4af</item>
+        <item>ludo_ui_8b033e8b4c7b</item>
+        <item>ludo_ui_c484b137e2d1</item>
+        <item>ludo_ui_de58331a6338</item>
+        <item>ludo_ui_6c89c1683731</item>
+        <item>ludo_ui_852addab901c</item>
+        <item>ludo_ui_045e2f1d6c4d</item>
+        <item>ludo_ui_728298d3dbf4</item>
+        <item>ludo_ui_ed83793e57dd</item>
+        <item>ludo_ui_0defbb031add</item>
+        <item>ludo_ui_86ad0f979384</item>
+        <item>ludo_ui_26f077508f91</item>
+        <item>ludo_ui_17b902de1662</item>
+        <item>ludo_ui_fdc0ce7968aa</item>
+        <item>ludo_ui_4dc593cb130f</item>
+        <item>ludo_ui_77bf95d60e7e</item>
+        <item>ludo_ui_7b37259e1496</item>
+        <item>ludo_ui_89da124e04df</item>
+        <item>ludo_ui_5dfa90784e1d</item>
+        <item>ludo_ui_7927f138711a</item>
+        <item>ludo_ui_a5207ad4fc95</item>
+        <item>ludo_ui_599546c10d15</item>
+        <item>ludo_ui_1f7b3145f26b</item>
+        <item>ludo_ui_fb6145690e88</item>
+        <item>ludo_ui_60a8b0c6de6f</item>
+        <item>ludo_ui_bc1cd4f07d82</item>
+        <item>ludo_ui_8a4bf12e17b2</item>
+        <item>ludo_ui_eb22c5e28adf</item>
+        <item>ludo_ui_df39fedad614</item>
+        <item>ludo_ui_1e5a19cdd267</item>
+        <item>ludo_ui_357ab81020c6</item>
+        <item>ludo_ui_135ce40380c7</item>
+        <item>ludo_ui_00f03137e155</item>
+        <item>ludo_ui_09f199d25132</item>
+        <item>ludo_ui_15141eab3a28</item>
+        <item>ludo_ui_1c39abf68e93</item>
+        <item>ludo_ui_259a6e935b84</item>
+        <item>ludo_ui_da32ecab00cd</item>
+        <item>ludo_ui_c595d3fc0566</item>
+        <item>ludo_ui_8aeef015cc99</item>
+        <item>ludo_ui_2b0b33a9533a</item>
+        <item>ludo_ui_5090a9e78c89</item>
+        <item>ludo_ui_68e6a910db6d</item>
+        <item>ludo_ui_6ab05be1c205</item>
+        <item>ludo_ui_7bb1675d4093</item>
+        <item>ludo_ui_0cdfe1a8f2f0</item>
+        <item>ludo_ui_80eaf3087b0b</item>
+        <item>ludo_ui_48fdec333e8f</item>
+        <item>ludo_ui_3f1e9642bce4</item>
+        <item>ludo_ui_f8dc9813a53b</item>
+        <item>ludo_ui_689532b4d3bc</item>
+        <item>ludo_ui_18740af5bcec</item>
+        <item>ludo_ui_f0a96da3f86a</item>
+        <item>ludo_ui_16cc7f843a3e</item>
+        <item>ludo_ui_2f8f37e09f76</item>
+        <item>ludo_ui_3d91f7631ba8</item>
+        <item>ludo_ui_f83b6fe3aebf</item>
+        <item>ludo_ui_8f7a3d32ed47</item>
+        <item>ludo_ui_c61a7c7f39fc</item>
+        <item>ludo_ui_4a9768fab062</item>
+        <item>ludo_ui_11499959510c</item>
+        <item>ludo_ui_1082f8911562</item>
+        <item>ludo_ui_bbb7ef7f2ec9</item>
+        <item>ludo_ui_6cf4b5b94b33</item>
+        <item>ludo_ui_1011eeb27ed5</item>
+        <item>ludo_ui_c909b138eba8</item>
+        <item>ludo_ui_05f5561dbd79</item>
+        <item>ludo_ui_c0820b5b597b</item>
+        <item>ludo_ui_dfcd3454bbea</item>
+        <item>ludo_ui_e3772ac4b4db</item>
+        <item>ludo_ui_c1c331bc3736</item>
+        <item>ludo_ui_07090aa7d613</item>
+        <item>ludo_ui_40f39cdcd3ac</item>
+        <item>ludo_ui_ced852bf5c06</item>
+        <item>ludo_ui_2394299d6feb</item>
+        <item>ludo_ui_907b2ba81ed2</item>
+        <item>ludo_ui_e21ce053de52</item>
+        <item>ludo_ui_c5283d4829b4</item>
+        <item>ludo_ui_05a290ea7dc7</item>
+        <item>ludo_ui_c11d5e1d35fb</item>
+        <item>ludo_ui_4e4452810ee2</item>
+        <item>ludo_ui_705c61e1b82c</item>
+        <item>ludo_ui_a06dcd71328f</item>
+        <item>ludo_ui_7c39974f44b2</item>
+        <item>ludo_ui_a894063faec2</item>
+        <item>ludo_ui_398ed3298149</item>
+        <item>ludo_ui_d5f998a403b7</item>
+        <item>ludo_ui_9113c6c0c1f9</item>
+        <item>ludo_ui_17d53e0e6a68</item>
+        <item>ludo_ui_317dbac90743</item>
+        <item>ludo_ui_e51335897c0e</item>
+        <item>ludo_ui_8d0a32ed6339</item>
+        <item>ludo_ui_1251337f44bf</item>
+        <item>ludo_ui_2fb7d7f8054b</item>
+        <item>ludo_ui_65a2d1f9cce1</item>
+        <item>ludo_ui_6f1e2c915818</item>
+        <item>ludo_ui_d9f44edd52a7</item>
+        <item>ludo_ui_8ac9a5090057</item>
+        <item>ludo_ui_f08bdc8d0c0c</item>
+        <item>ludo_ui_8e30d6aac813</item>
+        <item>ludo_ui_a600154da4fb</item>
+        <item>ludo_ui_0018b3443f7d</item>
+        <item>ludo_ui_1a9360a0e998</item>
+        <item>ludo_ui_4902a456caa9</item>
+        <item>ludo_ui_1ba0cfa55029</item>
+        <item>ludo_ui_dbf2a2da6458</item>
+        <item>ludo_ui_f0f524ff3b9c</item>
+        <item>ludo_ui_f8aa3a934ee3</item>
+        <item>ludo_ui_11760e1aac43</item>
+        <item>ludo_ui_180c97abdb80</item>
+        <item>ludo_ui_b47b54fd3a46</item>
+        <item>ludo_ui_b07cb9a2b248</item>
+        <item>ludo_ui_bc88a24030a1</item>
+        <item>ludo_ui_a4842f0234d7</item>
+        <item>ludo_ui_020d6b5ecf82</item>
+        <item>ludo_ui_b110b0dd78dc</item>
+        <item>ludo_ui_20a89915f18c</item>
+        <item>ludo_ui_84c4456c82c2</item>
+        <item>ludo_ui_130447083d0b</item>
+        <item>ludo_ui_5add073ddb4a</item>
+        <item>ludo_ui_8a7fecc4350c</item>
+        <item>ludo_ui_74bcb5f14ee9</item>
+        <item>ludo_ui_90ccd6497400</item>
+        <item>ludo_ui_0f3f60b7c574</item>
+        <item>ludo_ui_70f8bb9a8a53</item>
+        <item>ludo_ui_5aa588714ab4</item>
+        <item>ludo_ui_2f488ffc82cc</item>
+        <item>ludo_ui_f14e46ce7d09</item>
+        <item>ludo_ui_4dabfb26fa78</item>
+        <item>ludo_ui_bcdc18a50d5a</item>
+        <item>ludo_ui_b325dab367bc</item>
+        <item>ludo_ui_ae1d91a2a7b3</item>
+        <item>ludo_ui_72d75745e517</item>
+        <item>ludo_ui_b3c92eecf0aa</item>
+        <item>ludo_ui_3e2c5704094d</item>
+        <item>ludo_ui_bbd88bff92de</item>
+        <item>ludo_ui_967ce367d89d</item>
+        <item>ludo_ui_35536a41b209</item>
+        <item>ludo_ui_b136609f0684</item>
+        <item>ludo_ui_7ae0933a3884</item>
+        <item>ludo_ui_e91cf27d1adf</item>
+        <item>ludo_ui_20cfec91c6d6</item>
+        <item>ludo_ui_0179e8431590</item>
+        <item>ludo_ui_889224e3fca2</item>
+        <item>ludo_ui_1aed9ecc6e1b</item>
+        <item>ludo_ui_eb2131ece0ef</item>
+        <item>ludo_ui_76733f338bb2</item>
+        <item>ludo_ui_4c197dfd67f1</item>
+        <item>ludo_ui_ad79ef0f076d</item>
+        <item>ludo_ui_c789954268c3</item>
+        <item>ludo_ui_5eedd6a16ab8</item>
+        <item>ludo_ui_fcf29f6cad32</item>
+        <item>ludo_ui_ff4636d0caf6</item>
+        <item>ludo_ui_24c80ef942c3</item>
+        <item>ludo_ui_165b6cfdc9df</item>
+        <item>ludo_ui_4459d14e9422</item>
+        <item>ludo_ui_9292be3a838e</item>
+        <item>ludo_ui_fb8e84a9c2ff</item>
+        <item>ludo_ui_99d6d24f6e84</item>
+        <item>ludo_ui_674027e17b0e</item>
+        <item>ludo_ui_3a682b2fa18a</item>
+        <item>ludo_ui_84e2924b8865</item>
+        <item>ludo_ui_2f36b6bb1852</item>
+        <item>ludo_ui_a84f56f2e6a7</item>
+        <item>ludo_ui_3f57adf2c06c</item>
+        <item>ludo_ui_2133c45255e5</item>
+        <item>ludo_ui_6544b2fecc0e</item>
+        <item>ludo_ui_93295b0c76b9</item>
+        <item>ludo_ui_c78791a3f0e1</item>
+        <item>ludo_ui_73a393390615</item>
+        <item>ludo_ui_5ae481644a06</item>
+        <item>ludo_ui_7ee89b418040</item>
+        <item>ludo_ui_aeec316868da</item>
+        <item>ludo_ui_79194ba16f36</item>
+        <item>ludo_ui_7998be8d446d</item>
+        <item>ludo_ui_118f9b2b3021</item>
+        <item>ludo_ui_c5f5bb3b3507</item>
+        <item>ludo_ui_4e87aded1494</item>
+        <item>ludo_ui_027de9d1ce67</item>
+        <item>ludo_ui_7e3520a97331</item>
+        <item>ludo_ui_3676c372bfc0</item>
+        <item>ludo_ui_5c9bea81a942</item>
+        <item>ludo_ui_5caa7f811b5a</item>
+        <item>ludo_ui_cfaf50ac3721</item>
+        <item>ludo_ui_93b12bf57f18</item>
+        <item>ludo_ui_c38a582abbd1</item>
+        <item>ludo_ui_d76e786fb2aa</item>
+        <item>ludo_ui_1ed5dd9d833f</item>
+        <item>ludo_ui_55949d4c1663</item>
+        <item>ludo_ui_b0ddce0f54c9</item>
+        <item>ludo_ui_9f19d4dcd451</item>
+        <item>ludo_ui_74a788cee27d</item>
+        <item>ludo_ui_65c821a596ce</item>
+        <item>ludo_ui_5247f376b4f2</item>
+        <item>ludo_ui_c18920c370b7</item>
+        <item>ludo_ui_762379d64d72</item>
+        <item>ludo_ui_23f2ec0a7133</item>
+        <item>ludo_ui_3e7dc459e718</item>
+        <item>ludo_ui_cff01302121c</item>
+        <item>ludo_ui_cfb6dd4663ed</item>
+        <item>ludo_ui_5fcfb0864ab6</item>
+        <item>ludo_ui_7b8f959b6fb7</item>
+        <item>ludo_ui_21796852cf71</item>
+        <item>ludo_ui_6fc6c6c60b28</item>
+        <item>ludo_ui_b50d45ff9748</item>
+        <item>ludo_ui_5076721c4060</item>
+        <item>ludo_ui_424d6d3ea59e</item>
+        <item>ludo_ui_918c53a2d612</item>
+        <item>ludo_ui_f92bcb6a06d2</item>
+        <item>ludo_ui_0ce65b26dcd3</item>
+        <item>ludo_ui_ff3ea3bec182</item>
+        <item>ludo_ui_213cb2045092</item>
+        <item>ludo_ui_daa6a489dbca</item>
+        <item>ludo_ui_1a591a3e91fc</item>
+        <item>ludo_ui_bb130626b42c</item>
+        <item>ludo_ui_66f1a98a952d</item>
+        <item>ludo_ui_3a22d2b93c3f</item>
+        <item>ludo_ui_62b328f98f50</item>
+        <item>ludo_ui_3f7c3259d133</item>
+        <item>ludo_ui_623eb5f6dc49</item>
+        <item>ludo_ui_0ec91c5a20c8</item>
+        <item>ludo_ui_1700c24d6087</item>
+        <item>ludo_ui_85fa355bdb4f</item>
+        <item>ludo_ui_26160d23fb07</item>
+        <item>ludo_ui_26414e770f8c</item>
+        <item>ludo_ui_dcc64425eed0</item>
+        <item>ludo_ui_d404968ea90b</item>
+        <item>ludo_ui_f99fb0f86ae7</item>
+        <item>ludo_ui_41937b20fbe8</item>
+        <item>ludo_ui_3aa06745f0af</item>
+        <item>ludo_ui_5a7d7bc91620</item>
+        <item>ludo_ui_66ec628cb55d</item>
+        <item>ludo_ui_9791bc4d7273</item>
+        <item>ludo_ui_35ab1c3de6da</item>
+        <item>ludo_ui_f54da380bade</item>
+        <item>ludo_ui_479fb34bdbf4</item>
+        <item>ludo_ui_35f005157cfd</item>
+        <item>ludo_ui_32e087f099be</item>
+        <item>ludo_ui_3520cf6de570</item>
+        <item>ludo_ui_71fb0c9b4bb7</item>
+        <item>ludo_ui_7748a492c37f</item>
+        <item>ludo_ui_a40a9be00a9a</item>
+        <item>ludo_ui_43b19811192e</item>
+        <item>ludo_ui_7f19ae34bd22</item>
+        <item>ludo_ui_f83cc9942f62</item>
+        <item>ludo_ui_928b7c48a60a</item>
+        <item>ludo_ui_64b683f2d569</item>
+        <item>ludo_ui_bfe79debcedd</item>
+        <item>ludo_ui_f648c72a69c3</item>
+        <item>ludo_ui_00706b5e9ede</item>
+        <item>ludo_ui_f4aeb24f4f7e</item>
+        <item>ludo_ui_68a299dcc0cb</item>
+        <item>ludo_ui_a41fb86a3a2a</item>
+        <item>ludo_ui_0e1d589f58b7</item>
+        <item>ludo_ui_fb61c8a8eba2</item>
+        <item>ludo_ui_b9967e88983d</item>
+        <item>ludo_ui_a2238e91907f</item>
+        <item>ludo_ui_6a6c9d2fc817</item>
+        <item>ludo_ui_4812648c8a89</item>
+        <item>ludo_ui_23da23886783</item>
+        <item>ludo_ui_6687e1896dd8</item>
+        <item>ludo_ui_9742d008c420</item>
+        <item>ludo_ui_f4904bf63ad4</item>
+        <item>ludo_ui_c635e30148c3</item>
+        <item>ludo_ui_e9df93736ba0</item>
+        <item>ludo_ui_b31326e60dfa</item>
+        <item>ludo_ui_bcdce03b121f</item>
+        <item>ludo_ui_604d0461955f</item>
+        <item>ludo_ui_40dea8cd6fa9</item>
+        <item>ludo_ui_2bbb1146890a</item>
+        <item>ludo_ui_fedb20736102</item>
+        <item>ludo_ui_e2ac50f5a2be</item>
+        <item>ludo_ui_28a117f17363</item>
+        <item>ludo_ui_988455e67df7</item>
+        <item>ludo_ui_ddaae88a3355</item>
+        <item>ludo_ui_33906a7dfdec</item>
+        <item>ludo_ui_bd5302381aa0</item>
+        <item>ludo_ui_7db01dac9e87</item>
+        <item>ludo_ui_c10a60e4dac3</item>
+        <item>ludo_ui_e01fa717bacc</item>
+        <item>ludo_ui_c14c36dffca6</item>
+        <item>ludo_ui_b109762fd872</item>
+        <item>ludo_ui_2c9b424eb7ad</item>
+        <item>ludo_ui_5fc7fcfa9e7c</item>
+        <item>ludo_ui_1ad04511fc3e</item>
+        <item>ludo_ui_afdbb04e2cde</item>
+        <item>ludo_ui_b4f15cd85e80</item>
+        <item>ludo_ui_6f08ab00eb61</item>
+        <item>ludo_ui_88b188229a3c</item>
+        <item>ludo_ui_e7817053bafb</item>
+        <item>ludo_ui_f6443e9cced6</item>
+        <item>ludo_ui_d529030d2db6</item>
+        <item>ludo_ui_c14f4054214f</item>
+        <item>ludo_ui_05198a3d9b46</item>
+        <item>ludo_ui_b62ff5ccd122</item>
+        <item>ludo_ui_61ff81c30aa3</item>
+        <item>ludo_ui_71c772586f07</item>
+        <item>ludo_ui_82d220df17ce</item>
+        <item>ludo_ui_e5e0b68adfac</item>
+        <item>ludo_ui_05a15c18a203</item>
+        <item>ludo_ui_1e36b31e7882</item>
+        <item>ludo_ui_65c91fe4e3e7</item>
+        <item>ludo_ui_fbaa3c3e9e1b</item>
+        <item>ludo_ui_71a45296474d</item>
+        <item>ludo_ui_e1df2eb673fe</item>
+        <item>ludo_ui_36c57243155b</item>
+        <item>ludo_ui_8067364d44f5</item>
+        <item>ludo_ui_f83d166a5111</item>
+        <item>ludo_ui_379dc279e5e7</item>
+        <item>ludo_ui_65a69337ad2f</item>
+        <item>ludo_ui_90d87c649dba</item>
+        <item>ludo_ui_a33b801ed44c</item>
+        <item>ludo_ui_218a7aae123e</item>
+        <item>ludo_ui_a1bc5e5a8263</item>
+        <item>ludo_ui_1c003b19b650</item>
+        <item>ludo_ui_14109fb22c67</item>
+        <item>ludo_ui_6457101757c9</item>
+        <item>ludo_ui_e53407cfe1a5</item>
+        <item>ludo_ui_2e4f5ba7b9a5</item>
+        <item>ludo_ui_298c39056151</item>
+        <item>ludo_ui_5ff03b7273b1</item>
+        <item>ludo_ui_a495190bcc2e</item>
+        <item>ludo_ui_1c14905906a3</item>
+        <item>ludo_ui_7d8ce1432689</item>
+        <item>ludo_ui_6c2f2888c561</item>
+        <item>ludo_ui_a66e99deec4a</item>
+        <item>ludo_ui_16d765a4c83a</item>
+        <item>ludo_ui_f1fbb2b43dca</item>
+        <item>ludo_ui_237dfa0a21c8</item>
+        <item>ludo_ui_cb19eb7a6c27</item>
+        <item>ludo_ui_a3477f4ea5e8</item>
+        <item>ludo_ui_1b90271d66cf</item>
+        <item>ludo_ui_fe23c52dc244</item>
+        <item>ludo_ui_83ef3e6cee83</item>
+        <item>ludo_ui_6f675f9eb4f7</item>
+        <item>ludo_ui_647bf4ae5c62</item>
+        <item>ludo_ui_1042d6afbaa2</item>
+        <item>ludo_ui_a89e6448fed9</item>
+        <item>ludo_ui_4522c6c193dd</item>
+        <item>ludo_ui_9306fa43de14</item>
+        <item>ludo_ui_7e7e302f85da</item>
+        <item>ludo_ui_6c21f53a0e2e</item>
+        <item>ludo_ui_72b6832509cf</item>
+        <item>ludo_ui_76eec760c9b6</item>
+        <item>ludo_ui_5252c4778494</item>
+        <item>ludo_ui_1a337d149fad</item>
+        <item>ludo_ui_74db540257e2</item>
+        <item>ludo_ui_9d80f91f7fd0</item>
+        <item>ludo_ui_5af7e4c32235</item>
+        <item>ludo_ui_25a5aef56243</item>
+        <item>ludo_ui_9835b11f4a9c</item>
+        <item>ludo_ui_e963907dac5c</item>
+        <item>ludo_ui_cea56068de17</item>
+        <item>ludo_ui_efc90c2d6a1a</item>
+        <item>ludo_ui_659eba121958</item>
+        <item>ludo_ui_92a0d7d4d561</item>
+        <item>ludo_ui_9e4f4002089e</item>
+        <item>ludo_ui_3cbe6d6b9a8d</item>
+        <item>ludo_ui_56133caba699</item>
+        <item>ludo_ui_9c734a6ebd60</item>
+        <item>ludo_ui_2f4f4b7fbc81</item>
+        <item>ludo_ui_dc30865a73b3</item>
+        <item>ludo_ui_451ea8e159e1</item>
+        <item>ludo_ui_7cd45b9c3aba</item>
+        <item>ludo_ui_186cd7400991</item>
+        <item>ludo_ui_c58ca911794f</item>
+        <item>ludo_ui_140f9785d041</item>
+        <item>ludo_ui_0f4dfa4d3ac7</item>
+        <item>ludo_ui_a255233a0083</item>
+        <item>ludo_ui_cfdccd8f1fcd</item>
+        <item>ludo_ui_d6b897fd145a</item>
+        <item>ludo_ui_f0c1046d11e2</item>
+        <item>ludo_ui_33572e4958ee</item>
+        <item>ludo_ui_2c16ea11eedf</item>
+        <item>ludo_ui_6a4319bfe8f5</item>
+        <item>ludo_ui_a0e2141fe764</item>
+        <item>ludo_ui_6a316d33e96e</item>
+        <item>ludo_ui_03100d8eb83d</item>
+        <item>ludo_ui_7031b62abf9f</item>
+        <item>ludo_ui_b217e98c3bf7</item>
+        <item>ludo_ui_92bd30faa901</item>
+        <item>ludo_ui_cc4a564197f4</item>
+        <item>ludo_ui_6754fe3cd831</item>
+        <item>ludo_ui_7266a1da7e3a</item>
+        <item>ludo_ui_f2e1c7fad591</item>
+        <item>ludo_ui_923c86f65dbe</item>
+        <item>ludo_ui_9f1d7a855245</item>
+        <item>ludo_ui_ebdfc8c77200</item>
+        <item>ludo_ui_5e397fcfba2a</item>
+        <item>ludo_ui_3ad2dd829664</item>
+        <item>ludo_ui_673b1cf863c8</item>
+        <item>ludo_ui_854ccc29cc22</item>
+        <item>ludo_ui_70e53283edb6</item>
+        <item>ludo_ui_3fa9b2dd85d2</item>
+        <item>ludo_ui_f5680604ea9e</item>
+        <item>ludo_ui_87fd3befcce6</item>
+        <item>ludo_ui_6ddcb9e4747f</item>
+        <item>ludo_ui_5d569dfc1300</item>
+        <item>ludo_ui_6f49c31192f5</item>
+        <item>ludo_ui_efc007a393f6</item>
+        <item>ludo_ui_ef42723dcd47</item>
+        <item>ludo_ui_88ab74c9a1de</item>
+        <item>ludo_ui_61c8443efd1d</item>
+        <item>ludo_ui_101ac5e932c0</item>
+        <item>ludo_ui_9a976fc228b6</item>
+        <item>ludo_ui_3df75622b335</item>
+        <item>ludo_ui_c70a890d1411</item>
+        <item>ludo_ui_d8973b8edfe5</item>
+        <item>ludo_ui_6d31bf00d7ed</item>
+        <item>ludo_ui_29cd612b0c9d</item>
+        <item>ludo_ui_3d2d7b1c3400</item>
+        <item>ludo_ui_3260f6002c54</item>
+        <item>ludo_ui_338809e1bb8e</item>
+        <item>ludo_ui_55de88709232</item>
+        <item>ludo_ui_d08e5c86a128</item>
+        <item>ludo_ui_37e04930372c</item>
+        <item>ludo_ui_50df2d658581</item>
+        <item>ludo_ui_0b81497c8589</item>
+        <item>ludo_ui_20c0b7bdab70</item>
+        <item>ludo_ui_ad7c3cc73f9c</item>
+        <item>ludo_ui_3e03229d39e4</item>
+        <item>ludo_ui_b6c149c3e004</item>
+        <item>ludo_ui_d1aa0503612a</item>
+        <item>ludo_ui_854ec0cee32c</item>
+        <item>ludo_ui_df8cc3ab57ff</item>
+        <item>ludo_ui_6beaeefe7b88</item>
+        <item>ludo_ui_a8ea299fbe3a</item>
+        <item>ludo_ui_b9f80439a4f0</item>
+        <item>ludo_ui_2090db25bf88</item>
+        <item>ludo_ui_6af055dbcaca</item>
+        <item>ludo_ui_ae75f3912db3</item>
+        <item>ludo_ui_ecae78abec52</item>
+        <item>ludo_ui_4dfdf195ecb7</item>
+        <item>ludo_ui_a41e30af5e2d</item>
+        <item>ludo_ui_5ea1bbc91843</item>
+        <item>ludo_ui_35fda17ff05f</item>
+        <item>ludo_ui_e8dbbad71cb1</item>
+        <item>ludo_ui_6981f4026cf8</item>
+        <item>ludo_ui_20a8df9b7603</item>
+        <item>ludo_ui_559a931bf717</item>
+        <item>ludo_ui_197042c4de91</item>
+        <item>ludo_ui_7ae9996e920a</item>
+        <item>ludo_ui_85090c4431cc</item>
+        <item>ludo_ui_2b7f23c8cf81</item>
+        <item>ludo_ui_c4bd32510475</item>
+        <item>ludo_ui_090fbc8b1dfa</item>
+        <item>ludo_ui_ae768f766f75</item>
+        <item>ludo_ui_0844d6deb0d0</item>
+        <item>ludo_ui_52db564b0ad8</item>
+        <item>ludo_ui_1193ba31f109</item>
+        <item>ludo_ui_b17fc6f05c07</item>
+        <item>ludo_ui_ac99404d12d6</item>
+        <item>ludo_ui_72ddd2b619af</item>
+        <item>ludo_ui_2d3d79661ce7</item>
+        <item>ludo_ui_c29220f9585c</item>
+        <item>ludo_ui_fc4509124987</item>
+        <item>ludo_ui_77dcd849e550</item>
+        <item>ludo_ui_3ed104337eb1</item>
+        <item>ludo_ui_879f5e50e694</item>
+        <item>ludo_ui_b43b602282ca</item>
+        <item>ludo_ui_3f01873465e7</item>
+        <item>ludo_ui_094d515b3608</item>
+        <item>ludo_ui_279c771ae60c</item>
+        <item>ludo_ui_f4b9b7b937be</item>
+        <item>ludo_ui_7e380be8dc28</item>
+        <item>ludo_ui_9a0ec1597684</item>
+        <item>ludo_ui_ed053ef265d4</item>
+        <item>ludo_ui_a2b7c120c93a</item>
+        <item>ludo_ui_1da20795f84b</item>
+        <item>ludo_ui_4a4269a35ee8</item>
+        <item>ludo_ui_2f4f0e5cd054</item>
+        <item>ludo_ui_9bab4b24cb85</item>
+        <item>ludo_ui_b5515f4a1172</item>
+        <item>ludo_ui_dd697aa8cce5</item>
+        <item>ludo_ui_2d79f6dbae28</item>
+        <item>ludo_ui_30949d5f4a69</item>
+        <item>ludo_ui_a08c1ca2fca3</item>
+        <item>ludo_ui_e8a1234b8442</item>
+        <item>ludo_ui_f4cd438b049f</item>
+        <item>ludo_ui_4d206a8103d3</item>
+        <item>ludo_ui_cfee1d9fb44d</item>
+        <item>ludo_ui_cef2fe093b68</item>
+        <item>ludo_ui_f5eeb94b4168</item>
+        <item>ludo_ui_edf404d0db32</item>
+        <item>ludo_ui_c8c5d5d936ef</item>
+        <item>ludo_ui_1f8dc1a6076e</item>
+        <item>ludo_ui_611bc125b7ad</item>
+        <item>ludo_ui_9a2248f7c4de</item>
+        <item>ludo_ui_ecca88090fa6</item>
+        <item>ludo_ui_ab7cd7333778</item>
+        <item>ludo_ui_e92904bce802</item>
+        <item>ludo_ui_c951ec00f123</item>
+        <item>ludo_ui_c94ac7cc3b7b</item>
+        <item>ludo_ui_c04888dcb0ae</item>
+        <item>ludo_ui_d115b8d5acb8</item>
+        <item>ludo_ui_9769121f10f7</item>
+        <item>ludo_ui_768685ca582a</item>
+        <item>ludo_ui_ede34a33eb69</item>
+        <item>ludo_ui_bc7819b34ff8</item>
+        <item>ludo_ui_b3da70258296</item>
+        <item>ludo_ui_da15692ca2d5</item>
+        <item>ludo_ui_db4e4ef96af7</item>
+        <item>ludo_ui_e875d3a416e9</item>
+        <item>ludo_ui_d0ec78c12d0a</item>
+        <item>ludo_ui_eb634e962b0d</item>
+        <item>ludo_ui_66b98924b384</item>
+        <item>ludo_ui_d4264d40182d</item>
+        <item>ludo_ui_db800e86e9f3</item>
+        <item>ludo_ui_3b62b4e7ef0b</item>
+        <item>ludo_ui_d16ad2dcc6af</item>
+        <item>ludo_ui_9d4ac43d5e24</item>
+        <item>ludo_ui_f60180e1681f</item>
+        <item>ludo_ui_194bd4f9c7be</item>
+        <item>ludo_ui_e71f1539a41b</item>
+        <item>ludo_ui_cc8374cfe9ab</item>
+        <item>ludo_ui_2f4699b3561a</item>
+        <item>ludo_ui_681101d8f9fa</item>
+        <item>ludo_ui_c3ee632658d0</item>
+        <item>ludo_ui_69e3b8f7ae93</item>
+        <item>ludo_ui_7ec8c935546b</item>
+        <item>ludo_ui_8962b4b3badf</item>
+        <item>ludo_ui_cc1889618588</item>
+        <item>ludo_ui_30b686daceae</item>
+        <item>ludo_ui_ffc6933e9929</item>
+        <item>ludo_ui_8cddf031638e</item>
+        <item>ludo_ui_33d30632848d</item>
+        <item>ludo_ui_94dfbc349ccb</item>
+        <item>ludo_ui_c26c33fa1c5a</item>
+        <item>ludo_ui_a187509aa2af</item>
+        <item>ludo_ui_678826b14b59</item>
+        <item>ludo_ui_c7b5a7b0cbaf</item>
+        <item>ludo_ui_3538651781ba</item>
+        <item>ludo_ui_e52e5e6cd50e</item>
+        <item>ludo_ui_58361b407af3</item>
+        <item>ludo_ui_fab1a5239120</item>
+        <item>ludo_ui_984d2720f42d</item>
+        <item>ludo_ui_4e3adcfe37c3</item>
+        <item>ludo_ui_b6c015d12e1b</item>
+        <item>ludo_ui_ac33d641f4c9</item>
+        <item>ludo_ui_905cb326c779</item>
+        <item>ludo_ui_c332ea8353dc</item>
+        <item>ludo_ui_df8b589c00ef</item>
+        <item>ludo_ui_92500d4a0f2d</item>
+        <item>ludo_ui_d113c983a8d8</item>
+        <item>ludo_ui_9ffdae19741a</item>
+        <item>ludo_ui_7df634b6ad84</item>
+        <item>ludo_ui_1c473aaf1e0b</item>
+        <item>ludo_ui_7f4be31ac385</item>
+        <item>ludo_ui_77f0436d3e8e</item>
+        <item>ludo_ui_f22b59b21027</item>
+        <item>ludo_ui_82dfe45b4d10</item>
+        <item>ludo_ui_8a4e60471b34</item>
+        <item>ludo_ui_276cf52477ab</item>
+        <item>ludo_ui_dcf25ed56c95</item>
+        <item>ludo_ui_3e08adebe59f</item>
+        <item>ludo_ui_5922f5ceeff3</item>
+        <item>ludo_ui_267a5ddc8da1</item>
+        <item>ludo_ui_20e42c888353</item>
+        <item>ludo_ui_4a4ea87c0bf0</item>
+        <item>ludo_ui_6848117261bf</item>
+        <item>ludo_ui_5c7760d2d83f</item>
+        <item>ludo_ui_f57290e45e78</item>
+        <item>ludo_ui_c348a92662f7</item>
+        <item>ludo_ui_63e198412d67</item>
+        <item>ludo_ui_2d155fe16d9f</item>
+        <item>ludo_ui_a6019390a099</item>
+        <item>ludo_ui_076903f4cb25</item>
+        <item>ludo_ui_f592b5315e0a</item>
+        <item>ludo_ui_32b211f8e6ab</item>
+        <item>ludo_ui_4c52d61bb3b2</item>
+    </string-array>
+    <string-array name="ludo_ui_string_values" translatable="false">
+        <item>@string/ludo_ui_00c011af5d7e</item>
+        <item>@string/ludo_ui_1df12c7cbe7f</item>
+        <item>@string/ludo_ui_6ab4812ee264</item>
+        <item>@string/ludo_ui_569e69a151b7</item>
+        <item>@string/ludo_ui_a66c7be7625c</item>
+        <item>@string/ludo_ui_ccd1d166b3f7</item>
+        <item>@string/ludo_ui_6411de2d8eb6</item>
+        <item>@string/ludo_ui_43a954cd6ffe</item>
+        <item>@string/ludo_ui_2302e50748ae</item>
+        <item>@string/ludo_ui_e19a67143181</item>
+        <item>@string/ludo_ui_a8029288de36</item>
+        <item>@string/ludo_ui_55e501e56563</item>
+        <item>@string/ludo_ui_88b1cb04de50</item>
+        <item>@string/ludo_ui_81a205dd77ec</item>
+        <item>@string/ludo_ui_9f4ce156b4a2</item>
+        <item>@string/ludo_ui_e8426e28a39b</item>
+        <item>@string/ludo_ui_67cf70802afe</item>
+        <item>@string/ludo_ui_6c18999cf5da</item>
+        <item>@string/ludo_ui_b2b26974f392</item>
+        <item>@string/ludo_ui_27c6f2cc0669</item>
+        <item>@string/ludo_ui_013f4ac34d6f</item>
+        <item>@string/ludo_ui_684cc316ad4c</item>
+        <item>@string/ludo_ui_fbb2cf43b43d</item>
+        <item>@string/ludo_ui_a1745b84ec87</item>
+        <item>@string/ludo_ui_a6634f24b2db</item>
+        <item>@string/ludo_ui_61cc55aa0453</item>
+        <item>@string/ludo_ui_b0c493dd9773</item>
+        <item>@string/ludo_ui_6841238e3902</item>
+        <item>@string/ludo_ui_bbe0b7000598</item>
+        <item>@string/ludo_ui_8e0ab9ead3eb</item>
+        <item>@string/ludo_ui_4926fa4e3961</item>
+        <item>@string/ludo_ui_c69153687791</item>
+        <item>@string/ludo_ui_ff9f1ff32120</item>
+        <item>@string/ludo_ui_0f537fab0169</item>
+        <item>@string/ludo_ui_79b9d273ac6d</item>
+        <item>@string/ludo_ui_bd6acc8626d1</item>
+        <item>@string/ludo_ui_694c14c7cdb2</item>
+        <item>@string/ludo_ui_6a72085653e4</item>
+        <item>@string/ludo_ui_ca0b36fec74b</item>
+        <item>@string/ludo_ui_9d3bd1fb5278</item>
+        <item>@string/ludo_ui_a42522a0cdd6</item>
+        <item>@string/ludo_ui_5722849f2ccb</item>
+        <item>@string/ludo_ui_00f33fc530d3</item>
+        <item>@string/ludo_ui_530670dca740</item>
+        <item>@string/ludo_ui_354bf9892583</item>
+        <item>@string/ludo_ui_54e15dd1f9ec</item>
+        <item>@string/ludo_ui_5f4599daa341</item>
+        <item>@string/ludo_ui_f3a826101b9a</item>
+        <item>@string/ludo_ui_ceafb51e2b07</item>
+        <item>@string/ludo_ui_593905b31972</item>
+        <item>@string/ludo_ui_5e25ce007aa9</item>
+        <item>@string/ludo_ui_c614ba7c453c</item>
+        <item>@string/ludo_ui_c501742ba88a</item>
+        <item>@string/ludo_ui_0f752f56d57f</item>
+        <item>@string/ludo_ui_ae507b91b299</item>
+        <item>@string/ludo_ui_7631b26ea80b</item>
+        <item>@string/ludo_ui_fc022ebccbe9</item>
+        <item>@string/ludo_ui_213598a7e922</item>
+        <item>@string/ludo_ui_7c1120a8a82b</item>
+        <item>@string/ludo_ui_4429f3ca2d65</item>
+        <item>@string/ludo_ui_b52b36b7269f</item>
+        <item>@string/ludo_ui_639892c312cb</item>
+        <item>@string/ludo_ui_f6be1be64443</item>
+        <item>@string/ludo_ui_237724107d5a</item>
+        <item>@string/ludo_ui_1f797564f784</item>
+        <item>@string/ludo_ui_3ae11c725c30</item>
+        <item>@string/ludo_ui_fa6c3752cd00</item>
+        <item>@string/ludo_ui_93409af2f208</item>
+        <item>@string/ludo_ui_027a12c2fc85</item>
+        <item>@string/ludo_ui_5cb4c9d82817</item>
+        <item>@string/ludo_ui_42ab0c94a1e3</item>
+        <item>@string/ludo_ui_373616e39fb4</item>
+        <item>@string/ludo_ui_027ed37f00fb</item>
+        <item>@string/ludo_ui_bb2254a806f4</item>
+        <item>@string/ludo_ui_82dd2cdf36f9</item>
+        <item>@string/ludo_ui_99613c74ce01</item>
+        <item>@string/ludo_ui_3d3d9d394f28</item>
+        <item>@string/ludo_ui_a001af75ee89</item>
+        <item>@string/ludo_ui_96744d827a0f</item>
+        <item>@string/ludo_ui_ea9045b9bcd7</item>
+        <item>@string/ludo_ui_62ac59b7255c</item>
+        <item>@string/ludo_ui_180c89bf50c8</item>
+        <item>@string/ludo_ui_290125ef9fc2</item>
+        <item>@string/ludo_ui_37497aa5a227</item>
+        <item>@string/ludo_ui_5577d2a2748f</item>
+        <item>@string/ludo_ui_9bb835f4f91b</item>
+        <item>@string/ludo_ui_2f3b5c55bc27</item>
+        <item>@string/ludo_ui_0ed5311a6941</item>
+        <item>@string/ludo_ui_309007d4c621</item>
+        <item>@string/ludo_ui_130e4a34f1b8</item>
+        <item>@string/ludo_ui_5c77726358c5</item>
+        <item>@string/ludo_ui_e71b56d92347</item>
+        <item>@string/ludo_ui_4617585b8749</item>
+        <item>@string/ludo_ui_7ceca51fcafe</item>
+        <item>@string/ludo_ui_9ce257aad3b6</item>
+        <item>@string/ludo_ui_28f176c17b3d</item>
+        <item>@string/ludo_ui_7f025ec3f529</item>
+        <item>@string/ludo_ui_6536e0450199</item>
+        <item>@string/ludo_ui_e4636d467ea5</item>
+        <item>@string/ludo_ui_07dee45ea568</item>
+        <item>@string/ludo_ui_314ccd964ef6</item>
+        <item>@string/ludo_ui_73a7ddd505f2</item>
+        <item>@string/ludo_ui_cd6a7b876852</item>
+        <item>@string/ludo_ui_77dfd2135f4d</item>
+        <item>@string/ludo_ui_909907a57141</item>
+        <item>@string/ludo_ui_e38ede065e67</item>
+        <item>@string/ludo_ui_09a560fe5f18</item>
+        <item>@string/ludo_ui_09c0c3df4b66</item>
+        <item>@string/ludo_ui_e9e21c35ab34</item>
+        <item>@string/ludo_ui_dba86789b53e</item>
+        <item>@string/ludo_ui_6c6b1b2b3ecc</item>
+        <item>@string/ludo_ui_2ced57f12591</item>
+        <item>@string/ludo_ui_e208206e5a1b</item>
+        <item>@string/ludo_ui_458fce8a0957</item>
+        <item>@string/ludo_ui_6448535a2c2b</item>
+        <item>@string/ludo_ui_870f36da6076</item>
+        <item>@string/ludo_ui_3ddb9e7bf12c</item>
+        <item>@string/ludo_ui_e6a1ed95a00e</item>
+        <item>@string/ludo_ui_8141c3c5aa30</item>
+        <item>@string/ludo_ui_6ae9a17853b9</item>
+        <item>@string/ludo_ui_349507e41dd8</item>
+        <item>@string/ludo_ui_d2eaf2aa1512</item>
+        <item>@string/ludo_ui_77de189161e5</item>
+        <item>@string/ludo_ui_df09f0640f48</item>
+        <item>@string/ludo_ui_bc850fa299e9</item>
+        <item>@string/ludo_ui_c6dfa97a611d</item>
+        <item>@string/ludo_ui_03d9c10fee4d</item>
+        <item>@string/ludo_ui_83c87884b09b</item>
+        <item>@string/ludo_ui_130cd7fe3334</item>
+        <item>@string/ludo_ui_4cad864ba71d</item>
+        <item>@string/ludo_ui_9f0e14a96ab7</item>
+        <item>@string/ludo_ui_bbfa773e5a63</item>
+        <item>@string/ludo_ui_3c30d1ee6e0f</item>
+        <item>@string/ludo_ui_baa5503537a8</item>
+        <item>@string/ludo_ui_4014019824fd</item>
+        <item>@string/ludo_ui_49ae8a1d9d6b</item>
+        <item>@string/ludo_ui_32c9c4c1145c</item>
+        <item>@string/ludo_ui_de4d64732274</item>
+        <item>@string/ludo_ui_1be893ca34c5</item>
+        <item>@string/ludo_ui_06dc26b59788</item>
+        <item>@string/ludo_ui_adac69379a62</item>
+        <item>@string/ludo_ui_73834db36d39</item>
+        <item>@string/ludo_ui_c832f75cc878</item>
+        <item>@string/ludo_ui_04aac4c04182</item>
+        <item>@string/ludo_ui_2f7373996064</item>
+        <item>@string/ludo_ui_5d26256d604b</item>
+        <item>@string/ludo_ui_e5bb59a27319</item>
+        <item>@string/ludo_ui_77f256b43643</item>
+        <item>@string/ludo_ui_6f387b673a75</item>
+        <item>@string/ludo_ui_c1f3b71fdf88</item>
+        <item>@string/ludo_ui_bde1d8f5ca3e</item>
+        <item>@string/ludo_ui_85c08d2c56ce</item>
+        <item>@string/ludo_ui_77d12b97ba61</item>
+        <item>@string/ludo_ui_4bacfe2535ec</item>
+        <item>@string/ludo_ui_2060b6806e60</item>
+        <item>@string/ludo_ui_ced26434ea11</item>
+        <item>@string/ludo_ui_a8ed2677ac6b</item>
+        <item>@string/ludo_ui_1bf429f94068</item>
+        <item>@string/ludo_ui_58f76ad9b377</item>
+        <item>@string/ludo_ui_d48dcb73870a</item>
+        <item>@string/ludo_ui_d523ebbd1014</item>
+        <item>@string/ludo_ui_6e157c5da441</item>
+        <item>@string/ludo_ui_9ac59abe8462</item>
+        <item>@string/ludo_ui_7b37d3f455d9</item>
+        <item>@string/ludo_ui_d7e0453bb4af</item>
+        <item>@string/ludo_ui_8b033e8b4c7b</item>
+        <item>@string/ludo_ui_c484b137e2d1</item>
+        <item>@string/ludo_ui_de58331a6338</item>
+        <item>@string/ludo_ui_6c89c1683731</item>
+        <item>@string/ludo_ui_852addab901c</item>
+        <item>@string/ludo_ui_045e2f1d6c4d</item>
+        <item>@string/ludo_ui_728298d3dbf4</item>
+        <item>@string/ludo_ui_ed83793e57dd</item>
+        <item>@string/ludo_ui_0defbb031add</item>
+        <item>@string/ludo_ui_86ad0f979384</item>
+        <item>@string/ludo_ui_26f077508f91</item>
+        <item>@string/ludo_ui_17b902de1662</item>
+        <item>@string/ludo_ui_fdc0ce7968aa</item>
+        <item>@string/ludo_ui_4dc593cb130f</item>
+        <item>@string/ludo_ui_77bf95d60e7e</item>
+        <item>@string/ludo_ui_7b37259e1496</item>
+        <item>@string/ludo_ui_89da124e04df</item>
+        <item>@string/ludo_ui_5dfa90784e1d</item>
+        <item>@string/ludo_ui_7927f138711a</item>
+        <item>@string/ludo_ui_a5207ad4fc95</item>
+        <item>@string/ludo_ui_599546c10d15</item>
+        <item>@string/ludo_ui_1f7b3145f26b</item>
+        <item>@string/ludo_ui_fb6145690e88</item>
+        <item>@string/ludo_ui_60a8b0c6de6f</item>
+        <item>@string/ludo_ui_bc1cd4f07d82</item>
+        <item>@string/ludo_ui_8a4bf12e17b2</item>
+        <item>@string/ludo_ui_eb22c5e28adf</item>
+        <item>@string/ludo_ui_df39fedad614</item>
+        <item>@string/ludo_ui_1e5a19cdd267</item>
+        <item>@string/ludo_ui_357ab81020c6</item>
+        <item>@string/ludo_ui_135ce40380c7</item>
+        <item>@string/ludo_ui_00f03137e155</item>
+        <item>@string/ludo_ui_09f199d25132</item>
+        <item>@string/ludo_ui_15141eab3a28</item>
+        <item>@string/ludo_ui_1c39abf68e93</item>
+        <item>@string/ludo_ui_259a6e935b84</item>
+        <item>@string/ludo_ui_da32ecab00cd</item>
+        <item>@string/ludo_ui_c595d3fc0566</item>
+        <item>@string/ludo_ui_8aeef015cc99</item>
+        <item>@string/ludo_ui_2b0b33a9533a</item>
+        <item>@string/ludo_ui_5090a9e78c89</item>
+        <item>@string/ludo_ui_68e6a910db6d</item>
+        <item>@string/ludo_ui_6ab05be1c205</item>
+        <item>@string/ludo_ui_7bb1675d4093</item>
+        <item>@string/ludo_ui_0cdfe1a8f2f0</item>
+        <item>@string/ludo_ui_80eaf3087b0b</item>
+        <item>@string/ludo_ui_48fdec333e8f</item>
+        <item>@string/ludo_ui_3f1e9642bce4</item>
+        <item>@string/ludo_ui_f8dc9813a53b</item>
+        <item>@string/ludo_ui_689532b4d3bc</item>
+        <item>@string/ludo_ui_18740af5bcec</item>
+        <item>@string/ludo_ui_f0a96da3f86a</item>
+        <item>@string/ludo_ui_16cc7f843a3e</item>
+        <item>@string/ludo_ui_2f8f37e09f76</item>
+        <item>@string/ludo_ui_3d91f7631ba8</item>
+        <item>@string/ludo_ui_f83b6fe3aebf</item>
+        <item>@string/ludo_ui_8f7a3d32ed47</item>
+        <item>@string/ludo_ui_c61a7c7f39fc</item>
+        <item>@string/ludo_ui_4a9768fab062</item>
+        <item>@string/ludo_ui_11499959510c</item>
+        <item>@string/ludo_ui_1082f8911562</item>
+        <item>@string/ludo_ui_bbb7ef7f2ec9</item>
+        <item>@string/ludo_ui_6cf4b5b94b33</item>
+        <item>@string/ludo_ui_1011eeb27ed5</item>
+        <item>@string/ludo_ui_c909b138eba8</item>
+        <item>@string/ludo_ui_05f5561dbd79</item>
+        <item>@string/ludo_ui_c0820b5b597b</item>
+        <item>@string/ludo_ui_dfcd3454bbea</item>
+        <item>@string/ludo_ui_e3772ac4b4db</item>
+        <item>@string/ludo_ui_c1c331bc3736</item>
+        <item>@string/ludo_ui_07090aa7d613</item>
+        <item>@string/ludo_ui_40f39cdcd3ac</item>
+        <item>@string/ludo_ui_ced852bf5c06</item>
+        <item>@string/ludo_ui_2394299d6feb</item>
+        <item>@string/ludo_ui_907b2ba81ed2</item>
+        <item>@string/ludo_ui_e21ce053de52</item>
+        <item>@string/ludo_ui_c5283d4829b4</item>
+        <item>@string/ludo_ui_05a290ea7dc7</item>
+        <item>@string/ludo_ui_c11d5e1d35fb</item>
+        <item>@string/ludo_ui_4e4452810ee2</item>
+        <item>@string/ludo_ui_705c61e1b82c</item>
+        <item>@string/ludo_ui_a06dcd71328f</item>
+        <item>@string/ludo_ui_7c39974f44b2</item>
+        <item>@string/ludo_ui_a894063faec2</item>
+        <item>@string/ludo_ui_398ed3298149</item>
+        <item>@string/ludo_ui_d5f998a403b7</item>
+        <item>@string/ludo_ui_9113c6c0c1f9</item>
+        <item>@string/ludo_ui_17d53e0e6a68</item>
+        <item>@string/ludo_ui_317dbac90743</item>
+        <item>@string/ludo_ui_e51335897c0e</item>
+        <item>@string/ludo_ui_8d0a32ed6339</item>
+        <item>@string/ludo_ui_1251337f44bf</item>
+        <item>@string/ludo_ui_2fb7d7f8054b</item>
+        <item>@string/ludo_ui_65a2d1f9cce1</item>
+        <item>@string/ludo_ui_6f1e2c915818</item>
+        <item>@string/ludo_ui_d9f44edd52a7</item>
+        <item>@string/ludo_ui_8ac9a5090057</item>
+        <item>@string/ludo_ui_f08bdc8d0c0c</item>
+        <item>@string/ludo_ui_8e30d6aac813</item>
+        <item>@string/ludo_ui_a600154da4fb</item>
+        <item>@string/ludo_ui_0018b3443f7d</item>
+        <item>@string/ludo_ui_1a9360a0e998</item>
+        <item>@string/ludo_ui_4902a456caa9</item>
+        <item>@string/ludo_ui_1ba0cfa55029</item>
+        <item>@string/ludo_ui_dbf2a2da6458</item>
+        <item>@string/ludo_ui_f0f524ff3b9c</item>
+        <item>@string/ludo_ui_f8aa3a934ee3</item>
+        <item>@string/ludo_ui_11760e1aac43</item>
+        <item>@string/ludo_ui_180c97abdb80</item>
+        <item>@string/ludo_ui_b47b54fd3a46</item>
+        <item>@string/ludo_ui_b07cb9a2b248</item>
+        <item>@string/ludo_ui_bc88a24030a1</item>
+        <item>@string/ludo_ui_a4842f0234d7</item>
+        <item>@string/ludo_ui_020d6b5ecf82</item>
+        <item>@string/ludo_ui_b110b0dd78dc</item>
+        <item>@string/ludo_ui_20a89915f18c</item>
+        <item>@string/ludo_ui_84c4456c82c2</item>
+        <item>@string/ludo_ui_130447083d0b</item>
+        <item>@string/ludo_ui_5add073ddb4a</item>
+        <item>@string/ludo_ui_8a7fecc4350c</item>
+        <item>@string/ludo_ui_74bcb5f14ee9</item>
+        <item>@string/ludo_ui_90ccd6497400</item>
+        <item>@string/ludo_ui_0f3f60b7c574</item>
+        <item>@string/ludo_ui_70f8bb9a8a53</item>
+        <item>@string/ludo_ui_5aa588714ab4</item>
+        <item>@string/ludo_ui_2f488ffc82cc</item>
+        <item>@string/ludo_ui_f14e46ce7d09</item>
+        <item>@string/ludo_ui_4dabfb26fa78</item>
+        <item>@string/ludo_ui_bcdc18a50d5a</item>
+        <item>@string/ludo_ui_b325dab367bc</item>
+        <item>@string/ludo_ui_ae1d91a2a7b3</item>
+        <item>@string/ludo_ui_72d75745e517</item>
+        <item>@string/ludo_ui_b3c92eecf0aa</item>
+        <item>@string/ludo_ui_3e2c5704094d</item>
+        <item>@string/ludo_ui_bbd88bff92de</item>
+        <item>@string/ludo_ui_967ce367d89d</item>
+        <item>@string/ludo_ui_35536a41b209</item>
+        <item>@string/ludo_ui_b136609f0684</item>
+        <item>@string/ludo_ui_7ae0933a3884</item>
+        <item>@string/ludo_ui_e91cf27d1adf</item>
+        <item>@string/ludo_ui_20cfec91c6d6</item>
+        <item>@string/ludo_ui_0179e8431590</item>
+        <item>@string/ludo_ui_889224e3fca2</item>
+        <item>@string/ludo_ui_1aed9ecc6e1b</item>
+        <item>@string/ludo_ui_eb2131ece0ef</item>
+        <item>@string/ludo_ui_76733f338bb2</item>
+        <item>@string/ludo_ui_4c197dfd67f1</item>
+        <item>@string/ludo_ui_ad79ef0f076d</item>
+        <item>@string/ludo_ui_c789954268c3</item>
+        <item>@string/ludo_ui_5eedd6a16ab8</item>
+        <item>@string/ludo_ui_fcf29f6cad32</item>
+        <item>@string/ludo_ui_ff4636d0caf6</item>
+        <item>@string/ludo_ui_24c80ef942c3</item>
+        <item>@string/ludo_ui_165b6cfdc9df</item>
+        <item>@string/ludo_ui_4459d14e9422</item>
+        <item>@string/ludo_ui_9292be3a838e</item>
+        <item>@string/ludo_ui_fb8e84a9c2ff</item>
+        <item>@string/ludo_ui_99d6d24f6e84</item>
+        <item>@string/ludo_ui_674027e17b0e</item>
+        <item>@string/ludo_ui_3a682b2fa18a</item>
+        <item>@string/ludo_ui_84e2924b8865</item>
+        <item>@string/ludo_ui_2f36b6bb1852</item>
+        <item>@string/ludo_ui_a84f56f2e6a7</item>
+        <item>@string/ludo_ui_3f57adf2c06c</item>
+        <item>@string/ludo_ui_2133c45255e5</item>
+        <item>@string/ludo_ui_6544b2fecc0e</item>
+        <item>@string/ludo_ui_93295b0c76b9</item>
+        <item>@string/ludo_ui_c78791a3f0e1</item>
+        <item>@string/ludo_ui_73a393390615</item>
+        <item>@string/ludo_ui_5ae481644a06</item>
+        <item>@string/ludo_ui_7ee89b418040</item>
+        <item>@string/ludo_ui_aeec316868da</item>
+        <item>@string/ludo_ui_79194ba16f36</item>
+        <item>@string/ludo_ui_7998be8d446d</item>
+        <item>@string/ludo_ui_118f9b2b3021</item>
+        <item>@string/ludo_ui_c5f5bb3b3507</item>
+        <item>@string/ludo_ui_4e87aded1494</item>
+        <item>@string/ludo_ui_027de9d1ce67</item>
+        <item>@string/ludo_ui_7e3520a97331</item>
+        <item>@string/ludo_ui_3676c372bfc0</item>
+        <item>@string/ludo_ui_5c9bea81a942</item>
+        <item>@string/ludo_ui_5caa7f811b5a</item>
+        <item>@string/ludo_ui_cfaf50ac3721</item>
+        <item>@string/ludo_ui_93b12bf57f18</item>
+        <item>@string/ludo_ui_c38a582abbd1</item>
+        <item>@string/ludo_ui_d76e786fb2aa</item>
+        <item>@string/ludo_ui_1ed5dd9d833f</item>
+        <item>@string/ludo_ui_55949d4c1663</item>
+        <item>@string/ludo_ui_b0ddce0f54c9</item>
+        <item>@string/ludo_ui_9f19d4dcd451</item>
+        <item>@string/ludo_ui_74a788cee27d</item>
+        <item>@string/ludo_ui_65c821a596ce</item>
+        <item>@string/ludo_ui_5247f376b4f2</item>
+        <item>@string/ludo_ui_c18920c370b7</item>
+        <item>@string/ludo_ui_762379d64d72</item>
+        <item>@string/ludo_ui_23f2ec0a7133</item>
+        <item>@string/ludo_ui_3e7dc459e718</item>
+        <item>@string/ludo_ui_cff01302121c</item>
+        <item>@string/ludo_ui_cfb6dd4663ed</item>
+        <item>@string/ludo_ui_5fcfb0864ab6</item>
+        <item>@string/ludo_ui_7b8f959b6fb7</item>
+        <item>@string/ludo_ui_21796852cf71</item>
+        <item>@string/ludo_ui_6fc6c6c60b28</item>
+        <item>@string/ludo_ui_b50d45ff9748</item>
+        <item>@string/ludo_ui_5076721c4060</item>
+        <item>@string/ludo_ui_424d6d3ea59e</item>
+        <item>@string/ludo_ui_918c53a2d612</item>
+        <item>@string/ludo_ui_f92bcb6a06d2</item>
+        <item>@string/ludo_ui_0ce65b26dcd3</item>
+        <item>@string/ludo_ui_ff3ea3bec182</item>
+        <item>@string/ludo_ui_213cb2045092</item>
+        <item>@string/ludo_ui_daa6a489dbca</item>
+        <item>@string/ludo_ui_1a591a3e91fc</item>
+        <item>@string/ludo_ui_bb130626b42c</item>
+        <item>@string/ludo_ui_66f1a98a952d</item>
+        <item>@string/ludo_ui_3a22d2b93c3f</item>
+        <item>@string/ludo_ui_62b328f98f50</item>
+        <item>@string/ludo_ui_3f7c3259d133</item>
+        <item>@string/ludo_ui_623eb5f6dc49</item>
+        <item>@string/ludo_ui_0ec91c5a20c8</item>
+        <item>@string/ludo_ui_1700c24d6087</item>
+        <item>@string/ludo_ui_85fa355bdb4f</item>
+        <item>@string/ludo_ui_26160d23fb07</item>
+        <item>@string/ludo_ui_26414e770f8c</item>
+        <item>@string/ludo_ui_dcc64425eed0</item>
+        <item>@string/ludo_ui_d404968ea90b</item>
+        <item>@string/ludo_ui_f99fb0f86ae7</item>
+        <item>@string/ludo_ui_41937b20fbe8</item>
+        <item>@string/ludo_ui_3aa06745f0af</item>
+        <item>@string/ludo_ui_5a7d7bc91620</item>
+        <item>@string/ludo_ui_66ec628cb55d</item>
+        <item>@string/ludo_ui_9791bc4d7273</item>
+        <item>@string/ludo_ui_35ab1c3de6da</item>
+        <item>@string/ludo_ui_f54da380bade</item>
+        <item>@string/ludo_ui_479fb34bdbf4</item>
+        <item>@string/ludo_ui_35f005157cfd</item>
+        <item>@string/ludo_ui_32e087f099be</item>
+        <item>@string/ludo_ui_3520cf6de570</item>
+        <item>@string/ludo_ui_71fb0c9b4bb7</item>
+        <item>@string/ludo_ui_7748a492c37f</item>
+        <item>@string/ludo_ui_a40a9be00a9a</item>
+        <item>@string/ludo_ui_43b19811192e</item>
+        <item>@string/ludo_ui_7f19ae34bd22</item>
+        <item>@string/ludo_ui_f83cc9942f62</item>
+        <item>@string/ludo_ui_928b7c48a60a</item>
+        <item>@string/ludo_ui_64b683f2d569</item>
+        <item>@string/ludo_ui_bfe79debcedd</item>
+        <item>@string/ludo_ui_f648c72a69c3</item>
+        <item>@string/ludo_ui_00706b5e9ede</item>
+        <item>@string/ludo_ui_f4aeb24f4f7e</item>
+        <item>@string/ludo_ui_68a299dcc0cb</item>
+        <item>@string/ludo_ui_a41fb86a3a2a</item>
+        <item>@string/ludo_ui_0e1d589f58b7</item>
+        <item>@string/ludo_ui_fb61c8a8eba2</item>
+        <item>@string/ludo_ui_b9967e88983d</item>
+        <item>@string/ludo_ui_a2238e91907f</item>
+        <item>@string/ludo_ui_6a6c9d2fc817</item>
+        <item>@string/ludo_ui_4812648c8a89</item>
+        <item>@string/ludo_ui_23da23886783</item>
+        <item>@string/ludo_ui_6687e1896dd8</item>
+        <item>@string/ludo_ui_9742d008c420</item>
+        <item>@string/ludo_ui_f4904bf63ad4</item>
+        <item>@string/ludo_ui_c635e30148c3</item>
+        <item>@string/ludo_ui_e9df93736ba0</item>
+        <item>@string/ludo_ui_b31326e60dfa</item>
+        <item>@string/ludo_ui_bcdce03b121f</item>
+        <item>@string/ludo_ui_604d0461955f</item>
+        <item>@string/ludo_ui_40dea8cd6fa9</item>
+        <item>@string/ludo_ui_2bbb1146890a</item>
+        <item>@string/ludo_ui_fedb20736102</item>
+        <item>@string/ludo_ui_e2ac50f5a2be</item>
+        <item>@string/ludo_ui_28a117f17363</item>
+        <item>@string/ludo_ui_988455e67df7</item>
+        <item>@string/ludo_ui_ddaae88a3355</item>
+        <item>@string/ludo_ui_33906a7dfdec</item>
+        <item>@string/ludo_ui_bd5302381aa0</item>
+        <item>@string/ludo_ui_7db01dac9e87</item>
+        <item>@string/ludo_ui_c10a60e4dac3</item>
+        <item>@string/ludo_ui_e01fa717bacc</item>
+        <item>@string/ludo_ui_c14c36dffca6</item>
+        <item>@string/ludo_ui_b109762fd872</item>
+        <item>@string/ludo_ui_2c9b424eb7ad</item>
+        <item>@string/ludo_ui_5fc7fcfa9e7c</item>
+        <item>@string/ludo_ui_1ad04511fc3e</item>
+        <item>@string/ludo_ui_afdbb04e2cde</item>
+        <item>@string/ludo_ui_b4f15cd85e80</item>
+        <item>@string/ludo_ui_6f08ab00eb61</item>
+        <item>@string/ludo_ui_88b188229a3c</item>
+        <item>@string/ludo_ui_e7817053bafb</item>
+        <item>@string/ludo_ui_f6443e9cced6</item>
+        <item>@string/ludo_ui_d529030d2db6</item>
+        <item>@string/ludo_ui_c14f4054214f</item>
+        <item>@string/ludo_ui_05198a3d9b46</item>
+        <item>@string/ludo_ui_b62ff5ccd122</item>
+        <item>@string/ludo_ui_61ff81c30aa3</item>
+        <item>@string/ludo_ui_71c772586f07</item>
+        <item>@string/ludo_ui_82d220df17ce</item>
+        <item>@string/ludo_ui_e5e0b68adfac</item>
+        <item>@string/ludo_ui_05a15c18a203</item>
+        <item>@string/ludo_ui_1e36b31e7882</item>
+        <item>@string/ludo_ui_65c91fe4e3e7</item>
+        <item>@string/ludo_ui_fbaa3c3e9e1b</item>
+        <item>@string/ludo_ui_71a45296474d</item>
+        <item>@string/ludo_ui_e1df2eb673fe</item>
+        <item>@string/ludo_ui_36c57243155b</item>
+        <item>@string/ludo_ui_8067364d44f5</item>
+        <item>@string/ludo_ui_f83d166a5111</item>
+        <item>@string/ludo_ui_379dc279e5e7</item>
+        <item>@string/ludo_ui_65a69337ad2f</item>
+        <item>@string/ludo_ui_90d87c649dba</item>
+        <item>@string/ludo_ui_a33b801ed44c</item>
+        <item>@string/ludo_ui_218a7aae123e</item>
+        <item>@string/ludo_ui_a1bc5e5a8263</item>
+        <item>@string/ludo_ui_1c003b19b650</item>
+        <item>@string/ludo_ui_14109fb22c67</item>
+        <item>@string/ludo_ui_6457101757c9</item>
+        <item>@string/ludo_ui_e53407cfe1a5</item>
+        <item>@string/ludo_ui_2e4f5ba7b9a5</item>
+        <item>@string/ludo_ui_298c39056151</item>
+        <item>@string/ludo_ui_5ff03b7273b1</item>
+        <item>@string/ludo_ui_a495190bcc2e</item>
+        <item>@string/ludo_ui_1c14905906a3</item>
+        <item>@string/ludo_ui_7d8ce1432689</item>
+        <item>@string/ludo_ui_6c2f2888c561</item>
+        <item>@string/ludo_ui_a66e99deec4a</item>
+        <item>@string/ludo_ui_16d765a4c83a</item>
+        <item>@string/ludo_ui_f1fbb2b43dca</item>
+        <item>@string/ludo_ui_237dfa0a21c8</item>
+        <item>@string/ludo_ui_cb19eb7a6c27</item>
+        <item>@string/ludo_ui_a3477f4ea5e8</item>
+        <item>@string/ludo_ui_1b90271d66cf</item>
+        <item>@string/ludo_ui_fe23c52dc244</item>
+        <item>@string/ludo_ui_83ef3e6cee83</item>
+        <item>@string/ludo_ui_6f675f9eb4f7</item>
+        <item>@string/ludo_ui_647bf4ae5c62</item>
+        <item>@string/ludo_ui_1042d6afbaa2</item>
+        <item>@string/ludo_ui_a89e6448fed9</item>
+        <item>@string/ludo_ui_4522c6c193dd</item>
+        <item>@string/ludo_ui_9306fa43de14</item>
+        <item>@string/ludo_ui_7e7e302f85da</item>
+        <item>@string/ludo_ui_6c21f53a0e2e</item>
+        <item>@string/ludo_ui_72b6832509cf</item>
+        <item>@string/ludo_ui_76eec760c9b6</item>
+        <item>@string/ludo_ui_5252c4778494</item>
+        <item>@string/ludo_ui_1a337d149fad</item>
+        <item>@string/ludo_ui_74db540257e2</item>
+        <item>@string/ludo_ui_9d80f91f7fd0</item>
+        <item>@string/ludo_ui_5af7e4c32235</item>
+        <item>@string/ludo_ui_25a5aef56243</item>
+        <item>@string/ludo_ui_9835b11f4a9c</item>
+        <item>@string/ludo_ui_e963907dac5c</item>
+        <item>@string/ludo_ui_cea56068de17</item>
+        <item>@string/ludo_ui_efc90c2d6a1a</item>
+        <item>@string/ludo_ui_659eba121958</item>
+        <item>@string/ludo_ui_92a0d7d4d561</item>
+        <item>@string/ludo_ui_9e4f4002089e</item>
+        <item>@string/ludo_ui_3cbe6d6b9a8d</item>
+        <item>@string/ludo_ui_56133caba699</item>
+        <item>@string/ludo_ui_9c734a6ebd60</item>
+        <item>@string/ludo_ui_2f4f4b7fbc81</item>
+        <item>@string/ludo_ui_dc30865a73b3</item>
+        <item>@string/ludo_ui_451ea8e159e1</item>
+        <item>@string/ludo_ui_7cd45b9c3aba</item>
+        <item>@string/ludo_ui_186cd7400991</item>
+        <item>@string/ludo_ui_c58ca911794f</item>
+        <item>@string/ludo_ui_140f9785d041</item>
+        <item>@string/ludo_ui_0f4dfa4d3ac7</item>
+        <item>@string/ludo_ui_a255233a0083</item>
+        <item>@string/ludo_ui_cfdccd8f1fcd</item>
+        <item>@string/ludo_ui_d6b897fd145a</item>
+        <item>@string/ludo_ui_f0c1046d11e2</item>
+        <item>@string/ludo_ui_33572e4958ee</item>
+        <item>@string/ludo_ui_2c16ea11eedf</item>
+        <item>@string/ludo_ui_6a4319bfe8f5</item>
+        <item>@string/ludo_ui_a0e2141fe764</item>
+        <item>@string/ludo_ui_6a316d33e96e</item>
+        <item>@string/ludo_ui_03100d8eb83d</item>
+        <item>@string/ludo_ui_7031b62abf9f</item>
+        <item>@string/ludo_ui_b217e98c3bf7</item>
+        <item>@string/ludo_ui_92bd30faa901</item>
+        <item>@string/ludo_ui_cc4a564197f4</item>
+        <item>@string/ludo_ui_6754fe3cd831</item>
+        <item>@string/ludo_ui_7266a1da7e3a</item>
+        <item>@string/ludo_ui_f2e1c7fad591</item>
+        <item>@string/ludo_ui_923c86f65dbe</item>
+        <item>@string/ludo_ui_9f1d7a855245</item>
+        <item>@string/ludo_ui_ebdfc8c77200</item>
+        <item>@string/ludo_ui_5e397fcfba2a</item>
+        <item>@string/ludo_ui_3ad2dd829664</item>
+        <item>@string/ludo_ui_673b1cf863c8</item>
+        <item>@string/ludo_ui_854ccc29cc22</item>
+        <item>@string/ludo_ui_70e53283edb6</item>
+        <item>@string/ludo_ui_3fa9b2dd85d2</item>
+        <item>@string/ludo_ui_f5680604ea9e</item>
+        <item>@string/ludo_ui_87fd3befcce6</item>
+        <item>@string/ludo_ui_6ddcb9e4747f</item>
+        <item>@string/ludo_ui_5d569dfc1300</item>
+        <item>@string/ludo_ui_6f49c31192f5</item>
+        <item>@string/ludo_ui_efc007a393f6</item>
+        <item>@string/ludo_ui_ef42723dcd47</item>
+        <item>@string/ludo_ui_88ab74c9a1de</item>
+        <item>@string/ludo_ui_61c8443efd1d</item>
+        <item>@string/ludo_ui_101ac5e932c0</item>
+        <item>@string/ludo_ui_9a976fc228b6</item>
+        <item>@string/ludo_ui_3df75622b335</item>
+        <item>@string/ludo_ui_c70a890d1411</item>
+        <item>@string/ludo_ui_d8973b8edfe5</item>
+        <item>@string/ludo_ui_6d31bf00d7ed</item>
+        <item>@string/ludo_ui_29cd612b0c9d</item>
+        <item>@string/ludo_ui_3d2d7b1c3400</item>
+        <item>@string/ludo_ui_3260f6002c54</item>
+        <item>@string/ludo_ui_338809e1bb8e</item>
+        <item>@string/ludo_ui_55de88709232</item>
+        <item>@string/ludo_ui_d08e5c86a128</item>
+        <item>@string/ludo_ui_37e04930372c</item>
+        <item>@string/ludo_ui_50df2d658581</item>
+        <item>@string/ludo_ui_0b81497c8589</item>
+        <item>@string/ludo_ui_20c0b7bdab70</item>
+        <item>@string/ludo_ui_ad7c3cc73f9c</item>
+        <item>@string/ludo_ui_3e03229d39e4</item>
+        <item>@string/ludo_ui_b6c149c3e004</item>
+        <item>@string/ludo_ui_d1aa0503612a</item>
+        <item>@string/ludo_ui_854ec0cee32c</item>
+        <item>@string/ludo_ui_df8cc3ab57ff</item>
+        <item>@string/ludo_ui_6beaeefe7b88</item>
+        <item>@string/ludo_ui_a8ea299fbe3a</item>
+        <item>@string/ludo_ui_b9f80439a4f0</item>
+        <item>@string/ludo_ui_2090db25bf88</item>
+        <item>@string/ludo_ui_6af055dbcaca</item>
+        <item>@string/ludo_ui_ae75f3912db3</item>
+        <item>@string/ludo_ui_ecae78abec52</item>
+        <item>@string/ludo_ui_4dfdf195ecb7</item>
+        <item>@string/ludo_ui_a41e30af5e2d</item>
+        <item>@string/ludo_ui_5ea1bbc91843</item>
+        <item>@string/ludo_ui_35fda17ff05f</item>
+        <item>@string/ludo_ui_e8dbbad71cb1</item>
+        <item>@string/ludo_ui_6981f4026cf8</item>
+        <item>@string/ludo_ui_20a8df9b7603</item>
+        <item>@string/ludo_ui_559a931bf717</item>
+        <item>@string/ludo_ui_197042c4de91</item>
+        <item>@string/ludo_ui_7ae9996e920a</item>
+        <item>@string/ludo_ui_85090c4431cc</item>
+        <item>@string/ludo_ui_2b7f23c8cf81</item>
+        <item>@string/ludo_ui_c4bd32510475</item>
+        <item>@string/ludo_ui_090fbc8b1dfa</item>
+        <item>@string/ludo_ui_ae768f766f75</item>
+        <item>@string/ludo_ui_0844d6deb0d0</item>
+        <item>@string/ludo_ui_52db564b0ad8</item>
+        <item>@string/ludo_ui_1193ba31f109</item>
+        <item>@string/ludo_ui_b17fc6f05c07</item>
+        <item>@string/ludo_ui_ac99404d12d6</item>
+        <item>@string/ludo_ui_72ddd2b619af</item>
+        <item>@string/ludo_ui_2d3d79661ce7</item>
+        <item>@string/ludo_ui_c29220f9585c</item>
+        <item>@string/ludo_ui_fc4509124987</item>
+        <item>@string/ludo_ui_77dcd849e550</item>
+        <item>@string/ludo_ui_3ed104337eb1</item>
+        <item>@string/ludo_ui_879f5e50e694</item>
+        <item>@string/ludo_ui_b43b602282ca</item>
+        <item>@string/ludo_ui_3f01873465e7</item>
+        <item>@string/ludo_ui_094d515b3608</item>
+        <item>@string/ludo_ui_279c771ae60c</item>
+        <item>@string/ludo_ui_f4b9b7b937be</item>
+        <item>@string/ludo_ui_7e380be8dc28</item>
+        <item>@string/ludo_ui_9a0ec1597684</item>
+        <item>@string/ludo_ui_ed053ef265d4</item>
+        <item>@string/ludo_ui_a2b7c120c93a</item>
+        <item>@string/ludo_ui_1da20795f84b</item>
+        <item>@string/ludo_ui_4a4269a35ee8</item>
+        <item>@string/ludo_ui_2f4f0e5cd054</item>
+        <item>@string/ludo_ui_9bab4b24cb85</item>
+        <item>@string/ludo_ui_b5515f4a1172</item>
+        <item>@string/ludo_ui_dd697aa8cce5</item>
+        <item>@string/ludo_ui_2d79f6dbae28</item>
+        <item>@string/ludo_ui_30949d5f4a69</item>
+        <item>@string/ludo_ui_a08c1ca2fca3</item>
+        <item>@string/ludo_ui_e8a1234b8442</item>
+        <item>@string/ludo_ui_f4cd438b049f</item>
+        <item>@string/ludo_ui_4d206a8103d3</item>
+        <item>@string/ludo_ui_cfee1d9fb44d</item>
+        <item>@string/ludo_ui_cef2fe093b68</item>
+        <item>@string/ludo_ui_f5eeb94b4168</item>
+        <item>@string/ludo_ui_edf404d0db32</item>
+        <item>@string/ludo_ui_c8c5d5d936ef</item>
+        <item>@string/ludo_ui_1f8dc1a6076e</item>
+        <item>@string/ludo_ui_611bc125b7ad</item>
+        <item>@string/ludo_ui_9a2248f7c4de</item>
+        <item>@string/ludo_ui_ecca88090fa6</item>
+        <item>@string/ludo_ui_ab7cd7333778</item>
+        <item>@string/ludo_ui_e92904bce802</item>
+        <item>@string/ludo_ui_c951ec00f123</item>
+        <item>@string/ludo_ui_c94ac7cc3b7b</item>
+        <item>@string/ludo_ui_c04888dcb0ae</item>
+        <item>@string/ludo_ui_d115b8d5acb8</item>
+        <item>@string/ludo_ui_9769121f10f7</item>
+        <item>@string/ludo_ui_768685ca582a</item>
+        <item>@string/ludo_ui_ede34a33eb69</item>
+        <item>@string/ludo_ui_bc7819b34ff8</item>
+        <item>@string/ludo_ui_b3da70258296</item>
+        <item>@string/ludo_ui_da15692ca2d5</item>
+        <item>@string/ludo_ui_db4e4ef96af7</item>
+        <item>@string/ludo_ui_e875d3a416e9</item>
+        <item>@string/ludo_ui_d0ec78c12d0a</item>
+        <item>@string/ludo_ui_eb634e962b0d</item>
+        <item>@string/ludo_ui_66b98924b384</item>
+        <item>@string/ludo_ui_d4264d40182d</item>
+        <item>@string/ludo_ui_db800e86e9f3</item>
+        <item>@string/ludo_ui_3b62b4e7ef0b</item>
+        <item>@string/ludo_ui_d16ad2dcc6af</item>
+        <item>@string/ludo_ui_9d4ac43d5e24</item>
+        <item>@string/ludo_ui_f60180e1681f</item>
+        <item>@string/ludo_ui_194bd4f9c7be</item>
+        <item>@string/ludo_ui_e71f1539a41b</item>
+        <item>@string/ludo_ui_cc8374cfe9ab</item>
+        <item>@string/ludo_ui_2f4699b3561a</item>
+        <item>@string/ludo_ui_681101d8f9fa</item>
+        <item>@string/ludo_ui_c3ee632658d0</item>
+        <item>@string/ludo_ui_69e3b8f7ae93</item>
+        <item>@string/ludo_ui_7ec8c935546b</item>
+        <item>@string/ludo_ui_8962b4b3badf</item>
+        <item>@string/ludo_ui_cc1889618588</item>
+        <item>@string/ludo_ui_30b686daceae</item>
+        <item>@string/ludo_ui_ffc6933e9929</item>
+        <item>@string/ludo_ui_8cddf031638e</item>
+        <item>@string/ludo_ui_33d30632848d</item>
+        <item>@string/ludo_ui_94dfbc349ccb</item>
+        <item>@string/ludo_ui_c26c33fa1c5a</item>
+        <item>@string/ludo_ui_a187509aa2af</item>
+        <item>@string/ludo_ui_678826b14b59</item>
+        <item>@string/ludo_ui_c7b5a7b0cbaf</item>
+        <item>@string/ludo_ui_3538651781ba</item>
+        <item>@string/ludo_ui_e52e5e6cd50e</item>
+        <item>@string/ludo_ui_58361b407af3</item>
+        <item>@string/ludo_ui_fab1a5239120</item>
+        <item>@string/ludo_ui_984d2720f42d</item>
+        <item>@string/ludo_ui_4e3adcfe37c3</item>
+        <item>@string/ludo_ui_b6c015d12e1b</item>
+        <item>@string/ludo_ui_ac33d641f4c9</item>
+        <item>@string/ludo_ui_905cb326c779</item>
+        <item>@string/ludo_ui_c332ea8353dc</item>
+        <item>@string/ludo_ui_df8b589c00ef</item>
+        <item>@string/ludo_ui_92500d4a0f2d</item>
+        <item>@string/ludo_ui_d113c983a8d8</item>
+        <item>@string/ludo_ui_9ffdae19741a</item>
+        <item>@string/ludo_ui_7df634b6ad84</item>
+        <item>@string/ludo_ui_1c473aaf1e0b</item>
+        <item>@string/ludo_ui_7f4be31ac385</item>
+        <item>@string/ludo_ui_77f0436d3e8e</item>
+        <item>@string/ludo_ui_f22b59b21027</item>
+        <item>@string/ludo_ui_82dfe45b4d10</item>
+        <item>@string/ludo_ui_8a4e60471b34</item>
+        <item>@string/ludo_ui_276cf52477ab</item>
+        <item>@string/ludo_ui_dcf25ed56c95</item>
+        <item>@string/ludo_ui_3e08adebe59f</item>
+        <item>@string/ludo_ui_5922f5ceeff3</item>
+        <item>@string/ludo_ui_267a5ddc8da1</item>
+        <item>@string/ludo_ui_20e42c888353</item>
+        <item>@string/ludo_ui_4a4ea87c0bf0</item>
+        <item>@string/ludo_ui_6848117261bf</item>
+        <item>@string/ludo_ui_5c7760d2d83f</item>
+        <item>@string/ludo_ui_f57290e45e78</item>
+        <item>@string/ludo_ui_c348a92662f7</item>
+        <item>@string/ludo_ui_63e198412d67</item>
+        <item>@string/ludo_ui_2d155fe16d9f</item>
+        <item>@string/ludo_ui_a6019390a099</item>
+        <item>@string/ludo_ui_076903f4cb25</item>
+        <item>@string/ludo_ui_f592b5315e0a</item>
+        <item>@string/ludo_ui_32b211f8e6ab</item>
+        <item>@string/ludo_ui_4c52d61bb3b2</item>
+    </string-array>
+</resources>

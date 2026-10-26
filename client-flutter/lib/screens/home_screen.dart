@@ -18,6 +18,8 @@ import '../theme/app_theme.dart';
 import '../widgets/levelplay_banner.dart';
 import '../widgets/snakes_ladders_board.dart';
 import '../widgets/live_board_preview.dart';
+import '../l10n/localized_text.dart';
+import '../l10n/ludo_strings.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -187,23 +189,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           context: context,
           builder: (dialogContext) => AlertDialog(
             backgroundColor: const Color(0xFF2D0A35),
-            title: const Text(
+            title: const LocalizedText(
               'Exit Ludo Rush?',
               style:
                   TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
-            content: const Text(
+            content: const LocalizedText(
               'Your current progress is saved.',
               style: TextStyle(color: Colors.white70),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Stay'),
+                child: const LocalizedText('Stay'),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text(
+                child: const LocalizedText(
                   'Exit',
                   style: TextStyle(color: boardRed),
                 ),
@@ -227,7 +229,7 @@ void _showHomeSnack(BuildContext context, String message) {
         behavior: SnackBarBehavior.floating,
         backgroundColor: const Color(0xEE22082E),
         duration: const Duration(milliseconds: 1500),
-        content: Text(message),
+        content: LocalizedText(message),
       ),
     );
 }
@@ -425,7 +427,7 @@ void _showFeatureSnack(BuildContext context, String message) {
         behavior: SnackBarBehavior.floating,
         backgroundColor: const Color(0xEE22082E),
         duration: const Duration(milliseconds: 1500),
-        content: Text(message),
+        content: LocalizedText(message),
       ),
     );
 }
@@ -450,7 +452,7 @@ void _showSnakesBoardSheet(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
+                LocalizedText(
                   'Choose the approved board design before starting.',
                   style: TextStyle(
                     color: Colors.white.withAlpha(220),
@@ -716,7 +718,7 @@ void _showGiftShopSheet(
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text(
+                LocalizedText(
                   'Pick a friend, choose a gift, then send it.',
                   style: TextStyle(
                     color: Colors.white.withAlpha(220),
@@ -864,7 +866,7 @@ Future<void> _showPrivateRoomSheet(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
+                  LocalizedText(
                     'Create an invite code or join a friend. The table starts when all selected seats are filled.',
                     style: TextStyle(
                       color: Colors.white.withAlpha(220),
@@ -913,7 +915,7 @@ Future<void> _showPrivateRoomSheet(
                     ),
                     decoration: InputDecoration(
                       counterText: '',
-                      hintText: 'Invite code',
+                      hintText: LudoStringsScope.translate(context, 'Invite code'),
                       hintStyle: TextStyle(color: Colors.white.withAlpha(140)),
                       filled: true,
                       fillColor: const Color(0x88250631),
@@ -1056,7 +1058,7 @@ class _HomeActionSheet extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(
+                LocalizedText(
                   title,
                   style: TextStyle(
                     color: goldColor,
@@ -1128,7 +1130,7 @@ class _HomeSheetButton extends StatelessWidget {
             children: [
               Icon(icon, color: Colors.white, size: 20),
               const SizedBox(width: 6),
-              Text(
+              LocalizedText(
                 label,
                 maxLines: 1,
                 style: const TextStyle(
@@ -1169,7 +1171,7 @@ class _EconomyHint extends StatelessWidget {
           Icon(icon, color: goldColor, size: 24),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
+            child: LocalizedText(
               text,
               style: TextStyle(
                 color: Colors.white.withAlpha(225),
@@ -1229,7 +1231,7 @@ class _EconomyTierCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                LocalizedText(
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1241,7 +1243,7 @@ class _EconomyTierCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 3),
-                Text(
+                LocalizedText(
                   subtitle,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -1303,7 +1305,7 @@ class _ChoiceChipButton extends StatelessWidget {
             CircleAvatar(
               radius: 15,
               backgroundColor: goldColor,
-              child: Text(
+              child: LocalizedText(
                 label.substring(0, 1),
                 style: const TextStyle(
                   color: Color(0xFF3A0430),
@@ -1317,7 +1319,7 @@ class _ChoiceChipButton extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  LocalizedText(
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1328,7 +1330,7 @@ class _ChoiceChipButton extends StatelessWidget {
                       shadows: [Shadow(color: Colors.black, blurRadius: 2)],
                     ),
                   ),
-                  Text(
+                  LocalizedText(
                     subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1405,7 +1407,7 @@ class _GiftShopCard extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: Text(
+                  child: LocalizedText(
                     item.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -1427,7 +1429,7 @@ class _GiftShopCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 2),
-            Text(
+            LocalizedText(
               item.subtitle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1438,7 +1440,7 @@ class _GiftShopCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 3),
-            Text(
+            LocalizedText(
               '${item.rarity}  •  ${item.cost}',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1559,7 +1561,7 @@ class _PlayerCountButton extends StatelessWidget {
             width: selected ? 2 : 1,
           ),
         ),
-        child: Text(
+        child: LocalizedText(
           '$count Players',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -1666,7 +1668,7 @@ class _HomeThemeButton extends StatelessWidget {
                       size: 10,
                     ),
                     const SizedBox(width: 3),
-                    Text(
+                    LocalizedText(
                       status,
                       style: const TextStyle(
                         color: Colors.white,
@@ -1682,7 +1684,7 @@ class _HomeThemeButton extends StatelessWidget {
               left: 0,
               right: 0,
               bottom: 0,
-              child: Text(
+              child: LocalizedText(
                 option.label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -1756,7 +1758,7 @@ class _StartChoiceOverlay extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    const LocalizedText(
                       'Play as guest or sign up',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -1774,7 +1776,7 @@ class _StartChoiceOverlay extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
+                    LocalizedText(
                       'Save your country, avatar, and age, or jump straight into a match.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
@@ -2040,7 +2042,7 @@ class _BrandHeader extends StatelessWidget {
               Align(
                 alignment: Alignment.topRight,
                 child: IconButton(
-                  tooltip: 'Rate App',
+                  tooltip: LudoStringsScope.translate(context, 'Rate App'),
                   onPressed: () async {
                     await AppPlatformService.openUrl(
                       AppPlatformService.playStoreListing,
@@ -2091,7 +2093,7 @@ class _LudoRushLogo extends StatelessWidget {
                   Color(0xFFFF6A00),
                 ],
               ).createShader(bounds),
-              child: const Text(
+              child: const LocalizedText(
                 'Ludo',
                 style: TextStyle(
                   color: Colors.white,
@@ -2118,7 +2120,7 @@ class _LudoRushLogo extends StatelessWidget {
             top: 43,
             child: Stack(
               children: const [
-                Text(
+                LocalizedText(
                   'Rush',
                   style: TextStyle(
                     color: Color(0xFF1D326A),
@@ -2137,7 +2139,7 @@ class _LudoRushLogo extends StatelessWidget {
                 Positioned(
                   top: -2,
                   left: 0,
-                  child: Text(
+                  child: LocalizedText(
                     'Rush',
                     style: TextStyle(
                       color: Colors.white,
@@ -2360,7 +2362,7 @@ class _TopHud extends StatelessWidget {
                         Row(
                           children: [
                             Flexible(
-                              child: Text(
+                              child: LocalizedText(
                                 _cleanName(state.displayName),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -2389,7 +2391,7 @@ class _TopHud extends StatelessWidget {
                             Icon(Icons.emoji_events_rounded,
                                 color: palette.gold, size: 15),
                             const SizedBox(width: 4),
-                            Text(
+                            LocalizedText(
                               '${state.rating}',
                               style: TextStyle(
                                   color: palette.gold,
@@ -2503,7 +2505,7 @@ class _AvatarBadge extends StatelessWidget {
               color: const Color(0xFFE39A00),
               border: Border.all(color: Colors.white, width: 1.5),
             ),
-            child: Text('$level',
+            child: LocalizedText('$level',
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
@@ -2537,7 +2539,7 @@ class _CountryMiniBadge extends StatelessWidget {
         children: [
           _MiniFlag(country: country, width: 12, height: 8),
           const SizedBox(width: 3),
-          Text(
+          LocalizedText(
             country.code,
             style: TextStyle(
               color: palette.text,
@@ -2576,7 +2578,7 @@ class _MiniFlag extends StatelessWidget {
       ),
       child: FittedBox(
         fit: BoxFit.contain,
-        child: Text(countryFlagEmoji(country.code)),
+        child: LocalizedText(countryFlagEmoji(country.code)),
       ),
     );
   }
@@ -2678,7 +2680,7 @@ Future<void> _showProfileEditor(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              LocalizedText(
                                 title,
                                 style: TextStyle(
                                   color: palette.text,
@@ -2692,7 +2694,7 @@ Future<void> _showProfileEditor(
                                   _MiniFlag(country: selected),
                                   const SizedBox(width: 7),
                                   Expanded(
-                                    child: Text(
+                                    child: LocalizedText(
                                       '${selected.name} (${selected.code})',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
@@ -2723,7 +2725,7 @@ Future<void> _showProfileEditor(
                       ),
                       child: Row(children: [
                         Expanded(
-                          child: Text(
+                          child: LocalizedText(
                             '${state.gamesPlayed} games  •  ${state.wins} wins  •  ${state.rating} rating',
                             style: TextStyle(
                               color: palette.text,
@@ -2739,7 +2741,7 @@ Future<void> _showProfileEditor(
                             state.navigateTo('/history');
                           },
                           icon: const Icon(Icons.history_rounded, size: 18),
-                          label: const Text('History'),
+                          label: const LocalizedText('History'),
                         ),
                       ]),
                     ),
@@ -2754,7 +2756,7 @@ Future<void> _showProfileEditor(
                       ),
                       decoration: InputDecoration(
                         counterText: '',
-                        labelText: 'Player name',
+                        labelText: LudoStringsScope.translate(context, 'Player name'),
                         labelStyle: TextStyle(color: palette.muted),
                         filled: true,
                         fillColor: palette.dark
@@ -2783,8 +2785,8 @@ Future<void> _showProfileEditor(
                       ),
                       decoration: InputDecoration(
                         counterText: '',
-                        labelText: 'Age',
-                        helperText: 'Chat unlocks for players 13+.',
+                        labelText: LudoStringsScope.translate(context, 'Age'),
+                        helperText: LudoStringsScope.translate(context, 'Chat unlocks for players 13+.'),
                         helperStyle: TextStyle(
                           color: palette.muted,
                           fontWeight: FontWeight.w700,
@@ -2849,7 +2851,7 @@ Future<void> _showProfileEditor(
                               _MiniFlag(country: country),
                               const SizedBox(width: 9),
                               Expanded(
-                                child: Text(
+                                child: LocalizedText(
                                   '${country.name} (${country.code})',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -2867,14 +2869,14 @@ Future<void> _showProfileEditor(
                                 _MiniFlag(country: country),
                                 const SizedBox(width: 9),
                                 Expanded(
-                                  child: Text(
+                                  child: LocalizedText(
                                     country.name,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                Text(country.code),
+                                LocalizedText(country.code),
                               ],
                             ),
                           ),
@@ -2930,7 +2932,7 @@ Future<void> _showProfileEditor(
                         Expanded(
                           child: _SheetLabel('Soundtrack', palette: palette),
                         ),
-                        Text(
+                        LocalizedText(
                           musicEnabled ? 'Music on' : 'Music off',
                           style: TextStyle(
                             color: palette.muted,
@@ -2955,11 +2957,11 @@ Future<void> _showProfileEditor(
                     const SizedBox(height: 6),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      title: Text('Sound effects',
+                      title: LocalizedText('Sound effects',
                           style: TextStyle(
                               color: palette.text,
                               fontWeight: FontWeight.w800)),
-                      subtitle: Text('Dice, moves, ladders and snakes',
+                      subtitle: LocalizedText('Dice, moves, ladders and snakes',
                           style: TextStyle(color: palette.muted, fontSize: 11)),
                       value: state.soundEffectsEnabled,
                       onChanged: (value) {
@@ -2969,11 +2971,11 @@ Future<void> _showProfileEditor(
                     ),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      title: Text('Haptics',
+                      title: LocalizedText('Haptics',
                           style: TextStyle(
                               color: palette.text,
                               fontWeight: FontWeight.w800)),
-                      subtitle: Text('Touch feedback for rolls and movement',
+                      subtitle: LocalizedText('Touch feedback for rolls and movement',
                           style: TextStyle(color: palette.muted, fontSize: 11)),
                       value: state.hapticsEnabled,
                       onChanged: (value) {
@@ -2983,7 +2985,7 @@ Future<void> _showProfileEditor(
                     ),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      title: Text('Reduce motion',
+                      title: LocalizedText('Reduce motion',
                           style: TextStyle(
                               color: palette.text,
                               fontWeight: FontWeight.w800)),
@@ -2995,7 +2997,7 @@ Future<void> _showProfileEditor(
                     ),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      title: Text('High contrast',
+                      title: LocalizedText('High contrast',
                           style: TextStyle(
                               color: palette.text,
                               fontWeight: FontWeight.w800)),
@@ -3007,7 +3009,7 @@ Future<void> _showProfileEditor(
                     ),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      title: Text('Larger text',
+                      title: LocalizedText('Larger text',
                           style: TextStyle(
                               color: palette.text,
                               fontWeight: FontWeight.w800)),
@@ -3151,7 +3153,7 @@ Future<void> _showAvatarUnlockDialog(
         borderRadius: BorderRadius.circular(18),
         side: const BorderSide(color: goldColor, width: 2),
       ),
-      title: Text(
+      title: LocalizedText(
         avatar.label,
         style: const TextStyle(
           color: goldColor,
@@ -3167,7 +3169,7 @@ Future<void> _showAvatarUnlockDialog(
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(
+            child: LocalizedText(
               avatar.rarity == AvatarRarity.premium
                   ? '$status. Premium avatars unlock only after a verified Google Play purchase.'
                   : '$status to unlock this rare avatar.',
@@ -3183,13 +3185,13 @@ Future<void> _showAvatarUnlockDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(dialogContext, false),
-          child: const Text('Close'),
+          child: const LocalizedText('Close'),
         ),
         if (avatar.rarity == AvatarRarity.premium)
           FilledButton.icon(
             onPressed: () => Navigator.pop(dialogContext, true),
             icon: const Icon(Icons.storefront_rounded),
-            label: const Text('View Shop'),
+            label: const LocalizedText('View Shop'),
           ),
       ],
     ),
@@ -3293,7 +3295,7 @@ class _ProfileAvatarChoice extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 2),
-            Text(
+            LocalizedText(
               avatar.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -3303,7 +3305,7 @@ class _ProfileAvatarChoice extends StatelessWidget {
                 fontWeight: FontWeight.w900,
               ),
             ),
-            Text(
+            LocalizedText(
               status,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -3338,7 +3340,7 @@ class _SheetLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
+    return LocalizedText(
       text,
       style: TextStyle(
         color: palette.text,
@@ -3393,7 +3395,7 @@ class _SoundtrackChoice extends StatelessWidget {
             children: [
               Icon(icon, color: Colors.white, size: 22),
               const SizedBox(height: 2),
-              Text(
+              LocalizedText(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -3455,7 +3457,7 @@ class _ProfileButton extends StatelessWidget {
                     color: filled ? const Color(0xFF3D1600) : palette.text,
                     size: 18),
                 const SizedBox(width: 7),
-                Text(
+                LocalizedText(
                   label,
                   maxLines: 1,
                   style: TextStyle(
@@ -3513,7 +3515,7 @@ class _CurrencyPill extends StatelessWidget {
             child: Icon(icon, color: Colors.white, size: 15),
           ),
           const SizedBox(width: 4),
-          Text(value,
+          LocalizedText(value,
               style: TextStyle(
                   color: palette.text,
                   fontSize: 11,
@@ -3715,7 +3717,7 @@ class _RewardTile extends StatelessWidget {
                 bottom: 9,
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text(
+                  child: LocalizedText(
                     label,
                     maxLines: 1,
                     style: TextStyle(
@@ -4475,7 +4477,7 @@ class _HomeTabStage extends StatelessWidget {
                   if (i != state.friends.length - 1) const SizedBox(height: 8),
                 ],
               const SizedBox(height: 10),
-              Text(
+              LocalizedText(
                 'Invites create a private room code so friends land on the same table.',
                 style: TextStyle(
                   color: Colors.white.withAlpha(215),
@@ -4670,7 +4672,7 @@ class _HomeTabStage extends StatelessWidget {
                     height: 210,
                     child: !liveState.canUseChat
                         ? const Center(
-                            child: Text(
+                            child: LocalizedText(
                               'Chat locked',
                               style: TextStyle(
                                 color: Colors.white70,
@@ -4680,7 +4682,7 @@ class _HomeTabStage extends StatelessWidget {
                           )
                         : liveState.friendMessages.isEmpty
                             ? const Center(
-                                child: Text(
+                                child: LocalizedText(
                                   'No messages yet. Say hello to your friends.',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
@@ -4720,7 +4722,7 @@ class _HomeTabStage extends StatelessWidget {
                                           color: mine ? goldColor : boardPurple,
                                         ),
                                       ),
-                                      child: Text(
+                                      child: LocalizedText(
                                         '${message.senderName}: ${message.message}',
                                         style: const TextStyle(
                                           color: Colors.white,
@@ -4739,12 +4741,12 @@ class _HomeTabStage extends StatelessWidget {
                     maxLength: 160,
                     textInputAction: TextInputAction.send,
                     decoration: InputDecoration(
-                      hintText: 'Message your friends circle',
+                      hintText: LudoStringsScope.translate(context, 'Message your friends circle'),
                       counterText: '',
                       filled: true,
                       fillColor: const Color(0xAA21042C),
                       suffixIcon: IconButton(
-                        tooltip: 'Send message',
+                        tooltip: LudoStringsScope.translate(context, 'Send message'),
                         icon: const Icon(Icons.send_rounded, color: goldColor),
                         onPressed: liveState.canUseChat
                             ? () async {
@@ -4875,7 +4877,7 @@ class _HomeTabStage extends StatelessWidget {
             children: [
               const Icon(Icons.inventory_2_rounded, color: goldColor, size: 56),
               const SizedBox(height: 8),
-              const Text(
+              const LocalizedText(
                 'Gold Chest opened\n+500 coins added',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -4940,7 +4942,7 @@ class _HomeTabStage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Text(
+                    const LocalizedText(
                       'Leaders',
                       style: TextStyle(
                         color: goldColor,
@@ -5008,7 +5010,7 @@ class _HomeTabStage extends StatelessWidget {
   ) async {
     if (await action || !context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text(
+      content: LocalizedText(
           'Google Play Games is unavailable. Check your connection and Play Games sign-in.'),
     ));
   }
@@ -5220,7 +5222,7 @@ class _FeatureTabStage extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                LocalizedText(
                                   title,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -5239,7 +5241,7 @@ class _FeatureTabStage extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(height: 5),
-                                Text(
+                                LocalizedText(
                                   subtitle,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -5386,7 +5388,7 @@ class _FeatureListTile extends StatelessWidget {
           CircleAvatar(
             radius: compact ? 15 : 19,
             backgroundColor: accent,
-            child: Text(
+            child: LocalizedText(
               row.title.isEmpty ? '?' : row.title.substring(0, 1),
               style: const TextStyle(
                 color: Color(0xFF3A0430),
@@ -5400,7 +5402,7 @@ class _FeatureListTile extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                LocalizedText(
                   row.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -5411,7 +5413,7 @@ class _FeatureListTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 2),
-                Text(
+                LocalizedText(
                   row.subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -5427,7 +5429,7 @@ class _FeatureListTile extends StatelessWidget {
           Icon(Icons.emoji_events_rounded,
               color: goldColor, size: compact ? 16 : 18),
           const SizedBox(width: 4),
-          Text(
+          LocalizedText(
             row.value,
             style: TextStyle(
               color: goldColor,
@@ -5476,7 +5478,7 @@ class _FeatureActionButton extends StatelessWidget {
             ),
           ],
         ),
-        child: Text(
+        child: LocalizedText(
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -5815,7 +5817,7 @@ class _ModeTileState extends State<_ModeTile>
                           Positioned(
                             right: (widget.large ? 15 : 10) * density,
                             top: (widget.large ? 8 : 9) * density,
-                            child: Text(
+                            child: LocalizedText(
                               widget.headline,
                               style: TextStyle(
                                 color: Colors.white,
@@ -5863,7 +5865,7 @@ class _ModeTileState extends State<_ModeTile>
                               ),
                               if (showSubtitle) ...[
                                 SizedBox(height: 3 * density),
-                                Text(
+                                LocalizedText(
                                   widget.subtitle,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -6215,7 +6217,7 @@ class _ModeLabelText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
+    return LocalizedText(
       text,
       maxLines: large ? 1 : 2,
       overflow: large ? TextOverflow.visible : TextOverflow.ellipsis,
@@ -6342,7 +6344,7 @@ class _BottomNav extends StatelessWidget {
                         const SizedBox(height: 2),
                         FittedBox(
                           fit: BoxFit.scaleDown,
-                          child: Text(
+                          child: LocalizedText(
                             items[i].label,
                             style: TextStyle(
                               color: active

@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../l10n/localized_text.dart';
 
 class SixCelebration extends StatefulWidget {
   final int sequence;
@@ -44,7 +45,7 @@ class _SixCelebrationState extends State<SixCelebration>
                       Transform.translate(
                           offset: Offset(math.cos(i * math.pi / 5) * 100 * t,
                               math.sin(i * math.pi / 5) * 80 * t),
-                          child: Text(i.isEven ? '✨' : '🎉',
+                          child: LocalizedText(i.isEven ? '✨' : '🎉',
                               style: const TextStyle(fontSize: 24))),
                   Transform.scale(
                       scale: reduced
@@ -59,7 +60,7 @@ class _SixCelebrationState extends State<SixCelebration>
                               borderRadius: BorderRadius.circular(24),
                               border: Border.all(
                                   color: const Color(0xFFFFD86A), width: 2)),
-                          child: const Text('🎲 SIX!',
+                          child: const LocalizedText('🎲 SIX!',
                               style: TextStyle(
                                   color: Color(0xFFFFD86A),
                                   fontSize: 32,

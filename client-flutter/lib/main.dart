@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
+import 'l10n/ludo_strings.dart';
 import 'state/app_state.dart';
 import 'services/levelplay_ad_service.dart';
 import 'services/prefs_service.dart';
@@ -18,14 +20,17 @@ import 'widgets/forced_update_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LudoStrings.instance.watchDeviceLocale();
   // Android 15+ draws behind system bars. Keep the surfaces transparent so
   // SafeArea can protect interactive content on phones, tablets and foldables.
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarContrastEnforced: false,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarContrastEnforced: false,
+    ),
+  );
 
   final prefs = PrefsService();
   await prefs.init();
@@ -41,11 +46,9 @@ void main() async {
   );
 
   runApp(
-    ChangeNotifierProvider.value(
-      value: appState,
-      child: const LudoRushApp(),
-    ),
+    ChangeNotifierProvider.value(value: appState, child: const LudoRushApp()),
   );
+  unawaited(LudoStrings.instance.load());
 }
 
 class LudoRushApp extends StatelessWidget {
@@ -56,6 +59,62 @@ class LudoRushApp extends StatelessWidget {
     return Consumer<AppState>(
       builder: (context, state, _) => MaterialApp(
         title: 'Ludo Rush',
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('en'),
+          Locale('ar'),
+          Locale('bn'),
+          Locale('bg'),
+          Locale('ca'),
+          Locale('zh', 'CN'),
+          Locale('hr'),
+          Locale('cs'),
+          Locale('da'),
+          Locale('nl'),
+          Locale('et'),
+          Locale('fi'),
+          Locale('fr'),
+          Locale('de'),
+          Locale('el'),
+          Locale('gu'),
+          Locale('he'),
+          Locale('hi'),
+          Locale('hu'),
+          Locale('is'),
+          Locale('id'),
+          Locale('it'),
+          Locale('ja'),
+          Locale('kn'),
+          Locale('ko'),
+          Locale('lv'),
+          Locale('lt'),
+          Locale('ml'),
+          Locale('mr'),
+          Locale('no'),
+          Locale('fa'),
+          Locale('pl'),
+          Locale('pt'),
+          Locale('pa'),
+          Locale('ro'),
+          Locale('ru'),
+          Locale('sk'),
+          Locale('sl'),
+          Locale('es'),
+          Locale('sw'),
+          Locale('sv'),
+          Locale('ta'),
+          Locale('te'),
+          Locale('th'),
+          Locale('tr'),
+          Locale('uk'),
+          Locale('ur'),
+          Locale('vi'),
+          Locale('zu'),
+        ],
         debugShowCheckedModeBanner: false,
         navigatorKey: state.navigatorKey,
         scaffoldMessengerKey: state.scaffoldMessengerKey,
@@ -64,17 +123,18 @@ class LudoRushApp extends StatelessWidget {
         themeMode: state.isDarkMode ? ThemeMode.dark : ThemeMode.light,
         builder: (context, child) {
           final media = MediaQuery.of(context);
-          return MediaQuery(
-            data: media.copyWith(
-              disableAnimations:
-                  media.disableAnimations || state.reducedMotionEnabled,
-              highContrast: media.highContrast || state.highContrastEnabled,
-              textScaler: state.largeTextEnabled
-                  ? const TextScaler.linear(1.12)
-                  : media.textScaler,
-            ),
-            child: ForcedUpdateGate(
-              child: child ?? const SizedBox.shrink(),
+          return LudoStringsScope(
+            notifier: LudoStrings.instance,
+            child: MediaQuery(
+              data: media.copyWith(
+                disableAnimations:
+                    media.disableAnimations || state.reducedMotionEnabled,
+                highContrast: media.highContrast || state.highContrastEnabled,
+                textScaler: state.largeTextEnabled
+                    ? const TextScaler.linear(1.12)
+                    : media.textScaler,
+              ),
+              child: ForcedUpdateGate(child: child ?? const SizedBox.shrink()),
             ),
           );
         },
