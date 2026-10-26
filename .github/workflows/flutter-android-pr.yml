@@ -42,3 +42,7 @@ jobs:
           KEY_PASSWORD: android
           STORE_PASSWORD: android
         run: flutter build apk --release
+      - name: Check WorkManager startup database survives R8
+        run: |
+          unzip -q build/app/outputs/flutter-apk/app-release.apk 'classes*.dex' -d "$RUNNER_TEMP/release-dex"
+          grep -a -l 'WorkDatabase_Impl' "$RUNNER_TEMP"/release-dex/classes*.dex
