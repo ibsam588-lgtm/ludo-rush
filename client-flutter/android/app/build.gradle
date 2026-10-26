@@ -93,6 +93,8 @@ dependencies {
     implementation 'com.vungle:vungle-ads:7.7.0'
     implementation 'com.unity3d.ads-mediation:inmobi-adapter:5.4.0'
     implementation 'com.inmobi.monetization:inmobi-ads-kotlin:11.1.1'
+    implementation 'com.unity3d.ads-mediation:chartboost-adapter:5.10.0'
+    implementation 'com.chartboost:chartboost-sdk:9.14.1'
 }
 
 def verifyPlayCompliance = tasks.register("verifyPlayCompliance") {
