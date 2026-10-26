@@ -15,6 +15,7 @@ import '../widgets/profile_avatar.dart';
 import '../widgets/match_style.dart';
 import '../models/match_moment.dart';
 import '../models/match_rewards.dart';
+import '../l10n/localized_text.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  RESULTS SCREEN — Celebratory match end screen
@@ -323,7 +324,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                               ..showSnackBar(
                                 const SnackBar(
                                   behavior: SnackBarBehavior.floating,
-                                  content: Text(
+                                  content: LocalizedText(
                                     'Result copied. Paste it into any app to share.',
                                   ),
                                 ),
@@ -363,7 +364,7 @@ class _ResultsScreenState extends State<ResultsScreen>
       ..showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text(
+          content: LocalizedText(
             earned
                 ? '+${LevelPlayAdConfig.levelCompleteRewardPoints} points and +${LevelPlayAdConfig.levelCompleteRewardEnergy} energy added.'
                 : 'Reward video is loading. Try again shortly.',
@@ -396,7 +397,7 @@ class _RewardedBonusButton extends StatelessWidget {
       child: ElevatedButton.icon(
         onPressed: claimed || inFlight ? null : onPressed,
         icon: Icon(claimed ? Icons.check_rounded : Icons.play_circle_fill),
-        label: Text(label, textAlign: TextAlign.center),
+        label: LocalizedText(label, textAlign: TextAlign.center),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF6A1B9A),
           foregroundColor: Colors.white,
@@ -454,7 +455,7 @@ class _WinnerPortrait extends StatelessWidget {
                         celebration: 1,
                         mood: AvatarMood.winner)),
                 const Positioned(
-                    top: -5, child: Text('👑', style: TextStyle(fontSize: 36))),
+                    top: -5, child: LocalizedText('👑', style: TextStyle(fontSize: 36))),
               ])));
 }
 
@@ -483,7 +484,7 @@ class _ResultHeadline extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Text(
+          child: LocalizedText(
             won ? 'VICTORY!' : 'BETTER LUCK NEXT TIME',
             textAlign: TextAlign.center,
             style: const TextStyle(
@@ -496,7 +497,7 @@ class _ResultHeadline extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        Text(
+        LocalizedText(
           won
               ? '${state.displayName} wins the match!'
               : '$winnerName won the match',
@@ -528,12 +529,12 @@ class _RewardsRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: goldColor.withAlpha(60))),
       child: Column(children: [
-        const Text('MATCH REWARDS',
+        const LocalizedText('MATCH REWARDS',
             style: TextStyle(
                 color: Colors.white70, fontSize: 11, letterSpacing: 1.8)),
         const SizedBox(height: 12),
         if (reward == null)
-          const Text('Rewards pending', style: TextStyle(color: Colors.white70))
+          const LocalizedText('Rewards pending', style: TextStyle(color: Colors.white70))
         else ...[
           Row(children: [
             _RewardItem(
@@ -551,7 +552,7 @@ class _RewardsRow extends StatelessWidget {
           if (reward.practice)
             const Padding(
                 padding: EdgeInsets.only(top: 12),
-                child: Text('Practice match · no coins or rating changes',
+                child: LocalizedText('Practice match · no coins or rating changes',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.white60, fontSize: 12))),
         ],
@@ -584,14 +585,14 @@ class _RewardItem extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 24),
           const SizedBox(height: 4),
-          Text(value,
+          LocalizedText(value,
               style: TextStyle(
                 color: color,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 shadows: [Shadow(color: color.withAlpha(120), blurRadius: 6)],
               )),
-          Text(label,
+          LocalizedText(label,
               style: const TextStyle(
                 color: Colors.white38,
                 fontSize: 9,
@@ -664,7 +665,7 @@ class _PlayerList extends StatelessWidget {
 
               // Name
               Expanded(
-                child: Text(
+                child: LocalizedText(
                   isMe ? 'You' : publicName,
                   style: TextStyle(
                     color: isWinner ? Colors.white : Colors.white70,
@@ -684,7 +685,7 @@ class _PlayerList extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: goldColor.withAlpha(100)),
                   ),
-                  child: const Text('Winner',
+                  child: const LocalizedText('Winner',
                       style: TextStyle(
                         color: goldColor,
                         fontSize: 10,
@@ -692,7 +693,7 @@ class _PlayerList extends StatelessWidget {
                       )),
                 )
               else
-                const Text('-',
+                const LocalizedText('-',
                     style: TextStyle(color: Colors.white24, fontSize: 13)),
             ],
           ),
@@ -765,7 +766,7 @@ class _ActionBtnState extends State<_ActionBtn>
               ),
             ],
           ),
-          child: Text(widget.label,
+          child: LocalizedText(widget.label,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,

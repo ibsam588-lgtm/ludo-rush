@@ -14,6 +14,8 @@ import '../widgets/six_celebration.dart';
 import '../data/table_reactions.dart';
 import '../widgets/match_style.dart';
 import '../models/match_moment.dart';
+import '../l10n/localized_text.dart';
+import '../l10n/ludo_strings.dart';
 
 String _shortNumber(int value) {
   if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
@@ -343,7 +345,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                         bottom: 8,
                                         child: FloatingActionButton.small(
                                           heroTag: 'find-my-token',
-                                          tooltip: 'Find my token',
+                                          tooltip: LudoStringsScope.translate(context, 'Find my token'),
                                           backgroundColor: palette.surface,
                                           foregroundColor: palette.accent,
                                           onPressed: () {
@@ -497,7 +499,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                             key:
                                                 const ValueKey('find-my-token'),
                                             heroTag: 'find-my-token',
-                                            tooltip: 'Find my token',
+                                            tooltip: LudoStringsScope.translate(context, 'Find my token'),
                                             backgroundColor: palette.surface,
                                             foregroundColor: palette.accent,
                                             onPressed: () {
@@ -646,7 +648,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.82),
           child: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(snakes ? 'Your first Snakes match' : 'Your first Ludo match',
+              LocalizedText(snakes ? 'Your first Snakes match' : 'Your first Ludo match',
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 21,
@@ -660,10 +662,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     foregroundColor: goldColor,
                     child: Icon(step.$1),
                   ),
-                  title: Text(step.$2,
+                  title: LocalizedText(step.$2,
                       style: const TextStyle(
                           color: Colors.white, fontWeight: FontWeight.w900)),
-                  subtitle: Text(step.$3,
+                  subtitle: LocalizedText(step.$3,
                       style: const TextStyle(color: Colors.white70)),
                 ),
               const SizedBox(height: 8),
@@ -671,7 +673,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: () => Navigator.pop(sheetContext),
-                  child: const Text('Let’s play'),
+                  child: const LocalizedText('Let’s play'),
                 ),
               ),
             ]),
@@ -729,7 +731,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       color: const Color(0xAA250631),
                       border: Border.all(color: const Color(0x55FFD426)),
                     ),
-                    child: Text(
+                    child: LocalizedText(
                       emoji,
                       style: const TextStyle(fontSize: 30),
                     ),
@@ -807,11 +809,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Table Voice',
+                              const LocalizedText('Table Voice',
                                   style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w900)),
-                              Text(
+                              LocalizedText(
                                 voice.joined
                                     ? (voice.muted
                                         ? 'Microphone muted'
@@ -847,7 +849,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                             color: const Color(0xAA250631),
                             border: Border.all(color: const Color(0x55FFD426)),
                           ),
-                          child: Text(
+                          child: LocalizedText(
                             message,
                             style: const TextStyle(
                               color: Colors.white,
@@ -872,7 +874,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                         ),
                         decoration: InputDecoration(
                           counterText: '',
-                          hintText: 'Type message',
+                          hintText: LudoStringsScope.translate(context, 'Type message'),
                           hintStyle:
                               TextStyle(color: Colors.white.withAlpha(140)),
                           filled: true,
@@ -957,15 +959,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                const LocalizedText(
                     'Talk with players at this table who join voice. Your microphone starts only when you tap Join.',
                     style: TextStyle(color: Colors.white70)),
                 if (unavailable != null) ...[
                   const SizedBox(height: 8),
-                  Text(unavailable, style: const TextStyle(color: goldColor)),
+                  LocalizedText(unavailable, style: const TextStyle(color: goldColor)),
                 ],
                 const SizedBox(height: 12),
-                Text(
+                LocalizedText(
                     voice.joined
                         ? (names.isEmpty
                             ? 'Microphone on. Only you are in voice.'
@@ -974,12 +976,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     style: const TextStyle(color: Colors.white)),
                 if (voice.error != null) ...[
                   const SizedBox(height: 8),
-                  Text(voice.error!, style: const TextStyle(color: boardRed)),
+                  LocalizedText(voice.error!, style: const TextStyle(color: boardRed)),
                 ],
                 const SizedBox(height: 14),
                 if (voice.joined) ...[
                   if (voice.lastReportedPlayerId != null) ...[
-                    const Text('Report received. Thank you for helping keep the table safe.',
+                    const LocalizedText('Report received. Thank you for helping keep the table safe.',
                         style: TextStyle(color: boardGreen)),
                     const SizedBox(height: 10),
                   ],
@@ -991,11 +993,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   const SizedBox(height: 10),
                   for (final player in otherHumans) ...[
                     Row(children: [
-                      Expanded(child: Text(player.displayName,
+                      Expanded(child: LocalizedText(player.displayName,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(color: Colors.white))),
                       if (voice.blockedPlayerIds.contains(player.playerId))
-                        const Text('Blocked', style: TextStyle(color: Colors.white70))
+                        const LocalizedText('Blocked', style: TextStyle(color: Colors.white70))
                       else ...[
                         IconButton(
                           tooltip: voice.mutedPlayerIds.contains(player.playerId)
@@ -1061,21 +1063,21 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Table voice rules'),
+          title: const LocalizedText('Table voice rules'),
           content: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Text('Be respectful. Harassment, hate speech, sexual content, threats, and illegal content are prohibited. You can mute, block, or report another player during a match. Voice is live and is not recorded by the game. Terms: corsairlabs.com/terms'),
+            const LocalizedText('Be respectful. Harassment, hate speech, sexual content, threats, and illegal content are prohibited. You can mute, block, or report another player during a match. Voice is live and is not recorded by the game. Terms: corsairlabs.com/terms'),
             CheckboxListTile(
               value: accepted,
-              title: const Text('I agree to the table voice rules and Terms of Use'),
+              title: const LocalizedText('I agree to the table voice rules and Terms of Use'),
               onChanged: (value) => setDialogState(() => accepted = value ?? false),
             ),
           ]),
           actions: [
             TextButton(onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Cancel')),
+                child: const LocalizedText('Cancel')),
             TextButton(onPressed: accepted
                 ? () => Navigator.pop(dialogContext, true) : null,
-                child: const Text('Join voice')),
+                child: const LocalizedText('Join voice')),
           ],
         ),
       ),
@@ -1087,13 +1089,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('Block $displayName?'),
-        content: const Text('You will no longer hear or connect to this player in table voice.'),
+        title: LocalizedText('Block $displayName?'),
+        content: const LocalizedText('You will no longer hear or connect to this player in table voice.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel')),
+              child: const LocalizedText('Cancel')),
           TextButton(onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Block')),
+              child: const LocalizedText('Block')),
         ],
       ),
     );
@@ -1109,14 +1111,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       builder: (sheetContext) => SafeArea(child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ListTile(title: Text('Report $displayName'), enabled: false),
+          ListTile(title: LocalizedText('Report $displayName'), enabled: false),
           for (final entry in const [
             ('harassment', 'Harassment or bullying'),
             ('hate', 'Hate speech'),
             ('sexual', 'Sexual content'),
             ('other', 'Other harmful behavior'),
           ])
-            ListTile(title: Text(entry.$2),
+            ListTile(title: LocalizedText(entry.$2),
               onTap: () => Navigator.pop(sheetContext, entry.$1)),
         ],
       )),
@@ -1139,7 +1141,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
+              LocalizedText(
                 needsAge
                     ? 'Set your age to unlock table chat. Players under 13 can still use emoji.'
                     : 'Table chat is available for players 13 and older. Emoji is still enabled.',
@@ -1213,18 +1215,18 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: Color(0x55FFD426)),
         ),
-        title: const Text(
+        title: const LocalizedText(
           'Quit Match?',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        content: const Text(
+        content: const LocalizedText(
           'Leaving now will resign this match.',
           style: TextStyle(color: Colors.white60),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Stay', style: TextStyle(color: goldColor)),
+            child: const LocalizedText('Stay', style: TextStyle(color: goldColor)),
           ),
           TextButton(
             onPressed: _quitting
@@ -1237,7 +1239,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     Navigator.of(context)
                         .pushNamedAndRemoveUntil('/home', (_) => false);
                   },
-            child: const Text('Exit', style: TextStyle(color: boardRed)),
+            child: const LocalizedText('Exit', style: TextStyle(color: boardRed)),
           ),
         ],
       ),
@@ -1287,7 +1289,7 @@ class _GameActionSheet extends StatelessWidget {
           children: [
             Row(
               children: [
-                Text(
+                LocalizedText(
                   title,
                   style: const TextStyle(
                     color: goldColor,
@@ -1347,7 +1349,7 @@ class _SheetButton extends StatelessWidget {
             ),
           ],
         ),
-        child: Text(
+        child: LocalizedText(
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
@@ -1412,7 +1414,7 @@ class _QuickBubble extends StatelessWidget {
               ),
             ],
           ),
-          child: Text(
+          child: LocalizedText(
             text,
             textAlign: TextAlign.center,
             maxLines: isEmoji ? 1 : 2,
@@ -1486,9 +1488,10 @@ class _GameTopBar extends StatelessWidget {
                   snapshot?.status == 'playing') ...[
                 SizedBox(width: compact ? 2 : 5),
                 IconButton(
-                  tooltip: state.voiceChat.joined
-                      ? 'Table voice on'
-                      : 'Join table voice',
+                  tooltip: LudoStringsScope.translate(
+                    context,
+                    state.voiceChat.joined ? 'Table voice on' : 'Join table voice',
+                  ),
                   icon: Icon(
                       state.voiceChat.joined
                           ? (state.voiceChat.muted
@@ -1551,7 +1554,7 @@ class _GameLogo extends StatelessWidget {
           Positioned(
             left: 0,
             top: 1,
-            child: Text(
+            child: LocalizedText(
               'Ludo',
               style: TextStyle(
                 color: goldColor,
@@ -1572,7 +1575,7 @@ class _GameLogo extends StatelessWidget {
           Positioned(
             left: 2,
             top: compact ? 21 : 25,
-            child: Text(
+            child: LocalizedText(
               'Rush',
               style: TextStyle(
                 color: Colors.white,
@@ -1652,7 +1655,7 @@ class _CurrencyChip extends StatelessWidget {
             child: Icon(icon, size: compact ? 15 : 18, color: Colors.white),
           ),
           SizedBox(width: compact ? 5 : 7),
-          Text(
+          LocalizedText(
             _shortNumber(value),
             style: const TextStyle(
               color: Colors.white,
@@ -1738,7 +1741,7 @@ class _PlayerHeroBand extends StatelessWidget {
                       children: [
                     Row(children: [
                       Expanded(
-                          child: Text(
+                          child: LocalizedText(
                               state.displayName.trim().isEmpty
                                   ? 'Player'
                                   : state.displayName,
@@ -1757,7 +1760,7 @@ class _PlayerHeroBand extends StatelessWidget {
                       Expanded(
                         child: Semantics(
                             liveRegion: true,
-                            child: Text(ownMoment?.label ?? turn,
+                            child: LocalizedText(ownMoment?.label ?? turn,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -1771,7 +1774,7 @@ class _PlayerHeroBand extends StatelessWidget {
                       ],
                     ]),
                     if (!compact)
-                      Text('${state.rating} rating',
+                      LocalizedText('${state.rating} rating',
                           style: const TextStyle(
                               color: Colors.white60, fontSize: 12)),
                   ])),
@@ -1814,7 +1817,7 @@ class _TurnTimerChip extends StatelessWidget {
               size: 11,
               color: urgent ? const Color(0xFFFF8A80) : Colors.white70),
           const SizedBox(width: 3),
-          Text('${remaining}s',
+          LocalizedText('${remaining}s',
               style: TextStyle(
                   color: urgent ? const Color(0xFFFF8A80) : Colors.white,
                   fontSize: 9,
@@ -1850,7 +1853,7 @@ class _InviteCodeChip extends StatelessWidget {
           Icon(Icons.vpn_key_rounded,
               color: goldColor, size: compact ? 12 : 14),
           const SizedBox(width: 4),
-          Text(
+          LocalizedText(
             'Code $code',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -1984,7 +1987,7 @@ class _PlayerActionRow extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
-                          tooltip: 'Emoji',
+                          tooltip: LudoStringsScope.translate(context, 'Emoji'),
                           onPressed: state.isSpectator ? null : onEmoji,
                           style: IconButton.styleFrom(
                               backgroundColor: palette.surface,
@@ -1992,7 +1995,7 @@ class _PlayerActionRow extends StatelessWidget {
                           icon: const Icon(Icons.mood_rounded)),
                       const SizedBox(height: 4),
                       IconButton(
-                          tooltip: 'Chat',
+                          tooltip: LudoStringsScope.translate(context, 'Chat'),
                           onPressed: state.isSpectator ? null : onChat,
                           style: IconButton.styleFrom(
                               backgroundColor: palette.surface,
@@ -2039,7 +2042,7 @@ class _PlayerActionRow extends StatelessWidget {
                                       child: Padding(
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 8),
-                                          child: Text(actionLabel,
+                                          child: LocalizedText(actionLabel,
                                               style: TextStyle(
                                                   color: enabled
                                                       ? Colors.white
@@ -2183,7 +2186,7 @@ class _OpponentChip extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                LocalizedText(
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -2208,7 +2211,7 @@ class _OpponentChip extends StatelessWidget {
                         size: 14),
                     const SizedBox(width: 3),
                     Flexible(
-                        child: Text(
+                        child: LocalizedText(
                       !seat.connected
                           ? 'Reconnecting'
                           : active
@@ -2392,7 +2395,7 @@ class _AutoRollChip extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Flexible(
-                child: Text(
+                child: LocalizedText(
                   'Auto',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

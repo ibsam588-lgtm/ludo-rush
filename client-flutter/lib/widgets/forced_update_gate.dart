@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../l10n/localized_text.dart';
 
 class ForcedUpdateGate extends StatefulWidget {
   final Widget child;
@@ -84,7 +85,7 @@ class _ForcedUpdateGateState extends State<ForcedUpdateGate>
                               children: [
                                 _UpdateIcon(verifying: verifying),
                                 const SizedBox(height: 18),
-                                Text(
+                                LocalizedText(
                                   verifying
                                       ? (state.updateCheckFailed
                                           ? 'Connection Required'
@@ -107,7 +108,7 @@ class _ForcedUpdateGateState extends State<ForcedUpdateGate>
                                   ),
                                 ),
                                 const SizedBox(height: 12),
-                                Text(
+                                LocalizedText(
                                   verifying
                                       ? (state.updateCheckFailed
                                           ? 'Ludo Rush must verify your app version before you can play. Connect to the internet and try again.'
@@ -190,7 +191,7 @@ class _VersionLine extends StatelessWidget {
         color: const Color(0x77230631),
         border: Border.all(color: const Color(0x55FFD426)),
       ),
-      child: Text(
+      child: LocalizedText(
         '$installed\n$required',
         textAlign: TextAlign.center,
         style: TextStyle(
@@ -254,7 +255,7 @@ class _UpdateButton extends StatelessWidget {
             children: [
               Icon(icon, color: Colors.white, size: 23),
               const SizedBox(width: 9),
-              Text(
+              LocalizedText(
                 label,
                 style: const TextStyle(
                   color: Colors.white,

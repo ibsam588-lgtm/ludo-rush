@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../l10n/localized_text.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -90,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen>
                     padding: const EdgeInsets.symmetric(horizontal: 46),
                     child: Column(
                       children: [
-                        Text(
+                        LocalizedText(
                           'Loading ...',
                           style: TextStyle(
                             color: Colors.white.withAlpha(235),
@@ -130,7 +131,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 ),
                                 Positioned.fill(
                                   child: Center(
-                                    child: Text(
+                                    child: LocalizedText(
                                       '${(_progress.value * 100).round()}%',
                                       style: const TextStyle(
                                           color: Colors.white,
@@ -150,7 +151,7 @@ class _SplashScreenState extends State<SplashScreen>
                 const SizedBox(height: 28),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 28),
-                  child: Text(
+                  child: LocalizedText(
                     'Play Ludo Rush globally with friends and matched players',
                     textAlign: TextAlign.center,
                     style: TextStyle(
@@ -191,7 +192,7 @@ class _LogoBlock extends StatelessWidget {
             _LogoLetter('O', boardBlue),
           ],
         ),
-        const Text(
+        const LocalizedText(
           'RUSH',
           style: TextStyle(
             color: Colors.white,
@@ -222,7 +223,7 @@ class _LogoLetter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
+    return LocalizedText(
       letter,
       style: TextStyle(
         color: color,

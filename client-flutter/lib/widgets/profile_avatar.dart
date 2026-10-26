@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../data/profile_catalog.dart';
 import '../models/match_moment.dart';
+import '../l10n/localized_text.dart';
 
 class ProfileAvatarView extends StatefulWidget {
   final int preset;
@@ -65,7 +66,7 @@ class _ProfileAvatarViewState extends State<ProfileAvatarView>
               gradient:
                   RadialGradient(colors: [color.shade200, color.shade800])),
           padding: const EdgeInsets.all(10),
-          child: FittedBox(child: Text(avatar.emoji!)));
+          child: FittedBox(child: LocalizedText(avatar.emoji!)));
     } else {
       portrait = LayoutBuilder(builder: (context, constraints) {
         final size = math.min(constraints.maxWidth, constraints.maxHeight);
@@ -116,7 +117,7 @@ class _ProfileAvatarViewState extends State<ProfileAvatarView>
                                   decoration: const BoxDecoration(
                                       color: Color(0xEE161426),
                                       shape: BoxShape.circle),
-                                  child: Text(moodEmoji(widget.mood),
+                                  child: LocalizedText(moodEmoji(widget.mood),
                                       style: const TextStyle(fontSize: 18))))),
                   ]);
             }));

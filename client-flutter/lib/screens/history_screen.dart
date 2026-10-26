@@ -5,6 +5,8 @@ import '../services/app_platform_service.dart';
 import '../services/sound_service.dart';
 import '../state/app_state.dart';
 import '../theme/app_theme.dart';
+import '../l10n/localized_text.dart';
+import '../l10n/ludo_strings.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -23,10 +25,10 @@ class HistoryScreen extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: const Color(0xFF42104F),
           foregroundColor: Colors.white,
-          title: const Text('Match History'),
+          title: const LocalizedText('Match History'),
           actions: [
             IconButton(
-              tooltip: 'Share diagnostics',
+              tooltip: LudoStringsScope.translate(context, 'Share diagnostics'),
               onPressed: () async {
                 SoundService.tap();
                 await AppPlatformService.shareText(state.diagnosticsSummary());
@@ -69,8 +71,8 @@ class HistoryScreen extends StatelessWidget {
                   iconColor: goldColor,
                   textColor: Colors.white,
                   collapsedTextColor: Colors.white,
-                  title: const Text('Connection diagnostics'),
-                  subtitle: const Text(
+                  title: const LocalizedText('Connection diagnostics'),
+                  subtitle: const LocalizedText(
                     'Recent local events for troubleshooting',
                     style: TextStyle(color: Colors.white60),
                   ),
@@ -80,7 +82,7 @@ class HistoryScreen extends StatelessWidget {
                         dense: true,
                         leading:
                             const Icon(Icons.circle, size: 8, color: goldColor),
-                        title: Text(event,
+                        title: LocalizedText(event,
                             style: const TextStyle(
                                 color: Colors.white70, fontSize: 11)),
                       ),
@@ -113,12 +115,12 @@ class _StatCard extends StatelessWidget {
           child: Column(children: [
             Icon(icon, color: goldColor, size: 21),
             const SizedBox(height: 5),
-            Text(value,
+            LocalizedText(value,
                 style: const TextStyle(
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.w900)),
-            Text(label,
+            LocalizedText(label,
                 style: const TextStyle(color: Colors.white60, fontSize: 11)),
           ]),
         ),
@@ -164,27 +166,27 @@ class _HistoryTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
+                LocalizedText(title,
                     style: const TextStyle(
                         color: Colors.white, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 3),
-                Text(
+                LocalizedText(
                   '${_modeLabel(entry.mode)}${entry.opponents.isEmpty ? '' : ' • ${entry.opponents}'}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
-                Text(when,
+                LocalizedText(when,
                     style:
                         const TextStyle(color: Colors.white38, fontSize: 11)),
               ],
             ),
           ),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('${entry.coinsDelta >= 0 ? '+' : ''}${entry.coinsDelta} coins',
+            LocalizedText('${entry.coinsDelta >= 0 ? '+' : ''}${entry.coinsDelta} coins',
                 style: TextStyle(color: color, fontWeight: FontWeight.w800)),
             if (!entry.practice)
-              Text(
+              LocalizedText(
                   '${entry.ratingDelta >= 0 ? '+' : ''}${entry.ratingDelta} rating',
                   style: const TextStyle(color: Colors.white60, fontSize: 11)),
           ]),
@@ -202,7 +204,7 @@ class _EmptyHistory extends StatelessWidget {
         child: Column(children: [
           Icon(Icons.history_rounded, size: 54, color: Colors.white38),
           SizedBox(height: 12),
-          Text('Your completed matches will appear here.',
+          LocalizedText('Your completed matches will appear here.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.white70, fontSize: 15)),
         ]),

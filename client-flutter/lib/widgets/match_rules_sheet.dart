@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/economy.dart';
+import '../l10n/localized_text.dart';
 
 List<String> rulesForMode(String mode) => mode == 'snakes_ladders'
     ? const [
@@ -29,7 +30,7 @@ Future<bool> showMatchRules(BuildContext context, String mode) async =>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
+              LocalizedText(
                   mode == 'snakes_ladders'
                       ? 'Snakes & Ladders rules'
                       : 'Ludo rules',
@@ -38,17 +39,17 @@ Future<bool> showMatchRules(BuildContext context, String mode) async =>
               for (final rule in rulesForMode(mode))
                 Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: Text('•  $rule')),
+                    child: LocalizedText('•  $rule')),
               const Divider(),
-              const Text(
+              const LocalizedText(
                   'Free entry • Online win +${GameEconomy.onlineWinCoins} coins • Online finish +${GameEconomy.onlineFinishCoins} coins.\nLocal and bot matches are practice: no coins, rating or win unlocks. Leaving early earns no coins. Cosmetics never change the odds.'),
               const SizedBox(height: 18),
               FilledButton(
                   onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Got it — start match')),
+                  child: const LocalizedText('Got it — start match')),
               TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Back')),
+                  child: const LocalizedText('Back')),
             ]),
       )),
     ) ??
