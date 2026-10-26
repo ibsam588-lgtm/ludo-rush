@@ -52,6 +52,11 @@ class LevelPlayAdService extends ChangeNotifier
       await LevelPlayPrivacySettings.setCOPPA(
         LevelPlayAdConfig.childDirected,
       );
+      await LevelPlay.setMetaData({
+        'CHARTBOOST_COPPA': [
+          LevelPlayAdConfig.childDirected ? 'YES' : 'NO',
+        ],
+      });
       if (LevelPlayAdConfig.enableTestSuite) {
         await LevelPlay.setMetaData({
           'is_test_suite': ['enable']

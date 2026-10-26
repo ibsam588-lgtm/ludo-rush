@@ -33,10 +33,19 @@ The Android app includes adapter and SDK dependencies for:
 - Unity Ads
 - Liftoff Monetize / Vungle
 - InMobi
+- Chartboost (Android adapter 5.10.0, SDK 9.14.1)
 
 Each mediated network still needs to be activated in the Unity LevelPlay dashboard with that network's app IDs, placement IDs, reporting API credentials, and payout/account approval. Code dependencies alone do not make a network serve ads.
 
 For production, create or connect each network in the Unity LevelPlay dashboard, map the network-specific Android app and placement IDs to the LevelPlay ad units, and publish the waterfall or bidding setup. The app ships the Android adapters, but Unity's dashboard decides which networks are live, test-mode, capped, blocked by COPPA/GDPR settings, or excluded by geo.
+
+For Ludo Rush, the Chartboost bidding locations are
+`ludo_interstitial`, `ludo_rewarded`, and `ludo_banner`. Map each location to
+the matching LevelPlay ad unit, verify the Chartboost reporting API, and
+confirm that Chartboost has received an SDK ad request before treating the
+network as live. Keep the Chartboost app signature in the dashboards, never
+in source control. The developer website's root `app-ads.txt` contains the
+Chartboost seller declarations.
 
 ## In-app placements
 
