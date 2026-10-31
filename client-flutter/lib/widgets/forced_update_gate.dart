@@ -111,7 +111,7 @@ class _ForcedUpdateGateState extends State<ForcedUpdateGate>
                                 LocalizedText(
                                   verifying
                                       ? (state.updateCheckFailed
-                                          ? 'Ludo Rush must verify your app version before you can play. Connect to the internet and try again.'
+                                          ? 'Ludo Cheer must verify your app version before you can play. Connect to the internet and try again.'
                                           : 'Verifying that you are on the latest Play Store build.')
                                       : state.forceUpdateMessage,
                                   textAlign: TextAlign.center,

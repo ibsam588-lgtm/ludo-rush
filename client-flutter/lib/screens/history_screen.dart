@@ -215,7 +215,7 @@ String _modeLabel(String mode) => switch (mode) {
       AppState.snakesLaddersMode => 'Snakes & Ladders',
       'classic_3p' => '3 Player Ludo',
       'classic_4p' => '4 Player Ludo',
-      'rush_2p' => '2 Player Rush',
-      'rush_4p' => '4 Player Rush',
+      'rush_2p' => '2 Player Quick',
+      'rush_4p' => '4 Player Quick',
       _ => '2 Player Ludo',
     };

@@ -1,4 +1,4 @@
-# Ludo Rush Plan Of Action
+# Ludo Cheer Plan Of Action
 
 ## Phase 1: Foundation
 
@@ -31,7 +31,7 @@
 
 ## Phase 5: Polish And Launch
 
-- Add Ludo Rush visual identity: themed boards, animated dice, expressive tokens, capture effects, home-run celebrations, and quick-session mode.
+- Add Ludo Cheer visual identity: themed boards, animated dice, expressive tokens, capture effects, home-run celebrations, and quick-session mode.
 - Add privacy policy, terms, consent flow, age rating, and store assets.
 - Launch Android closed test, tune retention and match quality, then prepare iOS.
 

@@ -152,7 +152,7 @@ class _SplashScreenState extends State<SplashScreen>
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 28),
                   child: LocalizedText(
-                    'Play Ludo Rush globally with friends and matched players',
+                    'Play Ludo Cheer globally with friends and matched players',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                         color: Colors.white,

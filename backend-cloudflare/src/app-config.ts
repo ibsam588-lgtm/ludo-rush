@@ -63,7 +63,7 @@ export function buildAppConfig(
     message:
       overrides.message ||
       env.FORCE_UPDATE_MESSAGE ||
-      "A newer version of Ludo Rush is required to keep matchmaking, rewards, and game rules in sync."
+      "A newer version of Ludo Cheer is required to keep matchmaking, rewards, and game rules in sync."
   };
 }
 

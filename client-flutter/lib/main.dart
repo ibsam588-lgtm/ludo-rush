@@ -46,19 +46,19 @@ void main() async {
   );
 
   runApp(
-    ChangeNotifierProvider.value(value: appState, child: const LudoRushApp()),
+    ChangeNotifierProvider.value(value: appState, child: const LudoCheerApp()),
   );
   unawaited(LudoStrings.instance.load());
 }
 
-class LudoRushApp extends StatelessWidget {
-  const LudoRushApp({super.key});
+class LudoCheerApp extends StatelessWidget {
+  const LudoCheerApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Consumer<AppState>(
       builder: (context, state, _) => MaterialApp(
-        title: 'Ludo Rush',
+        title: 'Ludo Cheer',
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,

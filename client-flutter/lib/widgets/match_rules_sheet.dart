@@ -15,7 +15,7 @@ List<String> rulesForMode(String mode) => mode == 'snakes_ladders'
         'Land on an opponent to send it home. Star squares are safe; stacked tokens do not block movement.',
         'Bring all four tokens home with exact rolls to win. No three-sixes penalty.',
         if (mode.startsWith('rush'))
-          'Online Rush turns last 15 seconds; the board and winning rules are the same.',
+          'Quick online turns last 15 seconds; the board and winning rules are the same.',
       ];
 
 Future<bool> showMatchRules(BuildContext context, String mode) async =>
