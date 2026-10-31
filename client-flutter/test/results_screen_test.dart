@@ -72,7 +72,7 @@ void main() {
     expect(shareCall?.method, 'shareText');
     expect(
       (shareCall?.arguments as Map<Object?, Object?>)['text'],
-      contains('I won a Ludo Rush match'),
+      contains('I won a Ludo Cheer match'),
     );
 
     await tester.ensureVisible(find.text('Play Again'));

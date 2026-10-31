@@ -1,4 +1,4 @@
-# Ludo Rush Architecture
+# Ludo Cheer Architecture
 
 ## MVP Backend Flow
 

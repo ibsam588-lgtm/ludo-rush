@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
-/// The Play Games account is optional; Ludo Rush remains playable without it.
+/// The Play Games account is optional; Ludo Cheer remains playable without it.
 class PlayGamesService {
   PlayGamesService._();
 

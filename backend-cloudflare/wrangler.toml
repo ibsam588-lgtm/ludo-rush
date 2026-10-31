@@ -8,7 +8,7 @@ LATEST_ANDROID_BUILD_NUMBER = "10042"
 LATEST_ANDROID_VERSION_NAME = "1.0.42"
 FORCE_LATEST_ANDROID_BUILD = "true"
 ANDROID_UPDATE_URL = "https://play.google.com/store/apps/details?id=com.ludorush.game"
-FORCE_UPDATE_MESSAGE = "A newer version of Ludo Rush is required to keep matchmaking, rewards, and game rules in sync."
+FORCE_UPDATE_MESSAGE = "A newer version of Ludo Cheer is required to keep matchmaking, rewards, and game rules in sync."
 
 [[durable_objects.bindings]]
 name = "LUDO_ROOMS"

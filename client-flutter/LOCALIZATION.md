@@ -1,4 +1,4 @@
-# Ludo Rush localization
+# Ludo Cheer localization
 
 The Flutter interface uses Android string resources so Google Play's automatic
 app-string translations can reach Flutter widgets. After changing English UI

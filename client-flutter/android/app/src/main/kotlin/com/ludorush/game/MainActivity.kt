@@ -145,7 +145,7 @@ class MainActivity : FlutterActivity() {
                 type = "text/plain"
                 putExtra(Intent.EXTRA_TEXT, text)
             }
-            startActivity(Intent.createChooser(sendIntent, "Share Ludo Rush result"))
+            startActivity(Intent.createChooser(sendIntent, "Share Ludo Cheer result"))
             true
         } catch (_: RuntimeException) {
             false

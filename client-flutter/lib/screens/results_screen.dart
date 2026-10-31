@@ -314,8 +314,8 @@ class _ResultsScreenState extends State<ResultsScreen>
                           onTap: () async {
                             SoundService.tap();
                             final text = won
-                                ? 'I won a Ludo Rush match with a ${state.rating} rating! Play Ludo Rush: https://play.google.com/store/apps/details?id=com.ludorush.game'
-                                : '$winnerName won our Ludo Rush match. Play Ludo Rush: https://play.google.com/store/apps/details?id=com.ludorush.game';
+                                ? 'I won a Ludo Cheer match with a ${state.rating} rating! Play Ludo Cheer: https://play.google.com/store/apps/details?id=com.ludorush.game'
+                                : '$winnerName won our Ludo Cheer match. Play Ludo Cheer: https://play.google.com/store/apps/details?id=com.ludorush.game';
                             final shared =
                                 await AppPlatformService.shareText(text);
                             if (!context.mounted || shared) return;

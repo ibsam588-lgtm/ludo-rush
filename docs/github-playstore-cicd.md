@@ -58,7 +58,7 @@ Create a Flutter Android upload keystore and store it in GitHub secrets as `ANDR
 Fastlane can upload app metadata and the `.aab` to the internal track, but Google Play does not let CI create the first Play Console app listing from scratch. The first app record must be created in Play Console with:
 
 ```text
-App name: Ludo Rush
+App name: Ludo Cheer
 Default language: English (United States)
 App/game: Game
 Free/paid: Free

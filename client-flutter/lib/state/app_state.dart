@@ -284,7 +284,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   String? lastReactionPlayerId;
   int reactionSequence = 0;
   String forceUpdateMessage =
-      'A newer version of Ludo Rush is required to keep matchmaking, rewards, and game rules in sync.';
+      'A newer version of Ludo Cheer is required to keep matchmaking, rewards, and game rules in sync.';
   String forceUpdateUrl = _defaultAndroidUpdateUrl;
   static const Duration _matchmakingPollInterval = Duration(milliseconds: 800);
   static const int _ludoMatchmakingPollAttempts = 10;
@@ -488,7 +488,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   String diagnosticsSummary() => [
-        'Ludo Rush diagnostics',
+        'Ludo Cheer diagnostics',
         'Player: ${playerId ?? 'unassigned'}',
         'Mode: ${lastSnapshot?.mode ?? pendingMatchMode}',
         'Room: ${lastSnapshot?.roomId ?? 'none'}',

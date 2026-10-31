@@ -1576,7 +1576,7 @@ class _GameLogo extends StatelessWidget {
             left: 2,
             top: compact ? 21 : 25,
             child: LocalizedText(
-              'Rush',
+              'Cheer',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: compact ? 20 : 25,

@@ -190,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           builder: (dialogContext) => AlertDialog(
             backgroundColor: const Color(0xFF2D0A35),
             title: const LocalizedText(
-              'Exit Ludo Rush?',
+              'Exit Ludo Cheer?',
               style:
                   TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
@@ -432,12 +432,12 @@ void _showFeatureSnack(BuildContext context, String message) {
     );
 }
 
-void _showSnakesBoardSheet(
+Future<void> _showSnakesBoardSheet(
   BuildContext context,
   AppState state,
-) {
+) async {
   var selectedTheme = state.snakesBoardTheme;
-  showModalBottomSheet<void>(
+  final shouldStart = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
@@ -545,9 +545,8 @@ void _showSnakesBoardSheet(
                       );
                       return;
                     }
-                    Navigator.pop(sheetContext);
                     state.setSnakesBoardTheme(selectedTheme);
-                    state.startQuickMatch(AppState.snakesLaddersMode);
+                    Navigator.pop(sheetContext, true);
                   },
                 ),
               ],
@@ -557,6 +556,12 @@ void _showSnakesBoardSheet(
       );
     },
   );
+  if (shouldStart == true && context.mounted) {
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    if (context.mounted) {
+      state.startQuickMatch(AppState.snakesLaddersMode);
+    }
+  }
 }
 
 void _showRewardsEconomySheet(BuildContext context, AppState state) {
@@ -2036,7 +2041,7 @@ class _BrandHeader extends StatelessWidget {
                 child: Transform.scale(
                   scale: compact ? 0.88 : 1.06,
                   alignment: Alignment.topCenter,
-                  child: const _LudoRushLogo(),
+                  child: const _LudoCheerLogo(),
                 ),
               ),
               Align(
@@ -2062,8 +2067,8 @@ class _BrandHeader extends StatelessWidget {
   }
 }
 
-class _LudoRushLogo extends StatelessWidget {
-  const _LudoRushLogo();
+class _LudoCheerLogo extends StatelessWidget {
+  const _LudoCheerLogo();
 
   @override
   Widget build(BuildContext context) {
@@ -2121,7 +2126,7 @@ class _LudoRushLogo extends StatelessWidget {
             child: Stack(
               children: const [
                 LocalizedText(
-                  'Rush',
+                  'Cheer',
                   style: TextStyle(
                     color: Color(0xFF1D326A),
                     fontSize: 34,
@@ -2140,7 +2145,7 @@ class _LudoRushLogo extends StatelessWidget {
                   top: -2,
                   left: 0,
                   child: LocalizedText(
-                    'Rush',
+                    'Cheer',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 34,

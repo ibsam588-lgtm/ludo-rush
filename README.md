@@ -1,6 +1,6 @@
-# Ludo Rush
+# Ludo Cheer
 
-Ludo Rush is a mobile-first multiplayer Ludo game built around fast matches, global matchmaking, polished 2D/2.5D presentation, server-authoritative gameplay, ads, and in-app purchases.
+Ludo Cheer is a mobile-first multiplayer Ludo game built around fast matches, global matchmaking, polished 2D/2.5D presentation, server-authoritative gameplay, ads, and in-app purchases.
 
 ## Project Layout
 

@@ -5,7 +5,7 @@ Use these values when creating the first Play Console app record.
 ## App Details
 
 ```text
-App name: Ludo Rush
+App name: Ludo Cheer
 Default language: English (United States)
 App or game: Game
 Free or paid: Free
@@ -21,7 +21,7 @@ Short description:
 Fast online Ludo with private rooms, bots, and global matchmaking.
 
 Full description:
-Ludo Rush is a fast online Ludo game built for quick matches with friends or global players.
+Ludo Cheer is a fast online Ludo game built for quick matches with friends or global players.
 
 Features:
 - Quick match
@@ -55,7 +55,7 @@ Testers can use guest login inside the app.
 Does the app contain ads? Yes.
 ```
 
-Ludo Rush uses Unity LevelPlay mediation for banner, interstitial, and rewarded ads.
+Ludo Cheer uses Unity LevelPlay mediation for banner, interstitial, and rewarded ads.
 
 ## Privacy Policy
 
