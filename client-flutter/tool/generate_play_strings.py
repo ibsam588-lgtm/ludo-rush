@@ -27,7 +27,7 @@ LITERAL = re.compile(r"(?<![A-Za-z0-9])(['\"])((?:\\.|(?!\1).)*?)\1", re.S)
 
 
 def is_ui_text(value: str) -> bool:
-    if value in {"Ludo Rush", "LUDO RUSH"} or value.endswith(" USD"):
+    if value in {"Ludo Cheer", "LUDO CHEER"} or value.endswith(" USD"):
         return False
     if not 2 <= len(value) <= 180 or "\n" in value or "$" in value or "\\" in value:
         return False
@@ -65,7 +65,7 @@ def main() -> None:
     lines = [
         '<?xml version="1.0" encoding="utf-8"?>',
         "<resources>",
-        '    <string name="app_name" translatable="false">Ludo Rush</string>',
+        '    <string name="app_name" translatable="false">Ludo Cheer</string>',
     ]
     for phrase, key in keys.items():
         lines.append(

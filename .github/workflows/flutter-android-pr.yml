@@ -34,7 +34,7 @@ jobs:
           keytool -genkeypair -keystore "$RUNNER_TEMP/pr-signing.jks"
           -storepass android -keypass android -alias pr-signing
           -keyalg RSA -keysize 2048 -validity 1
-          -dname "CN=CI,O=Ludo Rush,C=US"
+          -dname "CN=CI,O=Ludo Cheer,C=US"
       - name: Compile release Android app and native Play Games bridge
         env:
           KEYSTORE_PATH: ${{ runner.temp }}/pr-signing.jks

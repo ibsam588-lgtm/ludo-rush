@@ -137,5 +137,5 @@ jobs:
           packageName: com.ludorush.game
           releaseFiles: client-flutter/build/app/outputs/bundle/release/app-release.aab
           tracks: internal
-          releaseName: "Ludo Rush internal #${{ github.run_number }}"
+          releaseName: "Ludo Cheer internal #${{ github.run_number }}"
           status: completed

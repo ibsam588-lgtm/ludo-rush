@@ -1,6 +1,6 @@
-# Ludo Rush Backend
+# Ludo Cheer Backend
 
-Cloudflare backend for Ludo Rush.
+Cloudflare backend for Ludo Cheer.
 
 ## Local Setup
 
