@@ -47,7 +47,7 @@ class _SplashScreenState extends State<SplashScreen>
         fit: StackFit.expand,
         children: [
           Image.asset(
-            'assets/images/rush/rush_splash_scene_mobile_v1.jpg',
+            'assets/images/rush/rush_splash_scene_v2.png',
             fit: BoxFit.cover,
             alignment: Alignment.topCenter,
             filterQuality: FilterQuality.high,
@@ -193,7 +193,7 @@ class _LogoBlock extends StatelessWidget {
           ],
         ),
         const LocalizedText(
-          'RUSH',
+          'CHEER',
           style: TextStyle(
             color: Colors.white,
             fontSize: 40,

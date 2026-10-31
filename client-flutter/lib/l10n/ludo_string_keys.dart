@@ -502,7 +502,7 @@ const Map<String, String> ludoStringKeys = {
   "RARE": 'ludo_ui_647bf4ae5c62',
   "RATING": 'ludo_ui_1042d6afbaa2',
   "ROYAL COURT": 'ludo_ui_a89e6448fed9',
-  "RUSH": 'ludo_ui_4522c6c193dd',
+  "CHEER": 'ludo_ui_4522c6c193dd',
   "Race you home!": 'ludo_ui_9306fa43de14',
   "Rare chest animation": 'ludo_ui_7e7e302f85da',
   "Rate App": 'ludo_ui_6c21f53a0e2e',
