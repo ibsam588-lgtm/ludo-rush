@@ -1,7 +1,7 @@
 name: ludo_rush
 description: Ludo Cheer - competitive mobile Ludo game
 publish_to: 'none'
-version: 1.0.79+10079
+version: 1.0.83+10083
 
 environment:
   sdk: '>=3.12.0 <4.0.0'

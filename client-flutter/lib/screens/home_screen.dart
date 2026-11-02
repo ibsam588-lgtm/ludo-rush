@@ -556,11 +556,9 @@ Future<void> _showSnakesBoardSheet(
       );
     },
   );
-  if (shouldStart == true && context.mounted) {
+  if (shouldStart == true) {
     await Future<void>.delayed(const Duration(milliseconds: 350));
-    if (context.mounted) {
-      state.startQuickMatch(AppState.snakesLaddersMode);
-    }
+    await state.startQuickMatch(AppState.snakesLaddersMode);
   }
 }
 

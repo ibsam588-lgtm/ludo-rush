@@ -192,7 +192,7 @@ class _LogoBlock extends StatelessWidget {
             _LogoLetter('O', boardBlue),
           ],
         ),
-        const LocalizedText(
+        const Text(
           'CHEER',
           style: TextStyle(
             color: Colors.white,
@@ -223,7 +223,7 @@ class _LogoLetter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LocalizedText(
+    return Text(
       letter,
       style: TextStyle(
         color: color,
