@@ -1554,7 +1554,7 @@ class _GameLogo extends StatelessWidget {
           Positioned(
             left: 0,
             top: 1,
-            child: LocalizedText(
+            child: Text(
               'Ludo',
               style: TextStyle(
                 color: goldColor,
@@ -1575,7 +1575,7 @@ class _GameLogo extends StatelessWidget {
           Positioned(
             left: 2,
             top: compact ? 21 : 25,
-            child: LocalizedText(
+            child: Text(
               'Cheer',
               style: TextStyle(
                 color: Colors.white,
