@@ -2098,7 +2098,7 @@ class _LudoCheerLogo extends StatelessWidget {
                   Color(0xFFFF6A00),
                 ],
               ).createShader(bounds),
-              child: const LocalizedText(
+              child: const Text(
                 'Ludo',
                 style: TextStyle(
                   color: Colors.white,
@@ -2125,7 +2125,7 @@ class _LudoCheerLogo extends StatelessWidget {
             top: 43,
             child: Stack(
               children: const [
-                LocalizedText(
+                Text(
                   'Cheer',
                   style: TextStyle(
                     color: Color(0xFF1D326A),
@@ -2144,7 +2144,7 @@ class _LudoCheerLogo extends StatelessWidget {
                 Positioned(
                   top: -2,
                   left: 0,
-                  child: LocalizedText(
+                  child: Text(
                     'Cheer',
                     style: TextStyle(
                       color: Colors.white,
