@@ -237,11 +237,13 @@ void main() {
     expect(scrolling.position.pixels, scrolling.position.maxScrollExtent);
     expect(find.byKey(const ValueKey('find-my-token')), findsOneWidget);
     expect(find.byKey(const ValueKey('turn-timer')), findsOneWidget);
-    await tester.drag(
-        find.byKey(const ValueKey('match-board-scroll')), const Offset(0, 100));
-    await tester.pump(const Duration(milliseconds: 100));
+    final drag = await tester.startGesture(
+        tester.getCenter(find.byKey(const ValueKey('match-board-scroll'))));
+    await drag.moveBy(const Offset(0, 70));
+    await tester.pump(const Duration(milliseconds: 16));
     expect(scrolling.position.pixels,
         lessThan(scrolling.position.maxScrollExtent));
+    await drag.up();
     expect(state.lastRollSequence, 0);
     final before = state.lastSnapshot!.pieces.first.progress;
     await tester.tap(find.text('Tap to Roll'));
