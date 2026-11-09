@@ -71,6 +71,44 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
     ..addListener(_reportMotion);
   bool _busy = false;
   bool _reduceMotion = false;
+  int? _tapPointer;
+  Offset? _tapStart;
+  bool _tapDragged = false;
+
+  void _onPointerDown(PointerDownEvent event) {
+    if (_tapPointer != null) {
+      _tapDragged = true;
+      return;
+    }
+    _tapPointer = event.pointer;
+    _tapStart = event.localPosition;
+    _tapDragged = false;
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (event.pointer != _tapPointer || _tapStart == null) return;
+    if ((event.localPosition - _tapStart!).distanceSquared > 144) {
+      _tapDragged = true;
+    }
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    if (event.pointer != _tapPointer) return;
+    final wasTap = !_tapDragged &&
+        _tapStart != null &&
+        (event.localPosition - _tapStart!).distanceSquared <= 144;
+    _tapPointer = null;
+    _tapStart = null;
+    _tapDragged = false;
+    if (wasTap) _handleTap(event.localPosition);
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    if (event.pointer != _tapPointer) return;
+    _tapPointer = null;
+    _tapStart = null;
+    _tapDragged = false;
+  }
 
   void _reportMotion() {
     final busy = _motion.isMoving;
@@ -239,31 +277,50 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
       value: myProgress == null
           ? 'Live board'
           : 'Your token is on square $myProgress',
-      child: GestureDetector(
+      child: Listener(
         behavior: HitTestBehavior.opaque,
-        onTapUp: (details) => _handleTap(details.localPosition),
-        child: AnimatedBuilder(
-          animation: Listenable.merge([_pulse, _motion]),
-          builder: (_, __) => CustomPaint(
-            painter: _SnakesLaddersPainter(
-              motion: _motion,
-              motionRevision: _motion.revision,
-              snapshot: widget.snapshot,
-              mySeat: widget.mySeat,
-              pulse: _pulse.value,
-              hits: _hits,
-              titlePlaque: _titlePlaque,
-              frameImage: _frameImage,
-              pieceImages: _pieceImages,
-              boardTheme: widget.boardTheme,
-              showTitle: widget.showTitle,
-              showPieces: widget.showPieces,
+        onPointerDown: _onPointerDown,
+        onPointerMove: _onPointerMove,
+        onPointerUp: _onPointerUp,
+        onPointerCancel: _onPointerCancel,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            RepaintBoundary(
+              child: CustomPaint(
+                painter: _createPainter(piecesLayer: false),
+              ),
             ),
-          ),
+            RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_pulse, _motion]),
+                builder: (_, __) => CustomPaint(
+                  painter: _createPainter(piecesLayer: true),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  _SnakesLaddersPainter _createPainter({required bool piecesLayer}) =>
+      _SnakesLaddersPainter(
+        motion: _motion,
+        motionRevision: _motion.revision,
+        snapshot: widget.snapshot,
+        mySeat: widget.mySeat,
+        pulse: _pulse.value,
+        hits: _hits,
+        titlePlaque: _titlePlaque,
+        frameImage: _frameImage,
+        pieceImages: _pieceImages,
+        boardTheme: widget.boardTheme,
+        showTitle: widget.showTitle,
+        showPieces: widget.showPieces,
+        piecesLayer: piecesLayer,
+      );
 }
 
 class _SnakeHit {
@@ -366,6 +423,7 @@ class _SnakesLaddersPainter extends CustomPainter {
   final String boardTheme;
   final bool showTitle;
   final bool showPieces;
+  final bool piecesLayer;
 
   _SnakesLaddersPainter({
     required this.motion,
@@ -380,6 +438,7 @@ class _SnakesLaddersPainter extends CustomPainter {
     required this.boardTheme,
     required this.showTitle,
     required this.showPieces,
+    required this.piecesLayer,
   });
 
   String get _theme => _normalizedBoardTheme(boardTheme);
@@ -613,7 +672,7 @@ class _SnakesLaddersPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    hits.clear();
+    if (piecesLayer) hits.clear();
     final titleHeight =
         showTitle ? (size.height * 0.135).clamp(40.0, 78.0).toDouble() : 0.0;
     final gap =
@@ -638,24 +697,26 @@ class _SnakesLaddersPainter extends CustomPainter {
     final playRect = boardRect.deflate(boardSide * frameInset);
     final cell = playRect.width / 10;
 
-    if (showTitle) _drawTitle(canvas, titleRect);
-    _drawShell(canvas, boardRect);
-    if (_adventure != null) {
+    if (piecesLayer) {
+      if (showPieces) _drawPieces(canvas, playRect, cell);
+    } else {
+      if (showTitle) _drawTitle(canvas, titleRect);
+      _drawShell(canvas, boardRect);
+      if (_adventure != null) {
+        canvas.save();
+        canvas.clipRRect(RRect.fromRectXY(boardRect, 24, 24));
+        _adventure!.paintTexture(canvas, boardRect);
+        canvas.restore();
+      }
+
       canvas.save();
-      canvas.clipRRect(RRect.fromRectXY(boardRect, 24, 24));
-      _adventure!.paintTexture(canvas, boardRect);
+      canvas.clipRRect(RRect.fromRectXY(playRect, cell * 0.12, cell * 0.12));
+      _drawTiles(canvas, playRect, cell);
+      _drawLadders(canvas, playRect, cell);
+      _drawSnakes(canvas, playRect, cell);
+      _drawNumbers(canvas, playRect, cell);
       canvas.restore();
     }
-
-    canvas.save();
-    canvas.clipRRect(RRect.fromRectXY(playRect, cell * 0.12, cell * 0.12));
-    _drawTiles(canvas, playRect, cell);
-    _drawLadders(canvas, playRect, cell);
-    _drawSnakes(canvas, playRect, cell);
-    _drawNumbers(canvas, playRect, cell);
-    canvas.restore();
-
-    if (showPieces) _drawPieces(canvas, playRect, cell);
   }
 
   void _drawTitle(Canvas canvas, Rect rect) {
@@ -2104,11 +2165,17 @@ class _SnakesLaddersPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SnakesLaddersPainter oldDelegate) {
+    if (oldDelegate.piecesLayer != piecesLayer) return true;
+    if (!piecesLayer) {
+      return oldDelegate.titlePlaque != titlePlaque ||
+          oldDelegate.frameImage != frameImage ||
+          oldDelegate.boardTheme != boardTheme ||
+          oldDelegate.showTitle != showTitle;
+    }
     return oldDelegate.motionRevision != motionRevision ||
         oldDelegate.snapshot != snapshot ||
         oldDelegate.mySeat != mySeat ||
         oldDelegate.pulse != pulse ||
-        oldDelegate.titlePlaque != titlePlaque ||
         oldDelegate.frameImage != frameImage ||
         oldDelegate.pieceImages != pieceImages ||
         oldDelegate.boardTheme != boardTheme ||

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../state/app_state.dart';
@@ -311,6 +312,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                       key: const ValueKey('match-board-scroll'),
                                       controller: _boardScroll,
                                       physics: const ClampingScrollPhysics(),
+                                      dragStartBehavior: snakesTable
+                                          ? DragStartBehavior.down
+                                          : DragStartBehavior.start,
                                       child: Center(
                                           child: SizedBox(
                                         width: landscapeBoardWidth,
@@ -442,6 +446,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                             'match-board-scroll'),
                                         controller: _boardScroll,
                                         physics: const ClampingScrollPhysics(),
+                                        dragStartBehavior: snakesTable
+                                            ? DragStartBehavior.down
+                                            : DragStartBehavior.start,
                                         padding:
                                             const EdgeInsets.only(bottom: 8),
                                         child: Center(
