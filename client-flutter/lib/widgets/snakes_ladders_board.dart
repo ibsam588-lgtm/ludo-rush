@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter/services.dart' show rootBundle;
 import '../models/game_snapshot.dart';
 import '../theme/app_theme.dart';
@@ -65,6 +66,10 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
   final List<_SnakeHit> _hits = [];
   ui.Image? _titlePlaque;
   ui.Image? _frameImage;
+  ui.Image? _staticArtImage;
+  Object? _staticArtKey;
+  Object? _pendingArtKey;
+  final _staticArtBoundary = GlobalKey();
   Map<int, ui.Image> _pieceImages = const {};
 
   late final BoardMotion _motion = BoardMotion(this)
@@ -74,6 +79,51 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
   int? _tapPointer;
   Offset? _tapStart;
   bool _tapDragged = false;
+
+  void _syncPulse() {
+    final snapshot = widget.snapshot;
+    final hasChoice = widget.animate &&
+        !_reduceMotion &&
+        snapshot?.status == 'playing' &&
+        snapshot?.currentTurnSeat == widget.mySeat &&
+        (snapshot?.availableMoves.isNotEmpty ?? false);
+    if (hasChoice) {
+      if (!_pulse.isAnimating) _pulse.repeat(reverse: true);
+    } else if (_pulse.isAnimating || _pulse.value != 0) {
+      _pulse
+        ..stop()
+        ..value = 0;
+    }
+  }
+
+  Future<void> _captureStaticArt(Object key, double pixelRatio) async {
+    if (!mounted || _pendingArtKey != key) return;
+    final boundary = _staticArtBoundary.currentContext?.findRenderObject();
+    if (boundary is! RenderRepaintBoundary) {
+      _pendingArtKey = null;
+      return;
+    }
+    ui.Image? image;
+    try {
+      image = await boundary.toImage(pixelRatio: pixelRatio);
+    } catch (_) {
+      if (_pendingArtKey == key) _pendingArtKey = null;
+      return;
+    }
+    if (!mounted || _pendingArtKey != key) {
+      image.dispose();
+      return;
+    }
+    final previous = _staticArtImage;
+    setState(() {
+      _staticArtImage = image;
+      _staticArtKey = key;
+      _pendingArtKey = null;
+    });
+    if (previous != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => previous.dispose());
+    }
+  }
 
   void _onPointerDown(PointerDownEvent event) {
     if (_tapPointer != null) {
@@ -125,11 +175,9 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
     _reduceMotion = MediaQuery.disableAnimationsOf(context);
     if (_reduceMotion) {
       _motion.clear();
-      _pulse.stop();
       _reportMotion();
-    } else if (widget.animate && !_pulse.isAnimating) {
-      _pulse.repeat(reverse: true);
     }
+    _syncPulse();
   }
 
   @override
@@ -139,9 +187,7 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
       vsync: this,
       duration: const Duration(milliseconds: 820),
     );
-    if (widget.animate) {
-      _pulse.repeat(reverse: true);
-    }
+    _syncPulse();
     _loadAssets();
   }
 
@@ -151,6 +197,7 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
     _pulse.dispose();
     _titlePlaque?.dispose();
     _frameImage?.dispose();
+    _staticArtImage?.dispose();
     for (final image in _pieceImages.values) {
       image.dispose();
     }
@@ -213,15 +260,7 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
         oldWidget.showPieces != widget.showPieces) {
       _loadAssets();
     }
-    if (oldWidget.animate != widget.animate) {
-      if (widget.animate && !_reduceMotion) {
-        _pulse.repeat(reverse: true);
-      } else {
-        _pulse
-          ..stop()
-          ..value = 0;
-      }
-    }
+    _syncPulse();
   }
 
   Future<void> _loadFrame(String theme) async {
@@ -283,23 +322,52 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
         onPointerMove: _onPointerMove,
         onPointerUp: _onPointerUp,
         onPointerCancel: _onPointerCancel,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            RepaintBoundary(
-              child: CustomPaint(
-                painter: _createPainter(piecesLayer: false),
-              ),
-            ),
-            RepaintBoundary(
-              child: AnimatedBuilder(
-                animation: Listenable.merge([_pulse, _motion]),
-                builder: (_, __) => CustomPaint(
-                  painter: _createPainter(piecesLayer: true),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final size = constraints.biggest;
+            final pixelRatio = math.min(
+                MediaQuery.devicePixelRatioOf(context), 2.5);
+            final artKey = (
+              size,
+              pixelRatio,
+              _normalizedBoardTheme(widget.boardTheme),
+              widget.showTitle,
+              _titlePlaque,
+              _frameImage,
+            );
+            final canCache = size.isFinite && size.width > 0 && size.height > 0;
+            final cached = canCache && _staticArtKey == artKey;
+            if (canCache && !cached && _pendingArtKey != artKey) {
+              _pendingArtKey = artKey;
+              WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => _captureStaticArt(artKey, pixelRatio));
+            }
+            return Stack(
+              fit: StackFit.expand,
+              children: [
+                RepaintBoundary(
+                  key: _staticArtBoundary,
+                  child: cached
+                      ? RawImage(
+                          image: _staticArtImage,
+                          fit: BoxFit.fill,
+                          filterQuality: FilterQuality.medium,
+                        )
+                      : CustomPaint(
+                          painter: _createPainter(piecesLayer: false),
+                        ),
                 ),
-              ),
-            ),
-          ],
+                RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: Listenable.merge([_pulse, _motion]),
+                    builder: (_, __) => CustomPaint(
+                      painter: _createPainter(piecesLayer: true),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
