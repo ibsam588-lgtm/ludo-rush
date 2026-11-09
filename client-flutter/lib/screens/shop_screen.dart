@@ -19,6 +19,7 @@ import '../widgets/dice_widget.dart';
 import '../widgets/live_board_preview.dart';
 import '../widgets/live_item_preview.dart';
 import '../widgets/profile_avatar.dart';
+import '../widgets/snakes_ladders_board.dart' show SnakesBoardThumbnail;
 import '../l10n/localized_text.dart';
 import '../l10n/ludo_strings.dart';
 
@@ -2209,8 +2210,7 @@ class _BoardThemeButton extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: LiveBoardPreview(
-                        theme: option.id, snakes: true, live: false),
+                    child: SnakesBoardThumbnail(theme: option.id),
                   ),
                   if (selected)
                     const Positioned(right: 4, top: 4, child: _EquippedBadge()),

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 import '../models/game_snapshot.dart';
 import '../theme/app_theme.dart';
 import 'adventure_board_art.dart';
@@ -9,6 +9,16 @@ import 'board_motion.dart';
 
 const _snakesTitlePlaqueAsset =
     'assets/images/rush/rush_snakes_ladders_title_plaque_mobile_v1.png';
+
+const _boardWidthFraction = 0.965;
+
+// The artwork is exported from the original painter on a 400×430 canvas,
+// with a centered 386×386 board and room for its frame and shadow.
+const _artworkWidthToBoard = 400.0 / 386.0;
+const _artworkHeightToBoard = 430.0 / 386.0;
+
+String _boardArtworkAsset(String theme, {bool thumbnail = false}) =>
+    'assets/images/snakes_boards/$theme${thumbnail ? '_thumb' : ''}.webp';
 
 const _snakePieceAssets = [
   'assets/images/rush/rush_goti_red_mobile_v1.png',
@@ -31,6 +41,23 @@ String _normalizedBoardTheme(String value) {
           AdventureBoardArt.themes.containsKey(normalized)
       ? normalized
       : 'carnival';
+}
+
+class SnakesBoardThumbnail extends StatelessWidget {
+  final String theme;
+
+  const SnakesBoardThumbnail({super.key, required this.theme});
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      _boardArtworkAsset(_normalizedBoardTheme(theme), thumbnail: true),
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.medium,
+      excludeFromSemantics: true,
+      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+    );
+  }
 }
 
 class SnakesLaddersBoard extends StatefulWidget {
@@ -63,11 +90,14 @@ class SnakesLaddersBoard extends StatefulWidget {
 
 class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
     with TickerProviderStateMixin {
-  // The shop can show several boards at once. Decode each bundled image once,
-  // then give every board its own disposable handle to the shared pixels.
+  // Share the small sprites across previews and matches. Full board images
+  // are owned by the visible board so visiting themes doesn't grow this cache.
   static final Map<String, Future<ui.Image?>> _decodedAssets = {};
   late final AnimationController _pulse;
   final List<_SnakeHit> _hits = [];
+  AssetBundle? _artworkBundle;
+  String? _loadedArtworkTheme;
+  ui.Image? _boardArtwork;
   ui.Image? _titlePlaque;
   ui.Image? _frameImage;
   Map<int, ui.Image> _pieceImages = const {};
@@ -144,6 +174,11 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final bundle = DefaultAssetBundle.of(context);
+    if (_artworkBundle != bundle) {
+      _artworkBundle = bundle;
+      _loadArtwork();
+    }
     _reduceMotion = MediaQuery.disableAnimationsOf(context);
     if (_reduceMotion) {
       _motion.clear();
@@ -160,13 +195,14 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
       duration: const Duration(milliseconds: 820),
     );
     _syncPulse();
-    _loadAssets();
+    _loadSprites();
   }
 
   @override
   void dispose() {
     _motion.dispose();
     _pulse.dispose();
+    _boardArtwork?.dispose();
     _titlePlaque?.dispose();
     _frameImage?.dispose();
     for (final image in _pieceImages.values) {
@@ -175,29 +211,30 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
     super.dispose();
   }
 
-  Future<void> _loadAssets() async {
-    final requestedTheme = _normalizedBoardTheme(widget.boardTheme);
-    final title =
-        widget.showTitle ? await _loadImage(_snakesTitlePlaqueAsset) : null;
-    final frameAsset = _snakeFrameAssets[requestedTheme];
-    final frame = frameAsset == null ? null : await _loadImage(frameAsset);
+  Future<void> _loadSprites() async {
+    final showTitle = widget.showTitle;
+    final showPieces = widget.showPieces;
+    final images = await Future.wait([
+      if (showTitle) _loadImage(_snakesTitlePlaqueAsset),
+      if (showPieces) for (final asset in _snakePieceAssets) _loadImage(asset),
+    ]);
+    final title = showTitle ? images.first : null;
     final pieces = <int, ui.Image>{};
-    if (widget.showPieces) {
+    if (showPieces) {
       for (var i = 0; i < _snakePieceAssets.length; i++) {
-        final image = await _loadImage(_snakePieceAssets[i]);
+        final image = images[i + (showTitle ? 1 : 0)];
         if (image != null) pieces[i] = image;
       }
     }
-    if (!mounted) {
+    if (!mounted ||
+        widget.showTitle != showTitle ||
+        widget.showPieces != showPieces) {
       title?.dispose();
-      frame?.dispose();
       for (final image in pieces.values) {
         image.dispose();
       }
       return;
     }
-    final frameStillCurrent =
-        _normalizedBoardTheme(widget.boardTheme) == requestedTheme;
     setState(() {
       _titlePlaque?.dispose();
       for (final image in _pieceImages.values) {
@@ -205,16 +242,7 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
       }
       _titlePlaque = title;
       _pieceImages = pieces;
-      if (frameStillCurrent) {
-        _frameImage?.dispose();
-        _frameImage = frame;
-      } else {
-        frame?.dispose();
-      }
     });
-    if (!frameStillCurrent) {
-      _loadFrame(widget.boardTheme);
-    }
   }
 
   @override
@@ -225,43 +253,60 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
     _reportMotion();
     if (_normalizedBoardTheme(oldWidget.boardTheme) !=
         _normalizedBoardTheme(widget.boardTheme)) {
-      _loadFrame(widget.boardTheme);
+      _loadArtwork();
     }
     if (oldWidget.showTitle != widget.showTitle ||
         oldWidget.showPieces != widget.showPieces) {
-      _loadAssets();
+      _loadSprites();
     }
     _syncPulse();
   }
 
-  Future<void> _loadFrame(String theme) async {
-    final normalized = _normalizedBoardTheme(theme);
-    final asset = _snakeFrameAssets[normalized];
-    final image = asset == null ? null : await _loadImage(asset);
-    if (!mounted || _normalizedBoardTheme(widget.boardTheme) != normalized) {
-      image?.dispose();
+  Future<void> _loadArtwork() async {
+    final theme = _normalizedBoardTheme(widget.boardTheme);
+    final bundle = _artworkBundle!;
+    final artwork = await _decodeImage(bundle, _boardArtworkAsset(theme));
+    // Keep the game playable if a bundled background can't be decoded.
+    final fallbackAsset = artwork == null ? _snakeFrameAssets[theme] : null;
+    final frame = fallbackAsset == null ? null : await _loadImage(fallbackAsset);
+    if (!mounted ||
+        _artworkBundle != bundle ||
+        _normalizedBoardTheme(widget.boardTheme) != theme) {
+      artwork?.dispose();
+      frame?.dispose();
       return;
     }
     setState(() {
+      _boardArtwork?.dispose();
       _frameImage?.dispose();
-      _frameImage = image;
+      _loadedArtworkTheme = theme;
+      _boardArtwork = artwork;
+      _frameImage = frame;
     });
   }
 
   Future<ui.Image?> _loadImage(String asset) async {
-    final image = await _decodedAssets.putIfAbsent(asset, () async {
-      try {
-        final data = await rootBundle.load(asset);
-        final codec =
-            await ui.instantiateImageCodec(data.buffer.asUint8List());
-        final frame = await codec.getNextFrame();
-        codec.dispose();
-        return frame.image;
-      } catch (_) {
-        return null;
-      }
-    });
+    final image = await _decodedAssets.putIfAbsent(
+      asset,
+      () => _decodeImage(rootBundle, asset),
+    );
     return image?.clone();
+  }
+
+  static Future<ui.Image?> _decodeImage(AssetBundle bundle, String asset) async {
+    try {
+      final data = await bundle.load(asset);
+      final codec = await ui.instantiateImageCodec(
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+      );
+      try {
+        return (await codec.getNextFrame()).image;
+      } finally {
+        codec.dispose();
+      }
+    } catch (_) {
+      return null;
+    }
   }
 
   void _handleTap(Offset pos) {
@@ -327,6 +372,9 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
         mySeat: widget.mySeat,
         pulse: _pulse.value,
         hits: _hits,
+        artworkReady: _loadedArtworkTheme ==
+            _normalizedBoardTheme(widget.boardTheme),
+        boardArtwork: _boardArtwork,
         titlePlaque: _titlePlaque,
         frameImage: _frameImage,
         pieceImages: _pieceImages,
@@ -431,6 +479,8 @@ class _SnakesLaddersPainter extends CustomPainter {
   final int? mySeat;
   final double pulse;
   final List<_SnakeHit> hits;
+  final bool artworkReady;
+  final ui.Image? boardArtwork;
   final ui.Image? titlePlaque;
   final ui.Image? frameImage;
   final Map<int, ui.Image> pieceImages;
@@ -446,6 +496,8 @@ class _SnakesLaddersPainter extends CustomPainter {
     required this.mySeat,
     required this.pulse,
     required this.hits,
+    required this.artworkReady,
+    required this.boardArtwork,
     required this.titlePlaque,
     required this.frameImage,
     required this.pieceImages,
@@ -692,7 +744,8 @@ class _SnakesLaddersPainter extends CustomPainter {
     final gap =
         showTitle ? (size.height * 0.012).clamp(4.0, 8.0).toDouble() : 0.0;
     final maxBoardSide = size.height - titleHeight - gap;
-    final boardSide = math.min(size.width * 0.965, maxBoardSide);
+    final boardSide = math.min(size.width * _boardWidthFraction, maxBoardSide);
+    if (boardSide <= 0) return;
     final totalHeight = titleHeight + gap + boardSide;
     final top = math.max(0.0, (size.height - totalHeight) / 2);
     final boardRect = Rect.fromLTWH(
@@ -706,15 +759,34 @@ class _SnakesLaddersPainter extends CustomPainter {
       width: math.min(size.width * 0.92, boardSide * 0.96),
       height: titleHeight,
     );
+    final hasFrame = frameImage != null ||
+        (boardArtwork != null && _snakeFrameAssets.containsKey(_theme));
     final frameInset =
-        frameImage == null ? 0.025 : (_theme == 'jungle' ? 0.132 : 0.086);
+        hasFrame ? (_theme == 'jungle' ? 0.132 : 0.086) : 0.025;
     final playRect = boardRect.deflate(boardSide * frameInset);
     final cell = playRect.width / 10;
 
     if (piecesLayer) {
-      if (showPieces) _drawPieces(canvas, playRect, cell);
+      if (artworkReady && showPieces) _drawPieces(canvas, playRect, cell);
     } else {
       if (showTitle) _drawTitle(canvas, titleRect);
+      if (!artworkReady) return;
+
+      final image = boardArtwork;
+      if (image != null) {
+        canvas.drawImageRect(
+          image,
+          Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+          Rect.fromCenter(
+            center: boardRect.center,
+            width: boardSide * _artworkWidthToBoard,
+            height: boardSide * _artworkHeightToBoard,
+          ),
+          Paint()..filterQuality = FilterQuality.low,
+        );
+        return;
+      }
+
       _drawShell(canvas, boardRect);
       if (_adventure != null) {
         canvas.save();
@@ -2179,7 +2251,11 @@ class _SnakesLaddersPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _SnakesLaddersPainter oldDelegate) {
-    if (oldDelegate.piecesLayer != piecesLayer) return true;
+    if (oldDelegate.piecesLayer != piecesLayer ||
+        oldDelegate.artworkReady != artworkReady ||
+        oldDelegate.boardArtwork != boardArtwork) {
+      return true;
+    }
     if (!piecesLayer) {
       return oldDelegate.titlePlaque != titlePlaque ||
           oldDelegate.frameImage != frameImage ||

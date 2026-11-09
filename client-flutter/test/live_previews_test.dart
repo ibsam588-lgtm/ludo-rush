@@ -17,6 +17,7 @@ import 'package:ludo_rush/widgets/live_board_preview.dart';
 import 'package:ludo_rush/widgets/live_item_preview.dart';
 import 'package:ludo_rush/widgets/profile_avatar.dart';
 import 'package:ludo_rush/widgets/six_celebration.dart';
+import 'package:ludo_rush/widgets/snakes_ladders_board.dart';
 
 final captureKey = GlobalKey();
 Future<void> capture(WidgetTester tester, String name) async {
@@ -165,8 +166,10 @@ void main() {
     final ocean = find.byKey(const ValueKey('snakes-theme-ocean'));
     await tester.scrollUntilVisible(ocean, 160, scrollable: strip);
     await tester.pump();
-    expect(find.descendant(of: ocean, matching: find.byType(LiveBoardPreview)),
-        findsOneWidget);
+    expect(
+      find.descendant(of: ocean, matching: find.byType(SnakesBoardThumbnail)),
+      findsOneWidget,
+    );
     await tester.tap(ocean);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));

@@ -270,6 +270,23 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                           actionHeight -
                                           26));
                           final boardHeight = boardWidth * boardAspect;
+                          final board = snakesTable
+                              ? SnakesLaddersBoard(
+                                  snapshot: snapshot,
+                                  mySeat: mySeat,
+                                  onMotionChanged: _onMotionChanged,
+                                  onUserTouch: _pauseSnakeAutoFollow,
+                                  boardTheme: state.snakesBoardTheme,
+                                  onPieceTap: state.movePiece,
+                                )
+                              : LudoBoard(
+                                  snapshot: snapshot,
+                                  mySeat: mySeat,
+                                  onMotionChanged: _onMotionChanged,
+                                  boardTheme: state.ludoBoardTheme,
+                                  onPieceTap: state.movePiece,
+                                  showWaitingOverlay: false,
+                                );
 
                           // On a wide window the portrait stack leaves almost
                           // no room for the board. Put the board beside the
@@ -325,28 +342,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                         width: landscapeBoardWidth,
                                         height:
                                             landscapeBoardWidth * boardAspect,
-                                        child: snakesTable
-                                            ? SnakesLaddersBoard(
-                                                snapshot: snapshot,
-                                                mySeat: mySeat,
-                                                onMotionChanged:
-                                                    _onMotionChanged,
-                                                onUserTouch:
-                                                    _pauseSnakeAutoFollow,
-                                                boardTheme:
-                                                    state.snakesBoardTheme,
-                                                onPieceTap: state.movePiece,
-                                              )
-                                            : LudoBoard(
-                                                snapshot: snapshot,
-                                                mySeat: mySeat,
-                                                onMotionChanged:
-                                                    _onMotionChanged,
-                                                boardTheme:
-                                                    state.ludoBoardTheme,
-                                                onPieceTap: state.movePiece,
-                                                showWaitingOverlay: false,
-                                              ),
+                                        child: board,
                                       )),
                                     ),
                                   )),
@@ -462,45 +458,29 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                             child: SizedBox(
                                           width: boardWidth,
                                           height: boardHeight,
-                                          child: DecoratedBox(
-                                            decoration: BoxDecoration(
-                                                borderRadius:
-                                                    BorderRadius.circular(18),
-                                                boxShadow: [
-                                                  const BoxShadow(
-                                                      color: Colors.black45,
-                                                      blurRadius: 22,
-                                                      offset: Offset(0, 10)),
-                                                  BoxShadow(
-                                                      color: palette.accent
-                                                          .withAlpha(18),
-                                                      blurRadius: 16)
-                                                ]),
-                                            child: snakesTable
-                                                ? SnakesLaddersBoard(
-                                                    snapshot: snapshot,
-                                                    mySeat: mySeat,
-                                                    onMotionChanged:
-                                                        _onMotionChanged,
-                                                    onUserTouch:
-                                                        _pauseSnakeAutoFollow,
-                                                    boardTheme:
-                                                        state.snakesBoardTheme,
-                                                    onPieceTap: (id) =>
-                                                        state.movePiece(id),
-                                                  )
-                                                : LudoBoard(
-                                                    snapshot: snapshot,
-                                                    mySeat: mySeat,
-                                                    onMotionChanged:
-                                                        _onMotionChanged,
-                                                    boardTheme:
-                                                        state.ludoBoardTheme,
-                                                    onPieceTap: (id) =>
-                                                        state.movePiece(id),
-                                                    showWaitingOverlay: false,
+                                          // Snakes artwork already includes
+                                          // its frame shadow.
+                                          child: snakesTable
+                                              ? board
+                                              : DecoratedBox(
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(18),
+                                                    boxShadow: [
+                                                      const BoxShadow(
+                                                        color: Colors.black45,
+                                                        blurRadius: 22,
+                                                        offset: Offset(0, 10),
+                                                      ),
+                                                      BoxShadow(
+                                                        color: palette.accent
+                                                            .withAlpha(18),
+                                                        blurRadius: 16,
+                                                      ),
+                                                    ],
                                                   ),
-                                          ),
+                                                  child: board,
+                                                ),
                                         )),
                                       ),
                                     )),
@@ -1732,7 +1712,7 @@ class _PlayerHeroBand extends StatelessWidget {
                 : "${active != null && active.isNotEmpty ? state.publicSeatName(active.first) : 'Opponent'}'s turn";
     final ownMoment = moment?.seat == mySeat ? moment : null;
     return AnimatedBuilder(
-        animation: pulse,
+        animation: snakesTable ? const AlwaysStoppedAnimation(0.5) : pulse,
         builder: (context, _) {
           final glow =
               MediaQuery.disableAnimationsOf(context) ? .5 : pulse.value;
@@ -1745,14 +1725,17 @@ class _PlayerHeroBand extends StatelessWidget {
                 border: Border.all(
                     color: myTurn ? palette.accent : Colors.white24,
                     width: myTurn ? 1.8 : 1),
-                boxShadow: [
-                  BoxShadow(
-                      color: myTurn
-                          ? palette.accent.withAlpha((25 + glow * 35).round())
-                          : Colors.black26,
-                      blurRadius: 18,
-                      offset: const Offset(0, 5))
-                ]),
+                boxShadow: snakesTable
+                    ? null
+                    : [
+                        BoxShadow(
+                            color: myTurn
+                                ? palette.accent
+                                    .withAlpha((25 + glow * 35).round())
+                                : Colors.black26,
+                            blurRadius: 18,
+                            offset: const Offset(0, 5))
+                      ]),
             child: Row(children: [
               SizedBox.square(
                   dimension: compact ? 62 : 76,
