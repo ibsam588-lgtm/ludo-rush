@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart' show RenderRepaintBoundary;
 import 'package:flutter/services.dart' show rootBundle;
 import '../models/game_snapshot.dart';
 import '../theme/app_theme.dart';
@@ -42,6 +41,7 @@ class SnakesLaddersBoard extends StatefulWidget {
   final bool showPieces;
   final bool animate;
   final ValueChanged<bool>? onMotionChanged;
+  final VoidCallback? onUserTouch;
   final void Function(String pieceId) onPieceTap;
 
   const SnakesLaddersBoard({
@@ -53,6 +53,7 @@ class SnakesLaddersBoard extends StatefulWidget {
     this.showPieces = true,
     this.animate = true,
     this.onMotionChanged,
+    this.onUserTouch,
     required this.onPieceTap,
   });
 
@@ -62,14 +63,13 @@ class SnakesLaddersBoard extends StatefulWidget {
 
 class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
     with TickerProviderStateMixin {
+  // The shop can show several boards at once. Decode each bundled image once,
+  // then give every board its own disposable handle to the shared pixels.
+  static final Map<String, Future<ui.Image?>> _decodedAssets = {};
   late final AnimationController _pulse;
   final List<_SnakeHit> _hits = [];
   ui.Image? _titlePlaque;
   ui.Image? _frameImage;
-  ui.Image? _staticArtImage;
-  Object? _staticArtKey;
-  Object? _pendingArtKey;
-  final _staticArtBoundary = GlobalKey();
   Map<int, ui.Image> _pieceImages = const {};
 
   late final BoardMotion _motion = BoardMotion(this)
@@ -96,40 +96,12 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
     }
   }
 
-  Future<void> _captureStaticArt(Object key, double pixelRatio) async {
-    if (!mounted || _pendingArtKey != key) return;
-    final boundary = _staticArtBoundary.currentContext?.findRenderObject();
-    if (boundary is! RenderRepaintBoundary) {
-      _pendingArtKey = null;
-      return;
-    }
-    ui.Image? image;
-    try {
-      image = await boundary.toImage(pixelRatio: pixelRatio);
-    } catch (_) {
-      if (_pendingArtKey == key) _pendingArtKey = null;
-      return;
-    }
-    if (!mounted || _pendingArtKey != key) {
-      image.dispose();
-      return;
-    }
-    final previous = _staticArtImage;
-    setState(() {
-      _staticArtImage = image;
-      _staticArtKey = key;
-      _pendingArtKey = null;
-    });
-    if (previous != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => previous.dispose());
-    }
-  }
-
   void _onPointerDown(PointerDownEvent event) {
     if (_tapPointer != null) {
       _tapDragged = true;
       return;
     }
+    widget.onUserTouch?.call();
     _tapPointer = event.pointer;
     _tapStart = event.localPosition;
     _tapDragged = false;
@@ -197,7 +169,6 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
     _pulse.dispose();
     _titlePlaque?.dispose();
     _frameImage?.dispose();
-    _staticArtImage?.dispose();
     for (final image in _pieceImages.values) {
       image.dispose();
     }
@@ -278,15 +249,19 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
   }
 
   Future<ui.Image?> _loadImage(String asset) async {
-    try {
-      final data = await rootBundle.load(asset);
-      final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
-      final frame = await codec.getNextFrame();
-      codec.dispose();
-      return frame.image;
-    } catch (_) {
-      return null;
-    }
+    final image = await _decodedAssets.putIfAbsent(asset, () async {
+      try {
+        final data = await rootBundle.load(asset);
+        final codec =
+            await ui.instantiateImageCodec(data.buffer.asUint8List());
+        final frame = await codec.getNextFrame();
+        codec.dispose();
+        return frame.image;
+      } catch (_) {
+        return null;
+      }
+    });
+    return image?.clone();
   }
 
   void _handleTap(Offset pos) {
@@ -322,52 +297,23 @@ class _SnakesLaddersBoardState extends State<SnakesLaddersBoard>
         onPointerMove: _onPointerMove,
         onPointerUp: _onPointerUp,
         onPointerCancel: _onPointerCancel,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final size = constraints.biggest;
-            final pixelRatio = math.min(
-                MediaQuery.devicePixelRatioOf(context), 2.5);
-            final artKey = (
-              size,
-              pixelRatio,
-              _normalizedBoardTheme(widget.boardTheme),
-              widget.showTitle,
-              _titlePlaque,
-              _frameImage,
-            );
-            final canCache = size.isFinite && size.width > 0 && size.height > 0;
-            final cached = canCache && _staticArtKey == artKey;
-            if (canCache && !cached && _pendingArtKey != artKey) {
-              _pendingArtKey = artKey;
-              WidgetsBinding.instance.addPostFrameCallback(
-                  (_) => _captureStaticArt(artKey, pixelRatio));
-            }
-            return Stack(
-              fit: StackFit.expand,
-              children: [
-                RepaintBoundary(
-                  key: _staticArtBoundary,
-                  child: cached
-                      ? RawImage(
-                          image: _staticArtImage,
-                          fit: BoxFit.fill,
-                          filterQuality: FilterQuality.medium,
-                        )
-                      : CustomPaint(
-                          painter: _createPainter(piecesLayer: false),
-                        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            RepaintBoundary(
+              child: CustomPaint(
+                painter: _createPainter(piecesLayer: false),
+              ),
+            ),
+            RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_pulse, _motion]),
+                builder: (_, __) => CustomPaint(
+                  painter: _createPainter(piecesLayer: true),
                 ),
-                RepaintBoundary(
-                  child: AnimatedBuilder(
-                    animation: Listenable.merge([_pulse, _motion]),
-                    builder: (_, __) => CustomPaint(
-                      painter: _createPainter(piecesLayer: true),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
+              ),
+            ),
+          ],
         ),
       ),
     );

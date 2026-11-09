@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:io';
+import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -16,7 +17,6 @@ import '../services/sound_service.dart';
 import '../services/soundtrack_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/levelplay_banner.dart';
-import '../widgets/snakes_ladders_board.dart';
 import '../widgets/live_board_preview.dart';
 import '../l10n/localized_text.dart';
 import '../l10n/ludo_strings.dart';
@@ -478,11 +478,9 @@ Future<void> _showSnakesBoardSheet(
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(18),
-                      child: SnakesLaddersBoard(
-                        snapshot: null,
-                        mySeat: null,
-                        boardTheme: selectedTheme,
-                        onPieceTap: (_) {},
+                      child: LiveBoardPreview(
+                        theme: selectedTheme,
+                        snakes: true,
                       ),
                     ),
                   ),
@@ -492,7 +490,8 @@ Future<void> _showSnakesBoardSheet(
                   height: compactSheet ? 92 : 112,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
+                    dragStartBehavior: DragStartBehavior.down,
+                    physics: const ClampingScrollPhysics(),
                     itemCount: _homeBoardThemes.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (context, index) {
@@ -1634,7 +1633,8 @@ class _HomeThemeButton extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      LiveBoardPreview(theme: option.id, snakes: true),
+                      LiveBoardPreview(
+                          theme: option.id, snakes: true, live: false),
                       DecoratedBox(
                         decoration: BoxDecoration(
                           color: locked ? Colors.black.withAlpha(80) : null,

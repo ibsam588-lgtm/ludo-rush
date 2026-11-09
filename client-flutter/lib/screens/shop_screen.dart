@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
+import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/levelplay_ad_config.dart';
@@ -232,6 +233,7 @@ class _ShopScreenState extends State<ShopScreen>
                               Expanded(
                                 child: CustomScrollView(
                                   controller: _shopScroll,
+                                  dragStartBehavior: DragStartBehavior.down,
                                   physics: const BouncingScrollPhysics(),
                                   slivers: [
                                     if (_category == 'All')
@@ -2102,6 +2104,7 @@ class _BoardThemeStrip extends StatelessWidget {
             child: ListView.separated(
               key: const ValueKey('snakes-theme-picker'),
               scrollDirection: Axis.horizontal,
+              dragStartBehavior: DragStartBehavior.down,
               physics: const BouncingScrollPhysics(),
               itemCount: _options.length,
               separatorBuilder: (_, __) => const SizedBox(width: 8),
@@ -2206,7 +2209,8 @@ class _BoardThemeButton extends StatelessWidget {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: LiveBoardPreview(theme: option.id, snakes: true),
+                    child: LiveBoardPreview(
+                        theme: option.id, snakes: true, live: false),
                   ),
                   if (selected)
                     const Positioned(right: 4, top: 4, child: _EquippedBadge()),

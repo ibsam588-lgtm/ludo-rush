@@ -71,6 +71,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int _prevReactionSequence = 0;
   Timer? _clockTimer;
   int? _followedSnakeProgress;
+  DateTime? _manualSnakeScrollUntil;
   int _lastWarnedDeadline = 0;
   bool _tutorialScheduled = false;
 
@@ -330,6 +331,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                                 mySeat: mySeat,
                                                 onMotionChanged:
                                                     _onMotionChanged,
+                                                onUserTouch:
+                                                    _pauseSnakeAutoFollow,
                                                 boardTheme:
                                                     state.snakesBoardTheme,
                                                 onPieceTap: state.movePiece,
@@ -364,7 +367,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                                 .firstOrNull;
                                             if (progress != null) {
                                               _followMySnakesToken(progress,
-                                                  animated: true);
+                                                  animated: true, force: true);
                                             }
                                           },
                                           child: const Icon(
@@ -479,6 +482,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                                     mySeat: mySeat,
                                                     onMotionChanged:
                                                         _onMotionChanged,
+                                                    onUserTouch:
+                                                        _pauseSnakeAutoFollow,
                                                     boardTheme:
                                                         state.snakesBoardTheme,
                                                     onPieceTap: (id) =>
@@ -523,7 +528,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                               if (progress != null) {
                                                 SoundService.tap();
                                                 _followMySnakesToken(progress,
-                                                    animated: true);
+                                                    animated: true, force: true);
                                               }
                                             },
                                             child: const Icon(
@@ -579,7 +584,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
-  void _followMySnakesToken(int progress, {required bool animated}) {
+  void _pauseSnakeAutoFollow() {
+    _manualSnakeScrollUntil = DateTime.now().add(const Duration(seconds: 3));
+    if (_boardScroll.hasClients &&
+        _boardScroll.position.isScrollingNotifier.value) {
+      _boardScroll.jumpTo(_boardScroll.offset);
+    }
+  }
+
+  void _followMySnakesToken(int progress,
+      {required bool animated, bool force = false}) {
+    if (!force &&
+        _manualSnakeScrollUntil != null &&
+        DateTime.now().isBefore(_manualSnakeScrollUntil!)) return;
     if (!_boardScroll.hasClients) return;
     final position = _boardScroll.position;
     if (position.maxScrollExtent <= 0) return;

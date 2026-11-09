@@ -156,6 +156,12 @@ void main() {
             .first);
     final strip =
         find.descendant(of: picker, matching: find.byType(Scrollable));
+    final horizontal = tester.state<ScrollableState>(strip.first);
+    final swipe = await tester.startGesture(tester.getCenter(picker));
+    await swipe.moveBy(const Offset(-70, 0));
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(horizontal.position.pixels, greaterThan(0));
+    await swipe.up();
     final ocean = find.byKey(const ValueKey('snakes-theme-ocean'));
     await tester.scrollUntilVisible(ocean, 160, scrollable: strip);
     await tester.pump();
