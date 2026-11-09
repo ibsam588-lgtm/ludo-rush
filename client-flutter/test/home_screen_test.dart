@@ -6,6 +6,40 @@ import 'package:ludo_rush/state/app_state.dart';
 import 'package:provider/provider.dart';
 
 void main() {
+  testWidgets('swiping the large Snakes preview moves to the next board', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(360, 740));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final state = AppState(PrefsService())..startChoiceSeen = true;
+    addTearDown(state.dispose);
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: state,
+        child: const MaterialApp(home: HomeScreen()),
+      ),
+    );
+    await tester.tap(find.text('Snakes'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final preview = find.byType(PageView);
+    final pages = tester.widget<PageView>(preview).controller!;
+    final drag = await tester.startGesture(tester.getCenter(preview));
+    await drag.moveBy(const Offset(-70, 0));
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(pages.offset, greaterThan(0));
+    await drag.moveBy(const Offset(-135, 0));
+    await drag.up();
+    await tester.pumpAndSettle();
+
+    expect(pages.page, closeTo(1, .01));
+    expect(find.text('Locked Board'), findsOneWidget);
+    expect(state.snakesBoardTheme, 'carnival');
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   for (final size in const [Size(320, 568), Size(600, 1024)]) {
     testWidgets('home screen fits ${size.width.toInt()}x${size.height.toInt()}',
         (tester) async {

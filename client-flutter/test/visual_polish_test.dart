@@ -269,7 +269,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('shop-category-Ludo')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
-    expect(find.byType(SnakesLaddersBoard), findsNothing);
+    expect(find.byType(SnakesBoardThumbnail), findsNothing);
     expect(find.byType(LudoBoard), findsWidgets);
     expect(
         tester.getSize(find.byType(LudoBoard).first).width, greaterThan(220));
@@ -279,7 +279,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
     expect(find.byType(LudoBoard), findsNothing);
-    expect(find.byType(SnakesLaddersBoard), findsWidgets);
+    expect(find.byType(SnakesBoardThumbnail), findsWidgets);
     await capture(tester, 'shop-snakes-category');
     await tester.scrollUntilVisible(
         find.byKey(const ValueKey('shop-category-Avatars')), 160,

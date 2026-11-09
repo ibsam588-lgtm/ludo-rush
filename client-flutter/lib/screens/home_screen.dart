@@ -18,6 +18,7 @@ import '../services/soundtrack_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/levelplay_banner.dart';
 import '../widgets/live_board_preview.dart';
+import '../widgets/snakes_ladders_board.dart' show SnakesBoardThumbnail;
 import '../l10n/localized_text.dart';
 import '../l10n/ludo_strings.dart';
 
@@ -436,128 +437,207 @@ Future<void> _showSnakesBoardSheet(
   BuildContext context,
   AppState state,
 ) async {
-  var selectedTheme = state.snakesBoardTheme;
-  final shouldStart = await showModalBottomSheet<bool>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (sheetContext) {
-      return StatefulBuilder(
-        builder: (context, setSheetState) {
-          final unlocked = state.isBoardThemeUnlocked(selectedTheme);
-          final compactSheet = MediaQuery.sizeOf(context).height < 720;
-          return _HomeActionSheet(
-            title: 'Snakes Board',
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                LocalizedText(
-                  'Choose the approved board design before starting.',
-                  style: TextStyle(
-                    color: Colors.white.withAlpha(220),
-                    fontSize: 13,
-                    height: 1.25,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  height: compactSheet ? 225 : 340,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: goldColor, width: 2),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x99000000),
-                          blurRadius: 16,
-                          offset: Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(18),
-                      child: LiveBoardPreview(
-                        theme: selectedTheme,
-                        snakes: true,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  height: compactSheet ? 92 : 112,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    dragStartBehavior: DragStartBehavior.down,
-                    physics: const ClampingScrollPhysics(),
-                    itemCount: _homeBoardThemes.length,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (context, index) {
-                      final option = _homeBoardThemes[index];
-                      final optionUnlocked =
-                          state.isBoardThemeUnlocked(option.id);
-                      final premium = state.boardThemePremiumPrice(option.id);
-                      final status = optionUnlocked
-                          ? 'OWNED'
-                          : premium ??
-                              '${state.boardThemeRequiredWins(option.id)} WINS';
-                      return _HomeThemeButton(
-                        option: option,
-                        selected: selectedTheme == option.id,
-                        locked: !optionUnlocked,
-                        status: status,
-                        width: compactSheet ? 140 : 154,
-                        onTap: () {
-                          selectedTheme = option.id;
-                          if (optionUnlocked) {
-                            state.setSnakesBoardTheme(option.id);
-                          }
-                          setSheetState(() {});
-                        },
-                      );
-                    },
-                  ),
-                ),
-                if (!unlocked) ...[
-                  const SizedBox(height: 10),
-                  _EconomyHint(
-                    icon: state.isBoardThemePremium(selectedTheme)
-                        ? Icons.workspace_premium_rounded
-                        : Icons.lock_rounded,
-                    text: state.boardThemeUnlockLabel(selectedTheme),
-                  ),
-                ],
-                const SizedBox(height: 14),
-                _HomeSheetButton(
-                  label: unlocked ? 'Play This Board' : 'Locked Board',
-                  icon:
-                      unlocked ? Icons.play_arrow_rounded : Icons.lock_rounded,
-                  color: unlocked ? boardGreen : boardPurple,
-                  onTap: () {
-                    SoundService.tap();
-                    if (!unlocked) {
-                      _showFeatureSnack(
-                        context,
-                        state.boardThemeUnlockLabel(selectedTheme),
-                      );
-                      return;
-                    }
-                    state.setSnakesBoardTheme(selectedTheme);
-                    Navigator.pop(sheetContext, true);
-                  },
-                ),
-              ],
-            ),
-          );
-        },
-      );
-    },
+  // An opaque route avoids compositing the animated lobby under every swipe.
+  final shouldStart = await Navigator.of(context).push<bool>(
+    PageRouteBuilder(
+      transitionDuration: Duration.zero,
+      reverseTransitionDuration: Duration.zero,
+      pageBuilder: (_, __, ___) => Scaffold(
+        backgroundColor: const Color(0xFF18041F),
+        body: Align(
+          alignment: Alignment.bottomCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: _SnakesBoardPickerSheet(state: state),
+          ),
+        ),
+      ),
+    ),
   );
   if (shouldStart == true) {
-    await Future<void>.delayed(const Duration(milliseconds: 350));
     await state.startQuickMatch(AppState.snakesLaddersMode);
+  }
+}
+
+class _SnakesBoardPickerSheet extends StatefulWidget {
+  final AppState state;
+
+  const _SnakesBoardPickerSheet({required this.state});
+
+  @override
+  State<_SnakesBoardPickerSheet> createState() => _SnakesBoardPickerSheetState();
+}
+
+class _SnakesBoardPickerSheetState extends State<_SnakesBoardPickerSheet> {
+  static const _cardGap = 8.0;
+  final _thumbnails = ScrollController();
+  late final PageController _pages;
+  late int _selectedIndex;
+
+  bool get _compact => MediaQuery.sizeOf(context).height < 720;
+  double get _cardWidth => _compact ? 140 : 154;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = math.max(
+      0,
+      _homeBoardThemes.indexWhere(
+        (option) => option.id == widget.state.snakesBoardTheme,
+      ),
+    );
+    _pages = PageController(initialPage: _selectedIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _revealSelectedCard(animated: false);
+    });
+  }
+
+  @override
+  void dispose() {
+    _pages.dispose();
+    _thumbnails.dispose();
+    super.dispose();
+  }
+
+  void _selectBoard(int index) {
+    if (index == _selectedIndex) return;
+    setState(() => _selectedIndex = index);
+    _revealSelectedCard(animated: !MediaQuery.disableAnimationsOf(context));
+  }
+
+  void _revealSelectedCard({required bool animated}) {
+    if (!_thumbnails.hasClients) return;
+    final position = _thumbnails.position;
+    final start = _selectedIndex * (_cardWidth + _cardGap);
+    final end = start + _cardWidth;
+    final offset = position.pixels;
+    final target = math
+        .min(start, math.max(offset, end - position.viewportDimension))
+        .clamp(0.0, position.maxScrollExtent)
+        .toDouble();
+    if ((target - offset).abs() < 1) return;
+    if (animated) {
+      _thumbnails.animateTo(target,
+          duration: const Duration(milliseconds: 180), curve: Curves.easeOut);
+    } else {
+      _thumbnails.jumpTo(target);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = widget.state;
+    final selectedTheme = _homeBoardThemes[_selectedIndex].id;
+    final unlocked = state.isBoardThemeUnlocked(selectedTheme);
+    return _HomeActionSheet(
+      title: 'Snakes Board',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          LocalizedText(
+            'Choose the approved board design before starting.',
+            style: TextStyle(
+              color: Colors.white.withAlpha(220),
+              fontSize: 13,
+              height: 1.25,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: _compact ? 225 : 340,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: goldColor, width: 2),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: NotificationListener<ScrollEndNotification>(
+                  onNotification: (_) {
+                    final theme = _homeBoardThemes[_selectedIndex].id;
+                    if (state.isBoardThemeUnlocked(theme)) {
+                      state.setSnakesBoardTheme(theme);
+                    }
+                    return false;
+                  },
+                  child: PageView.builder(
+                    controller: _pages,
+                    allowImplicitScrolling: true,
+                    dragStartBehavior: DragStartBehavior.down,
+                    physics: const ClampingScrollPhysics(),
+                    onPageChanged: _selectBoard,
+                    itemCount: _homeBoardThemes.length,
+                    itemBuilder: (_, index) => LiveBoardPreview(
+                      theme: _homeBoardThemes[index].id,
+                      snakes: true,
+                      live: index == _selectedIndex,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: _compact ? 92 : 112,
+            child: ListView.separated(
+              controller: _thumbnails,
+              scrollDirection: Axis.horizontal,
+              dragStartBehavior: DragStartBehavior.down,
+              physics: const ClampingScrollPhysics(),
+              itemCount: _homeBoardThemes.length,
+              separatorBuilder: (_, __) => const SizedBox(width: _cardGap),
+              itemBuilder: (context, index) {
+                final option = _homeBoardThemes[index];
+                final optionUnlocked = state.isBoardThemeUnlocked(option.id);
+                final premium = state.boardThemePremiumPrice(option.id);
+                final status = optionUnlocked
+                    ? 'OWNED'
+                    : premium ??
+                        '${state.boardThemeRequiredWins(option.id)} WINS';
+                return _HomeThemeButton(
+                  option: option,
+                  selected: _selectedIndex == index,
+                  locked: !optionUnlocked,
+                  status: status,
+                  width: _cardWidth,
+                  onTap: () => _pages.jumpToPage(index),
+                );
+              },
+            ),
+          ),
+          if (!unlocked) ...[
+            const SizedBox(height: 10),
+            _EconomyHint(
+              icon: state.isBoardThemePremium(selectedTheme)
+                  ? Icons.workspace_premium_rounded
+                  : Icons.lock_rounded,
+              text: state.boardThemeUnlockLabel(selectedTheme),
+            ),
+          ],
+          const SizedBox(height: 14),
+          _HomeSheetButton(
+            label: unlocked ? 'Play This Board' : 'Locked Board',
+            icon: unlocked ? Icons.play_arrow_rounded : Icons.lock_rounded,
+            color: unlocked ? boardGreen : boardPurple,
+            onTap: () {
+              SoundService.tap();
+              if (!unlocked) {
+                _showFeatureSnack(
+                  context,
+                  state.boardThemeUnlockLabel(selectedTheme),
+                );
+                return;
+              }
+              state.setSnakesBoardTheme(selectedTheme);
+              Navigator.pop(context, true);
+            },
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -1619,9 +1699,6 @@ class _HomeThemeButton extends StatelessWidget {
             color: selected ? goldColor : Colors.white.withAlpha(85),
             width: selected ? 2.2 : 1.1,
           ),
-          boxShadow: selected
-              ? [BoxShadow(color: goldColor.withAlpha(105), blurRadius: 12)]
-              : null,
         ),
         child: Stack(
           children: [
@@ -1633,8 +1710,7 @@ class _HomeThemeButton extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      LiveBoardPreview(
-                          theme: option.id, snakes: true, live: false),
+                      SnakesBoardThumbnail(theme: option.id),
                       DecoratedBox(
                         decoration: BoxDecoration(
                           color: locked ? Colors.black.withAlpha(80) : null,
