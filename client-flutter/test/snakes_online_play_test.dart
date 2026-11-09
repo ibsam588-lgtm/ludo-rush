@@ -244,6 +244,8 @@ void main() {
     expect(scrolling.position.pixels,
         lessThan(scrolling.position.maxScrollExtent));
     await drag.up();
+    await tester.pump(const Duration(milliseconds: 300));
+    final manualPosition = scrolling.position.pixels;
     expect(state.lastRollSequence, 0);
     final before = state.lastSnapshot!.pieces.first.progress;
     await tester.tap(find.text('Tap to Roll'));
@@ -254,6 +256,13 @@ void main() {
     }
     expect(state.lastSnapshot!.pieces.first.progress, 26);
     expect(state.lastSnapshot!.pieces.first.progress, greaterThan(before));
+    expect(scrolling.position.pixels, closeTo(manualPosition, 1));
+    scrolling.position.jumpTo(0);
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('find-my-token')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(scrolling.position.pixels, greaterThan(0));
     for (var i = 0; i < 60; i++) {
       await tester.pump(const Duration(milliseconds: 100));
     }

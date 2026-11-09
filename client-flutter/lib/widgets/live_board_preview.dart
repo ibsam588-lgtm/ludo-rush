@@ -22,7 +22,22 @@ class _LiveBoardPreviewState extends State<LiveBoardPreview> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(milliseconds: 1100), (_) {
+    _syncTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant LiveBoardPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.live != widget.live) _syncTimer();
+  }
+
+  void _syncTimer() {
+    if (!widget.live) {
+      _timer?.cancel();
+      _timer = null;
+      return;
+    }
+    _timer ??= Timer.periodic(const Duration(milliseconds: 1100), (_) {
       // Supported by the app's older Flutter release builders too.
       if (mounted &&
           widget.live &&
