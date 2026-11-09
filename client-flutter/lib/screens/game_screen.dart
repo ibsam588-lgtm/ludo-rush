@@ -235,10 +235,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 body: Stack(
                   children: [
                     Positioned.fill(
-                        child: AnimatedBuilder(
-                      animation: _bgCtrl,
-                      builder: (_, __) => MatchBackdrop(
-                          palette: palette, phase: reduced ? 0 : _bgCtrl.value),
+                        child: RepaintBoundary(
+                      child: snakesTable || reduced
+                          ? MatchBackdrop(palette: palette)
+                          : AnimatedBuilder(
+                              animation: _bgCtrl,
+                              builder: (_, __) => MatchBackdrop(
+                                  palette: palette, phase: _bgCtrl.value),
+                            ),
                     )),
                     SafeArea(
                       child: LayoutBuilder(
@@ -590,7 +594,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (animated && !MediaQuery.disableAnimationsOf(context)) {
       _boardScroll.animateTo(
         target,
-        duration: const Duration(milliseconds: 420),
+        duration: const Duration(milliseconds: 280),
         curve: Curves.easeOutCubic,
       );
     } else {
