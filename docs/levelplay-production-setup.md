@@ -34,6 +34,7 @@ The Android app includes adapter and SDK dependencies for:
 - Liftoff Monetize / Vungle
 - InMobi
 - Chartboost (Android adapter 5.10.0, SDK 9.14.1)
+- Meta Audience Network (Android adapter 5.6.0, SDK 6.22.0)
 
 Each mediated network still needs to be activated in the Unity LevelPlay dashboard with that network's app IDs, placement IDs, reporting API credentials, and payout/account approval. Code dependencies alone do not make a network serve ads.
 
