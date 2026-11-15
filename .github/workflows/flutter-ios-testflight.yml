@@ -29,7 +29,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ios-${{ github.ref }}
+  group: ios-${{ github.ref }}-${{ inputs.capture_store_assets && 'media' || 'build' }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
