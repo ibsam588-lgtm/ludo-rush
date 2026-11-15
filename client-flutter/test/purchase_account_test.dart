@@ -29,6 +29,7 @@ class CheckoutState extends AppState {
 class CheckoutStore extends InAppPurchasePlatform {
   final events = StreamController<List<PurchaseDetails>>.broadcast();
   final checkouts = <PurchaseParam>[];
+  final restores = <String?>[];
   @override
   Stream<List<PurchaseDetails>> get purchaseStream => events.stream;
   @override
@@ -58,6 +59,11 @@ class CheckoutStore extends InAppPurchasePlatform {
   @override
   Future<void> completePurchase(PurchaseDetails purchase) async {
     throw StateError('StoreKit is temporarily busy');
+  }
+
+  @override
+  Future<void> restorePurchases({String? applicationUserName}) async {
+    restores.add(applicationUserName);
   }
 }
 
@@ -196,6 +202,17 @@ void main() {
       expect(service.activeProductId, isNull);
       expect(service.statusMessage, contains('Items delivered'));
       expect(service.statusMessage, contains('confirmation is pending'));
+      state.account = Future.value(null);
+      expect(await service.restorePurchases(), contains('purchasing account'));
+      expect(store.restores, isEmpty);
+      final recovery = Completer<String?>();
+      state.account = recovery.future;
+      final restoring = service.restorePurchases();
+      expect(service.restoring, isTrue);
+      expect(await service.buy('dice.ruby'), contains('Finish the current'));
+      recovery.complete('player_remote');
+      expect(await restoring, contains('Restore request sent'));
+      expect(store.restores, ['b6dc4652-fccb-5655-adfe-af4e7bea3b28']);
       service.dispose();
       state.dispose();
       await store.events.close();

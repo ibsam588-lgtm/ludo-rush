@@ -1,7 +1,8 @@
 # Ludo Cheer iOS
 
 The iOS bundle is `com.corsairlabs.ludocheer`, App Store Connect app
-`6834993861`, Apple team `5MST9WC27Z`. The Android identity remains
+`6834993861`, Apple team `5MST9WC27Z`, with iOS 16 as the minimum version for
+Apple-signed account recovery. The Android identity remains
 `com.ludorush.game`. The iOS app uses the existing shared Apple Distribution
 certificate expiring November 14, 2027, with an app-specific Game Center App
 Store provisioning profile. Never commit signing keys or provisioning profiles.
@@ -76,24 +77,32 @@ official Apple server library before updating the wallet. Product, bundle,
 account, quantity, type, environment and revocation checks precede the grant;
 the unique transaction ID prevents duplicate grants.
 
-Production accepts Production transactions only. A separate beta backend can
-set `APP_STORE_ENVIRONMENT=Sandbox`, with its own D1 wallet, room and queue
-bindings. The iOS workflow provisions these isolated resources for ordinary
-TestFlight uploads and supplies their `BACKEND_URL`. Never enable sandbox
-purchases against the live economy. For an App Store release candidate, manually
-dispatch the iOS workflow with `production_backend` selected; that build uses
-the live backend and accepts real Production purchases only. Android and iOS
-then share matchmaking by mode and region, without an OS filter. Ordinary
-TestFlight builds instead match only within the isolated beta environment;
-sharing the voice relay does not share the live player queue. Beta voice uses the
+Production accepts Production transactions only. The iOS workflow always
+prepares a separate Sandbox backend with its own D1 wallet, rooms and queue.
+Main uploads and the default manual run include the live `BACKEND_URL` plus
+`IOS_SANDBOX_BACKEND_URL`. Before authenticating, the app obtains a verified
+StoreKit `AppTransaction`: Sandbox installations, including TestFlight and
+App Review, use the isolated backend; public Production installations use the
+live backend and share Android's queue by mode and region. Unverified store
+context cannot open paid checkout and stays outside the live economy; free
+beta/offline play remains available. A manual run with `production_backend=false` can still
+force the beta base URL; do not use that build for public release.
+Never enable Sandbox purchase grants against the live economy. Sharing the
+voice relay does not share the live player queue. Beta voice uses the
 production worker's private `VoiceRelay` RPC entrypoint for short-lived TURN
 credentials, after authenticating an age-eligible player in an active beta room.
 The production TURN secrets are never copied into the beta environment.
 Apple transactions are completed only after successful server verification.
-Physical-device sandbox purchase and restore checks remain necessary before a
-public App Store release. Permanent purchases currently follow the authenticated
-guest account; restoring onto a new guest after reinstall requires account
-recovery, rather than weakening the server's account-token check.
+Account recovery uses Apple's signed `appTransactionId`, which is stable for
+the same Apple Account and app across reinstalls and devices. The server
+verifies the JWS, bundle, app ID and environment, then maps a hash of this
+identity to the original player. Checkout and Restore Purchases recover that
+player before using the existing app-account token. Wallets are not merged,
+raw Apple IDs are not stored, and another player's purchase token remains
+invalid. Apply migration `0007_app_store_accounts.sql` in both environments.
+Physical-device Sandbox purchase, reinstall/second-device restore, and voice
+audio checks remain necessary; automated HTTP/signaling checks do not establish
+that hardware audio or a real StoreKit purchase succeeded.
 
 ## Store media
 

@@ -120,10 +120,17 @@ class ReceivedFriendGift {
 class AppState extends ChangeNotifier with WidgetsBindingObserver {
   static final String _appSessionId =
       DateTime.now().toUtc().microsecondsSinceEpoch.toString();
-  static const String _backendUrl = String.fromEnvironment(
+  static const String _configuredBackendUrl = String.fromEnvironment(
     'BACKEND_URL',
     defaultValue: 'https://ludo-rush-backend.ibsam588.workers.dev',
   );
+  static const String _sandboxBackendUrl = String.fromEnvironment(
+    'IOS_SANDBOX_BACKEND_URL',
+    defaultValue: 'https://ludo-cheer-ios-beta.ibsam588.workers.dev',
+  );
+  String _backendUrl = _configuredBackendUrl;
+  Map<String, dynamic>? _storeAccountContext;
+  Future<String?>? _storeAccountFuture;
   static const String snakesLaddersMode = 'snakes_ladders';
 
   @visibleForTesting
@@ -350,6 +357,26 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     if (!_lifecycleObserverRegistered) {
       WidgetsBinding.instance.addObserver(this);
       _lifecycleObserverRegistered = true;
+    }
+    if (AppPlatformService.isIOS) {
+      try {
+        _storeAccountContext = await AppPlatformService.storeAccountContext()
+            .timeout(const Duration(seconds: 10));
+        if (_storeAccountContext?['environment'] == 'Sandbox') {
+          _backendUrl = _sandboxBackendUrl;
+        }
+      } catch (_) {
+        // Unknown store context stays outside the live economy. Free play
+        // remains available; paid checkout requires verified store identity.
+        _backendUrl = _sandboxBackendUrl;
+      }
+      if (_prefs.accountBackend != null &&
+          _prefs.accountBackend != _backendUrl) {
+        _prefs.playerId = null;
+        _prefs.authToken = null;
+        _prefs.activeRoomSocketPath = null;
+      }
+      _prefs.accountBackend = _backendUrl;
     }
     playerId = _prefs.playerId;
     authToken = _prefs.authToken;
@@ -612,6 +639,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       _prefs.authToken = token;
       _ws.authToken = token;
       _applyPlayer(player);
+      if (AppPlatformService.isIOS && _storeAccountContext != null) {
+        await _recoverStoreAccount(_storeAccountContext!);
+      }
     } catch (_) {
       // Offline play remains available; online actions explain the failure.
     }
@@ -2821,17 +2851,97 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     return decoded;
   }
 
-  Future<String?> prepareStorePurchase() async {
+  Future<String?> prepareStorePurchase() {
+    final pending = _storeAccountFuture;
+    if (pending != null) return pending;
+    final request = _prepareStorePurchase();
+    _storeAccountFuture = request;
+    return request.whenComplete(() {
+      if (identical(_storeAccountFuture, request)) _storeAccountFuture = null;
+    });
+  }
+
+  Future<void> _recoverStoreAccount(Map<String, dynamic> context) async {
+    final proof = context['signedAppTransaction'] as String? ?? '';
+    if (proof.isEmpty)
+      throw StateError('App Store account proof is unavailable.');
+    final response = await http
+        .post(
+          Uri.parse('$_backendUrl/api/v1/auth/app-store'),
+          headers: _authorizedHeaders(),
+          body: jsonEncode({'signedAppTransaction': proof}),
+        )
+        .timeout(const Duration(seconds: 12));
+    if (response.statusCode != 200)
+      throw StateError('App Store account recovery is unavailable.');
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final token = data['token'] as String? ?? '';
+    final player = data['player'] as Map<String, dynamic>?;
+    if (token.isEmpty || player == null || _disposed)
+      throw StateError('Invalid purchasing account.');
+    if (player['id'] != playerId && lastSnapshot?.status == 'playing') {
+      throw StateError(
+        'Finish the current match before restoring another purchasing account.',
+      );
+    }
+    authToken = token;
+    _prefs.authToken = token;
+    _ws.authToken = token;
+    _applyPlayer(player);
+    age = _readInt(player['age'], fallback: age);
+    _prefs.age = age;
+    countryCode = player['countryCode'] as String? ?? countryCode;
+    _prefs.countryCode = countryCode;
+    await refreshSocial();
+  }
+
+  Future<String?> _prepareStorePurchase() async {
+    if (AppPlatformService.isIOS) {
+      try {
+        final context = await AppPlatformService.storeAccountContext(
+          refresh: true,
+        ).timeout(const Duration(seconds: 20));
+        final environment = context?['environment'];
+        if (context == null ||
+            (environment != 'Production' && environment != 'Sandbox'))
+          return null;
+        final backend = environment == 'Sandbox'
+            ? _sandboxBackendUrl
+            : _configuredBackendUrl;
+        if (backend != _backendUrl) {
+          if (lastSnapshot?.status == 'playing' || connecting) return null;
+          _backendUrl = backend;
+          _prefs.accountBackend = backend;
+          authToken = null;
+          playerId = null;
+          _prefs.authToken = null;
+          _prefs.playerId = null;
+          _prefs.activeRoomSocketPath = null;
+          _ws.authToken = null;
+        }
+        _storeAccountContext = context;
+        await _ensureAuthenticatedIdentity();
+        await _recoverStoreAccount(context);
+      } catch (_) {
+        return null;
+      }
+    }
     await _ensureAuthenticatedIdentity();
     final account = playerId;
     final token = authToken;
-    if (_disposed || account == null || account.isEmpty ||
-        account.startsWith('local_') || token == null || token.isEmpty) {
+    if (_disposed ||
+        account == null ||
+        account.isEmpty ||
+        account.startsWith('local_') ||
+        token == null ||
+        token.isEmpty) {
       return null;
     }
     try {
       final session = await _requestJson('GET', '/api/v1/auth/session');
-      if (!_disposed && playerId == account && authToken == token &&
+      if (!_disposed &&
+          playerId == account &&
+          authToken == token &&
           session['playerId'] == account) {
         return account;
       }

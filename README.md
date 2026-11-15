@@ -19,7 +19,7 @@ docs/                Product, architecture, and launch notes
 | Platform | App identity | Automatic release destination |
 | --- | --- | --- |
 | Android | `com.ludorush.game` | Google Play internal testing |
-| iOS | `com.corsairlabs.ludocheer` | TestFlight, using an isolated beta backend by default |
+| iOS 16+ | `com.corsairlabs.ludocheer` | TestFlight; verified Sandbox installations use the isolated beta backend |
 
 The public name is **Ludo Cheer**. Existing Android package, repository, and
 production Worker names retain `ludo-rush` for continuity.

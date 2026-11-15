@@ -21,9 +21,9 @@ on:
         type: boolean
         default: false
       production_backend:
-        description: Use the live backend for an App Store release candidate (real purchases only)
+        description: Use the shared live backend for public players (Apple Sandbox always stays isolated)
         type: boolean
-        default: false
+        default: true
 
 permissions:
   contents: read
@@ -89,7 +89,7 @@ jobs:
   beta-backend:
     name: Prepare isolated TestFlight purchase testing
     needs: verify
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && !inputs.production_backend
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       backend_url: ${{ steps.deploy.outputs.backend_url }}
@@ -115,7 +115,7 @@ jobs:
     needs: [verify, beta-backend]
     if: >-
       always() && needs.verify.result == 'success' &&
-      (needs.beta-backend.result == 'success' || (needs.beta-backend.result == 'skipped' && inputs.production_backend)) &&
+      needs.beta-backend.result == 'success' &&
       github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: macos-26
     timeout-minutes: 60
@@ -150,7 +150,8 @@ jobs:
           LEVELPLAY_IOS_BANNER_AD_UNIT: ${{ secrets.LEVELPLAY_IOS_BANNER_AD_UNIT }}
           LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT: ${{ secrets.LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT }}
           LEVELPLAY_IOS_REWARDED_AD_UNIT: ${{ secrets.LEVELPLAY_IOS_REWARDED_AD_UNIT }}
-          BACKEND_URL: ${{ needs.beta-backend.outputs.backend_url || 'https://ludo-rush-backend.ibsam588.workers.dev' }}
+          BACKEND_URL: ${{ (github.event_name != 'workflow_dispatch' || inputs.production_backend) && 'https://ludo-rush-backend.ibsam588.workers.dev' || needs.beta-backend.outputs.backend_url }}
+          IOS_SANDBOX_BACKEND_URL: ${{ needs.beta-backend.outputs.backend_url }}
         run: |
           for name in LEVELPLAY_IOS_APP_KEY LEVELPLAY_IOS_BANNER_AD_UNIT LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT LEVELPLAY_IOS_REWARDED_AD_UNIT; do
             if [[ -z "${!name}" ]]; then echo "::error::Missing iOS ad configuration: $name"; exit 1; fi
@@ -159,6 +160,7 @@ jobs:
             --build-name=1.0.0 --build-number="$((GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))" \
             --export-options-plist="$RUNNER_TEMP/ExportOptions.plist" \
             --dart-define=BACKEND_URL="$BACKEND_URL" \
+            --dart-define=IOS_SANDBOX_BACKEND_URL="$IOS_SANDBOX_BACKEND_URL" \
             --dart-define=LEVELPLAY_PRODUCTION=true \
             --dart-define=LEVELPLAY_IOS_APP_KEY="$LEVELPLAY_IOS_APP_KEY" \
             --dart-define=LEVELPLAY_IOS_BANNER_AD_UNIT="$LEVELPLAY_IOS_BANNER_AD_UNIT" \

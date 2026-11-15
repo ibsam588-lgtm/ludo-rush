@@ -158,16 +158,20 @@ class PurchaseService extends ChangeNotifier {
   }
 
   Future<String> restorePurchases() async {
-    if (!_available || _restoring) {
+    if (!_available || _restoring || _activeProductId != null) {
       return '${AppPlatformService.storeName} purchases are unavailable right now.';
     }
     _restoring = true;
     _statusMessage = 'Restoring ${AppPlatformService.storeName} purchases…';
     notifyListeners();
     try {
-      await _store.restorePurchases(
-        applicationUserName: _accountName(_appState?.playerId),
-      );
+      final account = await _appState?.prepareStorePurchase();
+      if (account == null) {
+        _statusMessage =
+            'Connect to the App Store and your purchasing account, then try Restore Purchases again.';
+        return _statusMessage;
+      }
+      await _store.restorePurchases(applicationUserName: _accountName(account));
       _statusMessage =
           'Restore request sent to ${AppPlatformService.storeName}.';
       return _statusMessage;
@@ -223,6 +227,14 @@ class PurchaseService extends ChangeNotifier {
     _activeProductId = purchase.productID;
     _statusMessage = 'Verifying purchase securely…';
     notifyListeners();
+    if (AppPlatformService.isIOS &&
+        await state.prepareStorePurchase() == null) {
+      _activeProductId = null;
+      _statusMessage =
+          'Connect to your App Store purchasing account to finish this purchase.';
+      notifyListeners();
+      return;
+    }
     final error = AppPlatformService.isIOS
         ? await state.verifyAppStorePurchase(
             productId: purchase.productID,

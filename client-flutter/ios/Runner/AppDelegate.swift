@@ -46,6 +46,34 @@ import UIKit
   private func handleAppCall(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     let arguments = call.arguments as? [String: Any] ?? [:]
     switch call.method {
+    case "storeAccountContext":
+      let refresh = arguments["refresh"] as? Bool ?? false
+      Task { @MainActor in
+        do {
+          let proof: VerificationResult<AppTransaction>
+          if refresh {
+            proof = try await AppTransaction.refresh()
+          } else {
+            proof = try await AppTransaction.shared
+          }
+          guard case .verified(let transaction) = proof,
+                transaction.bundleID == Bundle.main.bundleIdentifier else {
+            result(FlutterError(code: "unverified_store_account", message: "The App Store could not verify this installation.", details: nil))
+            return
+          }
+          let environment: String
+          switch transaction.environment {
+          case .production: environment = "Production"
+          case .sandbox: environment = "Sandbox"
+          default:
+            result(FlutterError(code: "unsupported_store_environment", message: "This installation cannot use live purchases.", details: nil))
+            return
+          }
+          result(["environment": environment, "signedAppTransaction": proof.jwsRepresentation])
+        } catch {
+          result(FlutterError(code: "store_account_unavailable", message: "Connect to the App Store and try again.", details: nil))
+        }
+      }
     case "getVersionInfo":
       result([
         "versionName": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "",
@@ -74,11 +102,7 @@ import UIKit
       controller.present(share, animated: true) { result(true) }
     case "requestInAppReview":
       if let scene = foregroundScene {
-        if #available(iOS 16.0, *) {
-          AppStore.requestReview(in: scene)
-        } else {
-          SKStoreReviewController.requestReview(in: scene)
-        }
+        AppStore.requestReview(in: scene)
       }
       result(nil)
     case "prepareAdsPrivacy":
