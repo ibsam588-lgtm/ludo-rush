@@ -36,6 +36,12 @@ Signing secrets are used only by the main-branch upload job. The temporary
 keychain and provisioning profile are removed on success or failure. The export
 method is `app-store-connect`; bitcode is disabled. Build numbers include both
 the workflow run and attempt, allowing a failed upload to be retried safely.
+The TestFlight lane is discovered from `client-flutter/ios/fastlane/Fastfile`;
+CI validates lane discovery before building and retains signed artifacts even
+when the upload fails.
+The Developer-role API key only uploads builds. Internal TestFlight access is
+configured in App Store Connect, with the internal group receiving all builds;
+the upload lane does not attempt App Manager-only tester or changelog changes.
 
 ## Native services
 
@@ -100,6 +106,11 @@ environment documented in `tools/ios/app_store_api.py`. Native screenshots keep
 their dimensions and RGB pixels; only an entirely opaque alpha channel is
 removed in separate upload copies, as required by Apple's image specifications.
 The uploader never submits an App Store review or deletes existing placements.
+Product review images are reused by checksum because Apple renames processed
+files. Replacing a different product review image requires the explicit
+`--replace-purchase-reviews` option after visual review.
+Screenshots and App Previews are ordered separately within each device format,
+as required by Apple's asset-library API.
 
 App Store Connect requires a native App Preview file, rather than a YouTube URL.
 Use an edited 15–30 second gameplay clip at an Apple-supported device resolution

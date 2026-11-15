@@ -19,9 +19,11 @@ platform :ios do
       app_identifier: 'com.corsairlabs.ludocheer',
       apple_id: '6834993861',
       ipa: ipa,
+      # The CI key has Developer access. The configured internal group receives
+      # processed builds; changing tester metadata requires App Manager access.
+      skip_submission: true,
       skip_waiting_for_build_processing: true,
-      distribute_external: false,
-      changelog: 'Ludo Cheer for iPhone and iPad: Ludo, Snakes & Ladders, table voice, avatars, board previews and Game Center.'
+      distribute_external: false
     )
   end
 end

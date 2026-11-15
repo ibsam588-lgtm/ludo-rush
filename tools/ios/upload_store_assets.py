@@ -140,7 +140,7 @@ def place(api, asset, localization, group, video=False):
     }})['data']
 
 
-def review_image(api, product_id, path):
+def review_image(api, product_id, path, replace=False):
     endpoint = '/v1/inAppPurchaseAppStoreReviewScreenshots'
     try:
         asset = api.request('GET', f'/v2/inAppPurchases/{product_id}/appStoreReviewScreenshot')['data']
@@ -148,10 +148,21 @@ def review_image(api, product_id, path):
         if error.status != 404:
             raise
         asset = None
+    checksum = hashlib.md5(path.read_bytes()).hexdigest()
     if asset:
-        if asset['attributes']['fileName'] != path.name:
-            raise RuntimeError('An existing product review image requires manual replacement')
-    else:
+        attributes = asset['attributes']
+        state = (attributes.get('assetDeliveryState') or {}).get('state')
+        # Apple renames processed originals to SOURCE. The checksum still
+        # identifies the uploaded bytes and makes repeat uploads idempotent.
+        if state == 'COMPLETE' and attributes.get('sourceFileChecksum') == checksum:
+            print('Product review image', path.name, 'already ready', flush=True)
+            return
+        if state != 'AWAITING_UPLOAD' or attributes.get('fileName') != path.name:
+            if not replace:
+                raise RuntimeError('A different product review image exists; review it, then use --replace-purchase-reviews if replacement is intended')
+            api.request('DELETE', f'{endpoint}/{asset["id"]}')
+            asset = None
+    if asset is None:
         asset = api.request('POST', endpoint, {'data': {
             'type': endpoint.split('/')[-1],
             'attributes': {'fileName': path.name, 'fileSize': path.stat().st_size},
@@ -162,7 +173,7 @@ def review_image(api, product_id, path):
         upload_parts(path, asset['attributes']['uploadOperations'])
         api.request('PATCH', f'{endpoint}/{asset["id"]}', {'data': {
             'type': asset['type'], 'id': asset['id'], 'attributes': {
-                'uploaded': True, 'sourceFileChecksum': hashlib.md5(path.read_bytes()).hexdigest(),
+                'uploaded': True, 'sourceFileChecksum': checksum,
             },
         }})
     wait_ready(api, endpoint, asset['id'], review=True)
@@ -174,6 +185,8 @@ def main():
     parser.add_argument('media_root', type=Path)
     parser.add_argument('--localization', required=True, help='Editable App Store version localization ID')
     parser.add_argument('--purchase-reviews', action='store_true')
+    parser.add_argument('--replace-purchase-reviews', action='store_true',
+                        help='Replace existing product review images only when the reviewed bytes differ')
     args = parser.parse_args()
     api = AppStoreClient()
     app = api.request('GET', f'/v1/apps/{APP_ID}')['data']
@@ -181,7 +194,7 @@ def main():
     library = api.request('GET', f'/v1/apps/{APP_ID}/assetLibrary')['data']['id']
     summary = []
     for folder, group in GROUPS.items():
-        ordered = []
+        ordered = {'APP_SCREENSHOT': [], 'APP_PREVIEW': []}
         images = sorted(p for p in (args.media_root / folder).glob('*.png') if p.name[0].isdigit())
         if len(images) != 5:
             raise ValueError(f'{folder} requires all five visually reviewed native screenshots')
@@ -189,30 +202,37 @@ def main():
             path = opaque_image(path)
             asset = library_asset(api, library, path)
             placement = place(api, asset, args.localization, group)
-            ordered.append(placement['id'])
+            ordered['APP_SCREENSHOT'].append(placement['id'])
             summary.append({'file': str(path), 'asset': asset['id'], 'placement': placement['id']})
         for path in sorted((args.media_root / folder).glob('app-preview*.mp4')):
             asset = library_asset(api, library, path, video=True)
             placement = place(api, asset, args.localization, group, video=True)
-            ordered.insert(0, placement['id'])
+            ordered['APP_PREVIEW'].append(placement['id'])
             summary.append({'file': str(path), 'asset': asset['id'], 'placement': placement['id']})
-        query = urllib.parse.urlencode({'filter[placementGroup]': group, 'sort': 'placementGroupPosition', 'limit': 200})
-        other = api.all(f'/v1/appStoreVersionLocalizations/{args.localization}/placements?{query}')
-        ordered.extend(row['id'] for row in other if row['id'] not in ordered)
-        api.request('POST', '/v1/appAssetLibraryPlacementOrderingRequests', {'data': {
-            'type': 'appAssetLibraryPlacementOrderingRequests', 'attributes': {'placementGroup': group},
-            'relationships': {
-                'orderedPlacements': {'data': [{'type': 'appAssetLibraryPlacements', 'id': value} for value in ordered]},
-                'appStoreVersionLocalization': relation('appStoreVersionLocalizations', args.localization),
-            },
-        }})
+        # Apple orders screenshots and previews independently, even when they
+        # belong to the same device group. A mixed ordering request is rejected.
+        for placement_type, identifiers in ordered.items():
+            query = urllib.parse.urlencode({'filter[placementGroup]': group,
+                                            'filter[placementType]': placement_type,
+                                            'sort': 'placementGroupPosition', 'limit': 200})
+            other = api.all(f'/v1/appStoreVersionLocalizations/{args.localization}/placements?{query}')
+            identifiers.extend(row['id'] for row in other if row['id'] not in identifiers)
+            if not identifiers:
+                continue
+            api.request('POST', '/v1/appAssetLibraryPlacementOrderingRequests', {'data': {
+                'type': 'appAssetLibraryPlacementOrderingRequests', 'attributes': {'placementGroup': group},
+                'relationships': {
+                    'orderedPlacements': {'data': [{'type': 'appAssetLibraryPlacements', 'id': value} for value in identifiers]},
+                    'appStoreVersionLocalization': relation('appStoreVersionLocalizations', args.localization),
+                },
+            }})
     if args.purchase_reviews:
         products = api.all(f'/v1/apps/{APP_ID}/inAppPurchasesV2?limit=200')
         for product in products:
             path = args.media_root / 'iphone-6.9' / f'review-{product["attributes"]["productId"]}.png'
             if not path.is_file():
                 raise ValueError(f'Missing purchase review image: {path.name}')
-            review_image(api, product['id'], opaque_image(path))
+            review_image(api, product['id'], opaque_image(path), replace=args.replace_purchase_reviews)
     (args.media_root / 'apple-upload-summary.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
 
 
