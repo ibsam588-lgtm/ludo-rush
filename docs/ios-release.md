@@ -20,6 +20,21 @@ requests and uploads compile and test the app, reusing visually reviewed media
 instead of recapturing the full store listing after every code change. Neither
 workflow submits a public store release.
 
+The minimum supported iOS build is 1901, the first iOS 16 build with purchasing
+account recovery. Migration `0008_ios_minimum_release.sql` applies the same
+protocol floor to the production and isolated beta databases without changing
+Android's minimum. The API reports the effective minimum when latest-only
+enforcement is enabled, matching the client's comparison. Sandbox update gates
+direct testers to TestFlight and explain how to select Ludo Cheer and update;
+the download page can open/install TestFlight without exposing a public beta
+invitation link. Production uses the Ludo Cheer App Store listing.
+
+Backend pushes now also synchronize the isolated beta Worker and migrations.
+This keeps update policies and server fixes current without rebuilding either
+mobile client. A manual backend deployment with migrations disabled skips this
+beta synchronization. Public links remain disabled for private external groups;
+external testers receive Apple invitations and need beta-review approval.
+
 Android host changes trigger Android only; iOS host, signing, Fastlane and store
 capture changes trigger iOS only. Shared Dart, assets, tests and pubspec changes
 trigger both platforms because they affect both apps. Each platform has an

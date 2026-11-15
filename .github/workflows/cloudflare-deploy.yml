@@ -6,6 +6,7 @@ on:
     paths:
       - 'backend-cloudflare/**'
       - '.github/workflows/cloudflare-deploy.yml'
+      - 'tools/ios/deploy_beta_backend.py'
   workflow_dispatch:
     inputs:
       apply_migrations:
@@ -86,3 +87,10 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: backend-cloudflare
           command: deploy
+
+      - name: Synchronize isolated iOS beta backend and migrations
+        if: github.event_name == 'push' || inputs.apply_migrations == 'true'
+        run: python3 ../tools/ios/deploy_beta_backend.py
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
