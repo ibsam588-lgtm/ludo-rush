@@ -1,85 +1,66 @@
-# GitHub, Cloudflare, And Play Store CI/CD
+# GitHub, Cloudflare, and mobile release workflows
 
-## Repository
+Repository: `ibsam588-lgtm/ludo-rush`. The game is branded **Ludo Cheer**; the
+existing repository, Android package `com.ludorush.game`, and production Worker
+names remain stable. iOS uses `com.corsairlabs.ludocheer`.
 
-The repo should stay private until the first production release.
+## Automatic workflows
 
-Default repository name:
+| Workflow file | Automatic trigger | Result |
+| --- | --- | --- |
+| [flutter-android-internal.yml](../.github/workflows/flutter-android-internal.yml) | Android host, shared Dart/assets/tests/pubspec, or this workflow | PR verification; signed main build uploaded to Google Play internal testing |
+| [flutter-ios-testflight.yml](../.github/workflows/flutter-ios-testflight.yml) | iOS host, shared Dart/assets/tests/pubspec, `tools/ios`, `fastlane/ios`, or this workflow | PR verification; signed main build uploaded to TestFlight with an isolated beta backend |
+| [backend-ci.yml](../.github/workflows/backend-ci.yml) | Backend files or this workflow | Typecheck, tests, real Workers smoke test, and dependency audit |
+| [cloudflare-deploy.yml](../.github/workflows/cloudflare-deploy.yml) | Backend files on main or this workflow | Apply production D1 migrations, configure the Google Play verifier, and deploy the Worker |
 
-```text
-ludo-rush
-```
+Android-only host changes do not trigger iOS, and iOS-only host changes do not
+trigger Android. Shared client changes intentionally verify both platforms.
+Platform workflow filenames and histories are retained for increasing build
+numbers. Each platform has a separate concurrency group.
 
-## GitHub Secrets
+## Documentation-only updates
 
-Add these in GitHub:
+`README.md` and `docs/**` are outside all app/backend automatic trigger paths.
+Keep documentation updates separate from source, assets, manifests, version
+bumps, and workflow edits. Use `[skip ci]` in the commit and squash-merge title
+as an additional safeguard for push/pull-request workflows. Do not manually
+dispatch a release workflow for a docs update.
 
-```text
-CLOUDFLARE_API_TOKEN
-CLOUDFLARE_ACCOUNT_ID
-CLOUDFLARE_D1_DATABASE_ID
-ANDROID_KEYSTORE_BASE64
-ANDROID_KEYSTORE_PASS
-ANDROID_KEYALIAS_NAME
-ANDROID_KEYALIAS_PASS
-GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
-LEVELPLAY_ANDROID_APP_KEY
-LEVELPLAY_ANDROID_BANNER_AD_UNIT
-LEVELPLAY_ANDROID_INTERSTITIAL_AD_UNIT
-LEVELPLAY_ANDROID_REWARDED_AD_UNIT
-```
+GitHub Pages is configured separately to publish `main:/docs`. Its generated
+Pages deployment can refresh the documentation website on a main commit; it
+does not build a mobile binary, deploy the backend, or upload to either store.
 
-## Workflows
+## Manual operations
 
-```text
-Backend CI
-  Runs backend install, typecheck, tests, and audit.
+All workflows can be dispatched manually. These additional workflows run only
+when explicitly dispatched:
 
-Bootstrap Cloudflare Resources
-  Creates the D1 database and queue after Cloudflare secrets are configured.
+| Workflow | Purpose |
+| --- | --- |
+| [cloudflare-bootstrap.yml](../.github/workflows/cloudflare-bootstrap.yml) | Initial production D1/Queue resource creation |
+| [playstore-production.yml](../.github/workflows/playstore-production.yml) | Promote the newest eligible build from the selected Play test track to production |
+| [playstore-metadata.yml](../.github/workflows/playstore-metadata.yml) | Upload listing text and artwork; excludes changelogs from this listing-only operation |
+| [playstore-app-details.yml](../.github/workflows/playstore-app-details.yml) | Update public Play support contact details |
 
-Deploy Backend To Cloudflare
-  Applies D1 migrations and deploys the Worker.
+Automatic main uploads target testers. Neither platform build workflow submits
+a public store release. For an iOS public release candidate, dispatch iOS with
+`production_backend=true`; ordinary TestFlight uploads intentionally do not
+share the production queue or economy. See [iOS release](ios-release.md).
 
-Flutter Android Internal Build
-  Builds an Android App Bundle and can upload it to Google Play internal testing.
+## Credentials and signing
 
-Upload Play Store Metadata
-  Uploads Play listing text, changelog, icon, feature graphic, and screenshots after the Play Console app exists.
+The verified [GitHub credential inventory](github-secrets.md) describes all
+stored secret/variable names and their purposes. Current Android signing uses
+the existing `UNITY_ANDROID_*` secret names as the workflow's supported fallback;
+the preferred `ANDROID_*` aliases are not currently stored. Preserve the
+existing upload-key identity when updating secrets.
 
-```
+iOS reuses the shared Apple Distribution certificate, an app-specific
+provisioning profile, and the Developer-role App Store Connect upload API key.
+The CI key uploads builds; it does not manage store metadata or public review.
+Production ad IDs are injected separately for each platform and are required
+before its signed release build.
 
-## Android Signing
-
-Create a Flutter Android upload keystore and store it in GitHub secrets as `ANDROID_KEYSTORE_BASE64`, along with the store password, key alias, and key password.
-
-## Play Store Notes
-
-Fastlane can upload app metadata and the `.aab` to the internal track, but Google Play does not let CI create the first Play Console app listing from scratch. The first app record must be created in Play Console with:
-
-```text
-App name: Ludo Cheer
-Default language: English (United States)
-App/game: Game
-Free/paid: Free
-Package name: com.ludorush.game
-```
-
-After that, the `Flutter Android Internal Build` workflow can upload builds when the Google service account and production ad secrets are configured.
-
-## Internal Testers
-
-Google Play internal testing supports up to 100 testers. Add tester emails in Play Console under:
-
-```text
-Testing -> Internal testing -> Testers
-```
-
-Then run the GitHub workflow:
-
-```text
-Flutter Android Internal Build
-upload_to_play = true
-```
-
-When the workflow succeeds, testers use the Play Console opt-in link to install the app.
+The repository's `github-pages` environment has no additional stored secrets
+as of November 15, 2026. GitHub's automatic `GITHUB_TOKEN` is a per-job token,
+not a manually stored repository credential.

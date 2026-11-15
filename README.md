@@ -1,62 +1,69 @@
 # Ludo Cheer
 
-Ludo Cheer is a mobile-first multiplayer Ludo game built around fast matches, global matchmaking, polished 2D/2.5D presentation, server-authoritative gameplay, ads, and in-app purchases.
+Ludo Cheer is a Flutter game for Android and iOS with Ludo, Snakes & Ladders,
+online matchmaking, private tables, bots, table voice, cosmetic previews, ads,
+and in-app purchases. Online rooms and the persistent economy run on Cloudflare.
 
 ## Project Layout
 
 ```text
 backend-cloudflare/  Cloudflare Workers, Durable Objects, D1, Queues
 client-flutter/      Current Flutter mobile client
+tools/ios/           Apple signing, isolated beta backend, and native store media
+fastlane/            Google Play publishing and Android listing assets
 docs/                Product, architecture, and launch notes
 ```
 
-## MVP Target
+## Platforms and releases
 
-- Guest login
-- Quick match
-- Private room codes
-- 2-4 player Ludo
-- Server-authoritative dice, moves, turns, rewards
-- Reconnect-ready room model
-- Bot fallback hooks
-- Basic coins and match history
-- Banner ads and rewarded video hooks
-- In-app purchase hooks for coins / remove ads
+| Platform | App identity | Automatic release destination |
+| --- | --- | --- |
+| Android | `com.ludorush.game` | Google Play internal testing |
+| iOS | `com.corsairlabs.ludocheer` | TestFlight, using an isolated beta backend by default |
+
+The public name is **Ludo Cheer**. Existing Android package, repository, and
+production Worker names retain `ludo-rush` for continuity.
+
+Android host changes run Android only; iOS host changes run iOS only. Shared
+Dart, assets, tests, or pubspec changes run both. Documentation changes do not
+trigger the Android, iOS, or backend workflows. Public store releases are
+separate from automatic tester uploads. See the [CI/CD guide](docs/github-playstore-cicd.md).
+
+Production Android and iOS use the same matchmaking queue when their game mode
+and region match. Ordinary TestFlight builds use separate beta rooms, players,
+and wallets so Sandbox purchases cannot affect the live economy. See
+[architecture](docs/architecture.md) and the [iOS release guide](docs/ios-release.md).
 
 ## Backend
 
-The MVP backend intentionally avoids R2. Live matches run in Durable Objects, permanent records live in D1, and background work can move through Queues when needed.
+Live matches run in Durable Objects, permanent records live in D1, and background
+work uses Queues. The backend validates online dice, legal moves, turns, match
+rewards, and Google Play / Apple purchase delivery. R2 is not required.
 
 ```text
 Workers -> API, auth, matchmaking, purchase endpoints
-Durable Objects -> live Ludo rooms
+Durable Objects -> live game rooms and voice signaling
 D1 -> users, coins, purchases, match history, rewards
 Queues -> background work only when needed
 ```
 
-## Current Status
+## Configuration and development
 
-This repo is in the internal-test foundation phase.
+The [GitHub credential inventory](docs/github-secrets.md) lists all stored
+repository secret and variable names, their purposes, and their current consumers.
+It also distinguishes Cloudflare-only voice secrets and network dashboard
+credentials. Secret values and private signing material belong outside Git.
 
-Implemented now:
+For local checks:
 
-- Cloudflare Worker API
-- D1 user, wallet, purchase, match, ticket, and private-room schema
-- Durable Object live room authority
-- Quick-match tickets
-- Private room codes
-- Bot match endpoint
-- Server-side Ludo dice, movement, captures, safe tiles, home path, and win detection
-- Compact match result and reward persistence
-- Flutter Android client
-- Local bot table fallback for playable internal builds
-- Polished home screen, game board, dice animation, and Android sound effects
+```text
+client-flutter/:      flutter pub get; flutter analyze --no-fatal-infos; flutter test
+backend-cloudflare/: npm ci; npm run typecheck; npm test
+```
 
-Still required before a Play Console internal test:
+Additional guides:
 
-- Configure release signing for the Flutter Android app.
-- Create Cloudflare remote D1/Queue resources and update `wrangler.toml`.
-- Deploy the Worker and point the Flutter client at the deployed backend.
-- Add real AdMob/IAP credentials when monetization testing starts.
-
-See `docs/internal-testing-checklist.md`.
+- [LevelPlay production ads and placements](docs/levelplay-production-setup.md)
+- [Table voice and moderation](docs/voice-chat-setup.md)
+- [Localization](client-flutter/LOCALIZATION.md)
+- [Backend endpoints and local setup](backend-cloudflare/README.md)
