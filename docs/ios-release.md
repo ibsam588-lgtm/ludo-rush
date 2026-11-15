@@ -39,6 +39,9 @@ the workflow run and attempt, allowing a failed upload to be retried safely.
 The TestFlight lane is discovered from `client-flutter/ios/fastlane/Fastfile`;
 CI validates lane discovery before building and retains signed artifacts even
 when the upload fails.
+The Developer-role API key only uploads builds. Internal TestFlight access is
+configured in App Store Connect, with the internal group receiving all builds;
+the upload lane does not attempt App Manager-only tester or changelog changes.
 
 ## Native services
 
