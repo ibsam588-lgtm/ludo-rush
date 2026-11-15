@@ -194,7 +194,7 @@ def main():
     library = api.request('GET', f'/v1/apps/{APP_ID}/assetLibrary')['data']['id']
     summary = []
     for folder, group in GROUPS.items():
-        ordered = []
+        ordered = {'APP_SCREENSHOT': [], 'APP_PREVIEW': []}
         images = sorted(p for p in (args.media_root / folder).glob('*.png') if p.name[0].isdigit())
         if len(images) != 5:
             raise ValueError(f'{folder} requires all five visually reviewed native screenshots')
@@ -202,23 +202,30 @@ def main():
             path = opaque_image(path)
             asset = library_asset(api, library, path)
             placement = place(api, asset, args.localization, group)
-            ordered.append(placement['id'])
+            ordered['APP_SCREENSHOT'].append(placement['id'])
             summary.append({'file': str(path), 'asset': asset['id'], 'placement': placement['id']})
         for path in sorted((args.media_root / folder).glob('app-preview*.mp4')):
             asset = library_asset(api, library, path, video=True)
             placement = place(api, asset, args.localization, group, video=True)
-            ordered.insert(0, placement['id'])
+            ordered['APP_PREVIEW'].append(placement['id'])
             summary.append({'file': str(path), 'asset': asset['id'], 'placement': placement['id']})
-        query = urllib.parse.urlencode({'filter[placementGroup]': group, 'sort': 'placementGroupPosition', 'limit': 200})
-        other = api.all(f'/v1/appStoreVersionLocalizations/{args.localization}/placements?{query}')
-        ordered.extend(row['id'] for row in other if row['id'] not in ordered)
-        api.request('POST', '/v1/appAssetLibraryPlacementOrderingRequests', {'data': {
-            'type': 'appAssetLibraryPlacementOrderingRequests', 'attributes': {'placementGroup': group},
-            'relationships': {
-                'orderedPlacements': {'data': [{'type': 'appAssetLibraryPlacements', 'id': value} for value in ordered]},
-                'appStoreVersionLocalization': relation('appStoreVersionLocalizations', args.localization),
-            },
-        }})
+        # Apple orders screenshots and previews independently, even when they
+        # belong to the same device group. A mixed ordering request is rejected.
+        for placement_type, identifiers in ordered.items():
+            query = urllib.parse.urlencode({'filter[placementGroup]': group,
+                                            'filter[placementType]': placement_type,
+                                            'sort': 'placementGroupPosition', 'limit': 200})
+            other = api.all(f'/v1/appStoreVersionLocalizations/{args.localization}/placements?{query}')
+            identifiers.extend(row['id'] for row in other if row['id'] not in identifiers)
+            if not identifiers:
+                continue
+            api.request('POST', '/v1/appAssetLibraryPlacementOrderingRequests', {'data': {
+                'type': 'appAssetLibraryPlacementOrderingRequests', 'attributes': {'placementGroup': group},
+                'relationships': {
+                    'orderedPlacements': {'data': [{'type': 'appAssetLibraryPlacements', 'id': value} for value in identifiers]},
+                    'appStoreVersionLocalization': relation('appStoreVersionLocalizations', args.localization),
+                },
+            }})
     if args.purchase_reviews:
         products = api.all(f'/v1/apps/{APP_ID}/inAppPurchasesV2?limit=200')
         for product in products:

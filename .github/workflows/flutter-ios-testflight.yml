@@ -63,6 +63,9 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      - name: Validate TestFlight lane discovery
+        working-directory: client-flutter/ios
+        run: bundle exec fastlane lanes
       - name: Analyze and test
         run: |
           flutter analyze --no-fatal-infos
@@ -162,18 +165,20 @@ jobs:
             --dart-define=LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT="$LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT" \
             --dart-define=LEVELPLAY_IOS_REWARDED_AD_UNIT="$LEVELPLAY_IOS_REWARDED_AD_UNIT"
       - name: Upload to TestFlight
+        working-directory: client-flutter/ios
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
-        run: bundle exec fastlane --fastfile ../fastlane/ios/Fastfile beta
+        run: bundle exec fastlane ios beta
       - uses: actions/upload-artifact@v7.0.2
-        if: success()
+        if: always()
         with:
           name: ludo-cheer-ios-ipa-${{ github.run_number }}-${{ github.run_attempt }}
           path: |
             client-flutter/build/ios/ipa/*.ipa
             client-flutter/build/ios/archive/Runner.xcarchive/dSYMs/
+          if-no-files-found: ignore
           retention-days: 14
       - name: Remove temporary signing credentials
         if: always()
