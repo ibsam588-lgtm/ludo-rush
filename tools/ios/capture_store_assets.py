@@ -39,7 +39,7 @@ def main():
             run('flutter', 'drive', '-d', udid,
                 '--driver=ios/store_assets/driver.dart', '--target=ios/store_assets/capture_test.dart',
                 '--dart-define=LEVELPLAY_PRODUCTION=true',
-                env={**os.environ, 'IOS_SCREENSHOT_DIR': str(folder)})
+                env={**os.environ, 'IOS_SCREENSHOT_DIR': str(folder)}, timeout=1200)
         finally:
             recording.send_signal(signal.SIGINT)
             recording.wait(timeout=30)

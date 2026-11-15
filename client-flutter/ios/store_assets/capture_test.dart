@@ -17,8 +17,10 @@ import 'package:provider/provider.dart';
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets('capture real iOS game screens', (tester) async {
+    debugPrint('IOS_STORE_STAGE starting fixture');
     final prefs = PrefsService();
-    await prefs.init();
+    await prefs.init().timeout(const Duration(seconds: 20));
+    debugPrint('IOS_STORE_STAGE preferences ready');
     final state = AppState(prefs, random: Random(24))
       ..displayName = 'James'
       ..playerId = 'store_james'
@@ -30,6 +32,7 @@ void main() {
       ..gameTutorialSeen = true;
 
     Future<void> show(Widget screen) async {
+      debugPrint('IOS_STORE_STAGE showing ${screen.runtimeType}');
       await tester.pumpWidget(
         ChangeNotifierProvider.value(
           value: state,
@@ -50,10 +53,13 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 100));
       expect(tester.takeException(), isNull);
+      debugPrint('IOS_STORE_STAGE ready ${screen.runtimeType}');
     }
 
     await show(const HomeScreen());
+    debugPrint('IOS_STORE_STAGE capturing home');
     await binding.takeScreenshot('01-home');
+    debugPrint('IOS_STORE_STAGE captured home');
     await tester.tap(find.text('Snakes').first);
     await tester.pump(const Duration(seconds: 1));
     await binding.takeScreenshot('02-snakes-boards');
@@ -107,5 +113,5 @@ void main() {
     }
     await tester.pumpWidget(const SizedBox.shrink());
     state.dispose();
-  });
+  }, timeout: const Timeout(Duration(minutes: 3)));
 }

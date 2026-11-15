@@ -1,6 +1,6 @@
 import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
-import { SignedDataVerifier } from "@apple/app-store-server-library/dist/jws_verification";
+import type { SignedDataVerifier } from "@apple/app-store-server-library/dist/jws_verification";
 import { Environment } from "@apple/app-store-server-library/dist/models/Environment";
 import type { JWSTransactionDecodedPayload } from "@apple/app-store-server-library/dist/models/JWSTransactionDecodedPayload";
 import { APPLE_ROOT_CERTIFICATES } from "./apple-roots";
@@ -13,8 +13,18 @@ import { createId } from "./utils/id";
 const BUNDLE_ID = "com.corsairlabs.ludocheer";
 const APPLE_APP_ID = 6834993861;
 const roots = APPLE_ROOT_CERTIFICATES.map((certificate) => Buffer.from(certificate, "base64"));
-const productionVerifier = new SignedDataVerifier(roots, true, Environment.PRODUCTION, BUNDLE_ID, APPLE_APP_ID);
-const sandboxVerifier = new SignedDataVerifier(roots, true, Environment.SANDBOX, BUNDLE_ID);
+let productionVerifier: SignedDataVerifier | undefined;
+let sandboxVerifier: SignedDataVerifier | undefined;
+
+async function verifier(sandbox: boolean): Promise<SignedDataVerifier> {
+  // Apple's OCSP dependency seeds a random generator while its module loads.
+  // Workers allow this only inside a request, so defer importing the library.
+  const { SignedDataVerifier } = await import("@apple/app-store-server-library/dist/jws_verification");
+  if (sandbox) {
+    return sandboxVerifier ??= new SignedDataVerifier(roots, true, Environment.SANDBOX, BUNDLE_ID);
+  }
+  return productionVerifier ??= new SignedDataVerifier(roots, true, Environment.PRODUCTION, BUNDLE_ID, APPLE_APP_ID);
+}
 
 // RFC 4122 UUIDv5, matching Uuid.NAMESPACE_URL in the Flutter checkout. An
 // authenticated guest ID is bound to Apple's signed appAccountToken claim.
@@ -64,7 +74,7 @@ export async function verifyAppStorePurchase(request: Request, env: Env): Promis
   const sandbox = env.APP_STORE_ENVIRONMENT === "Sandbox";
   let transaction: JWSTransactionDecodedPayload;
   try {
-    transaction = await (sandbox ? sandboxVerifier : productionVerifier).verifyAndDecodeTransaction(signedTransaction);
+    transaction = await (await verifier(sandbox)).verifyAndDecodeTransaction(signedTransaction);
   } catch {
     return badRequest("Apple could not verify this transaction. Please try restoring your purchase.");
   }

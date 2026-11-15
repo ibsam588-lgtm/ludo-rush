@@ -7,6 +7,7 @@ Future<void> main() async {
       final output = Directory(Platform.environment['IOS_SCREENSHOT_DIR']!);
       await output.create(recursive: true);
       await File('${output.path}/$name.png').writeAsBytes(bytes, flush: true);
+      stdout.writeln('Saved native iOS screenshot: $name');
       return true;
     },
   );
