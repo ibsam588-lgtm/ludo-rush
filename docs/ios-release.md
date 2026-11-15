@@ -32,6 +32,11 @@ Required iOS Actions secrets:
 - `LEVELPLAY_IOS_APP_KEY`, `LEVELPLAY_IOS_BANNER_AD_UNIT`
 - `LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT`, `LEVELPLAY_IOS_REWARDED_AD_UNIT`
 
+The [credential inventory](github-secrets.md) explains every stored GitHub
+secret and variable, including the Cloudflare credentials used for beta setup.
+Documentation-only changes do not trigger the platform build workflows; see
+the [CI/CD guide](github-playstore-cicd.md).
+
 Signing secrets are used only by the main-branch upload job. The temporary
 keychain and provisioning profile are removed on success or failure. The export
 method is `app-store-connect`; bitcode is disabled. Build numbers include both
@@ -77,7 +82,10 @@ bindings. The iOS workflow provisions these isolated resources for ordinary
 TestFlight uploads and supplies their `BACKEND_URL`. Never enable sandbox
 purchases against the live economy. For an App Store release candidate, manually
 dispatch the iOS workflow with `production_backend` selected; that build uses
-the live backend and accepts real Production purchases only. Beta voice uses the
+the live backend and accepts real Production purchases only. Android and iOS
+then share matchmaking by mode and region, without an OS filter. Ordinary
+TestFlight builds instead match only within the isolated beta environment;
+sharing the voice relay does not share the live player queue. Beta voice uses the
 production worker's private `VoiceRelay` RPC entrypoint for short-lived TURN
 credentials, after authenticating an age-eligible player in an active beta room.
 The production TURN secrets are never copied into the beta environment.
