@@ -1,6 +1,8 @@
 import type { Env } from "./types";
 
 const PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=com.ludorush.game";
+const APP_STORE_URL = "https://apps.apple.com/app/id6834993861";
+const TESTFLIGHT_URL = "https://apps.apple.com/app/testflight/id899247664";
 
 export interface AppConfigResponse {
   platform: string;
@@ -30,6 +32,7 @@ export function buildAppConfig(
     | "FORCE_LATEST_ANDROID_BUILD"
     | "ANDROID_UPDATE_URL"
     | "FORCE_UPDATE_MESSAGE"
+    | "APP_STORE_ENVIRONMENT"
   >,
   platform: string,
   installedBuild: number,
@@ -37,17 +40,22 @@ export function buildAppConfig(
 ): AppConfigResponse {
   const normalizedPlatform = platform.toLowerCase();
   if (normalizedPlatform === "ios") {
-    const minimumBuildNumber = overrides.minimumBuildNumber ?? 1;
+    const configuredMinimum = overrides.minimumBuildNumber ?? 1;
     const latestBuildNumber = overrides.latestBuildNumber ?? 1;
+    const minimumBuildNumber = overrides.forceLatestBuild
+      ? Math.max(configuredMinimum, latestBuildNumber)
+      : configuredMinimum;
+    const sandbox = env.APP_STORE_ENVIRONMENT === "Sandbox";
     return {
       platform: "ios",
       minimumBuildNumber,
       latestBuildNumber,
       latestVersionName: overrides.latestVersionName || "1.0.0",
-      forceUpdate: installedBuild > 0 && installedBuild <
-        (overrides.forceLatestBuild ? Math.max(minimumBuildNumber, latestBuildNumber) : minimumBuildNumber),
-      updateUrl: overrides.updateUrl || "https://apps.apple.com/app/id6834993861",
-      message: overrides.message || "Update Ludo Cheer from the App Store to keep playing."
+      forceUpdate: installedBuild > 0 && installedBuild < minimumBuildNumber,
+      updateUrl: sandbox ? TESTFLIGHT_URL : (overrides.updateUrl || APP_STORE_URL),
+      message: sandbox
+        ? "Update Ludo Cheer in TestFlight to continue. Open TestFlight, select Ludo Cheer, then tap Update."
+        : (overrides.message || "Update Ludo Cheer from the App Store to keep playing.")
     };
   }
   const latestBuildNumber = overrides.latestBuildNumber ??

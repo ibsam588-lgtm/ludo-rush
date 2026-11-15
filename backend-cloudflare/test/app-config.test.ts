@@ -2,6 +2,42 @@ import { describe, expect, it } from "vitest";
 import { buildAppConfig } from "../src/app-config";
 
 describe("app config", () => {
+  it("reports the effective iOS minimum that the installed client must compare", () => {
+    const body = buildAppConfig({}, "ios", 1701, {
+      minimumBuildNumber: 1, latestBuildNumber: 1901, forceLatestBuild: true,
+    });
+    expect(body.forceUpdate).toBe(true);
+    expect(body.minimumBuildNumber).toBe(1901);
+    expect(body.latestBuildNumber).toBe(1901);
+    expect(buildAppConfig({}, "ios", 1901, {
+      minimumBuildNumber: 1, latestBuildNumber: 1901, forceLatestBuild: true,
+    }).forceUpdate).toBe(false);
+  });
+
+  it("keeps the explicit iOS minimum during staged rollouts", () => {
+    const body = buildAppConfig({}, "ios", 1701, {
+      minimumBuildNumber: 1701, latestBuildNumber: 1901, forceLatestBuild: false,
+    });
+    expect(body.forceUpdate).toBe(false);
+    expect(body.minimumBuildNumber).toBe(1701);
+  });
+
+  it("sends Sandbox testers to TestFlight instead of an unpublished App Store listing", () => {
+    const body = buildAppConfig({ APP_STORE_ENVIRONMENT: "Sandbox" }, "ios", 1701, {
+      minimumBuildNumber: 1901, updateUrl: "https://apps.apple.com/app/id6834993861",
+    });
+    expect(body.forceUpdate).toBe(true);
+    expect(body.updateUrl).toBe("https://apps.apple.com/app/testflight/id899247664");
+    expect(body.message).toContain("select Ludo Cheer");
+    expect(buildAppConfig({}, "ios", 1701, { minimumBuildNumber: 1901 }).updateUrl)
+      .toBe("https://apps.apple.com/app/id6834993861");
+  });
+
+  it("does not block the current iOS build or an unknown development build", () => {
+    const policy = { minimumBuildNumber: 1901, latestBuildNumber: 1901, forceLatestBuild: true };
+    for (const build of [0, 1901, 2001]) expect(buildAppConfig({}, "ios", build, policy).forceUpdate).toBe(false);
+  });
+
   it("forces Android builds below the configured minimum", async () => {
     const body = buildAppConfig(
       {
