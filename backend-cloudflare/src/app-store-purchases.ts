@@ -16,7 +16,7 @@ const roots = APPLE_ROOT_CERTIFICATES.map((certificate) => Buffer.from(certifica
 let productionVerifier: SignedDataVerifier | undefined;
 let sandboxVerifier: SignedDataVerifier | undefined;
 
-async function verifier(sandbox: boolean): Promise<SignedDataVerifier> {
+export async function appStoreVerifier(sandbox: boolean): Promise<SignedDataVerifier> {
   // Apple's OCSP dependency seeds a random generator while its module loads.
   // Workers allow this only inside a request, so defer importing the library.
   const { SignedDataVerifier } = await import("@apple/app-store-server-library/dist/jws_verification");
@@ -74,7 +74,7 @@ export async function verifyAppStorePurchase(request: Request, env: Env): Promis
   const sandbox = env.APP_STORE_ENVIRONMENT === "Sandbox";
   let transaction: JWSTransactionDecodedPayload;
   try {
-    transaction = await (await verifier(sandbox)).verifyAndDecodeTransaction(signedTransaction);
+    transaction = await (await appStoreVerifier(sandbox)).verifyAndDecodeTransaction(signedTransaction);
   } catch {
     return badRequest("Apple could not verify this transaction. Please try restoring your purchase.");
   }

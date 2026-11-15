@@ -10,6 +10,7 @@ import { createId, createRoomCode } from "./utils/id";
 import { routeSocialRequest } from "./social";
 import { routePurchaseRequest } from "./purchases";
 import { createIceServers } from "./voice-relay";
+import { recoverAppStoreAccount } from "./app-store-accounts";
 
 export { LudoRoom };
 export { VoiceRelay } from "./voice-relay";
@@ -99,6 +100,10 @@ export default {
         const playerId = await authenticatedPlayerId(request, env);
         if (!playerId) return unauthorized();
         return json({ playerId }, { headers: { "cache-control": "no-store" } });
+      }
+
+      if (request.method === "POST" && url.pathname === "/api/v1/auth/app-store") {
+        return recoverAppStoreAccount(request, env);
       }
 
       if (request.method === "GET" && url.pathname === "/api/v1/voice/ice") {

@@ -70,7 +70,17 @@ def main():
                 except urllib.error.HTTPError as error:
                     assert error.code == 400, error.read().decode()
                     assert 'Apple could not verify' in json.load(error)['error']
-                print('Workers runtime: healthy launch, authenticated checkout session, forged Apple transaction rejected.')
+                request = urllib.request.Request(base + '/api/v1/auth/app-store',
+                    data=json.dumps({'signedAppTransaction': 'a' * 80 + '.' + 'b' * 80 + '.c'}).encode(),
+                    headers={'Content-Type': 'application/json',
+                             'Authorization': 'Bearer ' + guest['token']})
+                try:
+                    urllib.request.urlopen(request, timeout=10)
+                    raise AssertionError('A forged App Store account proof was accepted')
+                except urllib.error.HTTPError as error:
+                    assert error.code == 400, error.read().decode()
+                    assert 'Apple could not verify' in json.load(error)['error']
+                print('Workers runtime: healthy launch, authenticated checkout, forged Apple purchases and account proofs rejected.')
             finally:
                 if os.name == 'nt':
                     subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],

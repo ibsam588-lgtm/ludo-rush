@@ -9,7 +9,7 @@ names remain stable. iOS uses `com.corsairlabs.ludocheer`.
 | Workflow file | Automatic trigger | Result |
 | --- | --- | --- |
 | [flutter-android-internal.yml](../.github/workflows/flutter-android-internal.yml) | Android host, shared Dart/assets/tests/pubspec, or this workflow | PR verification; signed main build uploaded to Google Play internal testing |
-| [flutter-ios-testflight.yml](../.github/workflows/flutter-ios-testflight.yml) | iOS host, shared Dart/assets/tests/pubspec, `tools/ios`, `fastlane/ios`, or this workflow | PR verification; signed main build uploaded to TestFlight with an isolated beta backend |
+| [flutter-ios-testflight.yml](../.github/workflows/flutter-ios-testflight.yml) | iOS host, shared Dart/assets/tests/pubspec, `tools/ios`, `fastlane/ios`, or this workflow | PR verification; signed main build uploaded to TestFlight; Apple-verified Sandbox installations use the isolated beta backend |
 | [backend-ci.yml](../.github/workflows/backend-ci.yml) | Backend files or this workflow | Typecheck, tests, real Workers smoke test, and dependency audit |
 | [cloudflare-deploy.yml](../.github/workflows/cloudflare-deploy.yml) | Backend files on main or this workflow | Apply production D1 migrations, configure the Google Play verifier, and deploy the Worker |
 
@@ -43,9 +43,11 @@ when explicitly dispatched:
 | [playstore-app-details.yml](../.github/workflows/playstore-app-details.yml) | Update public Play support contact details |
 
 Automatic main uploads target testers. Neither platform build workflow submits
-a public store release. For an iOS public release candidate, dispatch iOS with
-`production_backend=true`; ordinary TestFlight uploads intentionally do not
-share the production queue or economy. See [iOS release](ios-release.md).
+a public store release. Main builds and the default manual iOS run include the
+production base URL plus an isolated Sandbox URL. The verified StoreKit
+environment keeps TestFlight/App Review separate from public players. A manual
+`production_backend=false` forces a beta-only base and is unsuitable for public
+release. See [iOS release](ios-release.md).
 
 ## Credentials and signing
 

@@ -11,6 +11,11 @@ class PrefsService implements ReviewPromptStore {
   }
 
   String? get playerId => _prefs?.getString('player_id');
+  String? get accountBackend => _prefs?.getString('account_backend');
+  set accountBackend(String? value) {
+    if (value != null) _prefs?.setString('account_backend', value);
+  }
+
   set playerId(String? v) {
     if (v == null) {
       _prefs?.remove('player_id');

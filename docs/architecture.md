@@ -41,14 +41,18 @@ earlier fallback behavior, so this is not a mandatory 45-second wait.
 | --- | --- | --- |
 | Android release workflow | `https://ludo-rush-backend.ibsam588.workers.dev` | Yes |
 | Ordinary iOS TestFlight workflow | `https://ludo-cheer-ios-beta.ibsam588.workers.dev` | No; beta only |
-| iOS manual release candidate with `production_backend=true` | Production URL above | Yes, for the same mode and region |
+| Public iOS installation with a verified Production app transaction | Production URL above | Yes, for the same mode and region |
 
 The beta environment has separate D1, rooms, queues, players, and wallets.
 Keep it isolated: Sandbox purchases must never credit the production economy.
-Use a production-backend build for the eventual public iOS release.
+Main/default iOS builds include both URLs. StoreKit's verified installation
+environment selects the correct service, allowing App Review to exercise
+Sandbox purchases without granting live coins. A forced-beta manual build is
+not a public release candidate.
 
 `BACKEND_URL` is a compile-time Dart define. Android uses the production default
-in `app_state.dart`; iOS supplies the URL in its workflow. The stored GitHub
+in `app_state.dart`; iOS supplies the production base and isolated
+`IOS_SANDBOX_BACKEND_URL` in its workflow. The stored GitHub
 variable `LUDO_RUSH_BACKEND_URL` is not consumed by these Flutter workflows.
 
 ## Purchases and voice
@@ -56,8 +60,10 @@ variable `LUDO_RUSH_BACKEND_URL` is not consumed by these Flutter workflows.
 Google Play purchases and signed Apple transactions are verified on the server
 before delivery, with transaction IDs preventing duplicate grants. Production
 accepts Apple Production transactions; the isolated TestFlight backend accepts
-Sandbox transactions. Permanent purchases follow the authenticated guest
-account, so reinstall/new-guest recovery needs an account recovery flow.
+Sandbox transactions. Apple's verified app transaction maps the Apple Account
+to its original guest, allowing permanent purchases and wallets to recover
+after reinstall or a device change while retaining strict purchase-token
+ownership checks. The mapping stores a hash, not the raw Apple identifier.
 
 Opt-in voice uses authenticated room signaling and WebRTC audio. The game
 backend does not record audio. Beta voice requests short-lived TURN credentials

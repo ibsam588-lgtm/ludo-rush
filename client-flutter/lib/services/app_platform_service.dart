@@ -21,6 +21,15 @@ class AppPlatformService {
   static String get storeName => isIOS ? 'App Store' : 'Google Play';
   static String get storeListing => isIOS ? appStoreListing : playStoreListing;
 
+  static Future<Map<String, dynamic>?> storeAccountContext({
+    bool refresh = false,
+  }) async {
+    if (!isIOS) return null;
+    return _channel.invokeMapMethod<String, dynamic>('storeAccountContext', {
+      'refresh': refresh,
+    });
+  }
+
   static Future<void> prepareAdsPrivacy() async {
     if (!isIOS) return;
     await _channel.invokeMethod<void>('prepareAdsPrivacy');
