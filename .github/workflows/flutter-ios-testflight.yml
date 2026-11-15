@@ -15,6 +15,11 @@ on:
   pull_request:
     paths: *ios_paths
   workflow_dispatch:
+    inputs:
+      production_backend:
+        description: Use the live backend for an App Store release candidate (real purchases only)
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -62,7 +67,7 @@ jobs:
         run: flutter build ios --release --no-codesign
       - name: Capture native iPhone and iPad evidence
         run: python3 ../tools/ios/capture_store_assets.py
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7.0.2
         if: always()
         with:
           name: ludo-cheer-ios-evidence
@@ -73,10 +78,39 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  beta-backend:
+    name: Prepare isolated TestFlight purchase testing
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && !inputs.production_backend
+    runs-on: ubuntu-latest
+    outputs:
+      backend_url: ${{ steps.deploy.outputs.backend_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend-cloudflare/package-lock.json
+      - run: npm ci
+        working-directory: backend-cloudflare
+      - name: Deploy beta backend
+        id: deploy
+        working-directory: backend-cloudflare
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TURN_KEY_ID: ${{ secrets.TURN_KEY_ID }}
+          TURN_KEY_API_TOKEN: ${{ secrets.TURN_KEY_API_TOKEN }}
+        run: python3 ../tools/ios/deploy_beta_backend.py
+
   testflight:
     name: Sign and upload to TestFlight
-    needs: verify
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: [verify, beta-backend]
+    if: >-
+      always() && needs.verify.result == 'success' &&
+      (needs.beta-backend.result == 'success' || (needs.beta-backend.result == 'skipped' && inputs.production_backend)) &&
+      github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: macos-26
     timeout-minutes: 60
     defaults:
@@ -110,6 +144,7 @@ jobs:
           LEVELPLAY_IOS_BANNER_AD_UNIT: ${{ secrets.LEVELPLAY_IOS_BANNER_AD_UNIT }}
           LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT: ${{ secrets.LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT }}
           LEVELPLAY_IOS_REWARDED_AD_UNIT: ${{ secrets.LEVELPLAY_IOS_REWARDED_AD_UNIT }}
+          BACKEND_URL: ${{ needs.beta-backend.outputs.backend_url || 'https://ludo-rush-backend.ibsam588.workers.dev' }}
         run: |
           for name in LEVELPLAY_IOS_APP_KEY LEVELPLAY_IOS_BANNER_AD_UNIT LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT LEVELPLAY_IOS_REWARDED_AD_UNIT; do
             if [[ -z "${!name}" ]]; then echo "::error::Missing iOS ad configuration: $name"; exit 1; fi
@@ -117,6 +152,7 @@ jobs:
           flutter build ipa --release \
             --build-name=1.0.0 --build-number="${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}" \
             --export-options-plist="$RUNNER_TEMP/ExportOptions.plist" \
+            --dart-define=BACKEND_URL="$BACKEND_URL" \
             --dart-define=LEVELPLAY_PRODUCTION=true \
             --dart-define=LEVELPLAY_IOS_APP_KEY="$LEVELPLAY_IOS_APP_KEY" \
             --dart-define=LEVELPLAY_IOS_BANNER_AD_UNIT="$LEVELPLAY_IOS_BANNER_AD_UNIT" \
@@ -128,7 +164,7 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
         run: bundle exec fastlane --fastfile ../fastlane/ios/Fastfile beta
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v7.0.2
         if: success()
         with:
           name: ludo-cheer-ios-ipa-${{ github.run_number }}-${{ github.run_attempt }}

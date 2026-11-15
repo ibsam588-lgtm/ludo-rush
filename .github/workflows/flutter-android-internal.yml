@@ -151,13 +151,14 @@ jobs:
             --dart-define=LEVELPLAY_LEVEL_REWARD_ENERGY="$LEVELPLAY_LEVEL_REWARD_ENERGY"
 
       - name: Check WorkManager startup database survives R8
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: |
           unzip -q build/app/outputs/bundle/release/app-release.aab 'base/dex/classes*.dex' -d "$RUNNER_TEMP/release-dex"
           grep -a -l 'WorkDatabase_Impl' "$RUNNER_TEMP"/release-dex/base/dex/classes*.dex
 
       - name: Upload AAB artifact
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: flutter-release-aab
           path: client-flutter/build/app/outputs/bundle/release/app-release.aab

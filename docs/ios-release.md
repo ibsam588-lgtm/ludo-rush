@@ -60,8 +60,12 @@ the unique transaction ID prevents duplicate grants.
 
 Production accepts Production transactions only. A separate beta backend can
 set `APP_STORE_ENVIRONMENT=Sandbox`, with its own D1 wallet, room and queue
-bindings. Never enable sandbox purchases against the live economy. Set the
-Flutter `BACKEND_URL` define to that isolated backend when testing sandbox IAP.
+bindings. The iOS workflow provisions these isolated resources for ordinary
+TestFlight uploads and supplies their `BACKEND_URL`. Never enable sandbox
+purchases against the live economy. For an App Store release candidate, manually
+dispatch the iOS workflow with `production_backend` selected; that build uses
+the live backend and accepts real Production purchases only. Beta voice relay
+reuses `TURN_KEY_ID` and `TURN_KEY_API_TOKEN` repository secrets when available.
 Apple transactions are completed only after successful server verification.
 
 ## Store media

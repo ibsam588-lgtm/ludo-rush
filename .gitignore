@@ -55,3 +55,7 @@ client-flutter/build_stale_*/
 client-flutter/android/.gradle/
 client-flutter/android/local.properties
 client-flutter/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+
+# Local Python bytecode and generated beta deployment config
+__pycache__/
+backend-cloudflare/wrangler.ios-beta.json
