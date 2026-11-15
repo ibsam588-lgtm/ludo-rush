@@ -19,3 +19,8 @@ ON CONFLICT(platform) DO UPDATE SET
     ELSE app_release_config.latest_version_name END,
   force_latest = 1,
   updated_at = excluded.updated_at;
+
+-- Preserve Android's published build policy while fixing its legacy name.
+UPDATE app_release_config
+SET message = REPLACE(message, 'Ludo Rush', 'Ludo Cheer')
+WHERE INSTR(message, 'Ludo Rush') > 0;

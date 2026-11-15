@@ -52,6 +52,10 @@ def main():
                         policy = json.load(response)
                         assert policy['minimumBuildNumber'] == 1901
                         assert policy['forceUpdate'] is expected
+                with urllib.request.urlopen(base + '/api/v1/app/config?platform=android&build=10000', timeout=5) as response:
+                    android = json.load(response)
+                    assert android['minimumBuildNumber'] == 10042
+                    assert 'Ludo Cheer' in android['message'] and 'Ludo Rush' not in android['message']
                 request = urllib.request.Request(base + '/api/v1/auth/session',
                     headers={'Authorization': 'Bearer ' + guest['token']})
                 with urllib.request.urlopen(request, timeout=5) as response:
