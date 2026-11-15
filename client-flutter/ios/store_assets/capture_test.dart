@@ -17,6 +17,7 @@ import 'package:provider/provider.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  WidgetController.hitTestWarningShouldBeFatal = true;
   testWidgets('capture real iOS game screens', (tester) async {
     debugPrint('IOS_STORE_STAGE starting fixture');
     final prefs = PrefsService();
@@ -144,6 +145,7 @@ void main() {
         await show(const ShopScreen());
         final categoryChip = find.byKey(ValueKey('shop-category-$category'));
         await tester.ensureVisible(categoryChip);
+        await tester.pump(const Duration(milliseconds: 150));
         await tester.tap(categoryChip);
         await tester.pump(const Duration(milliseconds: 300));
         final scrollable = find
@@ -159,7 +161,20 @@ void main() {
           scrollable: scrollable,
           maxScrolls: 40,
         );
-        await tester.ensureVisible(product);
+        // Re-layout after scrollUntilVisible's final scroll, then keep the tap
+        // away from the fixed shop footer. An immediate second ensureVisible
+        // otherwise uses the previous frame's coordinates on tall board cards.
+        await tester.pump(const Duration(milliseconds: 150));
+        await Scrollable.ensureVisible(
+          tester.element(product),
+          alignment: 0.35,
+        );
+        await tester.pump(const Duration(milliseconds: 150));
+        expect(
+          product.hitTestable(),
+          findsOneWidget,
+          reason: '$title must be reachable above the shop footer',
+        );
         await tester.tap(product);
         await tester.pump(const Duration(milliseconds: 500));
         expect(find.byType(Dialog), findsOneWidget);
