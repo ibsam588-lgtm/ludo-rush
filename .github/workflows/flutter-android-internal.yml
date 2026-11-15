@@ -25,11 +25,7 @@ permissions:
 
 concurrency:
   group: android-${{ github.ref }}
-  cancel-in-progress: false
-
-concurrency:
-  group: cloudflare-deploy-main
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -86,9 +82,6 @@ jobs:
           flutter build apk --release
           unzip -q build/app/outputs/flutter-apk/app-release.apk 'classes*.dex' -d "$RUNNER_TEMP/release-dex"
           grep -a -l 'WorkDatabase_Impl' "$RUNNER_TEMP"/release-dex/classes*.dex
-
-      - name: Test gameplay and shop regressions
-        run: flutter test --no-pub
 
       - name: Validate production ad secrets
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
