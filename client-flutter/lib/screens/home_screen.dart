@@ -2124,7 +2124,7 @@ class _BrandHeader extends StatelessWidget {
                   tooltip: LudoStringsScope.translate(context, 'Rate App'),
                   onPressed: () async {
                     await AppPlatformService.openUrl(
-                      AppPlatformService.playStoreListing,
+                      AppPlatformService.storeListing,
                     );
                   },
                   icon: const Icon(Icons.star_rate_rounded),
@@ -3250,7 +3250,7 @@ Future<void> _showAvatarUnlockDialog(
           Expanded(
             child: LocalizedText(
               avatar.rarity == AvatarRarity.premium
-                  ? '$status. Premium avatars unlock only after a verified Google Play purchase.'
+                  ? '$status. Premium avatars unlock only after a verified ${AppPlatformService.storeName} purchase.'
                   : '$status to unlock this rare avatar.',
               style: const TextStyle(
                 color: Colors.white,
@@ -5051,7 +5051,7 @@ class _HomeTabStage extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _FeatureActionButton(
-                        label: 'Play Games leaders',
+                        label: PlayGamesService.leaderboardLabel,
                         accent: const Color(0xFF278CDB),
                         compact: true,
                         onTap: () => unawaited(_openPlayGames(
@@ -5088,9 +5088,9 @@ class _HomeTabStage extends StatelessWidget {
     Future<bool> action,
   ) async {
     if (await action || !context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: LocalizedText(
-          'Google Play Games is unavailable. Check your connection and Play Games sign-in.'),
+          PlayGamesService.unavailableMessage),
     ));
   }
 

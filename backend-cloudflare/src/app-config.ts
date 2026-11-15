@@ -36,6 +36,20 @@ export function buildAppConfig(
   overrides: AppConfigOverrides = {}
 ): AppConfigResponse {
   const normalizedPlatform = platform.toLowerCase();
+  if (normalizedPlatform === "ios") {
+    const minimumBuildNumber = overrides.minimumBuildNumber ?? 1;
+    const latestBuildNumber = overrides.latestBuildNumber ?? 1;
+    return {
+      platform: "ios",
+      minimumBuildNumber,
+      latestBuildNumber,
+      latestVersionName: overrides.latestVersionName || "1.0.0",
+      forceUpdate: installedBuild > 0 && installedBuild <
+        (overrides.forceLatestBuild ? Math.max(minimumBuildNumber, latestBuildNumber) : minimumBuildNumber),
+      updateUrl: overrides.updateUrl || "https://apps.apple.com/app/id6834993861",
+      message: overrides.message || "Update Ludo Cheer from the App Store to keep playing."
+    };
+  }
   const latestBuildNumber = overrides.latestBuildNumber ??
     parsePositiveInt(env.LATEST_ANDROID_BUILD_NUMBER, 1);
   const forceLatestBuild = overrides.forceLatestBuild ??

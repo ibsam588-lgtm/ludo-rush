@@ -120,10 +120,10 @@ class ReceivedFriendGift {
 class AppState extends ChangeNotifier with WidgetsBindingObserver {
   static final String _appSessionId =
       DateTime.now().toUtc().microsecondsSinceEpoch.toString();
-  static const String _backendUrl =
-      'https://ludo-rush-backend.ibsam588.workers.dev';
-  static const String _defaultAndroidUpdateUrl =
-      'https://play.google.com/store/apps/details?id=com.ludorush.game';
+  static const String _backendUrl = String.fromEnvironment(
+    'BACKEND_URL',
+    defaultValue: 'https://ludo-rush-backend.ibsam588.workers.dev',
+  );
   static const String snakesLaddersMode = 'snakes_ladders';
 
   @visibleForTesting
@@ -285,7 +285,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   int reactionSequence = 0;
   String forceUpdateMessage =
       'A newer version of Ludo Cheer is required to keep matchmaking, rewards, and game rules in sync.';
-  String forceUpdateUrl = _defaultAndroidUpdateUrl;
+  String forceUpdateUrl = AppPlatformService.storeListing;
   static const Duration _matchmakingPollInterval = Duration(milliseconds: 800);
   static const int _ludoMatchmakingPollAttempts = 10;
   static const int _snakesMatchmakingPollAttempts = 5;
@@ -523,7 +523,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
       final uri = Uri.parse('$_backendUrl/api/v1/app/config').replace(
         queryParameters: {
-          'platform': 'android',
+          'platform': AppPlatformService.platformName,
           'build': buildNumber.toString(),
           'version': packageInfo.versionName,
         },
@@ -545,7 +545,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       minimumRequiredBuildNumber = minimum;
       latestAvailableBuildNumber = latest;
       latestAvailableVersionName = latestVersion;
-      forceUpdateUrl = updateUrl.isEmpty ? _defaultAndroidUpdateUrl : updateUrl;
+      forceUpdateUrl = updateUrl.isEmpty ? AppPlatformService.storeListing : updateUrl;
       if (message.isNotEmpty) forceUpdateMessage = message;
       forceUpdateRequired = shouldForceUpdate(
         forceEnabled: forceEnabled,
@@ -568,7 +568,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         ? await AppPlatformService.openUrl(forceUpdateUrl)
         : false;
     if (!launched) {
-      await AppPlatformService.openUrl(_defaultAndroidUpdateUrl);
+      await AppPlatformService.openUrl(AppPlatformService.storeListing);
     }
   }
 
@@ -2821,21 +2821,57 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     return decoded;
   }
 
+  Future<String?> prepareStorePurchase() async {
+    await _ensureAuthenticatedIdentity();
+    final account = playerId;
+    final token = authToken;
+    if (_disposed || account == null || account.isEmpty ||
+        account.startsWith('local_') || token == null || token.isEmpty) {
+      return null;
+    }
+    try {
+      final session = await _requestJson('GET', '/api/v1/auth/session');
+      if (!_disposed && playerId == account && authToken == token &&
+          session['playerId'] == account) {
+        return account;
+      }
+    } catch (_) {
+      // Never open paid checkout when the delivery account cannot be verified.
+    }
+    return null;
+  }
+
   Future<String> verifyGooglePlayPurchase({
     required String productId,
     required String purchaseToken,
+  }) => _verifyStorePurchase(
+    productId: productId,
+    path: '/api/v1/purchases/google-play/verify',
+    evidence: {'purchaseToken': purchaseToken},
+  );
+
+  Future<String> verifyAppStorePurchase({
+    required String productId,
+    required String signedTransaction,
+  }) => _verifyStorePurchase(
+    productId: productId,
+    path: '/api/v1/purchases/app-store/verify',
+    evidence: {'signedTransaction': signedTransaction},
+  );
+
+  Future<String> _verifyStorePurchase({
+    required String productId,
+    required String path,
+    required Map<String, String> evidence,
   }) async {
     try {
       final response = await _requestJson(
         'POST',
-        '/api/v1/purchases/google-play/verify',
-        body: {
-          'productId': productId,
-          'purchaseToken': purchaseToken,
-        },
+        path,
+        body: {'productId': productId, ...evidence},
       );
       if (response['verified'] != true) {
-        return 'Google Play could not verify this purchase.';
+        return '${AppPlatformService.storeName} could not verify this purchase.';
       }
       coins = _readInt(response['coins'], fallback: coins);
       _prefs.coins = coins;

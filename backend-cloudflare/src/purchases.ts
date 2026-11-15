@@ -2,6 +2,7 @@ import { authenticatedPlayerId } from "./auth";
 import type { Env } from "./types";
 import { badRequest, json, notFound, readJson, unauthorized } from "./utils/http";
 import { createId } from "./utils/id";
+import { verifyAppStorePurchase } from "./app-store-purchases";
 
 const PACKAGE_NAME = "com.ludorush.game";
 const ANDROID_PUBLISHER_SCOPE = "https://www.googleapis.com/auth/androidpublisher";
@@ -55,6 +56,9 @@ export async function routePurchaseRequest(
   env: Env,
   url: URL
 ): Promise<Response> {
+  if (request.method === "POST" && url.pathname === "/api/v1/purchases/app-store/verify") {
+    return verifyAppStorePurchase(request, env);
+  }
   if (
     request.method !== "POST" ||
     url.pathname !== "/api/v1/purchases/google-play/verify"
@@ -165,7 +169,7 @@ export async function routePurchaseRequest(
   return purchaseResponse(env, playerId, productId);
 }
 
-async function purchaseResponse(
+export async function purchaseResponse(
   env: Env,
   playerId: string,
   productId: string

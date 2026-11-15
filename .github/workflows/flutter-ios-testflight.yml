@@ -1,0 +1,180 @@
+name: iOS — Verify and TestFlight
+
+on:
+  push:
+    branches: [main]
+    paths: &ios_paths
+      - 'client-flutter/ios/**'
+      - 'client-flutter/lib/**'
+      - 'client-flutter/assets/**'
+      - 'client-flutter/test/**'
+      - 'client-flutter/pubspec.*'
+      - 'tools/ios/**'
+      - 'fastlane/ios/**'
+      - '.github/workflows/flutter-ios-testflight.yml'
+  pull_request:
+    paths: *ios_paths
+  workflow_dispatch:
+    inputs:
+      capture_store_assets:
+        description: Refresh native iPhone/iPad screenshots, purchase-review images and source video
+        type: boolean
+        default: false
+      production_backend:
+        description: Use the live backend for an App Store release candidate (real purchases only)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}-${{ inputs.capture_store_assets && 'media' || 'build' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+  BUNDLE_GEMFILE: ${{ github.workspace }}/client-flutter/ios/Gemfile
+  IOS_BUNDLE_ID: com.corsairlabs.ludocheer
+  APPLE_TEAM_ID: 5MST9WC27Z
+
+jobs:
+  verify:
+    name: Verify iOS app and native services
+    runs-on: macos-26
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: client-flutter
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - name: Use bundled CocoaPods
+        run: |
+          bundle binstubs cocoapods --path="$RUNNER_TEMP/ios-tools"
+          echo "$RUNNER_TEMP/ios-tools" >> "$GITHUB_PATH"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.2'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Analyze and test
+        run: |
+          flutter analyze --no-fatal-infos
+          flutter test --no-pub
+      - name: Compile unsigned iOS release
+        run: flutter build ios --release --no-codesign
+      - name: Capture native iPhone and iPad evidence
+        if: inputs.capture_store_assets
+        run: python3 ../tools/ios/capture_store_assets.py
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: ludo-cheer-ios-evidence
+          path: |
+            client-flutter/build/ios-store/
+            client-flutter/ios/Podfile.lock
+            client-flutter/ios/Gemfile.lock
+          if-no-files-found: ignore
+          retention-days: 14
+
+  beta-backend:
+    name: Prepare isolated TestFlight purchase testing
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && !inputs.production_backend
+    runs-on: ubuntu-latest
+    outputs:
+      backend_url: ${{ steps.deploy.outputs.backend_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend-cloudflare/package-lock.json
+      - run: npm ci
+        working-directory: backend-cloudflare
+      - name: Deploy beta backend
+        id: deploy
+        working-directory: backend-cloudflare
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: python3 ../tools/ios/deploy_beta_backend.py
+
+  testflight:
+    name: Sign and upload to TestFlight
+    needs: [verify, beta-backend]
+    if: >-
+      always() && needs.verify.result == 'success' &&
+      (needs.beta-backend.result == 'success' || (needs.beta-backend.result == 'skipped' && inputs.production_backend)) &&
+      github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: macos-26
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: client-flutter
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+      - name: Use bundled CocoaPods
+        run: |
+          bundle binstubs cocoapods --path="$RUNNER_TEMP/ios-tools"
+          echo "$RUNNER_TEMP/ios-tools" >> "$GITHUB_PATH"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.2'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - name: Prepare existing Apple distribution certificate
+        env:
+          IOS_DISTRIBUTION_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_P12_BASE64 }}
+          IOS_DISTRIBUTION_P12_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_P12_PASSWORD }}
+          IOS_PROVISION_PROFILE_BASE64: ${{ secrets.IOS_PROVISION_PROFILE_BASE64 }}
+        run: python3 ../tools/ios/prepare_signing.py
+      - name: Build signed App Store bundle
+        env:
+          LEVELPLAY_IOS_APP_KEY: ${{ secrets.LEVELPLAY_IOS_APP_KEY }}
+          LEVELPLAY_IOS_BANNER_AD_UNIT: ${{ secrets.LEVELPLAY_IOS_BANNER_AD_UNIT }}
+          LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT: ${{ secrets.LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT }}
+          LEVELPLAY_IOS_REWARDED_AD_UNIT: ${{ secrets.LEVELPLAY_IOS_REWARDED_AD_UNIT }}
+          BACKEND_URL: ${{ needs.beta-backend.outputs.backend_url || 'https://ludo-rush-backend.ibsam588.workers.dev' }}
+        run: |
+          for name in LEVELPLAY_IOS_APP_KEY LEVELPLAY_IOS_BANNER_AD_UNIT LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT LEVELPLAY_IOS_REWARDED_AD_UNIT; do
+            if [[ -z "${!name}" ]]; then echo "::error::Missing iOS ad configuration: $name"; exit 1; fi
+          done
+          flutter build ipa --release \
+            --build-name=1.0.0 --build-number="$((GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))" \
+            --export-options-plist="$RUNNER_TEMP/ExportOptions.plist" \
+            --dart-define=BACKEND_URL="$BACKEND_URL" \
+            --dart-define=LEVELPLAY_PRODUCTION=true \
+            --dart-define=LEVELPLAY_IOS_APP_KEY="$LEVELPLAY_IOS_APP_KEY" \
+            --dart-define=LEVELPLAY_IOS_BANNER_AD_UNIT="$LEVELPLAY_IOS_BANNER_AD_UNIT" \
+            --dart-define=LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT="$LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT" \
+            --dart-define=LEVELPLAY_IOS_REWARDED_AD_UNIT="$LEVELPLAY_IOS_REWARDED_AD_UNIT"
+      - name: Upload to TestFlight
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_P8_BASE64: ${{ secrets.ASC_KEY_P8_BASE64 }}
+        run: bundle exec fastlane --fastfile ../fastlane/ios/Fastfile beta
+      - uses: actions/upload-artifact@v7.0.2
+        if: success()
+        with:
+          name: ludo-cheer-ios-ipa-${{ github.run_number }}-${{ github.run_attempt }}
+          path: |
+            client-flutter/build/ios/ipa/*.ipa
+            client-flutter/build/ios/archive/Runner.xcarchive/dSYMs/
+          retention-days: 14
+      - name: Remove temporary signing credentials
+        if: always()
+        run: python3 ../tools/ios/prepare_signing.py --cleanup

@@ -1,7 +1,7 @@
 name: ludo_rush
 description: Ludo Cheer - competitive mobile Ludo game
 publish_to: 'none'
-version: 1.0.90+10090
+version: 1.0.91+10091
 
 environment:
   sdk: '>=3.12.0 <4.0.0'
@@ -19,14 +19,23 @@ dependencies:
   image_picker: ^1.1.2
   audioplayers: 6.8.1
   in_app_purchase: ^3.3.0
+  in_app_purchase_storekit: ^0.4.17
+  uuid: ^4.5.3
   unity_levelplay_mediation: ^9.3.0
   flutter_webrtc: 1.6.2+hotfix.4
 dev_dependencies:
+  in_app_purchase_platform_interface: ^1.4.1
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  integration_test:
+    sdk: flutter
+  flutter_driver:
+    sdk: flutter
 
 flutter:
+  config:
+    enable-swift-package-manager: false
   uses-material-design: true
   assets:
     - assets/images/snakes_boards/

@@ -93,7 +93,9 @@ class _ResultsScreenState extends State<ResultsScreen>
         snapshot?.winnerPlayerId == state.playerId;
     await LevelPlayAdService.instance
         .showAfterCompletedRound(won: won, waitForDismissal: true);
-    if (!mounted || Theme.of(context).platform != TargetPlatform.android) {
+    if (!mounted ||
+        (Theme.of(context).platform != TargetPlatform.android &&
+            Theme.of(context).platform != TargetPlatform.iOS)) {
       return;
     }
 

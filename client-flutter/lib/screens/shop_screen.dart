@@ -12,6 +12,7 @@ import '../data/economy.dart';
 import '../state/app_state.dart';
 import '../services/levelplay_ad_service.dart';
 import '../services/purchase_service.dart';
+import '../services/app_platform_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/levelplay_banner.dart';
@@ -329,7 +330,7 @@ class _ShopScreenState extends State<ShopScreen>
                                                 final productId =
                                                     product.productId;
                                                 message = productId == null
-                                                    ? '${product.title} is still being prepared for Google Play.'
+                                                    ? '${product.title} is still being prepared for ${AppPlatformService.storeName}.'
                                                     : await PurchaseService
                                                         .instance
                                                         .buy(productId);
@@ -363,7 +364,7 @@ class _ShopScreenState extends State<ShopScreen>
                                                 }
                                               } else if (product.premium) {
                                                 message =
-                                                    '${product.title} requires a verified Google Play purchase. No coins were added.';
+                                                    '${product.title} requires a verified ${AppPlatformService.storeName} purchase. No coins were added.';
                                               } else if (product.coinReward >
                                                   0) {
                                                 message =
@@ -520,7 +521,7 @@ class _PurchaseStatusBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final busy = purchases.loading || purchases.activeProductId != null;
     final message = purchases.statusMessage.isEmpty
-        ? 'Secure checkout and purchase restore are handled by Google Play.'
+        ? 'Secure checkout and purchase restore are handled by ${AppPlatformService.storeName}.'
         : purchases.statusMessage;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),

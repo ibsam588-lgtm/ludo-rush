@@ -6,6 +6,7 @@ import 'package:unity_levelplay_mediation/unity_levelplay_mediation.dart';
 
 import '../config/levelplay_ad_config.dart';
 import 'ad_placement_policy.dart';
+import 'app_platform_service.dart';
 
 class LevelPlayAdService extends ChangeNotifier
     with
@@ -47,6 +48,7 @@ class LevelPlayAdService extends ChangeNotifier
     notifyListeners();
 
     try {
+      await AppPlatformService.prepareAdsPrivacy();
       LevelPlay.addImpressionDataListener(this);
       await LevelPlay.setAdaptersDebug(!LevelPlayAdConfig.isProduction);
       await LevelPlayPrivacySettings.setCOPPA(

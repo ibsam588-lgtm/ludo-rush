@@ -9,8 +9,10 @@ export interface Env {
   ANDROID_UPDATE_URL?: string;
   FORCE_UPDATE_MESSAGE?: string;
   GOOGLE_PLAY_SERVICE_ACCOUNT_JSON?: string;
+  APP_STORE_ENVIRONMENT?: "Production" | "Sandbox";
   TURN_KEY_ID?: string;
   TURN_KEY_API_TOKEN?: string;
+  VOICE_RELAY?: { createIceServers(): Promise<{ iceServers: unknown }> };
 }
 
 export type Region = "auto" | "us-east" | "us-west" | "europe" | "middle-east" | "south-asia" | "east-asia";

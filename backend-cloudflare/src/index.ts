@@ -9,8 +9,10 @@ import { badRequest, json, notFound, readJson, unauthorized } from "./utils/http
 import { createId, createRoomCode } from "./utils/id";
 import { routeSocialRequest } from "./social";
 import { routePurchaseRequest } from "./purchases";
+import { createIceServers } from "./voice-relay";
 
 export { LudoRoom };
+export { VoiceRelay } from "./voice-relay";
 
 interface GuestAuthRequest {
   displayName?: string;
@@ -93,6 +95,12 @@ export default {
         return createGuest(request, env);
       }
 
+      if (request.method === "GET" && url.pathname === "/api/v1/auth/session") {
+        const playerId = await authenticatedPlayerId(request, env);
+        if (!playerId) return unauthorized();
+        return json({ playerId }, { headers: { "cache-control": "no-store" } });
+      }
+
       if (request.method === "GET" && url.pathname === "/api/v1/voice/ice") {
         return getVoiceIceServers(request, env);
       }
@@ -172,16 +180,13 @@ async function getVoiceIceServers(request: Request, env: Env): Promise<Response>
   const profile = await env.DB.prepare("SELECT age FROM users WHERE id = ?")
     .bind(playerId).first<{ age: number }>();
   if ((profile?.age ?? 0) < 13) return json({ error: "Voice chat is available to players age 13 or older." }, { status: 403 });
-  const fallback = { iceServers: [{ urls: ["stun:stun.cloudflare.com:3478"] }] };
-  if (!env.TURN_KEY_ID || !env.TURN_KEY_API_TOKEN) return json(fallback);
-  const response = await fetch(`https://rtc.live.cloudflare.com/v1/turn/keys/${encodeURIComponent(env.TURN_KEY_ID)}/credentials/generate-ice-servers`, {
-    method: "POST",
-    headers: { authorization: `Bearer ${env.TURN_KEY_API_TOKEN}`, "content-type": "application/json" },
-    body: JSON.stringify({ ttl: 14400 })
-  });
-  if (!response.ok) return json({ error: "Voice connection is temporarily unavailable." }, { status: 503 });
-  const data = await response.json() as { iceServers?: unknown };
-  return json({ iceServers: data.iceServers });
+  try {
+    return json(env.VOICE_RELAY
+      ? await env.VOICE_RELAY.createIceServers()
+      : await createIceServers(env));
+  } catch {
+    return json({ error: "Voice connection is temporarily unavailable." }, { status: 503 });
+  }
 }
 
 async function getAppConfig(env: Env, url: URL): Promise<Response> {

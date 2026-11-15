@@ -1,0 +1,12 @@
+[
+  {"id":"dice.ruby","name":"Ruby Dice","description":"Unlock the premium ruby dice skin.","usd":"0.99","consumable":false},
+  {"id":"dice.cosmic","name":"Cosmic Dice","description":"Unlock the premium cosmic dice skin.","usd":"1.99","consumable":false},
+  {"id":"board.neon","name":"Neon Board","description":"Unlock the premium neon Ludo board.","usd":"1.99","consumable":false},
+  {"id":"avatar.premium_cosmic_empress","name":"Cosmic Empress","description":"Unlock the Cosmic Empress avatar.","usd":"1.99","consumable":false},
+  {"id":"avatar.premium_gold_champion","name":"Gold Champion","description":"Unlock the Gold Champion avatar.","usd":"1.49","consumable":false},
+  {"id":"avatar.premium_neon_heroine","name":"Neon Heroine","description":"Unlock the Neon Heroine avatar.","usd":"0.99","consumable":false},
+  {"id":"avatar.premium_emerald_prince","name":"Emerald Prince","description":"Unlock the Emerald Prince avatar.","usd":"1.99","consumable":false},
+  {"id":"coins.stack_1200","name":"Coin Stack","description":"Add 1,200 coins to your Ludo Cheer balance.","usd":"0.99","consumable":true},
+  {"id":"coins.chest_3500","name":"Gem Chest","description":"Add 3,500 coins to your Ludo Cheer balance.","usd":"1.49","consumable":true},
+  {"id":"coins.vault_7500","name":"Royal Vault","description":"Add 7,500 coins to your Ludo Cheer balance.","usd":"1.99","consumable":true}
+]
