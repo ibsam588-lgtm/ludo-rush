@@ -13,11 +13,11 @@ changes to Google Play internal testing. Its existing filename and run-number
 history are retained so Android version codes keep increasing.
 
 `flutter-ios-testflight.yml` verifies an unsigned iOS release on macOS and uploads
-signed main builds to TestFlight. Pull requests also launch the actual iPhone and
-iPad UI to capture store media; a manual run can refresh it with
-`capture_store_assets`. Main builds reuse the pull request's reviewed media rather
-than recapturing the full store listing on every upload. Neither workflow submits
-a public store release.
+signed main builds to TestFlight. A manual run with `capture_store_assets` also
+launches the actual iPhone and iPad UI to refresh store media. Ordinary pull
+requests and uploads compile and test the app, reusing visually reviewed media
+instead of recapturing the full store listing after every code change. Neither
+workflow submits a public store release.
 
 Android host changes trigger Android only; iOS host, signing, Fastlane and store
 capture changes trigger iOS only. Shared Dart, assets, tests and pubspec changes
