@@ -2821,6 +2821,26 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     return decoded;
   }
 
+  Future<String?> prepareStorePurchase() async {
+    await _ensureAuthenticatedIdentity();
+    final account = playerId;
+    final token = authToken;
+    if (_disposed || account == null || account.isEmpty ||
+        account.startsWith('local_') || token == null || token.isEmpty) {
+      return null;
+    }
+    try {
+      final session = await _requestJson('GET', '/api/v1/auth/session');
+      if (!_disposed && playerId == account && authToken == token &&
+          session['playerId'] == account) {
+        return account;
+      }
+    } catch (_) {
+      // Never open paid checkout when the delivery account cannot be verified.
+    }
+    return null;
+  }
+
   Future<String> verifyGooglePlayPurchase({
     required String productId,
     required String purchaseToken,

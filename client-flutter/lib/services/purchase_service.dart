@@ -102,26 +102,35 @@ class PurchaseService extends ChangeNotifier {
       _products[productId]?.price ?? fallback;
 
   Future<String> buy(String productId) async {
-    if (_activeProductId != null) {
+    if (_activeProductId != null || _restoring) {
       return 'Finish the current ${AppPlatformService.storeName} purchase first.';
     }
-    if (!_available) {
-      await refreshProducts();
-    }
-    final product = _products[productId];
-    if (product == null) {
-      return 'This item is still being activated in ${AppPlatformService.storeName}.';
-    }
-
+    // Acquire this before any await, including product refresh and sign-in.
     _activeProductId = productId;
-    _statusMessage = 'Opening secure ${AppPlatformService.storeName} checkout…';
+    _statusMessage =
+        'Preparing secure ${AppPlatformService.storeName} checkout…';
     notifyListeners();
-    final state = _appState;
-    final purchaseParam = PurchaseParam(
-      productDetails: product,
-      applicationUserName: _accountName(state?.playerId),
-    );
     try {
+      if (!_available) await refreshProducts();
+      final product = _products[productId];
+      if (product == null) {
+        return _checkoutFailed(
+          'This item is still being activated in ${AppPlatformService.storeName}.',
+        );
+      }
+      final account = await _appState?.prepareStorePurchase();
+      if (account == null) {
+        return _checkoutFailed(
+          'Your player account is still connecting. Please try again.',
+        );
+      }
+      _statusMessage =
+          'Opening secure ${AppPlatformService.storeName} checkout…';
+      notifyListeners();
+      final purchaseParam = PurchaseParam(
+        productDetails: product,
+        applicationUserName: _accountName(account),
+      );
       final launched = consumableProductIds.contains(productId)
           ? await _store.buyConsumable(
               purchaseParam: purchaseParam,
@@ -129,20 +138,23 @@ class PurchaseService extends ChangeNotifier {
             )
           : await _store.buyNonConsumable(purchaseParam: purchaseParam);
       if (!launched) {
-        _activeProductId = null;
-        _statusMessage =
-            '${AppPlatformService.storeName} checkout did not open.';
-        notifyListeners();
-        return _statusMessage;
+        return _checkoutFailed(
+          '${AppPlatformService.storeName} checkout did not open.',
+        );
       }
       return 'Complete your purchase in ${AppPlatformService.storeName}.';
     } catch (_) {
-      _activeProductId = null;
-      _statusMessage =
-          '${AppPlatformService.storeName} checkout could not be opened.';
-      notifyListeners();
-      return _statusMessage;
+      return _checkoutFailed(
+        '${AppPlatformService.storeName} checkout could not be opened.',
+      );
     }
+  }
+
+  String _checkoutFailed(String message) {
+    _activeProductId = null;
+    _statusMessage = message;
+    notifyListeners();
+    return message;
   }
 
   Future<String> restorePurchases() async {
@@ -232,7 +244,17 @@ class PurchaseService extends ChangeNotifier {
     if ((AppPlatformService.isIOS ||
             !consumableProductIds.contains(purchase.productID)) &&
         purchase.pendingCompletePurchase) {
-      await _store.completePurchase(purchase);
+      try {
+        await _store.completePurchase(purchase);
+      } catch (_) {
+        // The server has already delivered this transaction idempotently.
+        // StoreKit retains an unfinished transaction for the next app session.
+        _activeProductId = null;
+        _statusMessage =
+            'Items delivered. ${AppPlatformService.storeName} confirmation is pending.';
+        notifyListeners();
+        return;
+      }
     }
     _activeProductId = null;
     _statusMessage = consumableProductIds.contains(purchase.productID)

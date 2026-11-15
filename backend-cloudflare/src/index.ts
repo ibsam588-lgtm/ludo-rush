@@ -95,6 +95,12 @@ export default {
         return createGuest(request, env);
       }
 
+      if (request.method === "GET" && url.pathname === "/api/v1/auth/session") {
+        const playerId = await authenticatedPlayerId(request, env);
+        if (!playerId) return unauthorized();
+        return json({ playerId }, { headers: { "cache-control": "no-store" } });
+      }
+
       if (request.method === "GET" && url.pathname === "/api/v1/voice/ice") {
         return getVoiceIceServers(request, env);
       }

@@ -55,7 +55,11 @@ user declines; ATT is not treated as GDPR consent.
 
 iOS uses StoreKit 2 and the same ten immutable catalog IDs as Android. Three
 coin packs are consumable; dice, board and premium-avatar products are permanent.
-Checkout supplies a UUIDv5 app-account token bound to the authenticated guest ID.
+Checkout first confirms the delivery account with the server, then supplies a
+UUIDv5 app-account token bound to that authenticated guest ID. A checkout lock
+prevents duplicate taps while products or sign-in are loading. If StoreKit's
+final confirmation fails after delivery, the unfinished transaction can retry
+without granting the purchase twice.
 The backend verifies Apple's signed transaction and certificate chain with the
 official Apple server library before updating the wallet. Product, bundle,
 account, quantity, type, environment and revocation checks precede the grant;
@@ -72,6 +76,10 @@ production worker's private `VoiceRelay` RPC entrypoint for short-lived TURN
 credentials, after authenticating an age-eligible player in an active beta room.
 The production TURN secrets are never copied into the beta environment.
 Apple transactions are completed only after successful server verification.
+Physical-device sandbox purchase and restore checks remain necessary before a
+public App Store release. Permanent purchases currently follow the authenticated
+guest account; restoring onto a new guest after reinstall requires account
+recovery, rather than weakening the server's account-token check.
 
 ## Store media
 

@@ -47,6 +47,16 @@ def main():
                 with urllib.request.urlopen(request, timeout=5) as response:
                     guest = json.load(response)
                     assert response.status == 201
+                request = urllib.request.Request(base + '/api/v1/auth/session',
+                    headers={'Authorization': 'Bearer ' + guest['token']})
+                with urllib.request.urlopen(request, timeout=5) as response:
+                    assert json.load(response)['playerId'] == guest['player']['id']
+                    assert response.headers['cache-control'] == 'no-store'
+                try:
+                    urllib.request.urlopen(base + '/api/v1/auth/session', timeout=5)
+                    raise AssertionError('An unauthenticated checkout session was accepted')
+                except urllib.error.HTTPError as error:
+                    assert error.code == 401
                 # Pass the JWS shape guard so the official Apple verifier really
                 # loads inside workerd. Forged data must never award purchases.
                 request = urllib.request.Request(base + '/api/v1/purchases/app-store/verify',
@@ -60,7 +70,7 @@ def main():
                 except urllib.error.HTTPError as error:
                     assert error.code == 400, error.read().decode()
                     assert 'Apple could not verify' in json.load(error)['error']
-                print('Workers runtime: healthy launch, guest sign-in, forged Apple transaction rejected.')
+                print('Workers runtime: healthy launch, authenticated checkout session, forged Apple transaction rejected.')
             finally:
                 if os.name == 'nt':
                     subprocess.run(['taskkill', '/PID', str(process.pid), '/T', '/F'],
