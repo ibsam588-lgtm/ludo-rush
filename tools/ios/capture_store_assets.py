@@ -39,14 +39,20 @@ def main():
             run('flutter', 'drive', '-d', udid,
                 '--driver=ios/store_assets/driver.dart', '--target=ios/store_assets/capture_test.dart',
                 '--dart-define=LEVELPLAY_PRODUCTION=true',
+                f'--dart-define=IOS_CAPTURE_REVIEWS={str(group == "iphone-6.9").lower()}',
                 env={**os.environ, 'IOS_SCREENSHOT_DIR': str(folder)}, timeout=1200)
         finally:
             recording.send_signal(signal.SIGINT)
             recording.wait(timeout=30)
-        screenshots = sorted(folder.glob('*.png'))
+        screenshots = sorted(p for p in folder.glob('*.png') if p.name[0].isdigit())
         if len(screenshots) != 5:
             raise RuntimeError(f'Expected five real screenshots for {group}, received {len(screenshots)}')
-        evidence.append({'format': group, 'device': device['name'], 'screenshots': [p.name for p in screenshots]})
+        reviews = sorted(folder.glob('review-*.png'))
+        if group == 'iphone-6.9' and len(reviews) != 10:
+            raise RuntimeError(f'Expected ten product review screenshots, received {len(reviews)}')
+        evidence.append({'format': group, 'device': device['name'],
+                         'screenshots': [p.name for p in screenshots],
+                         'purchase_review_screenshots': [p.name for p in reviews]})
         run('xcrun', 'simctl', 'shutdown', udid)
     (output / 'capture-manifest.json').write_text(json.dumps(evidence, indent=2))
 

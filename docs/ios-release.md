@@ -12,9 +12,12 @@ Store provisioning profile. Never commit signing keys or provisioning profiles.
 changes to Google Play internal testing. Its existing filename and run-number
 history are retained so Android version codes keep increasing.
 
-`flutter-ios-testflight.yml` verifies an unsigned iOS release on macOS, launches
-the actual iPhone and iPad app to capture store media, and uploads signed main
-builds to TestFlight. Neither workflow submits a public store release.
+`flutter-ios-testflight.yml` verifies an unsigned iOS release on macOS and uploads
+signed main builds to TestFlight. Pull requests also launch the actual iPhone and
+iPad UI to capture store media; a manual run can refresh it with
+`capture_store_assets`. Main builds reuse the pull request's reviewed media rather
+than recapturing the full store listing on every upload. Neither workflow submits
+a public store release.
 
 Android host changes trigger Android only; iOS host, signing, Fastlane and store
 capture changes trigger iOS only. Shared Dart, assets, tests and pubspec changes
@@ -64,15 +67,20 @@ bindings. The iOS workflow provisions these isolated resources for ordinary
 TestFlight uploads and supplies their `BACKEND_URL`. Never enable sandbox
 purchases against the live economy. For an App Store release candidate, manually
 dispatch the iOS workflow with `production_backend` selected; that build uses
-the live backend and accepts real Production purchases only. Beta voice relay
-reuses `TURN_KEY_ID` and `TURN_KEY_API_TOKEN` repository secrets when available.
+the live backend and accepts real Production purchases only. Beta voice uses the
+production worker's private `VoiceRelay` RPC entrypoint for short-lived TURN
+credentials, after authenticating an age-eligible player in an active beta room.
+The production TURN secrets are never copied into the beta environment.
 Apple transactions are completed only after successful server verification.
 
 ## Store media
 
 `tools/ios/capture_store_assets.py` runs the real Flutter UI on a 6.9-inch iPhone
 and 13-inch iPad simulator. It captures five native screenshots per device and
-records actual gameplay, using James as the sample player. The fixture is an
+records actual gameplay, using James as the sample player. Ten additional iPhone
+images show each paid product's real preview for Apple's purchase review. Each
+screen switch disposes the previous navigator so an old modal cannot contaminate
+the next capture. The fixture is an
 isolated entry point and is never imported by production main. The workflow
 uploads the screenshots, original video recording and a capture manifest as
 `ludo-cheer-ios-evidence`.

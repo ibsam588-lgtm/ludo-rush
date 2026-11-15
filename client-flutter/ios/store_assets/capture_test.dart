@@ -10,6 +10,7 @@ import 'package:ludo_rush/screens/game_screen.dart';
 import 'package:ludo_rush/screens/home_screen.dart';
 import 'package:ludo_rush/screens/shop_screen.dart';
 import 'package:ludo_rush/services/prefs_service.dart';
+import 'package:ludo_rush/services/app_platform_service.dart';
 import 'package:ludo_rush/state/app_state.dart';
 import 'package:ludo_rush/theme/app_theme.dart';
 import 'package:provider/provider.dart';
@@ -21,6 +22,12 @@ void main() {
     final prefs = PrefsService();
     await prefs.init().timeout(const Duration(seconds: 20));
     debugPrint('IOS_STORE_STAGE preferences ready');
+    final version = await AppPlatformService.getVersionInfo();
+    expect(
+      version.buildNumber,
+      greaterThan(0),
+      reason: 'The native iOS app channel must be registered.',
+    );
     final state = AppState(prefs, random: Random(24))
       ..displayName = 'James'
       ..playerId = 'store_james'
@@ -33,6 +40,10 @@ void main() {
 
     Future<void> show(Widget screen) async {
       debugPrint('IOS_STORE_STAGE showing ${screen.runtimeType}');
+      // Dispose the previous navigator, including modal routes. Replacing only
+      // MaterialApp.home preserves its navigator and can capture an old dialog.
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
       await tester.pumpWidget(
         ChangeNotifierProvider.value(
           value: state,
@@ -53,6 +64,8 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 100));
       expect(tester.takeException(), isNull);
+      expect(find.byType(screen.runtimeType), findsOneWidget);
+      expect(find.byType(Dialog), findsNothing);
       debugPrint('IOS_STORE_STAGE ready ${screen.runtimeType}');
     }
 
@@ -111,7 +124,56 @@ void main() {
         await tester.pump(const Duration(seconds: 2));
       }
     }
+
+    if (const bool.fromEnvironment('IOS_CAPTURE_REVIEWS')) {
+      state.localMatchActive = false;
+      state.lastSnapshot = null;
+      const products = [
+        ('dice.ruby', 'Ruby Dice', 'Dice'),
+        ('dice.cosmic', 'Cosmic Dice', 'Dice'),
+        ('board.neon', 'Neon Board', 'Ludo'),
+        ('avatar.premium_cosmic_empress', 'Cosmic Empress', 'Avatars'),
+        ('avatar.premium_gold_champion', 'Gold Champion', 'Avatars'),
+        ('avatar.premium_neon_heroine', 'Neon Heroine', 'Avatars'),
+        ('avatar.premium_emerald_prince', 'Emerald Prince', 'Avatars'),
+        ('coins.stack_1200', 'Coin Stack', 'Rewards'),
+        ('coins.chest_3500', 'Gem Chest', 'Rewards'),
+        ('coins.vault_7500', 'Royal Vault', 'Rewards'),
+      ];
+      for (final (id, title, category) in products) {
+        await show(const ShopScreen());
+        final categoryChip = find.byKey(ValueKey('shop-category-$category'));
+        await tester.ensureVisible(categoryChip);
+        await tester.tap(categoryChip);
+        await tester.pump(const Duration(milliseconds: 300));
+        final scrollable = find
+            .descendant(
+              of: find.byType(CustomScrollView),
+              matching: find.byType(Scrollable),
+            )
+            .first;
+        final product = find.text(title);
+        await tester.scrollUntilVisible(
+          product,
+          240,
+          scrollable: scrollable,
+          maxScrolls: 40,
+        );
+        await tester.ensureVisible(product);
+        await tester.tap(product);
+        await tester.pump(const Duration(milliseconds: 500));
+        expect(find.byType(Dialog), findsOneWidget);
+        expect(
+          find.descendant(of: find.byType(Dialog), matching: product),
+          findsOneWidget,
+        );
+        await binding.takeScreenshot('review-$id');
+        await tester.tap(find.byTooltip('Close preview'));
+        await tester.pump(const Duration(milliseconds: 300));
+        debugPrint('IOS_STORE_STAGE captured product $id');
+      }
+    }
     await tester.pumpWidget(const SizedBox.shrink());
     state.dispose();
-  }, timeout: const Timeout(Duration(minutes: 3)));
+  }, timeout: const Timeout(Duration(minutes: 4)));
 }

@@ -16,6 +16,10 @@ on:
     paths: *ios_paths
   workflow_dispatch:
     inputs:
+      capture_store_assets:
+        description: Refresh native iPhone/iPad screenshots, purchase-review images and source video
+        type: boolean
+        default: false
       production_backend:
         description: Use the live backend for an App Store release candidate (real purchases only)
         type: boolean
@@ -66,6 +70,7 @@ jobs:
       - name: Compile unsigned iOS release
         run: flutter build ios --release --no-codesign
       - name: Capture native iPhone and iPad evidence
+        if: github.event_name == 'pull_request' || inputs.capture_store_assets
         run: python3 ../tools/ios/capture_store_assets.py
       - uses: actions/upload-artifact@v7.0.2
         if: always()
