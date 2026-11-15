@@ -1,6 +1,6 @@
 """Upload reviewed native media using Apple's current asset-library API.
 
-Requires the environment documented in app_store_api.py. This only edits the
+Requires Pillow and the environment documented in app_store_api.py. This only edits the
 draft listing and purchase-review metadata; it never submits an App Store review.
 Existing placements are retained. Re-running reuses content-addressed images.
 """
@@ -19,6 +19,22 @@ from app_store_api import AppStoreClient, AppleAPIError
 APP_ID = '6834993861'
 GROUPS = {'iphone-6.9': 'IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE',
           'ipad-13': 'IPAD_13_PROFILE'}
+
+
+def opaque_image(path):
+    """Remove an unused alpha channel without changing native screenshot pixels."""
+    from PIL import Image
+    with Image.open(path) as image:
+        if image.mode == 'RGB':
+            return path
+        rgba = image.convert('RGBA')
+        if rgba.getchannel('A').getextrema() != (255, 255):
+            raise ValueError(f'The native screenshot has transparent pixels: {path.name}')
+        target = path.parent / 'apple-opaque' / path.name
+        target.parent.mkdir(exist_ok=True)
+        rgba.convert('RGB').save(target, format='PNG', optimize=True,
+                                 icc_profile=image.info.get('icc_profile'))
+        return target
 
 
 def relation(kind, identifier):
@@ -170,6 +186,7 @@ def main():
         if len(images) != 5:
             raise ValueError(f'{folder} requires all five visually reviewed native screenshots')
         for path in images:
+            path = opaque_image(path)
             asset = library_asset(api, library, path)
             placement = place(api, asset, args.localization, group)
             ordered.append(placement['id'])
@@ -195,7 +212,7 @@ def main():
             path = args.media_root / 'iphone-6.9' / f'review-{product["attributes"]["productId"]}.png'
             if not path.is_file():
                 raise ValueError(f'Missing purchase review image: {path.name}')
-            review_image(api, product['id'], path)
+            review_image(api, product['id'], opaque_image(path))
     (args.media_root / 'apple-upload-summary.json').write_text(json.dumps(summary, indent=2), encoding='utf-8')
 
 

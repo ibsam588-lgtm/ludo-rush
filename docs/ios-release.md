@@ -85,6 +85,14 @@ isolated entry point and is never imported by production main. The workflow
 uploads the screenshots, original video recording and a capture manifest as
 `ludo-cheer-ios-evidence`.
 
+After visual review, `tools/ios/upload_store_assets.py` uploads the media to the
+draft localization through Apple's current asset-library API and attaches the
+purchase-review images. It requires Pillow plus the Apple API dependencies and
+environment documented in `tools/ios/app_store_api.py`. Native screenshots keep
+their dimensions and RGB pixels; only an entirely opaque alpha channel is
+removed in separate upload copies, as required by Apple's image specifications.
+The uploader never submits an App Store review or deletes existing placements.
+
 App Store Connect requires a native App Preview file, rather than a YouTube URL.
 Use an edited 15–30 second gameplay clip at an Apple-supported device resolution
 and upload it to the App Previews slot. Keep the YouTube link on the marketing

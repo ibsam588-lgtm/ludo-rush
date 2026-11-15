@@ -151,7 +151,18 @@ void main() {
       for (final (id, title, category) in products) {
         await show(const ShopScreen());
         final categoryChip = find.byKey(ValueKey('shop-category-$category'));
-        await tester.ensureVisible(categoryChip);
+        final categoryScroller = find
+            .descendant(
+              of: find.byType(ListView).first,
+              matching: find.byType(Scrollable),
+            )
+            .first;
+        await tester.scrollUntilVisible(
+          categoryChip,
+          120,
+          scrollable: categoryScroller,
+          maxScrolls: 8,
+        );
         await tester.pump(const Duration(milliseconds: 150));
         await tester.tap(categoryChip);
         await tester.pump(const Duration(milliseconds: 300));
