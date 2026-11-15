@@ -17,6 +17,9 @@ import 'package:provider/provider.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  // Record real animation frames between test actions for the App Preview.
+  // The test binding's default only paints pumped frames and pointer fades.
+  binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
   WidgetController.hitTestWarningShouldBeFatal = true;
   testWidgets('capture real iOS game screens', (tester) async {
     debugPrint('IOS_STORE_STAGE starting fixture');
