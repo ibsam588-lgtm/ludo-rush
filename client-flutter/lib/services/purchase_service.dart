@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:uuid/uuid.dart';
-import 'package:uuid/enums.dart';
 
 import '../state/app_state.dart';
 import 'app_platform_service.dart';

@@ -31,10 +31,10 @@ class SocialPlayer {
   });
 
   factory SocialPlayer.fromJson(Map<String, dynamic> json) => SocialPlayer(
-    id: json['id'] as String? ?? '',
-    displayName: json['displayName'] as String? ?? 'Player',
-    rating: (json['rating'] as num?)?.toInt() ?? 1000,
-  );
+        id: json['id'] as String? ?? '',
+        displayName: json['displayName'] as String? ?? 'Player',
+        rating: (json['rating'] as num?)?.toInt() ?? 1000,
+      );
 }
 
 class ClubSummary {
@@ -59,15 +59,15 @@ class ClubSummary {
   });
 
   factory ClubSummary.fromJson(Map<String, dynamic> json) => ClubSummary(
-    id: json['id'] as String? ?? '',
-    name: json['name'] as String? ?? 'Club',
-    tag: json['tag'] as String? ?? '',
-    description: json['description'] as String? ?? '',
-    minimumRating: (json['minimumRating'] as num?)?.toInt() ?? 0,
-    memberCount: (json['memberCount'] as num?)?.toInt() ?? 0,
-    ratingTotal: (json['ratingTotal'] as num?)?.toInt() ?? 0,
-    contribution: (json['contribution'] as num?)?.toInt() ?? 0,
-  );
+        id: json['id'] as String? ?? '',
+        name: json['name'] as String? ?? 'Club',
+        tag: json['tag'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        minimumRating: (json['minimumRating'] as num?)?.toInt() ?? 0,
+        memberCount: (json['memberCount'] as num?)?.toInt() ?? 0,
+        ratingTotal: (json['ratingTotal'] as num?)?.toInt() ?? 0,
+        contribution: (json['contribution'] as num?)?.toInt() ?? 0,
+      );
 }
 
 class FriendChatMessage {
@@ -118,15 +118,12 @@ class ReceivedFriendGift {
 }
 
 class AppState extends ChangeNotifier with WidgetsBindingObserver {
-  static final String _appSessionId = DateTime.now()
-      .toUtc()
-      .microsecondsSinceEpoch
-      .toString();
+  static final String _appSessionId =
+      DateTime.now().toUtc().microsecondsSinceEpoch.toString();
   static const String _backendUrl = String.fromEnvironment(
     'BACKEND_URL',
     defaultValue: 'https://ludo-rush-backend.ibsam588.workers.dev',
   );
-
   static const String snakesLaddersMode = 'snakes_ladders';
 
   @visibleForTesting
@@ -155,7 +152,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     65: 85,
     79: 99,
   };
-  static const Map<int, int> _snakeDrops = {47: 13, 57: 35, 84: 64, 93: 68};
+  static const Map<int, int> _snakeDrops = {
+    47: 13,
+    57: 35,
+    84: 64,
+    93: 68,
+  };
   static const Map<String, int> _diceUnlockWins = {
     'classic': 0,
     'royal': 3,
@@ -175,7 +177,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     'ruby': '0.99 USD',
     'cosmic': '1.99 USD',
   };
-  static const Map<String, String> _premiumBoardPrices = {'neon': '1.99 USD'};
+  static const Map<String, String> _premiumBoardPrices = {
+    'neon': '1.99 USD',
+  };
   static const List<String> _matchedNames = [
     'Maya',
     'Leo',
@@ -334,14 +338,13 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
           SocketConnectionPhase.idle => 'Offline',
         };
 
-  AppState(
-    this._prefs, {
-    math.Random? random,
-    http.Client? matchmakingClient,
-    WebSocketService? webSocketService,
-  }) : _ws = webSocketService ?? WebSocketService(),
-       _rng = random ?? math.Random(),
-       _matchmakingClient = matchmakingClient ?? http.Client();
+  AppState(this._prefs,
+      {math.Random? random,
+      http.Client? matchmakingClient,
+      WebSocketService? webSocketService})
+      : _ws = webSocketService ?? WebSocketService(),
+        _rng = random ?? math.Random(),
+        _matchmakingClient = matchmakingClient ?? http.Client();
 
   Future<void> init() async {
     if (!_lifecycleObserverRegistered) {
@@ -352,10 +355,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     authToken = _prefs.authToken;
     displayName = _prefs.displayName;
     countryCode = _prefs.countryCode;
-    avatarPreset = _prefs.avatarPreset.clamp(
-      0,
-      profileAvatarCatalog.length - 1,
-    );
+    avatarPreset =
+        _prefs.avatarPreset.clamp(0, profileAvatarCatalog.length - 1);
     age = _prefs.age;
     avatarImagePath = _prefs.avatarImagePath;
     coins = _prefs.coins;
@@ -391,7 +392,10 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     } catch (_) {
       matchHistory = const [];
     }
-    SoundService.configure(sound: soundEffectsEnabled, haptics: hapticsEnabled);
+    SoundService.configure(
+      sound: soundEffectsEnabled,
+      haptics: hapticsEnabled,
+    );
     if (!isBoardThemePremium(ludoBoardTheme) &&
         !isBoardThemeUnlocked(ludoBoardTheme)) {
       ludoBoardTheme = 'carnival';
@@ -408,9 +412,10 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     }
     lastDailyRewardDate = _prefs.lastDailyRewardDate;
     startChoiceSeen = _prefs.startChoiceSeen;
-    unawaited(
-      _soundtrack.configure(track: soundtrackId, enabled: musicEnabled),
-    );
+    unawaited(_soundtrack.configure(
+      track: soundtrackId,
+      enabled: musicEnabled,
+    ));
 
     // Shared WS service identity
     _ws.playerId = playerId;
@@ -468,15 +473,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _healthCheck() {
-    http
-        .get(Uri.parse('$_backendUrl/health'))
-        .then((r) {
-          backendOnline = r.statusCode < 400;
-        })
-        .catchError((_) {
-          backendOnline = false;
-          _recordDiagnostic('health', 'Backend health check failed');
-        });
+    http.get(Uri.parse('$_backendUrl/health')).then((r) {
+      backendOnline = r.statusCode < 400;
+    }).catchError((_) {
+      backendOnline = false;
+      _recordDiagnostic('health', 'Backend health check failed');
+    });
   }
 
   void _recordDiagnostic(String category, String message) {
@@ -486,15 +488,15 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   String diagnosticsSummary() => [
-    'Ludo Cheer diagnostics',
-    'Player: ${playerId ?? 'unassigned'}',
-    'Mode: ${lastSnapshot?.mode ?? pendingMatchMode}',
-    'Room: ${lastSnapshot?.roomId ?? 'none'}',
-    'Connection: $roomConnectionLabel',
-    'Backend health: ${backendOnline ? 'online' : 'unavailable'}',
-    'Recent events:',
-    ...diagnosticEvents.take(12),
-  ].join('\n');
+        'Ludo Cheer diagnostics',
+        'Player: ${playerId ?? 'unassigned'}',
+        'Mode: ${lastSnapshot?.mode ?? pendingMatchMode}',
+        'Room: ${lastSnapshot?.roomId ?? 'none'}',
+        'Connection: $roomConnectionLabel',
+        'Backend health: ${backendOnline ? 'online' : 'unavailable'}',
+        'Recent events:',
+        ...diagnosticEvents.take(12),
+      ].join('\n');
 
   Future<void> checkForForcedUpdate({bool notify = true}) async {
     updateCheckInProgress = true;
@@ -543,9 +545,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       minimumRequiredBuildNumber = minimum;
       latestAvailableBuildNumber = latest;
       latestAvailableVersionName = latestVersion;
-      forceUpdateUrl = updateUrl.isEmpty
-          ? AppPlatformService.storeListing
-          : updateUrl;
+      forceUpdateUrl = updateUrl.isEmpty ? AppPlatformService.storeListing : updateUrl;
       if (message.isNotEmpty) forceUpdateMessage = message;
       forceUpdateRequired = shouldForceUpdate(
         forceEnabled: forceEnabled,
@@ -626,10 +626,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   void replaceWith(String route, {Object? arguments}) {
     clearTransientUi();
-    navigatorKey.currentState?.pushReplacementNamed(
-      route,
-      arguments: arguments,
-    );
+    navigatorKey.currentState
+        ?.pushReplacementNamed(route, arguments: arguments);
   }
 
   void goBack() {
@@ -725,8 +723,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         !_ws.isConnected ||
         snapshot?.status != 'waiting' ||
         snapshot?.seats.firstOrNull?.playerId != playerId ||
-        (snapshot?.seats.where((seat) => !seat.isBot).length ?? 0) < 2)
-      return;
+        (snapshot?.seats.where((seat) => !seat.isBot).length ?? 0) < 2) return;
     _ws.send({'type': 'fill_bots', 'playerId': playerId});
     _setStatus('Starting the match with bots...');
   }
@@ -758,9 +755,10 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _prefs.gamesPlayed = gamesPlayed;
     _prefs.rating = rating;
     if (economyEligible) {
-      unawaited(
-        Future<void>.delayed(const Duration(milliseconds: 900), refreshSocial),
-      );
+      unawaited(Future<void>.delayed(
+        const Duration(milliseconds: 900),
+        refreshSocial,
+      ));
     }
   }
 
@@ -848,11 +846,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   Future<ReviewPromptDecision> recordCompletedMatchForReview({
     required String matchId,
     required bool safeToPrompt,
-  }) => _reviewPromptPolicy.recordCompletedMatch(
-    matchId: matchId,
-    onboardingComplete: startChoiceSeen,
-    safeToPrompt: safeToPrompt,
-  );
+  }) =>
+      _reviewPromptPolicy.recordCompletedMatch(
+        matchId: matchId,
+        onboardingComplete: startChoiceSeen,
+        safeToPrompt: safeToPrompt,
+      );
 
   bool get shouldShowStartChoice {
     final defaultName =
@@ -918,8 +917,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         if (authToken == null || authToken!.isEmpty) {
           connecting = false;
           _setStatus(
-            'Online sign-in is unavailable. Try again when connected.',
-          );
+              'Online sign-in is unavailable. Try again when connected.');
           return;
         }
         _sendCreatePrivateRoom(mode);
@@ -944,11 +942,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         privateInviteCode = code.isEmpty ? null : code;
         if (socketUrl.isEmpty) {
           connecting = false;
-          _setStatus(
-            code.isEmpty
-                ? 'Private room created.'
-                : 'Private room $code created. Share the code.',
-          );
+          _setStatus(code.isEmpty
+              ? 'Private room created.'
+              : 'Private room $code created. Share the code.');
           return;
         }
         _connectWs(
@@ -963,8 +959,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         connecting = false;
         privateInviteCode = null;
         _setStatus(
-          'Could not create a private room. Check your connection and try again.',
-        );
+            'Could not create a private room. Check your connection and try again.');
       },
     );
   }
@@ -994,8 +989,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
           connecting = false;
           privateInviteCode = null;
           _setStatus(
-            'Online sign-in is unavailable. Try again when connected.',
-          );
+              'Online sign-in is unavailable. Try again when connected.');
           return;
         }
         _sendJoinPrivateRoom(cleanCode);
@@ -1047,11 +1041,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
           _setStatus('This room is not available to watch.');
           return;
         }
-        _connectWs(
-          socketUrl,
-          readyStatus: 'Watching room $cleanCode live.',
-          spectator: true,
-        );
+        _connectWs(socketUrl,
+            readyStatus: 'Watching room $cleanCode live.', spectator: true);
         replaceWith('/game');
       },
       onError: () {
@@ -1059,8 +1050,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         isSpectator = false;
         privateInviteCode = null;
         _setStatus(
-          'Room code was not found, expired, or could not be reached.',
-        );
+            'Room code was not found, expired, or could not be reached.');
       },
     );
   }
@@ -1091,8 +1081,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         connecting = false;
         privateInviteCode = null;
         _setStatus(
-          'Room code was not found, expired, or could not be reached.',
-        );
+            'Room code was not found, expired, or could not be reached.');
       },
     );
   }
@@ -1108,8 +1097,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       await _matchmakingClient
           .post(
             Uri.parse(
-              '$_backendUrl/api/v1/matchmaking/tickets/${Uri.encodeComponent(ticket)}/cancel',
-            ),
+                '$_backendUrl/api/v1/matchmaking/tickets/${Uri.encodeComponent(ticket)}/cancel'),
             headers: _authorizedHeaders(),
           )
           .timeout(const Duration(seconds: 6));
@@ -1263,8 +1251,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       if (_disposed ||
           localMatchActive ||
           generation != _matchGeneration ||
-          lastSnapshot?.status == 'finished')
-        return;
+          lastSnapshot?.status == 'finished') return;
       if (!connected) {
         voiceChat.onSocketDisconnected();
         _setStatus('Reconnecting to your table...');
@@ -1301,15 +1288,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     isSpectator = _prefs.activeRoomSpectator;
     connecting = true;
     _recordDiagnostic(
-      'restore',
-      'Restoring ${isSpectator ? 'spectator' : 'player'} room',
-    );
+        'restore', 'Restoring ${isSpectator ? 'spectator' : 'player'} room');
     _connectWs(
       socketPath,
       spectator: isSpectator,
-      readyStatus: isSpectator
-          ? 'Restoring live room...'
-          : 'Rejoining your table...',
+      readyStatus:
+          isSpectator ? 'Restoring live room...' : 'Rejoining your table...',
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_disposed || !connecting) return;
@@ -1326,8 +1310,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       if (type == 'error') {
         if (envelope['code'] == 'voice_error') {
           voiceChat.reportError(
-            envelope['message'] as String? ?? 'Voice is unavailable.',
-          );
+              envelope['message'] as String? ?? 'Voice is unavailable.');
           return;
         }
         _setStatus(envelope['message'] as String? ?? 'Room error');
@@ -1340,12 +1323,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       }
 
       if (type == 'voice_state') {
-        unawaited(
-          voiceChat.onVoiceState(
+        unawaited(voiceChat.onVoiceState(
             (envelope['playerIds'] as List<dynamic>? ?? const [])
-                .whereType<String>(),
-          ),
-        );
+                .whereType<String>()));
         return;
       }
 
@@ -1376,9 +1356,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         final previousSnapshot = lastSnapshot;
         lastSnapshot = GameSnapshot.fromJson(snapRaw);
         voiceChat.onRoomSnapshot(
-          lastSnapshot!.roomId,
-          lastSnapshot!.status == 'playing',
-        );
+            lastSnapshot!.roomId, lastSnapshot!.status == 'playing');
         pendingMatchMode = lastSnapshot!.mode;
         if ((lastSnapshot!.status == 'playing' && mySeat != null) ||
             isSpectator) {
@@ -1445,10 +1423,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   String? _rememberRoomEvent(
-    String type,
-    Map<String, dynamic> e,
-    Map<String, dynamic>? snap,
-  ) {
+      String type, Map<String, dynamic> e, Map<String, dynamic>? snap) {
     if (type == 'dice_rolled') {
       final val = e['value'] as int? ?? 0;
       final pid = e['playerId'] as String? ?? '';
@@ -1458,8 +1433,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       if (mine) {
         return hasMoves
             ? (snap?['mode'] == snakesLaddersMode
-                  ? 'You rolled $val. Moving your token...'
-                  : 'You rolled $val. Tap a highlighted piece.')
+                ? 'You rolled $val. Moving your token...'
+                : 'You rolled $val. Tap a highlighted piece.')
             : 'You rolled $val. No legal move, turn passed.';
       }
       return '${_playerName(snap, pid)} rolled $val.';
@@ -1641,7 +1616,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
-    lastSnapshot = _copySnapshot(snap, diceValue: value, availableMoves: moves);
+    lastSnapshot = _copySnapshot(
+      snap,
+      diceValue: value,
+      availableMoves: moves,
+    );
     _setStatus('You rolled $value. Tap a highlighted piece.');
     if (autoRollEnabled && moves.length == 1) {
       _scheduleAutoMove(moves.single);
@@ -1682,7 +1661,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
-    lastSnapshot = _copySnapshot(snap, diceValue: value, availableMoves: moves);
+    lastSnapshot = _copySnapshot(
+      snap,
+      diceValue: value,
+      availableMoves: moves,
+    );
     _setStatus('You rolled $value. Moving your token...');
     _scheduleAutoMove(moves.single);
   }
@@ -1737,15 +1720,14 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       captured
           ? 'Capture! You get a free turn.'
           : sameTurn
-          ? 'You moved a piece. Bonus roll.'
-          : 'You moved a piece. ${_currentTurnLabel(after)} is next.',
+              ? 'You moved a piece. Bonus roll.'
+              : 'You moved a piece. ${_currentTurnLabel(after)} is next.',
     );
     _scheduleLocalBots();
   }
 
-  void _scheduleLocalBots({
-    Duration delay = const Duration(milliseconds: 650),
-  }) {
+  void _scheduleLocalBots(
+      {Duration delay = const Duration(milliseconds: 650)}) {
     _localBotTimer?.cancel();
     _localBotTimer = null;
     if (!localMatchActive) return;
@@ -1761,7 +1743,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _localBotTimer = Timer(delay, _playLocalBotTurn);
   }
 
-  void _scheduleAutoRoll({Duration delay = const Duration(milliseconds: 520)}) {
+  void _scheduleAutoRoll({
+    Duration delay = const Duration(milliseconds: 520),
+  }) {
     _autoRollTimer?.cancel();
     _autoRollTimer = null;
     if (!_canAutoRollNow) return;
@@ -1792,8 +1776,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
           snap.diceValue != before?.diceValue ||
           snap.availableMoves.length != 1 ||
           !snap.availableMoves.contains(pieceId) ||
-          !_isMyTurn())
-        return;
+          !_isMyTurn()) return;
       movePiece(pieceId);
     });
   }
@@ -1850,7 +1833,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
-    lastSnapshot = _copySnapshot(snap, diceValue: value, availableMoves: moves);
+    lastSnapshot = _copySnapshot(
+      snap,
+      diceValue: value,
+      availableMoves: moves,
+    );
     _setStatus('$name rolled $value.');
 
     _localBotTimer = Timer(Duration(milliseconds: 750 + _rng.nextInt(450)), () {
@@ -1881,8 +1868,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         captured
             ? '$name captured a piece and gets a free turn.'
             : sameTurn
-            ? '$name moved a piece. Bonus roll.'
-            : '$name moved a piece. ${_currentTurnLabel(after)} is next.',
+                ? '$name moved a piece. Bonus roll.'
+                : '$name moved a piece. ${_currentTurnLabel(after)} is next.',
       );
       _scheduleLocalBots();
     });
@@ -1908,7 +1895,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       return;
     }
 
-    lastSnapshot = _copySnapshot(snap, diceValue: value, availableMoves: moves);
+    lastSnapshot = _copySnapshot(
+      snap,
+      diceValue: value,
+      availableMoves: moves,
+    );
     _setStatus('$name rolled $value.');
 
     _localBotTimer = Timer(Duration(milliseconds: 750 + _rng.nextInt(450)), () {
@@ -1943,8 +1934,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     final movingPiece = snap.pieces.firstWhere((p) => p.pieceId == pieceId);
     final moverSeat = movingPiece.seat;
     final rolledProgress = movingPiece.progress + dice;
-    final nextProgress =
-        _snakeLadders[rolledProgress] ??
+    final nextProgress = _snakeLadders[rolledProgress] ??
         _snakeDrops[rolledProgress] ??
         rolledProgress;
     if (nextProgress > rolledProgress) {
@@ -1952,9 +1942,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     } else if (nextProgress < rolledProgress) {
       SoundService.snake();
     }
-    final nextState = nextProgress >= _snakeFinishProgress
-        ? 'finished'
-        : 'track';
+    final nextState =
+        nextProgress >= _snakeFinishProgress ? 'finished' : 'track';
 
     final pieces = snap.pieces.map((piece) {
       if (piece.pieceId != pieceId) return piece;
@@ -1995,20 +1984,16 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     final dice = snap.diceValue;
     final movingPiece = snap.pieces.firstWhere((p) => p.pieceId == pieceId);
     final moverSeat = movingPiece.seat;
-    final nextProgress = movingPiece.progress == _yardProgress
-        ? 0
-        : movingPiece.progress + dice;
+    final nextProgress =
+        movingPiece.progress == _yardProgress ? 0 : movingPiece.progress + dice;
     final nextTrack = _trackIndexFor(moverSeat, nextProgress, snap.mode);
     final nextState = _stateForProgress(nextProgress, snap.mode);
-    final capturedOpponent =
-        nextTrack != null &&
+    final capturedOpponent = nextTrack != null &&
         !_safeTrackIndexesForMode(snap.mode).contains(nextTrack) &&
-        snap.pieces.any(
-          (piece) =>
-              piece.seat != moverSeat &&
-              piece.trackIndex == nextTrack &&
-              piece.state == 'track',
-        );
+        snap.pieces.any((piece) =>
+            piece.seat != moverSeat &&
+            piece.trackIndex == nextTrack &&
+            piece.state == 'track');
 
     var pieces = snap.pieces.map((piece) {
       if (piece.pieceId != pieceId) return piece;
@@ -2062,7 +2047,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     return dice == 6 || capturedOpponent ? moved : _advanceLocalTurn(moved);
   }
 
-  bool _didSeatCapture(GameSnapshot before, GameSnapshot after, int moverSeat) {
+  bool _didSeatCapture(
+    GameSnapshot before,
+    GameSnapshot after,
+    int moverSeat,
+  ) {
     if (moverSeat < 0) return false;
     final afterById = {for (final piece in after.pieces) piece.pieceId: piece};
     return before.pieces.any((piece) {
@@ -2086,17 +2075,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   List<String> _snakesLaddersLegalMoves(
-    GameSnapshot snap,
-    int seat,
-    int diceValue,
-  ) {
+      GameSnapshot snap, int seat, int diceValue) {
     return snap.pieces
         .where((piece) => piece.seat == seat)
-        .where(
-          (piece) =>
-              piece.state != 'finished' &&
-              piece.progress + diceValue <= _snakeFinishProgress,
-        )
+        .where((piece) =>
+            piece.state != 'finished' &&
+            piece.progress + diceValue <= _snakeFinishProgress)
         .map((piece) => piece.pieceId)
         .toList();
   }
@@ -2108,12 +2092,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   GameSnapshot _advanceLocalTurn(GameSnapshot snap) {
-    final activeSeats =
-        snap.seats
-            .where((seat) => !_seatFinished(snap.pieces, seat.seat))
-            .map((seat) => seat.seat)
-            .toList()
-          ..sort();
+    final activeSeats = snap.seats
+        .where((seat) => !_seatFinished(snap.pieces, seat.seat))
+        .map((seat) => seat.seat)
+        .toList()
+      ..sort();
     if (activeSeats.isEmpty) return snap;
 
     final index = activeSeats.indexOf(snap.currentTurnSeat);
@@ -2144,35 +2127,29 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       final landed = _snakeLadders[rolled] ?? _snakeDrops[rolled] ?? rolled;
       return landed + (_snakeLadders.containsKey(rolled) ? 60 : 0);
     }
-    final nextProgress = piece.progress == _yardProgress
-        ? 0
-        : piece.progress + snap.diceValue;
+    final nextProgress =
+        piece.progress == _yardProgress ? 0 : piece.progress + snap.diceValue;
     final nextTrack = _trackIndexFor(piece.seat, nextProgress, snap.mode);
-    final captures =
-        nextTrack != null &&
+    final captures = nextTrack != null &&
         !_safeTrackIndexesForMode(snap.mode).contains(nextTrack) &&
-        snap.pieces.any(
-          (other) =>
-              other.seat != piece.seat &&
-              other.trackIndex == nextTrack &&
-              other.state == 'track',
-        );
+        snap.pieces.any((other) =>
+            other.seat != piece.seat &&
+            other.trackIndex == nextTrack &&
+            other.state == 'track');
     bool exposed(int? track) =>
         track != null &&
         track >= 0 &&
         !_safeTrackIndexesForMode(snap.mode).contains(track) &&
-        snap.pieces.any(
-          (other) =>
-              other.seat != piece.seat &&
-              other.state == 'track' &&
-              other.trackIndex >= 0 &&
-              (track - other.trackIndex + _classicTrackLength) %
-                      _classicTrackLength >=
-                  1 &&
-              (track - other.trackIndex + _classicTrackLength) %
-                      _classicTrackLength <=
-                  6,
-        );
+        snap.pieces.any((other) =>
+            other.seat != piece.seat &&
+            other.state == 'track' &&
+            other.trackIndex >= 0 &&
+            (track - other.trackIndex + _classicTrackLength) %
+                    _classicTrackLength >=
+                1 &&
+            (track - other.trackIndex + _classicTrackLength) %
+                    _classicTrackLength <=
+                6);
     final currentDanger = exposed(piece.trackIndex);
     final futureDanger = exposed(nextTrack);
     return (nextProgress == _classicFinishProgress ? 250 : 0) +
@@ -2353,10 +2330,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       }
     }
     lastMatchRewards = MatchRewards(
-      coins: coins - previousCoins,
-      rating: rating - previousRating,
-      practice: !economyEligible,
-    );
+        coins: coins - previousCoins,
+        rating: rating - previousRating,
+        practice: !economyEligible);
     final opponents = snap.seats
         .where((seat) => seat.playerId != playerId)
         .map(publicSeatName)
@@ -2374,10 +2350,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       coinsDelta: coins - previousCoins,
       opponents: opponents,
     );
-    matchHistory = [
-      entry,
-      ...matchHistory.where((item) => item.id != entry.id),
-    ].take(20).toList(growable: false);
+    matchHistory = [entry, ...matchHistory.where((item) => item.id != entry.id)]
+        .take(20)
+        .toList(growable: false);
     _persistMatchHistory();
     _prefs.gamesPlayed = gamesPlayed;
     _prefs.wins = wins;
@@ -2397,8 +2372,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     _resultsTimer = Timer(delay, () {
       if (_disposed ||
           generation != _matchGeneration ||
-          lastSnapshot?.status != 'finished')
-        return;
+          lastSnapshot?.status != 'finished') return;
       navigateTo('/results');
     });
   }
@@ -2452,9 +2426,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   void _persistMatchHistory() {
-    _prefs.matchHistoryJson = jsonEncode(
-      matchHistory.map((entry) => entry.toJson()).toList(),
-    );
+    _prefs.matchHistoryJson =
+        jsonEncode(matchHistory.map((entry) => entry.toJson()).toList());
   }
 
   bool _canAct() {
@@ -2475,8 +2448,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   bool _isMyTurn() {
     if (lastSnapshot == null || playerId == null) return false;
-    final mySeat =
-        lastSnapshot!.seats
+    final mySeat = lastSnapshot!.seats
             .where((s) => s.playerId == playerId)
             .map((s) => s.seat)
             .firstOrNull ??
@@ -2509,19 +2481,15 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   String _playerName(Map<String, dynamic>? snap, String targetId) {
     if (targetId.isEmpty) return 'Player';
-    final seats =
-        (snap?['seats'] ??
-                lastSnapshot?.seats
-                    .map(
-                      (s) => {
-                        'playerId': s.playerId,
-                        'displayName': s.displayName,
-                        'isBot': s.isBot,
-                        'seat': s.seat,
-                      },
-                    )
-                    .toList())
-            as List<dynamic>?;
+    final seats = (snap?['seats'] ??
+        lastSnapshot?.seats
+            .map((s) => {
+                  'playerId': s.playerId,
+                  'displayName': s.displayName,
+                  'isBot': s.isBot,
+                  'seat': s.seat,
+                })
+            .toList()) as List<dynamic>?;
     if (seats == null) return 'Player';
     for (final s in seats) {
       if (s is Map && s['playerId'] == targetId) {
@@ -2566,38 +2534,37 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         )
         .timeout(const Duration(seconds: 6))
         .then((r) {
-          if (!_isCurrentSearch(generation)) {
-            if (!_disposed &&
-                path == '/api/v1/matchmaking/quick' &&
-                r.statusCode == 200) {
-              final stale = jsonDecode(r.body) as Map<String, dynamic>;
-              final ticket = stale['ticketId'] as String?;
-              if (stale['status'] == 'waiting' &&
-                  ticket != null &&
-                  ticket.isNotEmpty) {
-                unawaited(_cancelServerTicket(ticket));
-              }
-            }
-            return;
+      if (!_isCurrentSearch(generation)) {
+        if (!_disposed &&
+            path == '/api/v1/matchmaking/quick' &&
+            r.statusCode == 200) {
+          final stale = jsonDecode(r.body) as Map<String, dynamic>;
+          final ticket = stale['ticketId'] as String?;
+          if (stale['status'] == 'waiting' &&
+              ticket != null &&
+              ticket.isNotEmpty) {
+            unawaited(_cancelServerTicket(ticket));
           }
-          if (r.statusCode >= 400) {
-            if (onError != null) {
-              onError();
-            } else {
-              _setStatus('HTTP error ${r.statusCode}');
-            }
-            return;
-          }
-          onSuccess(jsonDecode(r.body) as Map<String, dynamic>);
-        })
-        .catchError((_) {
-          if (!_isCurrentSearch(generation)) return;
-          if (onError != null) {
-            onError();
-          } else {
-            _setStatus('Request failed.');
-          }
-        });
+        }
+        return;
+      }
+      if (r.statusCode >= 400) {
+        if (onError != null) {
+          onError();
+        } else {
+          _setStatus('HTTP error ${r.statusCode}');
+        }
+        return;
+      }
+      onSuccess(jsonDecode(r.body) as Map<String, dynamic>);
+    }).catchError((_) {
+      if (!_isCurrentSearch(generation)) return;
+      if (onError != null) {
+        onError();
+      } else {
+        _setStatus('Request failed.');
+      }
+    });
   }
 
   Future<void> syncSocialProfile({bool notify = true}) async {
@@ -2808,7 +2775,10 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       await _requestJson(
         'POST',
         path,
-        body: {'playerId': playerId, 'targetPlayerId': targetPlayerId},
+        body: {
+          'playerId': playerId,
+          'targetPlayerId': targetPlayerId,
+        },
       );
       await refreshSocial();
       return success;
@@ -2832,23 +2802,21 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     final uri = Uri.parse('$_backendUrl$path').replace(queryParameters: query);
     final response = method == 'GET'
         ? await http
-              .get(uri, headers: _authorizedHeaders())
-              .timeout(const Duration(seconds: 7))
+            .get(uri, headers: _authorizedHeaders())
+            .timeout(const Duration(seconds: 7))
         : await http
-              .post(
-                uri,
-                headers: _authorizedHeaders(),
-                body: jsonEncode(body ?? const <String, dynamic>{}),
-              )
-              .timeout(const Duration(seconds: 7));
+            .post(
+              uri,
+              headers: _authorizedHeaders(),
+              body: jsonEncode(body ?? const <String, dynamic>{}),
+            )
+            .timeout(const Duration(seconds: 7));
     final decoded = response.body.isEmpty
         ? <String, dynamic>{}
         : jsonDecode(response.body) as Map<String, dynamic>;
     if (response.statusCode >= 400) {
-      throw StateError(
-        decoded['error'] as String? ??
-            'Request failed (${response.statusCode}).',
-      );
+      throw StateError(decoded['error'] as String? ??
+          'Request failed (${response.statusCode}).');
     }
     return decoded;
   }
@@ -3063,8 +3031,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       );
       final claimed = json['claimed'] == true;
       coins = _readInt(json['coins'], fallback: coins);
-      lastDailyRewardDate = (json['periodKey'] as String? ?? _todayKey())
-          .trim();
+      lastDailyRewardDate =
+          (json['periodKey'] as String? ?? _todayKey()).trim();
       _prefs.coins = coins;
       _prefs.lastDailyRewardDate = lastDailyRewardDate;
       socialError = '';
@@ -3077,7 +3045,9 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  void grantRewardedShopPoints({int amount = GameEconomy.rewardedShopPoints}) {
+  void grantRewardedShopPoints({
+    int amount = GameEconomy.rewardedShopPoints,
+  }) {
     if (amount <= 0) return;
     coins += amount;
     _prefs.coins = coins;
@@ -3098,7 +3068,10 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
 
   int get availableGoldChests => economySynced
       ? _availableGoldChests
-      : math.max(0, (wins ~/ GameEconomy.winsPerGoldChest) - claimedGoldChests);
+      : math.max(
+          0,
+          (wins ~/ GameEconomy.winsPerGoldChest) - claimedGoldChests,
+        );
 
   Future<bool> claimGoldChest() async {
     try {
@@ -3284,8 +3257,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
     if (value) {
       _scheduleAutoRoll(delay: const Duration(milliseconds: 220));
       _setStatus(
-        'Auto roll enabled. Choose a goti when more than one can move.',
-      );
+          'Auto roll enabled. Choose a goti when more than one can move.');
     } else {
       if (lastSnapshot?.mode != snakesLaddersMode) _autoMoveTimer?.cancel();
       _setStatus('Auto roll disabled.');
@@ -3293,11 +3265,11 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   String publicSeatName(SeatState seat) => publicDisplayName(
-    seat.displayName,
-    playerId: seat.playerId,
-    seat: seat.seat,
-    isFallback: seat.isBot,
-  );
+        seat.displayName,
+        playerId: seat.playerId,
+        seat: seat.seat,
+        isFallback: seat.isBot,
+      );
 
   String publicDisplayName(
     String? raw, {
@@ -3307,8 +3279,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }) {
     final name = (raw ?? '').trim();
     final lower = name.toLowerCase();
-    final fallback =
-        isFallback ||
+    final fallback = isFallback ||
         (playerId?.startsWith('bot_') ?? false) ||
         lower.contains('bot') ||
         lower.contains('cpu') ||
@@ -3423,9 +3394,8 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   }) {
     final cleanName = name?.trim();
     if (cleanName != null && cleanName.isNotEmpty) {
-      displayName = cleanName.length > 18
-          ? cleanName.substring(0, 18)
-          : cleanName;
+      displayName =
+          cleanName.length > 18 ? cleanName.substring(0, 18) : cleanName;
       _prefs.displayName = displayName;
       _ws.displayName = displayName;
     }

@@ -54,15 +54,13 @@ class _ResultsScreenState extends State<ResultsScreen>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
-    _entryScale = Tween<double>(
-      begin: 0.6,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _entryCtrl, curve: Curves.elasticOut));
+    _entryScale = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(parent: _entryCtrl, curve: Curves.elasticOut),
+    );
     _entryFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
-        parent: _entryCtrl,
-        curve: const Interval(0, 0.4, curve: Curves.easeOut),
-      ),
+          parent: _entryCtrl,
+          curve: const Interval(0, 0.4, curve: Curves.easeOut)),
     );
 
     _glowCtrl = AnimationController(
@@ -90,14 +88,11 @@ class _ResultsScreenState extends State<ResultsScreen>
     if (!mounted) return;
     final state = context.read<AppState>();
     final snapshot = state.lastSnapshot;
-    final won =
-        snapshot?.status == 'finished' &&
+    final won = snapshot?.status == 'finished' &&
         snapshot?.winnerPlayerId.isNotEmpty == true &&
         snapshot?.winnerPlayerId == state.playerId;
-    await LevelPlayAdService.instance.showAfterCompletedRound(
-      won: won,
-      waitForDismissal: true,
-    );
+    await LevelPlayAdService.instance
+        .showAfterCompletedRound(won: won, waitForDismissal: true);
     if (!mounted ||
         (Theme.of(context).platform != TargetPlatform.android &&
             Theme.of(context).platform != TargetPlatform.iOS)) {
@@ -113,15 +108,13 @@ class _ResultsScreenState extends State<ResultsScreen>
         snapshot.updatedAt <= 0 ||
         snapshot.winnerPlayerId.trim().isEmpty ||
         snapshot.winnerPlayerId != state.playerId ||
-        !snapshot.seats.any(
-          (seat) => seat.playerId == snapshot.winnerPlayerId,
-        )) {
+        !snapshot.seats
+            .any((seat) => seat.playerId == snapshot.winnerPlayerId)) {
       return;
     }
 
     final focusedWidget = FocusManager.instance.primaryFocus?.context?.widget;
-    final safeToPrompt =
-        route?.isCurrent == true &&
+    final safeToPrompt = route?.isCurrent == true &&
         state.updateCheckComplete &&
         !state.forceUpdateRequired &&
         WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed &&
@@ -144,7 +137,7 @@ class _ResultsScreenState extends State<ResultsScreen>
         _confettiCtrl,
         _glowCtrl,
         _shimmerCtrl,
-        _entryCtrl,
+        _entryCtrl
       ]) {
         controller.stop();
         controller.value = 1;
@@ -177,10 +170,9 @@ class _ResultsScreenState extends State<ResultsScreen>
     String winnerName = 'Unknown';
     int? winnerSeat;
     final palette = MatchPalette.forTheme(
-      replayMode == AppState.snakesLaddersMode
-          ? state.snakesBoardTheme
-          : state.ludoBoardTheme,
-    );
+        replayMode == AppState.snakesLaddersMode
+            ? state.snakesBoardTheme
+            : state.ludoBoardTheme);
     if (snapshot != null) {
       won = myId != null && myId == snapshot.winnerPlayerId;
       for (final s in snapshot.seats) {
@@ -208,15 +200,17 @@ class _ResultsScreenState extends State<ResultsScreen>
           if (won && !_reduceMotion)
             AnimatedBuilder(
               animation: _confettiCtrl,
-              builder: (_, __) =>
-                  CustomPaint(painter: _ConfettiPainter(_confettiCtrl.value)),
+              builder: (_, __) => CustomPaint(
+                painter: _ConfettiPainter(_confettiCtrl.value),
+              ),
             ),
 
           // Floating glow orbs
           AnimatedBuilder(
             animation: _glowCtrl,
-            builder: (_, __) =>
-                CustomPaint(painter: _ResultGlowPainter(_glowCtrl.value, won)),
+            builder: (_, __) => CustomPaint(
+              painter: _ResultGlowPainter(_glowCtrl.value, won),
+            ),
           ),
 
           // Modal card
@@ -226,10 +220,8 @@ class _ResultsScreenState extends State<ResultsScreen>
               child: ScaleTransition(
                 scale: _entryScale,
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 32,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
                   child: Container(
                     decoration: BoxDecoration(
                       color: palette.background.withAlpha(245),
@@ -256,20 +248,16 @@ class _ResultsScreenState extends State<ResultsScreen>
                       children: [
                         // Trophy / result icon
                         _WinnerPortrait(
-                          preset: won
-                              ? state.avatarPreset
-                              : 12 + (winnerSeat ?? 0),
-                          imagePath: won ? state.avatarImagePath : null,
-                          name: won ? 'You' : winnerName,
-                        ),
+                            preset: won
+                                ? state.avatarPreset
+                                : 12 + (winnerSeat ?? 0),
+                            imagePath: won ? state.avatarImagePath : null,
+                            name: won ? 'You' : winnerName),
                         const SizedBox(height: 16),
 
                         // Result headline
                         _ResultHeadline(
-                          won: won,
-                          winnerName: winnerName,
-                          state: state,
-                        ),
+                            won: won, winnerName: winnerName, state: state),
                         const SizedBox(height: 18),
 
                         // Rewards row
@@ -287,10 +275,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                         // Player list
                         if (snapshot != null)
                           _PlayerList(
-                            snapshot: snapshot,
-                            myId: myId,
-                            state: state,
-                          ),
+                              snapshot: snapshot, myId: myId, state: state),
 
                         const SizedBox(height: 18),
 
@@ -299,7 +284,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                           label: won ? 'Play Again' : 'Try Again',
                           colors: [
                             const Color(0xFF43A047),
-                            const Color(0xFF1B5E20),
+                            const Color(0xFF1B5E20)
                           ],
                           onTap: () {
                             Navigator.of(context).popUntil((r) => r.isFirst);
@@ -315,7 +300,7 @@ class _ResultsScreenState extends State<ResultsScreen>
                           label: 'Back to Lobby',
                           colors: [
                             const Color(0xFF0288D1),
-                            const Color(0xFF01579B),
+                            const Color(0xFF01579B)
                           ],
                           onTap: () {
                             Navigator.of(context).popUntil((r) => r.isFirst);
@@ -326,16 +311,15 @@ class _ResultsScreenState extends State<ResultsScreen>
                           label: 'Share Result',
                           colors: [
                             const Color(0xFF8E24AA),
-                            const Color(0xFF4A148C),
+                            const Color(0xFF4A148C)
                           ],
                           onTap: () async {
                             SoundService.tap();
                             final text = won
                                 ? 'I won a Ludo Cheer match with a ${state.rating} rating! Play Ludo Cheer: https://play.google.com/store/apps/details?id=com.ludorush.game'
                                 : '$winnerName won our Ludo Cheer match. Play Ludo Cheer: https://play.google.com/store/apps/details?id=com.ludorush.game';
-                            final shared = await AppPlatformService.shareText(
-                              text,
-                            );
+                            final shared =
+                                await AppPlatformService.shareText(text);
                             if (!context.mounted || shared) return;
                             ScaffoldMessenger.of(context)
                               ..clearSnackBars()
@@ -408,8 +392,8 @@ class _RewardedBonusButton extends StatelessWidget {
     final label = claimed
         ? 'Bonus claimed'
         : inFlight
-        ? 'Loading video...'
-        : 'Watch video: +${LevelPlayAdConfig.levelCompleteRewardPoints} points +${LevelPlayAdConfig.levelCompleteRewardEnergy} energy';
+            ? 'Loading video...'
+            : 'Watch video: +${LevelPlayAdConfig.levelCompleteRewardPoints} points +${LevelPlayAdConfig.levelCompleteRewardEnergy} energy';
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
@@ -422,7 +406,9 @@ class _RewardedBonusButton extends StatelessWidget {
           disabledBackgroundColor: Colors.white12,
           disabledForegroundColor: Colors.white54,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8),
+          ),
         ),
       ),
     );
@@ -435,69 +421,52 @@ class _WinnerPortrait extends StatelessWidget {
   final int preset;
   final String? imagePath;
   final String name;
-  const _WinnerPortrait({
-    required this.preset,
-    required this.imagePath,
-    required this.name,
-  });
+  const _WinnerPortrait(
+      {required this.preset, required this.imagePath, required this.name});
   @override
   Widget build(BuildContext context) => Semantics(
-    label: '$name, match winner',
-    child: SizedBox(
-      width: 128,
-      height: 134,
-      child: Stack(
-        alignment: Alignment.center,
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: 108,
-            height: 108,
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFFEBB5), Color(0xFFB07832)],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: goldColor.withAlpha(60),
-                  blurRadius: 26,
-                  spreadRadius: 2,
-                ),
-                const BoxShadow(
-                  color: Colors.black38,
-                  blurRadius: 14,
-                  offset: Offset(0, 8),
-                ),
-              ],
-            ),
-            child: ProfileAvatarView(
-              preset: preset,
-              imagePath: imagePath,
-              celebration: 1,
-              mood: AvatarMood.winner,
-            ),
-          ),
-          const Positioned(
-            top: -5,
-            child: LocalizedText('👑', style: TextStyle(fontSize: 36)),
-          ),
-        ],
-      ),
-    ),
-  );
+      label: '$name, match winner',
+      child: SizedBox(
+          width: 128,
+          height: 134,
+          child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                    width: 108,
+                    height: 108,
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                            colors: [Color(0xFFFFEBB5), Color(0xFFB07832)]),
+                        boxShadow: [
+                          BoxShadow(
+                              color: goldColor.withAlpha(60),
+                              blurRadius: 26,
+                              spreadRadius: 2),
+                          const BoxShadow(
+                              color: Colors.black38,
+                              blurRadius: 14,
+                              offset: Offset(0, 8))
+                        ]),
+                    child: ProfileAvatarView(
+                        preset: preset,
+                        imagePath: imagePath,
+                        celebration: 1,
+                        mood: AvatarMood.winner)),
+                const Positioned(
+                    top: -5, child: LocalizedText('👑', style: TextStyle(fontSize: 36))),
+              ])));
 }
 
 class _ResultHeadline extends StatelessWidget {
   final bool won;
   final String winnerName;
   final AppState state;
-  const _ResultHeadline({
-    required this.won,
-    required this.winnerName,
-    required this.state,
-  });
+  const _ResultHeadline(
+      {required this.won, required this.winnerName, required this.state});
 
   @override
   Widget build(BuildContext context) {
@@ -549,8 +518,7 @@ class _RewardsRow extends StatelessWidget {
   const _RewardsRow({required this.state});
   @override
   Widget build(BuildContext context) {
-    final reward =
-        state.lastMatchRewards ??
+    final reward = state.lastMatchRewards ??
         (state.currentMatchIsBot || state.localMatchActive
             ? const MatchRewards(coins: 0, rating: 0, practice: true)
             : null);
@@ -559,56 +527,38 @@ class _RewardsRow extends StatelessWidget {
       key: const ValueKey('match-reward-receipt'),
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white.withAlpha(8),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: goldColor.withAlpha(60)),
-      ),
-      child: Column(
-        children: [
-          const LocalizedText(
-            'MATCH REWARDS',
+          color: Colors.white.withAlpha(8),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: goldColor.withAlpha(60))),
+      child: Column(children: [
+        const LocalizedText('MATCH REWARDS',
             style: TextStyle(
-              color: Colors.white70,
-              fontSize: 11,
-              letterSpacing: 1.8,
-            ),
-          ),
-          const SizedBox(height: 12),
-          if (reward == null)
-            const LocalizedText(
-              'Rewards pending',
-              style: TextStyle(color: Colors.white70),
-            )
-          else ...[
-            Row(
-              children: [
-                _RewardItem(
-                  icon: Icons.monetization_on_rounded,
-                  label: 'COINS',
-                  value: delta(reward.coins),
-                  color: goldColor,
-                ),
-                _Divider(),
-                _RewardItem(
-                  icon: Icons.emoji_events_rounded,
-                  label: 'RATING',
-                  value: delta(reward.rating),
-                  color: reward.rating < 0 ? boardRed : boardGreen,
-                ),
-              ],
-            ),
-            if (reward.practice)
-              const Padding(
+                color: Colors.white70, fontSize: 11, letterSpacing: 1.8)),
+        const SizedBox(height: 12),
+        if (reward == null)
+          const LocalizedText('Rewards pending', style: TextStyle(color: Colors.white70))
+        else ...[
+          Row(children: [
+            _RewardItem(
+                icon: Icons.monetization_on_rounded,
+                label: 'COINS',
+                value: delta(reward.coins),
+                color: goldColor),
+            _Divider(),
+            _RewardItem(
+                icon: Icons.emoji_events_rounded,
+                label: 'RATING',
+                value: delta(reward.rating),
+                color: reward.rating < 0 ? boardRed : boardGreen),
+          ]),
+          if (reward.practice)
+            const Padding(
                 padding: EdgeInsets.only(top: 12),
-                child: LocalizedText(
-                  'Practice match · no coins or rating changes',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white60, fontSize: 12),
-                ),
-              ),
-          ],
+                child: LocalizedText('Practice match · no coins or rating changes',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white60, fontSize: 12))),
         ],
-      ),
+      ]),
     );
   }
 }
@@ -637,24 +587,20 @@ class _RewardItem extends StatelessWidget {
         children: [
           Icon(icon, color: color, size: 24),
           const SizedBox(height: 4),
-          LocalizedText(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              shadows: [Shadow(color: color.withAlpha(120), blurRadius: 6)],
-            ),
-          ),
-          LocalizedText(
-            label,
-            style: const TextStyle(
-              color: Colors.white38,
-              fontSize: 9,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
+          LocalizedText(value,
+              style: TextStyle(
+                color: color,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                shadows: [Shadow(color: color.withAlpha(120), blurRadius: 6)],
+              )),
+          LocalizedText(label,
+              style: const TextStyle(
+                color: Colors.white38,
+                fontSize: 9,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              )),
         ],
       ),
     );
@@ -676,8 +622,7 @@ class _PlayerList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final seats = [...snapshot.seats]
-      ..sort((a, b) {
+    final seats = [...snapshot.seats]..sort((a, b) {
         if (a.playerId == snapshot.winnerPlayerId) return -1;
         if (b.playerId == snapshot.winnerPlayerId) return 1;
         return a.seat.compareTo(b.seat);
@@ -692,14 +637,12 @@ class _PlayerList extends StatelessWidget {
         final publicName = state.publicSeatName(s);
 
         return Container(
-          margin: EdgeInsets.only(
-            bottom: i < snapshot.seats.length - 1 ? 6 : 0,
-          ),
+          margin:
+              EdgeInsets.only(bottom: i < snapshot.seats.length - 1 ? 6 : 0),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: isWinner
-                ? goldColor.withAlpha(20)
-                : Colors.white.withAlpha(6),
+            color:
+                isWinner ? goldColor.withAlpha(20) : Colors.white.withAlpha(6),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isWinner ? goldColor.withAlpha(80) : Colors.white12,
@@ -716,7 +659,7 @@ class _PlayerList extends StatelessWidget {
                   color: color,
                   shape: BoxShape.circle,
                   boxShadow: [
-                    BoxShadow(color: color.withAlpha(120), blurRadius: 4),
+                    BoxShadow(color: color.withAlpha(120), blurRadius: 4)
                   ],
                 ),
               ),
@@ -737,29 +680,23 @@ class _PlayerList extends StatelessWidget {
               // Badge
               if (isWinner)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: goldColor.withAlpha(30),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: goldColor.withAlpha(100)),
                   ),
-                  child: const LocalizedText(
-                    'Winner',
-                    style: TextStyle(
-                      color: goldColor,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: const LocalizedText('Winner',
+                      style: TextStyle(
+                        color: goldColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      )),
                 )
               else
-                const LocalizedText(
-                  '-',
-                  style: TextStyle(color: Colors.white24, fontSize: 13),
-                ),
+                const LocalizedText('-',
+                    style: TextStyle(color: Colors.white24, fontSize: 13)),
             ],
           ),
         );
@@ -774,11 +711,8 @@ class _ActionBtn extends StatefulWidget {
   final String label;
   final List<Color> colors;
   final VoidCallback onTap;
-  const _ActionBtn({
-    required this.label,
-    required this.colors,
-    required this.onTap,
-  });
+  const _ActionBtn(
+      {required this.label, required this.colors, required this.onTap});
 
   @override
   State<_ActionBtn> createState() => _ActionBtnState();
@@ -793,13 +727,9 @@ class _ActionBtnState extends State<_ActionBtn>
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 100),
-    );
-    _scale = Tween<double>(
-      begin: 1.0,
-      end: 0.95,
-    ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
+        vsync: this, duration: const Duration(milliseconds: 100));
+    _scale = Tween<double>(begin: 1.0, end: 0.95)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
   }
 
   @override
@@ -838,17 +768,15 @@ class _ActionBtnState extends State<_ActionBtn>
               ),
             ],
           ),
-          child: LocalizedText(
-            widget.label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.3,
-              shadows: [Shadow(color: Colors.black38, blurRadius: 4)],
-            ),
-          ),
+          child: LocalizedText(widget.label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.3,
+                shadows: [Shadow(color: Colors.black38, blurRadius: 4)],
+              )),
         ),
       ),
     );
@@ -883,8 +811,7 @@ class _ConfettiPainter extends CustomPainter {
       final x = baseX + math.sin(t * 5 + i * 0.4) * 22;
 
       p.color = _colors[i % _colors.length].withAlpha(
-        ((180 + (i % 3) * 25) * ((1 - t) * 4).clamp(0, 1)).round(),
-      );
+          ((180 + (i % 3) * 25) * ((1 - t) * 4).clamp(0, 1)).round());
 
       canvas.save();
       canvas.translate(x, y);
@@ -928,11 +855,14 @@ class _ResultGlowPainter extends CustomPainter {
     final pulse = 0.5 + 0.5 * math.sin(t * math.pi * 2);
 
     // Top glow
-    p.shader =
-        ui.Gradient.radial(Offset(size.width * 0.5, 0), size.width * 0.6, [
-          (won ? goldColor : Colors.white).withAlpha((pulse * 25).round()),
-          Colors.transparent,
-        ]);
+    p.shader = ui.Gradient.radial(
+      Offset(size.width * 0.5, 0),
+      size.width * 0.6,
+      [
+        (won ? goldColor : Colors.white).withAlpha((pulse * 25).round()),
+        Colors.transparent,
+      ],
+    );
     canvas.drawRect(Offset.zero & size, p);
 
     // Bottom glow
@@ -940,9 +870,8 @@ class _ResultGlowPainter extends CustomPainter {
       Offset(size.width * 0.5, size.height),
       size.width * 0.5,
       [
-        (won ? const Color(0xFFFF6B35) : Colors.blue).withAlpha(
-          (pulse * 20).round(),
-        ),
+        (won ? const Color(0xFFFF6B35) : Colors.blue)
+            .withAlpha((pulse * 20).round()),
         Colors.transparent,
       ],
     );
