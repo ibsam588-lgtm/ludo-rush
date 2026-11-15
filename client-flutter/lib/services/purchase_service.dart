@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:uuid/uuid.dart';
+import 'package:uuid/enums.dart';
 
 import '../state/app_state.dart';
+import 'app_platform_service.dart';
 
 class PurchaseService extends ChangeNotifier {
   PurchaseService._();
@@ -54,7 +57,8 @@ class PurchaseService extends ChangeNotifier {
       _handlePurchases,
       onError: (Object error) {
         _activeProductId = null;
-        _statusMessage = 'Google Play checkout could not be reached.';
+        _statusMessage =
+            '${AppPlatformService.storeName} checkout could not be reached.';
         notifyListeners();
       },
     );
@@ -69,7 +73,7 @@ class PurchaseService extends ChangeNotifier {
       if (!_available) {
         _products = const {};
         _statusMessage =
-            'Google Play purchases are unavailable on this device.';
+            '${AppPlatformService.storeName} purchases are unavailable on this device.';
         return;
       }
       final response = await _store.queryProductDetails(productIds);
@@ -80,14 +84,15 @@ class PurchaseService extends ChangeNotifier {
         _statusMessage = response.error!.message;
       } else if (response.notFoundIDs.isNotEmpty) {
         _statusMessage =
-            'Some shop items are still being activated in Google Play.';
+            'Some shop items are still being activated in ${AppPlatformService.storeName}.';
       } else {
         _statusMessage = '';
       }
     } catch (_) {
       _available = false;
       _products = const {};
-      _statusMessage = 'Google Play purchases could not be loaded.';
+      _statusMessage =
+          '${AppPlatformService.storeName} purchases could not be loaded.';
     } finally {
       _loading = false;
       notifyListeners();
@@ -99,41 +104,43 @@ class PurchaseService extends ChangeNotifier {
 
   Future<String> buy(String productId) async {
     if (_activeProductId != null) {
-      return 'Finish the current Google Play purchase first.';
+      return 'Finish the current ${AppPlatformService.storeName} purchase first.';
     }
     if (!_available) {
       await refreshProducts();
     }
     final product = _products[productId];
     if (product == null) {
-      return 'This item is still being activated in Google Play.';
+      return 'This item is still being activated in ${AppPlatformService.storeName}.';
     }
 
     _activeProductId = productId;
-    _statusMessage = 'Opening secure Google Play checkout…';
+    _statusMessage = 'Opening secure ${AppPlatformService.storeName} checkout…';
     notifyListeners();
     final state = _appState;
     final purchaseParam = PurchaseParam(
       productDetails: product,
-      applicationUserName: state?.playerId,
+      applicationUserName: _accountName(state?.playerId),
     );
     try {
       final launched = consumableProductIds.contains(productId)
           ? await _store.buyConsumable(
               purchaseParam: purchaseParam,
-              autoConsume: false,
+              autoConsume: AppPlatformService.isIOS,
             )
           : await _store.buyNonConsumable(purchaseParam: purchaseParam);
       if (!launched) {
         _activeProductId = null;
-        _statusMessage = 'Google Play checkout did not open.';
+        _statusMessage =
+            '${AppPlatformService.storeName} checkout did not open.';
         notifyListeners();
         return _statusMessage;
       }
-      return 'Complete your purchase in Google Play.';
+      return 'Complete your purchase in ${AppPlatformService.storeName}.';
     } catch (_) {
       _activeProductId = null;
-      _statusMessage = 'Google Play checkout could not be opened.';
+      _statusMessage =
+          '${AppPlatformService.storeName} checkout could not be opened.';
       notifyListeners();
       return _statusMessage;
     }
@@ -141,19 +148,21 @@ class PurchaseService extends ChangeNotifier {
 
   Future<String> restorePurchases() async {
     if (!_available || _restoring) {
-      return 'Google Play purchases are unavailable right now.';
+      return '${AppPlatformService.storeName} purchases are unavailable right now.';
     }
     _restoring = true;
-    _statusMessage = 'Restoring Google Play purchases…';
+    _statusMessage = 'Restoring ${AppPlatformService.storeName} purchases…';
     notifyListeners();
     try {
       await _store.restorePurchases(
-        applicationUserName: _appState?.playerId,
+        applicationUserName: _accountName(_appState?.playerId),
       );
-      _statusMessage = 'Restore request sent to Google Play.';
+      _statusMessage =
+          'Restore request sent to ${AppPlatformService.storeName}.';
       return _statusMessage;
     } catch (_) {
-      _statusMessage = 'Google Play purchases could not be restored.';
+      _statusMessage =
+          '${AppPlatformService.storeName} purchases could not be restored.';
       return _statusMessage;
     } finally {
       _restoring = false;
@@ -166,7 +175,8 @@ class PurchaseService extends ChangeNotifier {
       switch (purchase.status) {
         case PurchaseStatus.pending:
           _activeProductId = purchase.productID;
-          _statusMessage = 'Waiting for Google Play to finish the purchase…';
+          _statusMessage =
+              'Waiting for ${AppPlatformService.storeName} to finish the purchase…';
           notifyListeners();
           break;
         case PurchaseStatus.purchased:
@@ -193,7 +203,8 @@ class PurchaseService extends ChangeNotifier {
     final token = purchase.verificationData.serverVerificationData.trim();
     if (token.isEmpty) {
       _activeProductId = null;
-      _statusMessage = 'Google Play returned an invalid purchase token.';
+      _statusMessage =
+          '${AppPlatformService.storeName} returned an invalid purchase token.';
       notifyListeners();
       return;
     }
@@ -201,10 +212,15 @@ class PurchaseService extends ChangeNotifier {
     _activeProductId = purchase.productID;
     _statusMessage = 'Verifying purchase securely…';
     notifyListeners();
-    final error = await state.verifyGooglePlayPurchase(
-      productId: purchase.productID,
-      purchaseToken: token,
-    );
+    final error = AppPlatformService.isIOS
+        ? await state.verifyAppStorePurchase(
+            productId: purchase.productID,
+            signedTransaction: token,
+          )
+        : await state.verifyGooglePlayPurchase(
+            productId: purchase.productID,
+            purchaseToken: token,
+          );
     if (error.isNotEmpty) {
       _statusMessage = error;
       _activeProductId = null;
@@ -212,9 +228,10 @@ class PurchaseService extends ChangeNotifier {
       return;
     }
 
-    // The backend consumes coin products. Permanent products are completed
-    // here as well as acknowledged server-side, making retries idempotent.
-    if (!consumableProductIds.contains(purchase.productID) &&
+    // Apple transactions, including consumables, must be finished only after
+    // the server has granted them. Google coin tokens are consumed server-side.
+    if ((AppPlatformService.isIOS ||
+            !consumableProductIds.contains(purchase.productID)) &&
         purchase.pendingCompletePurchase) {
       await _store.completePurchase(purchase);
     }
@@ -223,6 +240,13 @@ class PurchaseService extends ChangeNotifier {
         ? 'Coins added to your balance.'
         : 'Purchase restored and ready to equip.';
     notifyListeners();
+  }
+
+  String? _accountName(String? playerId) {
+    if (playerId == null || playerId.isEmpty) return null;
+    return AppPlatformService.isIOS
+        ? const Uuid().v5(Namespace.url.value, playerId)
+        : playerId;
   }
 
   @override

@@ -1,19 +1,30 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 class AppVersionInfo {
   final String versionName;
   final int buildNumber;
 
-  const AppVersionInfo({
-    required this.versionName,
-    required this.buildNumber,
-  });
+  const AppVersionInfo({required this.versionName, required this.buildNumber});
 }
 
 class AppPlatformService {
   static const MethodChannel _channel = MethodChannel('ludo_rush/app');
   static const String playStoreListing =
       'https://play.google.com/store/apps/details?id=com.ludorush.game';
+  static const String appStoreListing =
+      'https://apps.apple.com/app/id6834993861';
+
+  static bool get isIOS =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+  static String get platformName => isIOS ? 'ios' : 'android';
+  static String get storeName => isIOS ? 'App Store' : 'Google Play';
+  static String get storeListing => isIOS ? appStoreListing : playStoreListing;
+
+  static Future<void> prepareAdsPrivacy() async {
+    if (!isIOS) return;
+    await _channel.invokeMethod<void>('prepareAdsPrivacy');
+  }
 
   static Future<AppVersionInfo> getVersionInfo() async {
     try {
@@ -31,9 +42,7 @@ class AppPlatformService {
 
   static Future<bool> openUrl(String url) async {
     try {
-      final result = await _channel.invokeMethod<bool>('openUrl', {
-        'url': url,
-      });
+      final result = await _channel.invokeMethod<bool>('openUrl', {'url': url});
       return result == true;
     } catch (_) {
       return false;

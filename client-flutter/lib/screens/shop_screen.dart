@@ -12,6 +12,7 @@ import '../data/economy.dart';
 import '../state/app_state.dart';
 import '../services/levelplay_ad_service.dart';
 import '../services/purchase_service.dart';
+import '../services/app_platform_service.dart';
 import '../services/sound_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/levelplay_banner.dart';
@@ -43,62 +44,177 @@ class _ShopScreenState extends State<ShopScreen>
   final _shopScroll = ScrollController();
 
   static const _items = [
-    _ShopProduct('Daily Coins', 'FREE', '${GameEconomy.dailyCoins} coins',
-        _ProductArt.daily, false, GameEconomy.dailyCoins,
-        dailyReward: true),
-    _ShopProduct('Royal Dice', '3 WINS', 'rare win reward',
-        _ProductArt.royalDice, false, 0,
-        diceSkin: 'royal', rarity: 'RARE'),
     _ShopProduct(
-        'Neon Dice', '5 WINS', 'arcade reward', _ProductArt.neonDice, false, 0,
-        diceSkin: 'neon', rarity: 'RARE'),
-    _ShopProduct('Ruby Dice', '0.99 USD', 'premium red gem',
-        _ProductArt.rubyDice, false, 0,
-        diceSkin: 'ruby', rarity: 'PREMIUM', productId: 'dice.ruby'),
-    _ShopProduct('Emerald Dice', '8 WINS', 'rare green gem',
-        _ProductArt.emeraldDice, false, 0,
-        diceSkin: 'emerald', rarity: 'RARE'),
-    _ShopProduct('Cosmic Dice', '1.99 USD', 'premium star glow',
-        _ProductArt.cosmicDice, true, 0,
-        diceSkin: 'cosmic', rarity: 'PREMIUM', productId: 'dice.cosmic'),
-    _ShopProduct('Carnival Board', 'EQUIP', 'approved theme',
-        _ProductArt.carnivalBoard, false, 0,
-        ludoBoardTheme: 'carnival', rarity: 'COMMON'),
-    _ShopProduct('Royal Board', '6 WINS', 'gold palace', _ProductArt.royalBoard,
-        false, 0,
-        ludoBoardTheme: 'royal', rarity: 'RARE'),
-    _ShopProduct('Neon Board', '1.99 USD', 'premium arcade board',
-        _ProductArt.neonBoard, false, 0,
-        ludoBoardTheme: 'neon', rarity: 'PREMIUM', productId: 'board.neon'),
-    _ShopProduct('Classic Board', '2 WINS', 'clean table',
-        _ProductArt.classicBoard, false, 0,
-        ludoBoardTheme: 'classic', rarity: 'COMMON'),
-    _ShopProduct('Ocean Voyage', 'EQUIP', 'waves & compass roses',
-        _ProductArt.classicBoard, false, 0,
-        ludoBoardTheme: 'ocean', rarity: 'COMMON'),
-    _ShopProduct('Star Observatory', '4 WINS', 'orbits & constellations',
-        _ProductArt.royalBoard, false, 0,
-        ludoBoardTheme: 'astral', rarity: 'RARE'),
-    _ShopProduct('Lava Citadel', '8 WINS', 'obsidian & glowing fissures',
-        _ProductArt.classicBoard, false, 0,
-        ludoBoardTheme: 'volcano', rarity: 'RARE'),
-    _ShopProduct('Coin Stack', '0.99 USD', '1,200 coins', _ProductArt.coinPack,
-        false, 1200,
-        rarity: 'PREMIUM', productId: 'coins.stack_1200'),
-    _ShopProduct('Gem Chest', '1.49 USD', '3,500 coins', _ProductArt.clubChest,
-        false, 3500,
-        rarity: 'PREMIUM', productId: 'coins.chest_3500'),
-    _ShopProduct('Royal Vault', '1.99 USD', '7,500 coins',
-        _ProductArt.royalVault, true, 7500,
-        rarity: 'PREMIUM', productId: 'coins.vault_7500'),
+      'Daily Coins',
+      'FREE',
+      '${GameEconomy.dailyCoins} coins',
+      _ProductArt.daily,
+      false,
+      GameEconomy.dailyCoins,
+      dailyReward: true,
+    ),
+    _ShopProduct(
+      'Royal Dice',
+      '3 WINS',
+      'rare win reward',
+      _ProductArt.royalDice,
+      false,
+      0,
+      diceSkin: 'royal',
+      rarity: 'RARE',
+    ),
+    _ShopProduct(
+      'Neon Dice',
+      '5 WINS',
+      'arcade reward',
+      _ProductArt.neonDice,
+      false,
+      0,
+      diceSkin: 'neon',
+      rarity: 'RARE',
+    ),
+    _ShopProduct(
+      'Ruby Dice',
+      '0.99 USD',
+      'premium red gem',
+      _ProductArt.rubyDice,
+      false,
+      0,
+      diceSkin: 'ruby',
+      rarity: 'PREMIUM',
+      productId: 'dice.ruby',
+    ),
+    _ShopProduct(
+      'Emerald Dice',
+      '8 WINS',
+      'rare green gem',
+      _ProductArt.emeraldDice,
+      false,
+      0,
+      diceSkin: 'emerald',
+      rarity: 'RARE',
+    ),
+    _ShopProduct(
+      'Cosmic Dice',
+      '1.99 USD',
+      'premium star glow',
+      _ProductArt.cosmicDice,
+      true,
+      0,
+      diceSkin: 'cosmic',
+      rarity: 'PREMIUM',
+      productId: 'dice.cosmic',
+    ),
+    _ShopProduct(
+      'Carnival Board',
+      'EQUIP',
+      'approved theme',
+      _ProductArt.carnivalBoard,
+      false,
+      0,
+      ludoBoardTheme: 'carnival',
+      rarity: 'COMMON',
+    ),
+    _ShopProduct(
+      'Royal Board',
+      '6 WINS',
+      'gold palace',
+      _ProductArt.royalBoard,
+      false,
+      0,
+      ludoBoardTheme: 'royal',
+      rarity: 'RARE',
+    ),
+    _ShopProduct(
+      'Neon Board',
+      '1.99 USD',
+      'premium arcade board',
+      _ProductArt.neonBoard,
+      false,
+      0,
+      ludoBoardTheme: 'neon',
+      rarity: 'PREMIUM',
+      productId: 'board.neon',
+    ),
+    _ShopProduct(
+      'Classic Board',
+      '2 WINS',
+      'clean table',
+      _ProductArt.classicBoard,
+      false,
+      0,
+      ludoBoardTheme: 'classic',
+      rarity: 'COMMON',
+    ),
+    _ShopProduct(
+      'Ocean Voyage',
+      'EQUIP',
+      'waves & compass roses',
+      _ProductArt.classicBoard,
+      false,
+      0,
+      ludoBoardTheme: 'ocean',
+      rarity: 'COMMON',
+    ),
+    _ShopProduct(
+      'Star Observatory',
+      '4 WINS',
+      'orbits & constellations',
+      _ProductArt.royalBoard,
+      false,
+      0,
+      ludoBoardTheme: 'astral',
+      rarity: 'RARE',
+    ),
+    _ShopProduct(
+      'Lava Citadel',
+      '8 WINS',
+      'obsidian & glowing fissures',
+      _ProductArt.classicBoard,
+      false,
+      0,
+      ludoBoardTheme: 'volcano',
+      rarity: 'RARE',
+    ),
+    _ShopProduct(
+      'Coin Stack',
+      '0.99 USD',
+      '1,200 coins',
+      _ProductArt.coinPack,
+      false,
+      1200,
+      rarity: 'PREMIUM',
+      productId: 'coins.stack_1200',
+    ),
+    _ShopProduct(
+      'Gem Chest',
+      '1.49 USD',
+      '3,500 coins',
+      _ProductArt.clubChest,
+      false,
+      3500,
+      rarity: 'PREMIUM',
+      productId: 'coins.chest_3500',
+    ),
+    _ShopProduct(
+      'Royal Vault',
+      '1.99 USD',
+      '7,500 coins',
+      _ProductArt.royalVault,
+      true,
+      7500,
+      rarity: 'PREMIUM',
+      productId: 'coins.vault_7500',
+    ),
   ];
 
   @override
   void initState() {
     super.initState();
-    _bg =
-        AnimationController(vsync: this, duration: const Duration(seconds: 12))
-          ..repeat(reverse: true);
+    _bg = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 12),
+    )..repeat(reverse: true);
     PurchaseService.instance.addListener(_purchaseChanged);
   }
 
@@ -121,14 +237,16 @@ class _ShopScreenState extends State<ShopScreen>
         final dark = state.isDarkMode;
         final p = _ShopPalette.fromDark(dark);
         final products = _items
-            .where((item) => switch (_category) {
-                  'Ludo' => item.ludoBoardTheme != null,
-                  'Dice' => item.diceSkin != null,
-                  'Rewards' =>
-                    item.ludoBoardTheme == null && item.diceSkin == null,
-                  'All' => true,
-                  _ => false,
-                })
+            .where(
+              (item) => switch (_category) {
+                'Ludo' => item.ludoBoardTheme != null,
+                'Dice' => item.diceSkin != null,
+                'Rewards' =>
+                  item.ludoBoardTheme == null && item.diceSkin == null,
+                'All' => true,
+                _ => false,
+              },
+            )
             .toList();
         return Scaffold(
           backgroundColor: p.bg,
@@ -169,15 +287,15 @@ class _ShopScreenState extends State<ShopScreen>
                                   .toDouble();
                           final columns =
                               _category == 'Ludo' && box.maxWidth < 600
-                                  ? 1
-                                  : box.maxWidth < 600
-                                      ? 2
-                                      : 3;
+                              ? 1
+                              : box.maxWidth < 600
+                              ? 2
+                              : 3;
                           final cardAspect = columns == 1
                               ? 1.05
                               : columns == 2
-                                  ? (compactHeight ? 0.76 : 0.82)
-                                  : (compactHeight ? 0.66 : 0.70);
+                              ? (compactHeight ? 0.76 : 0.82)
+                              : (compactHeight ? 0.66 : 0.70);
                           final gridPad = EdgeInsets.fromLTRB(
                             narrow ? 12 : 16,
                             compactHeight ? 6 : 8,
@@ -189,48 +307,55 @@ class _ShopScreenState extends State<ShopScreen>
                             children: [
                               _ShopResources(state: state, palette: p),
                               SizedBox(
-                                  height: 52,
-                                  child: ListView(
-                                    scrollDirection: Axis.horizontal,
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
-                                    children: [
-                                      for (final category in const [
-                                        'All',
-                                        'Ludo',
-                                        'Snakes',
-                                        'Dice',
-                                        'Avatars',
-                                        'Rewards'
-                                      ])
-                                        Padding(
-                                            padding:
-                                                const EdgeInsets.only(right: 7),
-                                            child: ChoiceChip(
-                                              key: ValueKey(
-                                                  'shop-category-$category'),
-                                              label: LocalizedText(category),
-                                              selected: category == _category,
-                                              selectedColor: dark
-                                                  ? const Color(0xFF674B20)
-                                                  : const Color(0xFFFFE5A4),
-                                              labelStyle: TextStyle(
-                                                  color: category == _category
-                                                      ? (dark
-                                                          ? goldColor
-                                                          : const Color(
-                                                              0xFF614200))
-                                                      : p.text,
-                                                  fontWeight: FontWeight.w700),
-                                              onSelected: (_) {
-                                                setState(
-                                                    () => _category = category);
-                                                if (_shopScroll.hasClients)
-                                                  _shopScroll.jumpTo(0);
-                                              },
-                                            ))
-                                    ],
-                                  )),
+                                height: 52,
+                                child: ListView(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  children: [
+                                    for (final category in const [
+                                      'All',
+                                      'Ludo',
+                                      'Snakes',
+                                      'Dice',
+                                      'Avatars',
+                                      'Rewards',
+                                    ])
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 7,
+                                        ),
+                                        child: ChoiceChip(
+                                          key: ValueKey(
+                                            'shop-category-$category',
+                                          ),
+                                          label: LocalizedText(category),
+                                          selected: category == _category,
+                                          selectedColor: dark
+                                              ? const Color(0xFF674B20)
+                                              : const Color(0xFFFFE5A4),
+                                          labelStyle: TextStyle(
+                                            color: category == _category
+                                                ? (dark
+                                                      ? goldColor
+                                                      : const Color(0xFF614200))
+                                                : p.text,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                          onSelected: (_) {
+                                            setState(
+                                              () => _category = category,
+                                            );
+                                            if (_shopScroll.hasClients)
+                                              _shopScroll.jumpTo(0);
+                                          },
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
                               Expanded(
                                 child: CustomScrollView(
                                   controller: _shopScroll,
@@ -270,22 +395,30 @@ class _ShopScreenState extends State<ShopScreen>
                                       ),
                                     if (_category == 'All')
                                       SliverToBoxAdapter(
-                                          child: _BoardThemeStrip(
-                                              palette: p, state: state)),
+                                        child: _BoardThemeStrip(
+                                          palette: p,
+                                          state: state,
+                                        ),
+                                      ),
                                     if (_category == 'Snakes')
                                       _BoardThemeStrip(
-                                          expanded: true,
-                                          palette: p,
-                                          state: state),
+                                        expanded: true,
+                                        palette: p,
+                                        state: state,
+                                      ),
                                     if (_category == 'All')
                                       SliverToBoxAdapter(
-                                          child: _AvatarShopStrip(
-                                              palette: p, state: state)),
+                                        child: _AvatarShopStrip(
+                                          palette: p,
+                                          state: state,
+                                        ),
+                                      ),
                                     if (_category == 'Avatars')
                                       _AvatarShopStrip(
-                                          expanded: true,
-                                          palette: p,
-                                          state: state),
+                                        expanded: true,
+                                        palette: p,
+                                        state: state,
+                                      ),
                                     SliverToBoxAdapter(
                                       child: _PurchaseStatusBanner(
                                         palette: p,
@@ -297,19 +430,20 @@ class _ShopScreenState extends State<ShopScreen>
                                       sliver: SliverGrid(
                                         gridDelegate:
                                             SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: columns,
-                                          childAspectRatio: cardAspect,
-                                          crossAxisSpacing: narrow ? 8 : 10,
-                                          mainAxisSpacing:
-                                              compactHeight ? 10 : 14,
-                                        ),
+                                              crossAxisCount: columns,
+                                              childAspectRatio: cardAspect,
+                                              crossAxisSpacing: narrow ? 8 : 10,
+                                              mainAxisSpacing: compactHeight
+                                                  ? 10
+                                                  : 14,
+                                            ),
                                         delegate: SliverChildBuilderDelegate(
                                           (context, i) => _ShopCard(
                                             product: products[i],
                                             palette: p,
                                             locked: products[i].isLocked(state),
-                                            actionLabel:
-                                                products[i].actionLabel(state),
+                                            actionLabel: products[i]
+                                                .actionLabel(state),
                                             onBuy: () async {
                                               final product = products[i];
                                               var message =
@@ -320,50 +454,56 @@ class _ShopScreenState extends State<ShopScreen>
                                                 if (!context.mounted) return;
                                                 message = claimed
                                                     ? 'Daily coins claimed. +${state.dailyRewardAmount} coins.'
-                                                    : (state.socialError
-                                                            .isNotEmpty
-                                                        ? state.socialError
-                                                        : 'Daily coins already claimed. Come back tomorrow.');
+                                                    : (state
+                                                              .socialError
+                                                              .isNotEmpty
+                                                          ? state.socialError
+                                                          : 'Daily coins already claimed. Come back tomorrow.');
                                               } else if (product
                                                   .requiresPurchase(state)) {
                                                 final productId =
                                                     product.productId;
                                                 message = productId == null
-                                                    ? '${product.title} is still being prepared for Google Play.'
+                                                    ? '${product.title} is still being prepared for ${AppPlatformService.storeName}.'
                                                     : await PurchaseService
-                                                        .instance
-                                                        .buy(productId);
+                                                          .instance
+                                                          .buy(productId);
                                               } else if (product.diceSkin !=
                                                   null) {
                                                 if (state.isDiceSkinUnlocked(
-                                                    product.diceSkin!)) {
+                                                  product.diceSkin!,
+                                                )) {
                                                   state.setDiceSkin(
-                                                      product.diceSkin!);
+                                                    product.diceSkin!,
+                                                  );
                                                   message =
                                                       '${product.title} equipped for your dice.';
                                                 } else {
-                                                  message =
-                                                      state.diceSkinUnlockLabel(
-                                                          product.diceSkin!);
+                                                  message = state
+                                                      .diceSkinUnlockLabel(
+                                                        product.diceSkin!,
+                                                      );
                                                 }
                                               } else if (product
                                                       .ludoBoardTheme !=
                                                   null) {
                                                 if (state.isBoardThemeUnlocked(
-                                                    product.ludoBoardTheme!)) {
+                                                  product.ludoBoardTheme!,
+                                                )) {
                                                   state.setLudoBoardTheme(
-                                                      product.ludoBoardTheme!);
+                                                    product.ludoBoardTheme!,
+                                                  );
                                                   message =
                                                       '${product.title} equipped for Ludo.';
                                                 } else {
                                                   message = state
                                                       .boardThemeUnlockLabel(
-                                                          product
-                                                              .ludoBoardTheme!);
+                                                        product.ludoBoardTheme!,
+                                                      );
                                                 }
                                               } else if (product.premium) {
                                                 message =
-                                                    '${product.title} requires a verified Google Play purchase. No coins were added.';
+                                                    '${product.title} requires a verified ${AppPlatformService.storeName} purchase. No coins were added.';
                                               } else if (product.coinReward >
                                                   0) {
                                                 message =
@@ -378,8 +518,11 @@ class _ShopScreenState extends State<ShopScreen>
                                                     backgroundColor:
                                                         const Color(0xEE22082E),
                                                     duration: const Duration(
-                                                        milliseconds: 1200),
-                                                    content: LocalizedText(message),
+                                                      milliseconds: 1200,
+                                                    ),
+                                                    content: LocalizedText(
+                                                      message,
+                                                    ),
                                                   ),
                                                 );
                                             },
@@ -415,9 +558,7 @@ class _ShopScreenState extends State<ShopScreen>
     if (!mounted) return;
 
     if (earned) {
-      state.grantRewardedShopPoints(
-        amount: LevelPlayAdConfig.shopRewardPoints,
-      );
+      state.grantRewardedShopPoints(amount: LevelPlayAdConfig.shopRewardPoints);
     }
     setState(() => _rewardInFlight = false);
     ScaffoldMessenger.of(context)
@@ -511,16 +652,13 @@ class _PurchaseStatusBanner extends StatelessWidget {
   final _ShopPalette palette;
   final PurchaseService purchases;
 
-  const _PurchaseStatusBanner({
-    required this.palette,
-    required this.purchases,
-  });
+  const _PurchaseStatusBanner({required this.palette, required this.purchases});
 
   @override
   Widget build(BuildContext context) {
     final busy = purchases.loading || purchases.activeProductId != null;
     final message = purchases.statusMessage.isEmpty
-        ? 'Secure checkout and purchase restore are handled by Google Play.'
+        ? 'Secure checkout and purchase restore are handled by ${AppPlatformService.storeName}.'
         : purchases.statusMessage;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -532,27 +670,34 @@ class _PurchaseStatusBanner extends StatelessWidget {
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(children: [
-            if (busy)
-              const SizedBox.square(
-                dimension: 18,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else
-              const Icon(Icons.verified_user_rounded,
-                  size: 19, color: boardGreen),
-            const SizedBox(width: 9),
-            Expanded(
-              child: LocalizedText(message,
-                  style: TextStyle(color: palette.muted, fontSize: 11.5)),
-            ),
-            TextButton(
-              onPressed: busy || !purchases.available
-                  ? null
-                  : () => unawaited(purchases.restorePurchases()),
-              child: const LocalizedText('Restore'),
-            ),
-          ]),
+          child: Row(
+            children: [
+              if (busy)
+                const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                const Icon(
+                  Icons.verified_user_rounded,
+                  size: 19,
+                  color: boardGreen,
+                ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: LocalizedText(
+                  message,
+                  style: TextStyle(color: palette.muted, fontSize: 11.5),
+                ),
+              ),
+              TextButton(
+                onPressed: busy || !purchases.available
+                    ? null
+                    : () => unawaited(purchases.restorePurchases()),
+                child: const LocalizedText('Restore'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -620,8 +765,12 @@ class _ShopResources extends StatelessWidget {
         final gap = compact ? 5.0 : 14.0;
         return Container(
           height: 52,
-          padding:
-              EdgeInsets.fromLTRB(compact ? 7 : 14, 6, compact ? 7 : 14, 4),
+          padding: EdgeInsets.fromLTRB(
+            compact ? 7 : 14,
+            6,
+            compact ? 7 : 14,
+            4,
+          ),
           child: Row(
             children: [
               IconButton(
@@ -632,30 +781,36 @@ class _ShopResources extends StatelessWidget {
                 padding: EdgeInsets.zero,
                 tooltip: LudoStringsScope.translate(context, 'Back'),
                 onPressed: () => Navigator.pop(context),
-                icon: Icon(Icons.arrow_back_ios_new_rounded,
-                    color: palette.text, size: compact ? 18 : 20),
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: palette.text,
+                  size: compact ? 18 : 20,
+                ),
               ),
               const Spacer(),
               _ResourceChip(
-                  icon: Icons.monetization_on_rounded,
-                  value: '${state.coins}',
-                  color: amberColor,
-                  palette: palette,
-                  compact: compact),
+                icon: Icons.monetization_on_rounded,
+                value: '${state.coins}',
+                color: amberColor,
+                palette: palette,
+                compact: compact,
+              ),
               SizedBox(width: gap),
               _ResourceChip(
-                  icon: Icons.emoji_events_rounded,
-                  value: '${state.wins}',
-                  color: const Color(0xFF22E46C),
-                  palette: palette,
-                  compact: compact),
+                icon: Icons.emoji_events_rounded,
+                value: '${state.wins}',
+                color: const Color(0xFF22E46C),
+                palette: palette,
+                compact: compact,
+              ),
               SizedBox(width: gap),
               _ResourceChip(
-                  icon: Icons.bolt_rounded,
-                  value: '${state.energy}',
-                  color: const Color(0xFF35D6FF),
-                  palette: palette,
-                  compact: compact),
+                icon: Icons.bolt_rounded,
+                value: '${state.energy}',
+                color: const Color(0xFF35D6FF),
+                palette: palette,
+                compact: compact,
+              ),
             ],
           ),
         );
@@ -698,7 +853,8 @@ class _ResourceChip extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
-                  colors: [Color.lerp(color, Colors.white, 0.35)!, color]),
+                colors: [Color.lerp(color, Colors.white, 0.35)!, color],
+              ),
             ),
             child: Icon(icon, color: Colors.white, size: compact ? 15 : 17),
           ),
@@ -707,12 +863,15 @@ class _ResourceChip extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: LocalizedText(value,
-                  maxLines: 1,
-                  style: TextStyle(
-                      color: palette.text,
-                      fontSize: compact ? 12 : 13,
-                      fontWeight: FontWeight.w900)),
+              child: LocalizedText(
+                value,
+                maxLines: 1,
+                style: TextStyle(
+                  color: palette.text,
+                  fontSize: compact ? 12 : 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ),
           ),
         ],
@@ -741,22 +900,16 @@ class _ShopHero extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         gradient: LinearGradient(
-            colors: palette.dark
-                ? const [
-                    Color(0xFF4B112D),
-                    Color(0xFF8B2337),
-                    Color(0xFF3A1026)
-                  ]
-                : const [
-                    Color(0xFFFFC5DB),
-                    Color(0xFFFF9A82),
-                    Color(0xFFFFE1A5)
-                  ]),
+          colors: palette.dark
+              ? const [Color(0xFF4B112D), Color(0xFF8B2337), Color(0xFF3A1026)]
+              : const [Color(0xFFFFC5DB), Color(0xFFFF9A82), Color(0xFFFFE1A5)],
+        ),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withAlpha(palette.dark ? 95 : 35),
-              blurRadius: 12,
-              offset: const Offset(0, 5))
+            color: Colors.black.withAlpha(palette.dark ? 95 : 35),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
         ],
       ),
       child: ClipRRect(
@@ -831,7 +984,7 @@ class _ShopHeroCopy extends StatelessWidget {
                     color: Colors.black,
                     blurRadius: 3,
                     offset: Offset(1, 2),
-                  )
+                  ),
                 ],
               ),
             ),
@@ -870,8 +1023,7 @@ class _ShopHeroSparklePainter extends CustomPainter {
         const Color(0xFFFF4BD8),
         const Color(0xFF48E9FF),
         Colors.white,
-      ][i % 4]
-          .withAlpha((70 + math.sin(phase).abs() * 140).round());
+      ][i % 4].withAlpha((70 + math.sin(phase).abs() * 140).round());
       canvas.drawCircle(Offset(x, y), r, p);
     }
   }
@@ -919,9 +1071,10 @@ class _AnimatedShopSign extends StatelessWidget {
                   ),
                   boxShadow: [
                     const BoxShadow(
-                        color: Color(0x66000000),
-                        blurRadius: 10,
-                        offset: Offset(0, 5)),
+                      color: Color(0x66000000),
+                      blurRadius: 10,
+                      offset: Offset(0, 5),
+                    ),
                     BoxShadow(
                       color: Color.fromARGB(glow, 255, 212, 38),
                       blurRadius: 16,
@@ -935,10 +1088,9 @@ class _AnimatedShopSign extends StatelessWidget {
                   children: [
                     const DecoratedBox(
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(colors: [
-                          Color(0xFFFF2F72),
-                          Color(0xFF92224E),
-                        ]),
+                        gradient: LinearGradient(
+                          colors: [Color(0xFFFF2F72), Color(0xFF92224E)],
+                        ),
                       ),
                     ),
                     Positioned(
@@ -972,9 +1124,10 @@ class _AnimatedShopSign extends StatelessWidget {
                             fontWeight: FontWeight.w900,
                             shadows: const [
                               Shadow(
-                                  color: Colors.black87,
-                                  blurRadius: 2,
-                                  offset: Offset(2, 3))
+                                color: Colors.black87,
+                                blurRadius: 2,
+                                offset: Offset(2, 3),
+                              ),
                             ],
                           ),
                         ),
@@ -1064,9 +1217,10 @@ class _ShopMascotWidget extends StatelessWidget {
                       border: Border.all(color: Color(0xFF8A5500), width: 1.4),
                       boxShadow: const [
                         BoxShadow(
-                            color: Color(0x66000000),
-                            blurRadius: 8,
-                            offset: Offset(0, 4)),
+                          color: Color(0x66000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
                       ],
                     ),
                   ),
@@ -1076,9 +1230,7 @@ class _ShopMascotWidget extends StatelessWidget {
                   right: 21,
                   top: -1,
                   height: 26,
-                  child: CustomPaint(
-                    painter: _MiniCrownPainter(boardYellow),
-                  ),
+                  child: CustomPaint(painter: _MiniCrownPainter(boardYellow)),
                 ),
                 Positioned(
                   left: 23,
@@ -1087,10 +1239,7 @@ class _ShopMascotWidget extends StatelessWidget {
                   height: 26,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      _MiniGoggle(),
-                      _MiniGoggle(),
-                    ],
+                    children: const [_MiniGoggle(), _MiniGoggle()],
                   ),
                 ),
                 Positioned(
@@ -1152,12 +1301,15 @@ class _ShopMascotWidget extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(7),
                         border: Border.all(
-                            color: const Color(0xFFFFD426), width: 1.4),
+                          color: const Color(0xFFFFD426),
+                          width: 1.4,
+                        ),
                         boxShadow: const [
                           BoxShadow(
-                              color: Color(0x66000000),
-                              blurRadius: 5,
-                              offset: Offset(1, 3)),
+                            color: Color(0x66000000),
+                            blurRadius: 5,
+                            offset: Offset(1, 3),
+                          ),
                         ],
                       ),
                       child: const Icon(
@@ -1315,7 +1467,13 @@ class _ShopMascotShelfPainter extends CustomPainter {
   }
 
   void _drawMascot(
-      Canvas canvas, Offset c, double s, Color suit, Color accent, Paint p) {
+    Canvas canvas,
+    Offset c,
+    double s,
+    Color suit,
+    Color accent,
+    Paint p,
+  ) {
     canvas.save();
     canvas.translate(c.dx, c.dy);
 
@@ -1382,7 +1540,10 @@ class _ShopMascotShelfPainter extends CustomPainter {
       ..strokeWidth = math.max(2.0, s * 0.08)
       ..color = const Color(0xFF534865);
     canvas.drawLine(
-        Offset(-s * 0.32, -s * 0.25), Offset(s * 0.32, -s * 0.25), p);
+      Offset(-s * 0.32, -s * 0.25),
+      Offset(s * 0.32, -s * 0.25),
+      p,
+    );
     p.style = PaintingStyle.fill;
     for (final x in [-s * 0.17, s * 0.17]) {
       p.color = const Color(0xFF5F5871);
@@ -1409,7 +1570,10 @@ class _ShopMascotShelfPainter extends CustomPainter {
       ..color = const Color(0xFF6D3D00);
     canvas.drawArc(
       Rect.fromCenter(
-          center: Offset(0, -s * 0.04), width: s * 0.38, height: s * 0.22),
+        center: Offset(0, -s * 0.04),
+        width: s * 0.38,
+        height: s * 0.22,
+      ),
       0.2,
       math.pi - 0.4,
       false,
@@ -1421,7 +1585,12 @@ class _ShopMascotShelfPainter extends CustomPainter {
   }
 
   void _drawOveralls(
-      Canvas canvas, double s, Color suit, Color accent, Paint p) {
+    Canvas canvas,
+    double s,
+    Color suit,
+    Color accent,
+    Paint p,
+  ) {
     final overalls = Path()
       ..moveTo(-s * 0.32, s * 0.12)
       ..lineTo(-s * 0.23, s * 0.50)
@@ -1459,11 +1628,10 @@ class _ShopMascotShelfPainter extends CustomPainter {
 
   void _drawDice(Canvas canvas, Offset c, double s, Paint p) {
     final rect = Rect.fromCenter(center: c, width: s, height: s);
-    p.shader = ui.Gradient.linear(
-      rect.topLeft,
-      rect.bottomRight,
-      const [Colors.white, Color(0xFFFFEFC8)],
-    );
+    p.shader = ui.Gradient.linear(rect.topLeft, rect.bottomRight, const [
+      Colors.white,
+      Color(0xFFFFEFC8),
+    ]);
     canvas.drawRRect(RRect.fromRectXY(rect, s * 0.22, s * 0.22), p);
     p.shader = null;
     p.color = boardRed;
@@ -1564,22 +1732,29 @@ class _ShopCoverBubbles extends StatelessWidget {
                   tilt: -0.10,
                 ),
                 _spark(
-                    left: 82 * sx, top: 15 * sy, size: 9 * scale, phase: phase),
+                  left: 82 * sx,
+                  top: 15 * sy,
+                  size: 9 * scale,
+                  phase: phase,
+                ),
                 _spark(
-                    left: 236 * sx,
-                    top: 46 * sy,
-                    size: 8 * scale,
-                    phase: phase + 0.9),
+                  left: 236 * sx,
+                  top: 46 * sy,
+                  size: 8 * scale,
+                  phase: phase + 0.9,
+                ),
                 _spark(
-                    left: 28 * sx,
-                    top: 78 * sy,
-                    size: 7 * scale,
-                    phase: phase + 1.7),
+                  left: 28 * sx,
+                  top: 78 * sy,
+                  size: 7 * scale,
+                  phase: phase + 1.7,
+                ),
                 _spark(
-                    left: 212 * sx,
-                    top: 101 * sy,
-                    size: 10 * scale,
-                    phase: phase + 2.4),
+                  left: 212 * sx,
+                  top: 101 * sy,
+                  size: 10 * scale,
+                  phase: phase + 2.4,
+                ),
               ],
             );
           },
@@ -1619,9 +1794,10 @@ class _ShopCoverBubbles extends StatelessWidget {
             border: Border.all(color: const Color(0xFFFFD426), width: 2),
             boxShadow: const [
               BoxShadow(
-                  color: Color(0x66000000),
-                  blurRadius: 8,
-                  offset: Offset(0, 4)),
+                color: Color(0x66000000),
+                blurRadius: 8,
+                offset: Offset(0, 4),
+              ),
               BoxShadow(color: Color(0x55FFD426), blurRadius: 12),
             ],
           ),
@@ -1673,7 +1849,8 @@ class _BoosterBanner extends StatelessWidget {
         color: Colors.black.withAlpha(palette.dark ? 120 : 35),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-            color: palette.dark ? Colors.transparent : const Color(0x22A00073)),
+          color: palette.dark ? Colors.transparent : const Color(0x22A00073),
+        ),
       ),
       child: LocalizedText(
         'Win +${GameEconomy.onlineWinCoins} | Finish +${GameEconomy.onlineFinishCoins} | Daily +${GameEconomy.dailyCoins} | Chest +${GameEconomy.goldChestCoins} every ${GameEconomy.winsPerGoldChest} wins',
@@ -1710,18 +1887,24 @@ class _AvatarShopStrip extends StatelessWidget {
   final AppState state;
   final bool expanded;
 
-  const _AvatarShopStrip(
-      {required this.palette, required this.state, this.expanded = false});
+  const _AvatarShopStrip({
+    required this.palette,
+    required this.state,
+    this.expanded = false,
+  });
 
   Widget _avatarButton(BuildContext context, int index) {
     final avatar = profileAvatarCatalog[index];
     final unlocked = state.isAvatarUnlocked(index);
-    final productId =
-        avatar.rarity == AvatarRarity.premium ? 'avatar.${avatar.id}' : null;
+    final productId = avatar.rarity == AvatarRarity.premium
+        ? 'avatar.${avatar.id}'
+        : null;
     final purchaseLabel = productId == null
         ? state.avatarUnlockLabel(index)
-        : PurchaseService.instance
-            .displayPrice(productId, avatar.price ?? 'Buy');
+        : PurchaseService.instance.displayPrice(
+            productId,
+            avatar.price ?? 'Buy',
+          );
     final selected =
         state.avatarPreset == index && state.avatarImagePath == null;
     return _ShopAvatarButton(
@@ -1732,19 +1915,21 @@ class _AvatarShopStrip extends StatelessWidget {
       actionLabel: selected
           ? 'Equipped'
           : unlocked
-              ? state.avatarUnlockLabel(index)
-              : purchaseLabel,
-      onTap: () => showLiveItemPreview(context,
-          title: avatar.label,
-          preview: ProfileAvatarView(preset: index, animate: true),
-          description:
-              'Your avatar reacts to sixes, captures, climbs and victories.',
-          actionLabel: unlocked ? 'Equip avatar' : purchaseLabel,
-          onAction: unlocked
-              ? () => state.updateProfile(avatar: index, clearImage: true)
-              : productId == null
-                  ? null
-                  : () => unawaited(PurchaseService.instance.buy(productId))),
+          ? state.avatarUnlockLabel(index)
+          : purchaseLabel,
+      onTap: () => showLiveItemPreview(
+        context,
+        title: avatar.label,
+        preview: ProfileAvatarView(preset: index, animate: true),
+        description:
+            'Your avatar reacts to sixes, captures, climbs and victories.',
+        actionLabel: unlocked ? 'Equip avatar' : purchaseLabel,
+        onAction: unlocked
+            ? () => state.updateProfile(avatar: index, clearImage: true)
+            : productId == null
+            ? null
+            : () => unawaited(PurchaseService.instance.buy(productId)),
+      ),
     );
   }
 
@@ -1752,17 +1937,19 @@ class _AvatarShopStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     if (expanded) {
       return SliverPadding(
-          padding: const EdgeInsets.all(12),
-          sliver: SliverGrid.builder(
-            key: const ValueKey('avatar-gallery'),
-            itemCount: profileAvatarCatalog.length,
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 190,
-                childAspectRatio: .9,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 12),
-            itemBuilder: _avatarButton,
-          ));
+        padding: const EdgeInsets.all(12),
+        sliver: SliverGrid.builder(
+          key: const ValueKey('avatar-gallery'),
+          itemCount: profileAvatarCatalog.length,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 190,
+            childAspectRatio: .9,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 12,
+          ),
+          itemBuilder: _avatarButton,
+        ),
+      );
     }
     return Container(
       height: 128,
@@ -1946,109 +2133,100 @@ class _BoardThemeStrip extends StatelessWidget {
   });
 
   static const _options = [
-    _BoardThemeOption(
-      'carnival',
-      'Carnival',
-      [
-        Color(0xFFFF36B8),
-        Color(0xFFFFD426),
-        Color(0xFF22B7FF),
-      ],
-    ),
-    _BoardThemeOption(
-        'royal',
-        'Royal',
-        [
-          Color(0xFF5B2CFF),
-          Color(0xFFFFD426),
-          Color(0xFFB145FF),
-        ],
-        rarity: 'RARE'),
-    _BoardThemeOption(
-        'neon',
-        'Neon',
-        [
-          Color(0xFF00F5FF),
-          Color(0xFFFF35D6),
-          Color(0xFF6EFF3A),
-        ],
-        rarity: 'PREMIUM'),
-    _BoardThemeOption(
-      'classic',
-      'Classic',
-      [
-        Color(0xFFFF3B3F),
-        Color(0xFF2DBB52),
-        Color(0xFF1E9BFF),
-      ],
-    ),
-    _BoardThemeOption(
-        'jungle',
-        'Jungle',
-        [
-          Color(0xFF35B96D),
-          Color(0xFFFFC93C),
-          Color(0xFF21BDEB),
-        ],
-        rarity: 'RARE'),
-    _BoardThemeOption('ocean', 'Ocean Voyage',
-        [Color(0xFF087E99), Color(0xFF9DF3EA), Color(0xFF033649)]),
-    _BoardThemeOption('astral', 'Star Observatory',
-        [Color(0xFF574482), Color(0xFFF5DEAC), Color(0xFF11122D)],
-        rarity: 'RARE'),
-    _BoardThemeOption('volcano', 'Lava Citadel',
-        [Color(0xFF873D2D), Color(0xFFFFA24B), Color(0xFF241C20)],
-        rarity: 'RARE'),
+    _BoardThemeOption('carnival', 'Carnival', [
+      Color(0xFFFF36B8),
+      Color(0xFFFFD426),
+      Color(0xFF22B7FF),
+    ]),
+    _BoardThemeOption('royal', 'Royal', [
+      Color(0xFF5B2CFF),
+      Color(0xFFFFD426),
+      Color(0xFFB145FF),
+    ], rarity: 'RARE'),
+    _BoardThemeOption('neon', 'Neon', [
+      Color(0xFF00F5FF),
+      Color(0xFFFF35D6),
+      Color(0xFF6EFF3A),
+    ], rarity: 'PREMIUM'),
+    _BoardThemeOption('classic', 'Classic', [
+      Color(0xFFFF3B3F),
+      Color(0xFF2DBB52),
+      Color(0xFF1E9BFF),
+    ]),
+    _BoardThemeOption('jungle', 'Jungle', [
+      Color(0xFF35B96D),
+      Color(0xFFFFC93C),
+      Color(0xFF21BDEB),
+    ], rarity: 'RARE'),
+    _BoardThemeOption('ocean', 'Ocean Voyage', [
+      Color(0xFF087E99),
+      Color(0xFF9DF3EA),
+      Color(0xFF033649),
+    ]),
+    _BoardThemeOption('astral', 'Star Observatory', [
+      Color(0xFF574482),
+      Color(0xFFF5DEAC),
+      Color(0xFF11122D),
+    ], rarity: 'RARE'),
+    _BoardThemeOption('volcano', 'Lava Citadel', [
+      Color(0xFF873D2D),
+      Color(0xFFFFA24B),
+      Color(0xFF241C20),
+    ], rarity: 'RARE'),
   ];
 
   @override
   Widget build(BuildContext context) {
     if (expanded) {
       return SliverPadding(
-          padding: const EdgeInsets.all(12),
-          sliver: SliverGrid.builder(
-              key: const ValueKey('snakes-board-gallery'),
-              itemCount: _options.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: .72,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 12),
-              itemBuilder: (context, index) {
-                final option = _options[index];
-                final unlocked = state.isBoardThemeUnlocked(option.id);
-                final productId =
-                    option.rarity == 'PREMIUM' ? 'board.${option.id}' : null;
-                final purchaseLabel = productId == null
-                    ? state.boardThemeUnlockLabel(option.id)
-                    : PurchaseService.instance.displayPrice(
-                        productId,
-                        state.boardThemePremiumPrice(option.id) ?? 'Buy',
-                      );
-                return _BoardThemeButton(
-                    expanded: true,
-                    key: ValueKey('snakes-theme-${option.id}'),
-                    option: option,
-                    selected: state.snakesBoardTheme == option.id,
-                    locked: !unlocked,
-                    actionLabel: unlocked
-                        ? 'Owned'
-                        : state.boardThemePremiumPrice(option.id) ??
-                            '${state.boardThemeRequiredWins(option.id)} wins',
-                    onTap: () => showLiveItemPreview(context,
-                        title: '${option.label} Snakes & Ladders',
-                        preview:
-                            LiveBoardPreview(theme: option.id, snakes: true),
-                        description:
-                            'Try the board in motion before equipping it.',
-                        actionLabel: unlocked ? 'Equip board' : purchaseLabel,
-                        onAction: unlocked
-                            ? () => state.setSnakesBoardTheme(option.id)
-                            : productId == null
-                                ? null
-                                : () => unawaited(
-                                    PurchaseService.instance.buy(productId))));
-              }));
+        padding: const EdgeInsets.all(12),
+        sliver: SliverGrid.builder(
+          key: const ValueKey('snakes-board-gallery'),
+          itemCount: _options.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: .72,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 12,
+          ),
+          itemBuilder: (context, index) {
+            final option = _options[index];
+            final unlocked = state.isBoardThemeUnlocked(option.id);
+            final productId = option.rarity == 'PREMIUM'
+                ? 'board.${option.id}'
+                : null;
+            final purchaseLabel = productId == null
+                ? state.boardThemeUnlockLabel(option.id)
+                : PurchaseService.instance.displayPrice(
+                    productId,
+                    state.boardThemePremiumPrice(option.id) ?? 'Buy',
+                  );
+            return _BoardThemeButton(
+              expanded: true,
+              key: ValueKey('snakes-theme-${option.id}'),
+              option: option,
+              selected: state.snakesBoardTheme == option.id,
+              locked: !unlocked,
+              actionLabel: unlocked
+                  ? 'Owned'
+                  : state.boardThemePremiumPrice(option.id) ??
+                        '${state.boardThemeRequiredWins(option.id)} wins',
+              onTap: () => showLiveItemPreview(
+                context,
+                title: '${option.label} Snakes & Ladders',
+                preview: LiveBoardPreview(theme: option.id, snakes: true),
+                description: 'Try the board in motion before equipping it.',
+                actionLabel: unlocked ? 'Equip board' : purchaseLabel,
+                onAction: unlocked
+                    ? () => state.setSnakesBoardTheme(option.id)
+                    : productId == null
+                    ? null
+                    : () => unawaited(PurchaseService.instance.buy(productId)),
+              ),
+            );
+          },
+        ),
+      );
     }
     return Container(
       height: expanded ? 260 : 122,
@@ -2112,8 +2290,9 @@ class _BoardThemeStrip extends StatelessWidget {
               itemBuilder: (context, i) {
                 final option = _options[i];
                 final unlocked = state.isBoardThemeUnlocked(option.id);
-                final productId =
-                    option.rarity == 'PREMIUM' ? 'board.${option.id}' : null;
+                final productId = option.rarity == 'PREMIUM'
+                    ? 'board.${option.id}'
+                    : null;
                 final purchaseLabel = productId == null
                     ? state.boardThemeUnlockLabel(option.id)
                     : PurchaseService.instance.displayPrice(
@@ -2126,22 +2305,26 @@ class _BoardThemeStrip extends StatelessWidget {
                   option: option,
                   selected: state.snakesBoardTheme == option.id,
                   locked: !unlocked,
-                  actionLabel: state.boardThemePremiumPrice(option.id) ??
+                  actionLabel:
+                      state.boardThemePremiumPrice(option.id) ??
                       (state.isBoardThemeUnlocked(option.id)
                           ? 'Owned'
                           : '${state.boardThemeRequiredWins(option.id)} wins'),
-                  onTap: () => showLiveItemPreview(context,
-                      title: '${option.label} Snakes & Ladders',
-                      preview: LiveBoardPreview(theme: option.id, snakes: true),
-                      description:
-                          'Live board demo. Previewing never changes your equipped board or coins.',
-                      actionLabel: unlocked ? 'Equip board' : purchaseLabel,
-                      onAction: unlocked
-                          ? () => state.setSnakesBoardTheme(option.id)
-                          : productId == null
-                              ? null
-                              : () => unawaited(
-                                  PurchaseService.instance.buy(productId))),
+                  onTap: () => showLiveItemPreview(
+                    context,
+                    title: '${option.label} Snakes & Ladders',
+                    preview: LiveBoardPreview(theme: option.id, snakes: true),
+                    description:
+                        'Live board demo. Previewing never changes your equipped board or coins.',
+                    actionLabel: unlocked ? 'Equip board' : purchaseLabel,
+                    onAction: unlocked
+                        ? () => state.setSnakesBoardTheme(option.id)
+                        : productId == null
+                        ? null
+                        : () => unawaited(
+                            PurchaseService.instance.buy(productId),
+                          ),
+                  ),
                 );
               },
             ),
@@ -2194,12 +2377,7 @@ class _BoardThemeButton extends StatelessWidget {
             width: selected ? 2.2 : 1.1,
           ),
           boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: goldColor.withAlpha(105),
-                    blurRadius: 12,
-                  ),
-                ]
+              ? [BoxShadow(color: goldColor.withAlpha(105), blurRadius: 12)]
               : null,
         ),
         child: Column(
@@ -2256,7 +2434,7 @@ class _BoardThemeButton extends StatelessWidget {
                       fontSize: 9,
                       fontWeight: FontWeight.w900,
                       shadows: const [
-                        Shadow(color: Colors.black, blurRadius: 3)
+                        Shadow(color: Colors.black, blurRadius: 3),
                       ],
                     ),
                   ),
@@ -2292,69 +2470,43 @@ class _DiceSkinOption {
   final List<Color> colors;
   final String rarity;
 
-  const _DiceSkinOption(this.id, this.label, this.value, this.colors,
-      {this.rarity = 'COMMON'});
+  const _DiceSkinOption(
+    this.id,
+    this.label,
+    this.value,
+    this.colors, {
+    this.rarity = 'COMMON',
+  });
 }
 
 class _DiceSkinStrip extends StatelessWidget {
   final _ShopPalette palette;
   final AppState state;
 
-  const _DiceSkinStrip({
-    required this.palette,
-    required this.state,
-  });
+  const _DiceSkinStrip({required this.palette, required this.state});
 
   static const _options = [
-    _DiceSkinOption('classic', 'Classic', 5, [
-      Color(0xFFFFFDF4),
-      goldColor,
-    ]),
-    _DiceSkinOption(
-        'royal',
-        'Royal',
-        6,
-        [
-          Color(0xFFFFE26A),
-          Color(0xFFE58A00),
-        ],
-        rarity: 'RARE'),
-    _DiceSkinOption(
-        'neon',
-        'Neon',
-        4,
-        [
-          Color(0xFF162A72),
-          Color(0xFF42F3FF),
-        ],
-        rarity: 'RARE'),
-    _DiceSkinOption(
-        'ruby',
-        'Ruby',
-        3,
-        [
-          Color(0xFFFF4055),
-          Color(0xFFFFD866),
-        ],
-        rarity: 'PREMIUM'),
-    _DiceSkinOption(
-        'emerald',
-        'Emerald',
-        2,
-        [
-          Color(0xFF18C94B),
-          Color(0xFFFFD866),
-        ],
-        rarity: 'RARE'),
-    _DiceSkinOption(
-        'cosmic',
-        'Cosmic',
-        6,
-        [
-          Color(0xFF7A25FF),
-          Color(0xFFFF54FF),
-        ],
-        rarity: 'PREMIUM'),
+    _DiceSkinOption('classic', 'Classic', 5, [Color(0xFFFFFDF4), goldColor]),
+    _DiceSkinOption('royal', 'Royal', 6, [
+      Color(0xFFFFE26A),
+      Color(0xFFE58A00),
+    ], rarity: 'RARE'),
+    _DiceSkinOption('neon', 'Neon', 4, [
+      Color(0xFF162A72),
+      Color(0xFF42F3FF),
+    ], rarity: 'RARE'),
+    _DiceSkinOption('ruby', 'Ruby', 3, [
+      Color(0xFFFF4055),
+      Color(0xFFFFD866),
+    ], rarity: 'PREMIUM'),
+    _DiceSkinOption('emerald', 'Emerald', 2, [
+      Color(0xFF18C94B),
+      Color(0xFFFFD866),
+    ], rarity: 'RARE'),
+    _DiceSkinOption('cosmic', 'Cosmic', 6, [
+      Color(0xFF7A25FF),
+      Color(0xFFFF54FF),
+    ], rarity: 'PREMIUM'),
   ];
 
   @override
@@ -2455,23 +2607,26 @@ class _DiceSkinStrip extends StatelessWidget {
                         option: option,
                         selected: state.diceSkin == option.id,
                         locked: !unlocked,
-                        actionLabel: state.diceSkinPremiumPrice(option.id) ??
+                        actionLabel:
+                            state.diceSkinPremiumPrice(option.id) ??
                             (state.isDiceSkinUnlocked(option.id)
                                 ? 'Owned'
                                 : '${state.diceSkinRequiredWins(option.id)} wins'),
-                        onTap: () => showLiveItemPreview(context,
-                            title: '${option.label} dice',
-                            preview: LiveDicePreview(skin: option.id),
-                            description:
-                                'Watch this die roll. Skins never change the odds.',
-                            actionLabel:
-                                unlocked ? 'Equip dice' : purchaseLabel,
-                            onAction: unlocked
-                                ? () => state.setDiceSkin(option.id)
-                                : productId == null
-                                    ? null
-                                    : () => unawaited(PurchaseService.instance
-                                        .buy(productId))),
+                        onTap: () => showLiveItemPreview(
+                          context,
+                          title: '${option.label} dice',
+                          preview: LiveDicePreview(skin: option.id),
+                          description:
+                              'Watch this die roll. Skins never change the odds.',
+                          actionLabel: unlocked ? 'Equip dice' : purchaseLabel,
+                          onAction: unlocked
+                              ? () => state.setDiceSkin(option.id)
+                              : productId == null
+                              ? null
+                              : () => unawaited(
+                                  PurchaseService.instance.buy(productId),
+                                ),
+                        ),
                       );
                     },
                   ),
@@ -2540,11 +2695,7 @@ class _DiceSkinButton extends StatelessWidget {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    DiceWidget(
-                      value: option.value,
-                      size: 42,
-                      skin: option.id,
-                    ),
+                    DiceWidget(value: option.value, size: 42, skin: option.id),
                     if (locked)
                       Container(
                         width: 46,
@@ -2725,7 +2876,9 @@ class _ShopCardState extends State<_ShopCard>
   void initState() {
     super.initState();
     _press = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 100));
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
   }
 
   @override
@@ -2771,17 +2924,21 @@ class _ShopCardState extends State<_ShopCard>
                       end: Alignment.bottomCenter,
                       colors: cardColors,
                     ),
-                    border:
-                        Border.all(color: const Color(0xFFFFD18A), width: 1.4),
+                    border: Border.all(
+                      color: const Color(0xFFFFD18A),
+                      width: 1.4,
+                    ),
                     boxShadow: const [
                       BoxShadow(
-                          color: Color(0x66000000),
-                          blurRadius: 5,
-                          offset: Offset(0, 4)),
+                        color: Color(0x66000000),
+                        blurRadius: 5,
+                        offset: Offset(0, 4),
+                      ),
                       BoxShadow(
-                          color: Color(0x663A0B22),
-                          blurRadius: 0,
-                          offset: Offset(0, 7)),
+                        color: Color(0x663A0B22),
+                        blurRadius: 0,
+                        offset: Offset(0, 7),
+                      ),
                     ],
                   ),
                   child: Column(
@@ -2797,9 +2954,10 @@ class _ShopCardState extends State<_ShopCard>
                             fontWeight: FontWeight.w900,
                             shadows: [
                               Shadow(
-                                  color: Color(0xAA5A2100),
-                                  blurRadius: 2,
-                                  offset: Offset(1, 2))
+                                color: Color(0xAA5A2100),
+                                blurRadius: 2,
+                                offset: Offset(1, 2),
+                              ),
                             ],
                           ),
                         ),
@@ -2816,7 +2974,7 @@ class _ShopCardState extends State<_ShopCard>
                             fontSize: 10,
                             fontWeight: FontWeight.w800,
                             shadows: const [
-                              Shadow(color: Colors.black54, blurRadius: 2)
+                              Shadow(color: Colors.black54, blurRadius: 2),
                             ],
                           ),
                         ),
@@ -2843,12 +3001,14 @@ class _ShopCardState extends State<_ShopCard>
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(8),
                           gradient: const LinearGradient(
-                              colors: [Color(0xFF92F23A), Color(0xFF2EAD25)]),
+                            colors: [Color(0xFF92F23A), Color(0xFF2EAD25)],
+                          ),
                           boxShadow: const [
                             BoxShadow(
-                                color: Color(0x77025E00),
-                                blurRadius: 0,
-                                offset: Offset(0, 4))
+                              color: Color(0x77025E00),
+                              blurRadius: 0,
+                              offset: Offset(0, 4),
+                            ),
                           ],
                         ),
                         child: FittedBox(
@@ -2861,9 +3021,10 @@ class _ShopCardState extends State<_ShopCard>
                               fontWeight: FontWeight.w900,
                               shadows: [
                                 Shadow(
-                                    color: Color(0xAA124D00),
-                                    blurRadius: 2,
-                                    offset: Offset(1, 2))
+                                  color: Color(0xAA124D00),
+                                  blurRadius: 2,
+                                  offset: Offset(1, 2),
+                                ),
                               ],
                             ),
                           ),
@@ -2880,18 +3041,24 @@ class _ShopCardState extends State<_ShopCard>
                       angle: 0.02,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: const BoxDecoration(
                           color: Color(0xFFE71928),
                           borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(4),
-                              bottomLeft: Radius.circular(4)),
+                            topLeft: Radius.circular(4),
+                            bottomLeft: Radius.circular(4),
+                          ),
                         ),
-                        child: const LocalizedText('BEST',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w900)),
+                        child: const LocalizedText(
+                          'BEST',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -2906,7 +3073,9 @@ class _ShopCardState extends State<_ShopCard>
                         child: Center(
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(14),
                               color: const Color(0xCC250631),
@@ -2939,19 +3108,18 @@ void _showShopProductPreview(
   required bool locked,
   required String actionLabel,
   required VoidCallback onAction,
-}) =>
-    showLiveItemPreview(
-      context,
-      title: product.title,
-      description: product.description,
-      preview: product.diceSkin != null
-          ? LiveDicePreview(skin: product.diceSkin!)
-          : product.ludoBoardTheme != null
-              ? LiveBoardPreview(theme: product.ludoBoardTheme!)
-              : PreviewMotion(child: _ShopProductVisual(product: product)),
-      actionLabel: actionLabel,
-      onAction: locked && !product.premium ? null : onAction,
-    );
+}) => showLiveItemPreview(
+  context,
+  title: product.title,
+  description: product.description,
+  preview: product.diceSkin != null
+      ? LiveDicePreview(skin: product.diceSkin!)
+      : product.ludoBoardTheme != null
+      ? LiveBoardPreview(theme: product.ludoBoardTheme!)
+      : PreviewMotion(child: _ShopProductVisual(product: product)),
+  actionLabel: actionLabel,
+  onAction: locked && !product.premium ? null : onAction,
+);
 
 class _RarityPill extends StatelessWidget {
   final String label;
@@ -3039,32 +3207,28 @@ class _ShopProductVisual extends StatelessWidget {
   }
 
   static int? _diceAtlasIndex(_ProductArt art) => switch (art) {
-        _ProductArt.royalDice => 0,
-        _ProductArt.neonDice => 1,
-        _ProductArt.rubyDice => 2,
-        _ProductArt.emeraldDice => 3,
-        _ProductArt.cosmicDice => 4,
-        _ => null,
-      };
+    _ProductArt.royalDice => 0,
+    _ProductArt.neonDice => 1,
+    _ProductArt.rubyDice => 2,
+    _ProductArt.emeraldDice => 3,
+    _ProductArt.cosmicDice => 4,
+    _ => null,
+  };
 
   static int? _rewardAtlasIndex(_ProductArt art) => switch (art) {
-        _ProductArt.daily => 0,
-        _ProductArt.coinPack => 1,
-        _ProductArt.clubChest => 2,
-        _ProductArt.royalVault => 3,
-        _ => null,
-      };
+    _ProductArt.daily => 0,
+    _ProductArt.coinPack => 1,
+    _ProductArt.clubChest => 2,
+    _ProductArt.royalVault => 3,
+    _ => null,
+  };
 
   static List<Color> _boardColors(String theme) => switch (theme) {
-        'royal' => const [Color(0xFF7D35FF), goldColor, Color(0xFF2FE8FF)],
-        'neon' => const [
-            Color(0xFF00E7FF),
-            Color(0xFFFF35D6),
-            Color(0xFF6BFF39)
-          ],
-        'classic' => const [boardRed, boardGreen, boardBlue],
-        _ => const [boardRed, boardBlue, boardGreen],
-      };
+    'royal' => const [Color(0xFF7D35FF), goldColor, Color(0xFF2FE8FF)],
+    'neon' => const [Color(0xFF00E7FF), Color(0xFFFF35D6), Color(0xFF6BFF39)],
+    'classic' => const [boardRed, boardGreen, boardBlue],
+    _ => const [boardRed, boardBlue, boardGreen],
+  };
 }
 
 class _AtlasSprite extends StatelessWidget {
@@ -3163,16 +3327,20 @@ class _ShopBottomNav extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(items[i].icon,
-                      color:
-                          active ? palette.stroke : palette.text.withAlpha(205),
-                      size: active ? 31 : 27),
+                  Icon(
+                    items[i].icon,
+                    color: active
+                        ? palette.stroke
+                        : palette.text.withAlpha(205),
+                    size: active ? 31 : 27,
+                  ),
                   const SizedBox(height: 2),
                   LocalizedText(
                     items[i].label,
                     style: TextStyle(
-                      color:
-                          active ? palette.stroke : palette.text.withAlpha(205),
+                      color: active
+                          ? palette.stroke
+                          : palette.text.withAlpha(205),
                       fontSize: 11,
                       fontWeight: active ? FontWeight.w900 : FontWeight.w700,
                     ),
@@ -3209,12 +3377,12 @@ class _ShopBackdropPainter extends CustomPainter {
           ? [
               const Color(0xFF18031F),
               const Color(0xFF5C1057),
-              const Color(0xFF2B0730)
+              const Color(0xFF2B0730),
             ]
           : [
               const Color(0xFFFFEBFA),
               const Color(0xFFFFC4E3),
-              const Color(0xFFFFF0B8)
+              const Color(0xFFFFF0B8),
             ],
       const [0.0, 0.58, 1.0],
     );
@@ -3258,12 +3426,13 @@ class _ShopBackdropPainter extends CustomPainter {
       canvas.translate(x, y);
       canvas.rotate(i * 0.4);
       canvas.drawRRect(
-          RRect.fromRectXY(
-              Rect.fromCenter(
-                  center: Offset.zero, width: r * 1.8, height: r * 1.8),
-              4,
-              4),
-          paint);
+        RRect.fromRectXY(
+          Rect.fromCenter(center: Offset.zero, width: r * 1.8, height: r * 1.8),
+          4,
+          4,
+        ),
+        paint,
+      );
       canvas.restore();
     }
     paint.style = PaintingStyle.fill;
@@ -3293,7 +3462,11 @@ class _ShopBackdropPainter extends CustomPainter {
       Rect.fromLTWH(rect.right - inset - base, rect.top + inset, base, base),
       Rect.fromLTWH(rect.left + inset, rect.bottom - inset - base, base, base),
       Rect.fromLTWH(
-          rect.right - inset - base, rect.bottom - inset - base, base, base),
+        rect.right - inset - base,
+        rect.bottom - inset - base,
+        base,
+        base,
+      ),
     ];
     for (int i = 0; i < bases.length; i++) {
       paint.color = colors[i].withAlpha(p.dark ? 62 : 82);
@@ -3335,20 +3508,32 @@ class _ShopBackdropPainter extends CustomPainter {
       canvas.drawCircle(pos, s * 0.032, paint);
       paint.color = Colors.white.withAlpha(p.dark ? 58 : 120);
       canvas.drawCircle(
-          pos.translate(-s * 0.010, -s * 0.010), s * 0.010, paint);
+        pos.translate(-s * 0.010, -s * 0.010),
+        s * 0.010,
+        paint,
+      );
     }
   }
 
   void _drawBackdropDice(
-      Canvas canvas, Offset c, double s, int value, Paint paint) {
+    Canvas canvas,
+    Offset c,
+    double s,
+    int value,
+    Paint paint,
+  ) {
     final rect = Rect.fromCenter(center: c, width: s, height: s);
     paint
       ..style = PaintingStyle.fill
       ..color = Colors.black.withAlpha(p.dark ? 42 : 24);
     canvas.drawRRect(
-        RRect.fromRectXY(
-            rect.shift(Offset(s * 0.10, s * 0.12)), s * 0.18, s * 0.18),
-        paint);
+      RRect.fromRectXY(
+        rect.shift(Offset(s * 0.10, s * 0.12)),
+        s * 0.18,
+        s * 0.18,
+      ),
+      paint,
+    );
     paint.color = Colors.white.withAlpha(p.dark ? 42 : 130);
     canvas.drawRRect(RRect.fromRectXY(rect, s * 0.18, s * 0.18), paint);
     paint.color = p.dark ? const Color(0x88FFD426) : const Color(0xAA803500);
@@ -3384,11 +3569,7 @@ class _ShopCoverSignArtPainter extends CustomPainter {
     p.shader = ui.Gradient.radial(
       Offset(size.width * 0.55, size.height * 0.50),
       size.width * 0.48,
-      [
-        const Color(0x66FFD426),
-        const Color(0x22FF2F72),
-        Colors.transparent,
-      ],
+      [const Color(0x66FFD426), const Color(0x22FF2F72), Colors.transparent],
       const [0.0, 0.52, 1.0],
     );
     canvas.drawRect(Offset.zero & size, p);
@@ -3434,7 +3615,11 @@ class _ShopCoverSignArtPainter extends CustomPainter {
       final x = size.width * (0.22 + i * 0.10);
       final y = size.height * (0.70 + math.sin(phase + i) * 0.08);
       _drawCoin(
-          canvas, Offset(x, y), size.shortestSide * (0.055 + i % 2 * 0.012), p);
+        canvas,
+        Offset(x, y),
+        size.shortestSide * (0.055 + i % 2 * 0.012),
+        p,
+      );
     }
 
     _drawGem(
@@ -3458,8 +3643,12 @@ class _ShopCoverSignArtPainter extends CustomPainter {
         size.width * (0.18 + ((i * 29) % 70) / 100),
         size.height * (0.18 + ((i * 43) % 62) / 100),
       );
-      _drawSpark(canvas, c.translate(math.sin(a) * 3, math.cos(a) * 3),
-          size.shortestSide * 0.028, p);
+      _drawSpark(
+        canvas,
+        c.translate(math.sin(a) * 3, math.cos(a) * 3),
+        size.shortestSide * 0.028,
+        p,
+      );
     }
   }
 
@@ -3495,8 +3684,15 @@ class _ShopCoverSignArtPainter extends CustomPainter {
     p.style = PaintingStyle.fill;
   }
 
-  void _drawMascot(Canvas canvas, Offset base, double s, Color suit,
-      Color accent, Paint p, bool flip) {
+  void _drawMascot(
+    Canvas canvas,
+    Offset base,
+    double s,
+    Color suit,
+    Color accent,
+    Paint p,
+    bool flip,
+  ) {
     canvas.save();
     canvas.translate(base.dx, base.dy);
     canvas.scale(flip ? -1.0 : 1.0, 1.0);
@@ -3543,9 +3739,10 @@ class _ShopCoverSignArtPainter extends CustomPainter {
     canvas.drawRRect(
       RRect.fromRectXY(
         Rect.fromCenter(
-            center: Offset(-s * 0.19, s * 0.61),
-            width: s * 0.30,
-            height: s * 0.13),
+          center: Offset(-s * 0.19, s * 0.61),
+          width: s * 0.30,
+          height: s * 0.13,
+        ),
         s * 0.08,
         s * 0.08,
       ),
@@ -3554,9 +3751,10 @@ class _ShopCoverSignArtPainter extends CustomPainter {
     canvas.drawRRect(
       RRect.fromRectXY(
         Rect.fromCenter(
-            center: Offset(s * 0.19, s * 0.61),
-            width: s * 0.30,
-            height: s * 0.13),
+          center: Offset(s * 0.19, s * 0.61),
+          width: s * 0.30,
+          height: s * 0.13,
+        ),
         s * 0.08,
         s * 0.08,
       ),
@@ -3565,8 +3763,14 @@ class _ShopCoverSignArtPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _drawMascotArm(Canvas canvas, Offset shoulder, int side, Color accent,
-      Paint p, double s) {
+  void _drawMascotArm(
+    Canvas canvas,
+    Offset shoulder,
+    int side,
+    Color accent,
+    Paint p,
+    double s,
+  ) {
     final end = shoulder + Offset(side * s * 0.38, s * 0.24);
     p
       ..style = PaintingStyle.stroke
@@ -3584,7 +3788,12 @@ class _ShopCoverSignArtPainter extends CustomPainter {
   }
 
   void _drawMascotCrown(
-      Canvas canvas, Offset c, double r, Color accent, Paint p) {
+    Canvas canvas,
+    Offset c,
+    double r,
+    Color accent,
+    Paint p,
+  ) {
     final crown = Path()
       ..moveTo(c.dx - r, c.dy + r * 0.30)
       ..lineTo(c.dx - r * 0.62, c.dy - r * 0.70)
@@ -3616,7 +3825,10 @@ class _ShopCoverSignArtPainter extends CustomPainter {
       ..strokeWidth = math.max(2.0, s * 0.08)
       ..color = const Color(0xFF534865);
     canvas.drawLine(
-        Offset(-s * 0.32, -s * 0.25), Offset(s * 0.32, -s * 0.25), p);
+      Offset(-s * 0.32, -s * 0.25),
+      Offset(s * 0.32, -s * 0.25),
+      p,
+    );
     p.style = PaintingStyle.fill;
 
     for (final x in [-s * 0.17, s * 0.17]) {
@@ -3644,7 +3856,10 @@ class _ShopCoverSignArtPainter extends CustomPainter {
       ..color = const Color(0xFF6D3D00);
     canvas.drawArc(
       Rect.fromCenter(
-          center: Offset(0, -s * 0.04), width: s * 0.38, height: s * 0.22),
+        center: Offset(0, -s * 0.04),
+        width: s * 0.38,
+        height: s * 0.22,
+      ),
       0.2,
       math.pi - 0.4,
       false,
@@ -3656,7 +3871,12 @@ class _ShopCoverSignArtPainter extends CustomPainter {
   }
 
   void _drawMascotOveralls(
-      Canvas canvas, double s, Color suit, Color accent, Paint p) {
+    Canvas canvas,
+    double s,
+    Color suit,
+    Color accent,
+    Paint p,
+  ) {
     final overalls = Path()
       ..moveTo(-s * 0.32, s * 0.12)
       ..lineTo(-s * 0.23, s * 0.50)
@@ -3693,9 +3913,10 @@ class _ShopCoverSignArtPainter extends CustomPainter {
       ..color = Colors.black.withAlpha(60);
     canvas.drawOval(
       Rect.fromCenter(
-          center: c.translate(r * 0.25, r * 0.35),
-          width: r * 1.9,
-          height: r * 0.58),
+        center: c.translate(r * 0.25, r * 0.35),
+        width: r * 1.9,
+        height: r * 0.58,
+      ),
       p,
     );
     p.shader = ui.Gradient.radial(
@@ -3720,11 +3941,17 @@ class _ShopCoverSignArtPainter extends CustomPainter {
       ..style = PaintingStyle.fill
       ..color = Colors.black.withAlpha(70);
     canvas.drawRRect(
-        RRect.fromRectXY(
-            rect.shift(Offset(s * 0.13, s * 0.16)), s * 0.22, s * 0.22),
-        p);
-    p.shader = ui.Gradient.linear(rect.topLeft, rect.bottomRight,
-        const [Colors.white, Color(0xFFFFEFC8)]);
+      RRect.fromRectXY(
+        rect.shift(Offset(s * 0.13, s * 0.16)),
+        s * 0.22,
+        s * 0.22,
+      ),
+      p,
+    );
+    p.shader = ui.Gradient.linear(rect.topLeft, rect.bottomRight, const [
+      Colors.white,
+      Color(0xFFFFEFC8),
+    ]);
     canvas.drawRRect(RRect.fromRectXY(rect, s * 0.22, s * 0.22), p);
     p.shader = null;
     p
@@ -3732,7 +3959,9 @@ class _ShopCoverSignArtPainter extends CustomPainter {
       ..strokeWidth = s * 0.055
       ..color = const Color(0xFFFFD426);
     canvas.drawRRect(
-        RRect.fromRectXY(rect.deflate(s * 0.02), s * 0.20, s * 0.20), p);
+      RRect.fromRectXY(rect.deflate(s * 0.02), s * 0.20, s * 0.20),
+      p,
+    );
     p
       ..style = PaintingStyle.fill
       ..color = const Color(0xFFE51F32);
@@ -3761,11 +3990,10 @@ class _ShopCoverSignArtPainter extends CustomPainter {
       ..close();
     p.color = Colors.black.withAlpha(45);
     canvas.drawPath(path.shift(Offset(r * 0.14, r * 0.18)), p);
-    p.shader = ui.Gradient.linear(
-      c.translate(-r, -r),
-      c.translate(r, r),
-      [Color.lerp(color, Colors.white, 0.45)!, color],
-    );
+    p.shader = ui.Gradient.linear(c.translate(-r, -r), c.translate(r, r), [
+      Color.lerp(color, Colors.white, 0.45)!,
+      color,
+    ]);
     canvas.drawPath(path, p);
     p.shader = null;
     p.color = Colors.white.withAlpha(150);
@@ -3805,14 +4033,12 @@ class _ShopHeroPainter extends CustomPainter {
     final heroHeight = math.min(size.height, 154.0);
 
     paint.shader = ui.Gradient.radial(
-      Offset(heroWidth * (0.38 + 0.08 * math.sin(t * math.pi * 2)),
-          heroHeight * 0.45),
+      Offset(
+        heroWidth * (0.38 + 0.08 * math.sin(t * math.pi * 2)),
+        heroHeight * 0.45,
+      ),
       heroWidth * 0.72,
-      [
-        const Color(0x5558D7FF),
-        const Color(0x22FF38C8),
-        Colors.transparent,
-      ],
+      [const Color(0x5558D7FF), const Color(0x22FF38C8), Colors.transparent],
       const [0.0, 0.50, 1.0],
     );
     canvas.drawRect(Rect.fromLTWH(0, 0, heroWidth, heroHeight), paint);
@@ -3851,17 +4077,37 @@ class _ShopHeroPainter extends CustomPainter {
       paint,
     );
 
-    _drawPawn(canvas, Offset(heroWidth * 0.12, heroHeight * 0.75),
-        heroHeight * 0.20, boardRed, paint);
-    _drawPawn(canvas, Offset(heroWidth * 0.41, heroHeight * 0.23),
-        heroHeight * 0.17, boardBlue, paint);
+    _drawPawn(
+      canvas,
+      Offset(heroWidth * 0.12, heroHeight * 0.75),
+      heroHeight * 0.20,
+      boardRed,
+      paint,
+    );
+    _drawPawn(
+      canvas,
+      Offset(heroWidth * 0.41, heroHeight * 0.23),
+      heroHeight * 0.17,
+      boardBlue,
+      paint,
+    );
 
-    _drawGem(canvas, Offset(heroWidth * 0.15, heroHeight * 0.22), 16,
-        const Color(0xFF22E66E), paint);
+    _drawGem(
+      canvas,
+      Offset(heroWidth * 0.15, heroHeight * 0.22),
+      16,
+      const Color(0xFF22E66E),
+      paint,
+    );
     _drawCoin(canvas, Offset(heroWidth * 0.86, heroHeight * 0.78), 18, paint);
     _drawCoin(canvas, Offset(heroWidth * 0.74, heroHeight * 0.84), 14, paint);
-    _drawGem(canvas, Offset(heroWidth * 0.91, heroHeight * 0.27), 13,
-        const Color(0xFF4DEBFF), paint);
+    _drawGem(
+      canvas,
+      Offset(heroWidth * 0.91, heroHeight * 0.27),
+      13,
+      const Color(0xFF4DEBFF),
+      paint,
+    );
     _drawHeroMascot(
       canvas,
       Offset(heroWidth * 0.88, heroHeight * (0.72 + float * 0.02)),
@@ -3879,7 +4125,9 @@ class _ShopHeroPainter extends CustomPainter {
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8)
       ..color = Colors.black.withAlpha(70);
     canvas.drawRRect(
-        RRect.fromRectXY(rect.shift(const Offset(5, 8)), 12, 12), paint);
+      RRect.fromRectXY(rect.shift(const Offset(5, 8)), 12, 12),
+      paint,
+    );
     paint.maskFilter = null;
 
     paint.color = const Color(0xFFFFF8D8);
@@ -3894,36 +4142,58 @@ class _ShopHeroPainter extends CustomPainter {
     final colors = [boardRed, boardYellow, boardBlue, boardGreen];
     final cells = [
       Rect.fromLTWH(
-          rect.left + s * 0.08, rect.top + s * 0.08, s * 0.34, s * 0.34),
+        rect.left + s * 0.08,
+        rect.top + s * 0.08,
+        s * 0.34,
+        s * 0.34,
+      ),
       Rect.fromLTWH(
-          rect.center.dx + s * 0.08, rect.top + s * 0.08, s * 0.34, s * 0.34),
+        rect.center.dx + s * 0.08,
+        rect.top + s * 0.08,
+        s * 0.34,
+        s * 0.34,
+      ),
       Rect.fromLTWH(
-          rect.left + s * 0.08, rect.center.dy + s * 0.08, s * 0.34, s * 0.34),
-      Rect.fromLTWH(rect.center.dx + s * 0.08, rect.center.dy + s * 0.08,
-          s * 0.34, s * 0.34),
+        rect.left + s * 0.08,
+        rect.center.dy + s * 0.08,
+        s * 0.34,
+        s * 0.34,
+      ),
+      Rect.fromLTWH(
+        rect.center.dx + s * 0.08,
+        rect.center.dy + s * 0.08,
+        s * 0.34,
+        s * 0.34,
+      ),
     ];
     for (int i = 0; i < 4; i++) {
       paint.color = colors[i];
       canvas.drawRRect(RRect.fromRectXY(cells[i], 7, 7), paint);
       paint.color = Colors.white.withAlpha(225);
       canvas.drawRRect(
-          RRect.fromRectXY(cells[i].deflate(s * 0.09), 5, 5), paint);
+        RRect.fromRectXY(cells[i].deflate(s * 0.09), 5, 5),
+        paint,
+      );
     }
 
     for (int i = -2; i <= 2; i++) {
       paint.color = colors[(i + 2) % 4].withAlpha(210);
       canvas.drawRect(
-          Rect.fromCenter(
-              center: Offset(i * s * 0.055, 0),
-              width: s * 0.038,
-              height: s * 0.36),
-          paint);
+        Rect.fromCenter(
+          center: Offset(i * s * 0.055, 0),
+          width: s * 0.038,
+          height: s * 0.36,
+        ),
+        paint,
+      );
       canvas.drawRect(
-          Rect.fromCenter(
-              center: Offset(0, i * s * 0.055),
-              width: s * 0.36,
-              height: s * 0.038),
-          paint);
+        Rect.fromCenter(
+          center: Offset(0, i * s * 0.055),
+          width: s * 0.36,
+          height: s * 0.038,
+        ),
+        paint,
+      );
     }
 
     for (int i = 0; i < 4; i++) {
@@ -3935,7 +4205,10 @@ class _ShopHeroPainter extends CustomPainter {
       canvas.drawCircle(pos, s * 0.046, paint);
       paint.color = Colors.white.withAlpha(180);
       canvas.drawCircle(
-          pos.translate(-s * 0.012, -s * 0.014), s * 0.015, paint);
+        pos.translate(-s * 0.012, -s * 0.014),
+        s * 0.015,
+        paint,
+      );
     }
   }
 
@@ -3951,16 +4224,25 @@ class _ShopHeroPainter extends CustomPainter {
   }
 
   void _drawHeroDice(
-      Canvas canvas, Offset c, double s, int value, Paint paint) {
+    Canvas canvas,
+    Offset c,
+    double s,
+    int value,
+    Paint paint,
+  ) {
     final rect = Rect.fromCenter(center: c, width: s, height: s);
     paint
       ..style = PaintingStyle.fill
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6)
       ..color = Colors.black.withAlpha(75);
     canvas.drawRRect(
-        RRect.fromRectXY(
-            rect.shift(Offset(s * 0.12, s * 0.16)), s * 0.20, s * 0.20),
-        paint);
+      RRect.fromRectXY(
+        rect.shift(Offset(s * 0.12, s * 0.16)),
+        s * 0.20,
+        s * 0.20,
+      ),
+      paint,
+    );
     paint.maskFilter = null;
 
     paint.shader = ui.Gradient.linear(
@@ -3976,7 +4258,9 @@ class _ShopHeroPainter extends CustomPainter {
       ..strokeWidth = s * 0.055
       ..color = const Color(0xFFFFD426);
     canvas.drawRRect(
-        RRect.fromRectXY(rect.deflate(s * 0.02), s * 0.18, s * 0.18), paint);
+      RRect.fromRectXY(rect.deflate(s * 0.02), s * 0.18, s * 0.18),
+      paint,
+    );
 
     paint
       ..style = PaintingStyle.fill
@@ -4002,39 +4286,53 @@ class _ShopHeroPainter extends CustomPainter {
   }
 
   void _drawPawn(
-      Canvas canvas, Offset base, double s, Color color, Paint paint) {
+    Canvas canvas,
+    Offset base,
+    double s,
+    Color color,
+    Paint paint,
+  ) {
     paint
       ..style = PaintingStyle.fill
       ..color = Colors.black.withAlpha(60);
     canvas.drawOval(
-        Rect.fromCenter(
-            center: base.translate(s * 0.10, s * 0.22),
-            width: s * 0.70,
-            height: s * 0.24),
-        paint);
+      Rect.fromCenter(
+        center: base.translate(s * 0.10, s * 0.22),
+        width: s * 0.70,
+        height: s * 0.24,
+      ),
+      paint,
+    );
     paint.color = color;
     canvas.drawOval(
-        Rect.fromCenter(
-            center: base.translate(0, -s * 0.30),
-            width: s * 0.46,
-            height: s * 0.42),
-        paint);
+      Rect.fromCenter(
+        center: base.translate(0, -s * 0.30),
+        width: s * 0.46,
+        height: s * 0.42,
+      ),
+      paint,
+    );
     canvas.drawRRect(
-        RRect.fromRectXY(
-            Rect.fromCenter(
-                center: base.translate(0, s * 0.08),
-                width: s * 0.46,
-                height: s * 0.58),
-            s * 0.16,
-            s * 0.16),
-        paint);
+      RRect.fromRectXY(
+        Rect.fromCenter(
+          center: base.translate(0, s * 0.08),
+          width: s * 0.46,
+          height: s * 0.58,
+        ),
+        s * 0.16,
+        s * 0.16,
+      ),
+      paint,
+    );
     paint.color = Color.lerp(color, Colors.white, 0.38)!;
     canvas.drawOval(
-        Rect.fromCenter(
-            center: base.translate(-s * 0.10, -s * 0.40),
-            width: s * 0.14,
-            height: s * 0.10),
-        paint);
+      Rect.fromCenter(
+        center: base.translate(-s * 0.10, -s * 0.40),
+        width: s * 0.14,
+        height: s * 0.10,
+      ),
+      paint,
+    );
   }
 
   void _drawGem(Canvas canvas, Offset c, double r, Color color, Paint paint) {
@@ -4048,11 +4346,20 @@ class _ShopHeroPainter extends CustomPainter {
     canvas.drawPath(path, paint);
     paint.color = Colors.white.withAlpha(140);
     canvas.drawCircle(
-        Offset(c.dx - r * 0.20, c.dy - r * 0.22), r * 0.18, paint);
+      Offset(c.dx - r * 0.20, c.dy - r * 0.22),
+      r * 0.18,
+      paint,
+    );
   }
 
-  void _drawHeroMascot(Canvas canvas, Offset c, double s, Color suit,
-      Color accent, Paint paint) {
+  void _drawHeroMascot(
+    Canvas canvas,
+    Offset c,
+    double s,
+    Color suit,
+    Color accent,
+    Paint paint,
+  ) {
     canvas.save();
     canvas.translate(c.dx, c.dy);
 
@@ -4138,7 +4445,12 @@ class _ShopHeroPainter extends CustomPainter {
   }
 
   void _drawHeroMascotCrown(
-      Canvas canvas, Offset c, double r, Color accent, Paint paint) {
+    Canvas canvas,
+    Offset c,
+    double r,
+    Color accent,
+    Paint paint,
+  ) {
     final crown = Path()
       ..moveTo(c.dx - r, c.dy + r * 0.30)
       ..lineTo(c.dx - r * 0.62, c.dy - r * 0.70)
@@ -4164,7 +4476,10 @@ class _ShopHeroPainter extends CustomPainter {
       ..strokeWidth = math.max(2.0, s * 0.08)
       ..color = const Color(0xFF534865);
     canvas.drawLine(
-        Offset(-s * 0.32, -s * 0.25), Offset(s * 0.32, -s * 0.25), paint);
+      Offset(-s * 0.32, -s * 0.25),
+      Offset(s * 0.32, -s * 0.25),
+      paint,
+    );
     paint.style = PaintingStyle.fill;
     for (final x in [-s * 0.17, s * 0.17]) {
       paint.color = const Color(0xFF5F5871);
@@ -4236,18 +4551,32 @@ class _ProductPainter extends CustomPainter {
       case _ProductArt.clubChest:
         _drawChest(canvas, center.translate(0, s * 0.13), p, scale: scale);
         _drawShieldBadge(
-            canvas, center.translate(-s * 0.42, -s * 0.26), s * 0.20, p);
+          canvas,
+          center.translate(-s * 0.42, -s * 0.26),
+          s * 0.20,
+          p,
+        );
         break;
       case _ProductArt.royalVault:
-        _drawChest(canvas, center.translate(s * 0.10, s * 0.11), p,
-            scale: scale);
-        _drawChest(canvas, center.translate(-s * 0.23, s * 0.21), p,
-            scale: scale * 0.68);
+        _drawChest(
+          canvas,
+          center.translate(s * 0.10, s * 0.11),
+          p,
+          scale: scale,
+        );
+        _drawChest(
+          canvas,
+          center.translate(-s * 0.23, s * 0.21),
+          p,
+          scale: scale * 0.68,
+        );
         for (var i = 0; i < 5; i++) {
           _drawGem(
             canvas,
             center.translate(
-                (i - 2) * s * 0.20, -s * 0.35 + (i.isEven ? 0 : s * 0.11)),
+              (i - 2) * s * 0.20,
+              -s * 0.35 + (i.isEven ? 0 : s * 0.11),
+            ),
             s * 0.065,
             p,
           );
@@ -4309,56 +4638,47 @@ class _ProductPainter extends CustomPainter {
         );
         break;
       case _ProductArt.carnivalBoard:
-        _drawBoardTheme(
-          canvas,
-          center,
-          s * 0.86,
-          const [boardRed, boardBlue, boardGreen, boardYellow],
-          p,
-        );
+        _drawBoardTheme(canvas, center, s * 0.86, const [
+          boardRed,
+          boardBlue,
+          boardGreen,
+          boardYellow,
+        ], p);
         break;
       case _ProductArt.royalBoard:
-        _drawBoardTheme(
-          canvas,
-          center,
-          s * 0.86,
-          const [
-            Color(0xFF7D35FF),
-            Color(0xFFFFD426),
-            Color(0xFFCA48FF),
-            Color(0xFF2FE8FF),
-          ],
-          p,
-        );
+        _drawBoardTheme(canvas, center, s * 0.86, const [
+          Color(0xFF7D35FF),
+          Color(0xFFFFD426),
+          Color(0xFFCA48FF),
+          Color(0xFF2FE8FF),
+        ], p);
         break;
       case _ProductArt.neonBoard:
-        _drawBoardTheme(
-          canvas,
-          center,
-          s * 0.86,
-          const [
-            Color(0xFF00E7FF),
-            Color(0xFFFF35D6),
-            Color(0xFF6BFF39),
-            Color(0xFFFFEA31),
-          ],
-          p,
-        );
+        _drawBoardTheme(canvas, center, s * 0.86, const [
+          Color(0xFF00E7FF),
+          Color(0xFFFF35D6),
+          Color(0xFF6BFF39),
+          Color(0xFFFFEA31),
+        ], p);
         break;
       case _ProductArt.classicBoard:
-        _drawBoardTheme(
-          canvas,
-          center,
-          s * 0.86,
-          const [boardRed, boardYellow, boardBlue, boardGreen],
-          p,
-        );
+        _drawBoardTheme(canvas, center, s * 0.86, const [
+          boardRed,
+          boardYellow,
+          boardBlue,
+          boardGreen,
+        ], p);
         break;
     }
   }
 
   void _drawBoardTheme(
-      Canvas canvas, Offset c, double s, List<Color> colors, Paint p) {
+    Canvas canvas,
+    Offset c,
+    double s,
+    List<Color> colors,
+    Paint p,
+  ) {
     final shadow = Rect.fromCenter(
       center: c.translate(0, s * 0.08),
       width: s * 1.05,
@@ -4390,17 +4710,17 @@ class _ProductPainter extends CustomPainter {
       Rect.fromLTWH(inner.right - quadW, inner.bottom - quadH, quadW, quadH),
     ];
     for (var i = 0; i < quads.length; i++) {
-      p.shader = ui.Gradient.linear(
-        quads[i].topLeft,
-        quads[i].bottomRight,
-        [Color.lerp(colors[i], Colors.white, 0.28)!, colors[i]],
-      );
+      p.shader = ui.Gradient.linear(quads[i].topLeft, quads[i].bottomRight, [
+        Color.lerp(colors[i], Colors.white, 0.28)!,
+        colors[i],
+      ]);
       canvas.drawRRect(RRect.fromRectXY(quads[i], s * 0.035, s * 0.035), p);
       p.shader = null;
       p.color = Colors.white.withAlpha(120);
       canvas.drawRRect(
-          RRect.fromRectXY(quads[i].deflate(s * 0.026), s * 0.025, s * 0.025),
-          p);
+        RRect.fromRectXY(quads[i].deflate(s * 0.026), s * 0.025, s * 0.025),
+        p,
+      );
     }
 
     final laneW = inner.width * 0.11;
@@ -4411,7 +4731,11 @@ class _ProductPainter extends CustomPainter {
         canvas.drawRRect(
           RRect.fromRectXY(
             Rect.fromLTWH(
-                x, inner.top + inner.height * 0.11, laneW, inner.height * 0.78),
+              x,
+              inner.top + inner.height * 0.11,
+              laneW,
+              inner.height * 0.78,
+            ),
             s * 0.015,
             s * 0.015,
           ),
@@ -4422,7 +4746,11 @@ class _ProductPainter extends CustomPainter {
         canvas.drawRRect(
           RRect.fromRectXY(
             Rect.fromLTWH(
-                inner.left + inner.width * 0.11, y, inner.width * 0.78, laneW),
+              inner.left + inner.width * 0.11,
+              y,
+              inner.width * 0.78,
+              laneW,
+            ),
             s * 0.015,
             s * 0.015,
           ),
@@ -4436,9 +4764,12 @@ class _ProductPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     for (var i = 0; i < 4; i++) {
       final angle = i * math.pi / 2 + math.pi / 4;
-      final pos = inner.center +
-          Offset(math.cos(angle) * inner.width * 0.28,
-              math.sin(angle) * inner.height * 0.28);
+      final pos =
+          inner.center +
+          Offset(
+            math.cos(angle) * inner.width * 0.28,
+            math.sin(angle) * inner.height * 0.28,
+          );
       _drawMiniStar(canvas, pos, s * 0.055, colors[i], starPaint);
     }
 
@@ -4451,7 +4782,12 @@ class _ProductPainter extends CustomPainter {
   }
 
   void _drawMiniStar(
-      Canvas canvas, Offset c, double r, Color color, Paint paint) {
+    Canvas canvas,
+    Offset c,
+    double r,
+    Color color,
+    Paint paint,
+  ) {
     final path = Path();
     for (int i = 0; i < 10; i++) {
       final rr = i.isEven ? r : r * 0.46;
@@ -4480,13 +4816,22 @@ class _ProductPainter extends CustomPainter {
     p.color = Colors.black.withAlpha(50);
     canvas.drawOval(
       Rect.fromCenter(
-          center: c.translate(0, s * 0.34), width: s, height: s * 0.22),
+        center: c.translate(0, s * 0.34),
+        width: s,
+        height: s * 0.22,
+      ),
       p,
     );
     final box = Rect.fromCenter(
-        center: c.translate(0, s * 0.12), width: s * 0.70, height: s * 0.56);
+      center: c.translate(0, s * 0.12),
+      width: s * 0.70,
+      height: s * 0.56,
+    );
     final lid = Rect.fromCenter(
-        center: c.translate(0, -s * 0.21), width: s * 0.82, height: s * 0.22);
+      center: c.translate(0, -s * 0.21),
+      width: s * 0.82,
+      height: s * 0.22,
+    );
     p.shader = const LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
@@ -4497,12 +4842,13 @@ class _ProductPainter extends CustomPainter {
     p.shader = null;
     p.color = const Color(0xFFFFD426);
     canvas.drawRect(
-        Rect.fromCenter(
-            center: box.center, width: s * 0.13, height: box.height),
-        p);
+      Rect.fromCenter(center: box.center, width: s * 0.13, height: box.height),
+      p,
+    );
     canvas.drawRect(
-        Rect.fromCenter(center: box.center, width: box.width, height: s * 0.12),
-        p);
+      Rect.fromCenter(center: box.center, width: box.width, height: s * 0.12),
+      p,
+    );
     p.color = Colors.white.withAlpha(170);
     canvas.drawCircle(c.translate(-s * 0.21, -s * 0.30), s * 0.07, p);
     _drawBow(canvas, c.translate(0, -s * 0.36), s * 0.28, p);
@@ -4513,29 +4859,43 @@ class _ProductPainter extends CustomPainter {
       colors: [Color(0xFFFFF188), Color(0xFFFFB300), Color(0xFFFF5A24)],
     ).createShader(Rect.fromCenter(center: c, width: s * 2.0, height: s));
     canvas.drawOval(
-        Rect.fromCenter(
-            center: c.translate(-s * 0.35, 0),
-            width: s * 0.78,
-            height: s * 0.52),
-        p);
+      Rect.fromCenter(
+        center: c.translate(-s * 0.35, 0),
+        width: s * 0.78,
+        height: s * 0.52,
+      ),
+      p,
+    );
     canvas.drawOval(
-        Rect.fromCenter(
-            center: c.translate(s * 0.35, 0),
-            width: s * 0.78,
-            height: s * 0.52),
-        p);
+      Rect.fromCenter(
+        center: c.translate(s * 0.35, 0),
+        width: s * 0.78,
+        height: s * 0.52,
+      ),
+      p,
+    );
     p.shader = null;
     p.color = const Color(0xFFFFE46A);
     canvas.drawCircle(c, s * 0.18, p);
   }
 
-  void _drawProductDice(Canvas canvas, Offset c, double s, List<Color> face,
-      Color rim, Color pip, Paint p) {
+  void _drawProductDice(
+    Canvas canvas,
+    Offset c,
+    double s,
+    List<Color> face,
+    Color rim,
+    Color pip,
+    Paint p,
+  ) {
     final rect = Rect.fromCenter(center: c, width: s, height: s);
     p.color = Colors.black.withAlpha(60);
     canvas.drawOval(
       Rect.fromCenter(
-          center: c.translate(0, s * 0.48), width: s * 0.92, height: s * 0.22),
+        center: c.translate(0, s * 0.48),
+        width: s * 0.92,
+        height: s * 0.22,
+      ),
       p,
     );
     p.shader = ui.Gradient.radial(c, s * 0.95, [
@@ -4558,7 +4918,9 @@ class _ProductPainter extends CustomPainter {
       ..strokeWidth = s * 0.055
       ..color = rim;
     canvas.drawRRect(
-        RRect.fromRectXY(rect.deflate(s * 0.035), s * 0.19, s * 0.19), p);
+      RRect.fromRectXY(rect.deflate(s * 0.035), s * 0.19, s * 0.19),
+      p,
+    );
     p.style = PaintingStyle.fill;
     p.color = Colors.white.withAlpha(135);
     canvas.drawCircle(c.translate(-s * 0.23, -s * 0.24), s * 0.09, p);
@@ -4622,7 +4984,10 @@ class _ProductPainter extends CustomPainter {
     p.color = Colors.black.withAlpha(55);
     canvas.drawOval(
       Rect.fromCenter(
-          center: c.translate(0, h * 0.44), width: w, height: h * 0.23),
+        center: c.translate(0, h * 0.44),
+        width: w,
+        height: h * 0.23,
+      ),
       p,
     );
     p.shader = const LinearGradient(
@@ -4631,8 +4996,11 @@ class _ProductPainter extends CustomPainter {
       colors: [Color(0xFFB94CFF), Color(0xFF5A189A), Color(0xFF2A063C)],
     ).createShader(Rect.fromCenter(center: c, width: w, height: h));
     canvas.drawRRect(
-      RRect.fromRectXY(Rect.fromCenter(center: c, width: w, height: h),
-          14 * scale, 18 * scale),
+      RRect.fromRectXY(
+        Rect.fromCenter(center: c, width: w, height: h),
+        14 * scale,
+        18 * scale,
+      ),
       p,
     );
     p.shader = null;
@@ -4640,9 +5008,10 @@ class _ProductPainter extends CustomPainter {
     canvas.drawRRect(
       RRect.fromRectXY(
         Rect.fromCenter(
-            center: c.translate(0, -h * 0.34),
-            width: w * 0.72,
-            height: h * 0.18),
+          center: c.translate(0, -h * 0.34),
+          width: w * 0.72,
+          height: h * 0.18,
+        ),
         8 * scale,
         8 * scale,
       ),
@@ -4654,7 +5023,10 @@ class _ProductPainter extends CustomPainter {
     p.color = Colors.black.withAlpha(45);
     canvas.drawOval(
       Rect.fromCenter(
-          center: c.translate(2, r * 0.42), width: r * 2.0, height: r * 0.68),
+        center: c.translate(2, r * 0.42),
+        width: r * 2.0,
+        height: r * 0.68,
+      ),
       p,
     );
     p.shader = ui.Gradient.radial(
@@ -4696,7 +5068,10 @@ class _ProductPainter extends CustomPainter {
     p.color = Colors.black.withAlpha(55);
     canvas.drawOval(
       Rect.fromCenter(
-          center: c.translate(0, h * 0.58), width: w * 1.03, height: h * 0.30),
+        center: c.translate(0, h * 0.58),
+        width: w * 1.03,
+        height: h * 0.30,
+      ),
       p,
     );
     p.shader = const LinearGradient(
@@ -4704,14 +5079,13 @@ class _ProductPainter extends CustomPainter {
       end: Alignment.bottomRight,
       colors: [Color(0xFFFFD966), Color(0xFFD78713), Color(0xFF733A07)],
     ).createShader(rect);
-    canvas.drawRRect(
-      RRect.fromRectXY(rect, 8 * scale, 8 * scale),
-      p,
-    );
+    canvas.drawRRect(RRect.fromRectXY(rect, 8 * scale, 8 * scale), p);
     p.shader = null;
     p.color = const Color(0xFF7A3B12);
     canvas.drawRect(
-        Rect.fromLTWH(rect.left, rect.center.dy, rect.width, 6 * scale), p);
+      Rect.fromLTWH(rect.left, rect.center.dy, rect.width, 6 * scale),
+      p,
+    );
     p.color = const Color(0xFFFFF0A0);
     canvas.drawRRect(
       RRect.fromRectXY(
@@ -4747,18 +5121,26 @@ class _EquippedBadge extends StatelessWidget {
   const _EquippedBadge();
   @override
   Widget build(BuildContext context) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-          color: const Color(0xFF164D40),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF9CE7C5))),
-      child: const Row(mainAxisSize: MainAxisSize.min, children: [
+    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+    decoration: BoxDecoration(
+      color: const Color(0xFF164D40),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: const Color(0xFF9CE7C5)),
+    ),
+    child: const Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
         Icon(Icons.check_circle_rounded, size: 11, color: Color(0xFFB8FFDC)),
         SizedBox(width: 4),
-        LocalizedText('Equipped',
-            style: TextStyle(
-                color: Color(0xFFB8FFDC),
-                fontSize: 10,
-                fontWeight: FontWeight.w800)),
-      ]));
+        LocalizedText(
+          'Equipped',
+          style: TextStyle(
+            color: Color(0xFFB8FFDC),
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    ),
+  );
 }

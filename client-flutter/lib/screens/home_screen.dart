@@ -40,11 +40,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _pulse = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1300))
-      ..repeat(reverse: true);
-    _shimmer =
-        AnimationController(vsync: this, duration: const Duration(seconds: 3))
-          ..repeat(reverse: true);
+      vsync: this,
+      duration: const Duration(milliseconds: 1300),
+    )..repeat(reverse: true);
+    _shimmer = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -104,9 +106,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
             body: Stack(
               children: [
-                Positioned.fill(
-                  child: _GeneratedLobbyBackground(palette: p),
-                ),
+                Positioned.fill(child: _GeneratedLobbyBackground(palette: p)),
                 Positioned.fill(
                   child: SafeArea(
                     bottom: false,
@@ -117,8 +117,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         final hudHeight = 94.0;
                         final rewardHeight = compact ? 76.0 : 84.0;
                         final stageTop = brandHeight + hudHeight + rewardHeight;
-                        final stageHeight =
-                            math.max(0.0, box.maxHeight - stageTop);
+                        final stageHeight = math.max(
+                          0.0,
+                          box.maxHeight - stageTop,
+                        );
                         return SizedBox.expand(
                           child: Stack(
                             clipBehavior: Clip.hardEdge,
@@ -136,9 +138,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 right: 0,
                                 height: hudHeight,
                                 child: _TopHud(
-                                    state: state,
-                                    palette: p,
-                                    shimmer: _shimmer),
+                                  state: state,
+                                  palette: p,
+                                  shimmer: _shimmer,
+                                ),
                               ),
                               Positioned(
                                 left: 0,
@@ -170,10 +173,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 ),
                 if (state.shouldShowStartChoice)
                   Positioned.fill(
-                    child: _StartChoiceOverlay(
-                      state: state,
-                      palette: p,
-                    ),
+                    child: _StartChoiceOverlay(state: state, palette: p),
                   ),
               ],
             ),
@@ -186,14 +186,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _confirmAppExit() async {
     if (_exitDialogOpen || !mounted) return;
     _exitDialogOpen = true;
-    final shouldExit = await showDialog<bool>(
+    final shouldExit =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             backgroundColor: const Color(0xFF2D0A35),
             title: const LocalizedText(
               'Exit Ludo Cheer?',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             content: const LocalizedText(
               'Your current progress is saved.',
@@ -301,12 +304,21 @@ const _homeBoardThemes = [
     Color(0xFFFFC93C),
     Color(0xFF21BDEB),
   ]),
-  _HomeBoardThemeOption('ocean', 'Ocean Voyage',
-      [Color(0xFF087E99), Color(0xFF9DF3EA), Color(0xFF033649)]),
-  _HomeBoardThemeOption('astral', 'Star Observatory',
-      [Color(0xFF574482), Color(0xFFF5DEAC), Color(0xFF11122D)]),
-  _HomeBoardThemeOption('volcano', 'Lava Citadel',
-      [Color(0xFF873D2D), Color(0xFFFFA24B), Color(0xFF241C20)]),
+  _HomeBoardThemeOption('ocean', 'Ocean Voyage', [
+    Color(0xFF087E99),
+    Color(0xFF9DF3EA),
+    Color(0xFF033649),
+  ]),
+  _HomeBoardThemeOption('astral', 'Star Observatory', [
+    Color(0xFF574482),
+    Color(0xFFF5DEAC),
+    Color(0xFF11122D),
+  ]),
+  _HomeBoardThemeOption('volcano', 'Lava Citadel', [
+    Color(0xFF873D2D),
+    Color(0xFFFFA24B),
+    Color(0xFF241C20),
+  ]),
 ];
 
 const _giftShopItems = [
@@ -411,11 +423,13 @@ List<_FeatureRow> _friendRowsForState(AppState state) {
       ),
   ];
   if (rows.isEmpty) {
-    rows.add(const _FeatureRow(
-      'No friends yet',
-      'Play online to meet recent opponents',
-      '0',
-    ));
+    rows.add(
+      const _FeatureRow(
+        'No friends yet',
+        'Play online to meet recent opponents',
+        '0',
+      ),
+    );
   }
   return rows;
 }
@@ -433,10 +447,7 @@ void _showFeatureSnack(BuildContext context, String message) {
     );
 }
 
-Future<void> _showSnakesBoardSheet(
-  BuildContext context,
-  AppState state,
-) async {
+Future<void> _showSnakesBoardSheet(BuildContext context, AppState state) async {
   // An opaque route avoids compositing the animated lobby under every swipe.
   final shouldStart = await Navigator.of(context).push<bool>(
     PageRouteBuilder(
@@ -465,7 +476,8 @@ class _SnakesBoardPickerSheet extends StatefulWidget {
   const _SnakesBoardPickerSheet({required this.state});
 
   @override
-  State<_SnakesBoardPickerSheet> createState() => _SnakesBoardPickerSheetState();
+  State<_SnakesBoardPickerSheet> createState() =>
+      _SnakesBoardPickerSheetState();
 }
 
 class _SnakesBoardPickerSheetState extends State<_SnakesBoardPickerSheet> {
@@ -517,8 +529,11 @@ class _SnakesBoardPickerSheetState extends State<_SnakesBoardPickerSheet> {
         .toDouble();
     if ((target - offset).abs() < 1) return;
     if (animated) {
-      _thumbnails.animateTo(target,
-          duration: const Duration(milliseconds: 180), curve: Curves.easeOut);
+      _thumbnails.animateTo(
+        target,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+      );
     } else {
       _thumbnails.jumpTo(target);
     }
@@ -596,7 +611,7 @@ class _SnakesBoardPickerSheetState extends State<_SnakesBoardPickerSheet> {
                 final status = optionUnlocked
                     ? 'OWNED'
                     : premium ??
-                        '${state.boardThemeRequiredWins(option.id)} WINS';
+                          '${state.boardThemeRequiredWins(option.id)} WINS';
                 return _HomeThemeButton(
                   option: option,
                   selected: _selectedIndex == index,
@@ -709,8 +724,8 @@ void _showRewardsEconomySheet(BuildContext context, AppState state) {
                             claimed
                                 ? '+${liveState.dailyRewardAmount} coins claimed.'
                                 : (liveState.socialError.isNotEmpty
-                                    ? liveState.socialError
-                                    : 'Daily coins are already claimed.'),
+                                      ? liveState.socialError
+                                      : 'Daily coins are already claimed.'),
                           );
                         },
                       ),
@@ -763,10 +778,7 @@ void _showRewardsEconomySheet(BuildContext context, AppState state) {
   );
 }
 
-void _showGiftShopSheet(
-  BuildContext context,
-  AppState state,
-) {
+void _showGiftShopSheet(BuildContext context, AppState state) {
   var selectedFriendId = state.friends.isEmpty ? '' : state.friends.first.id;
   var selectedGift = _giftShopItems.first.id;
   showModalBottomSheet<void>(
@@ -776,8 +788,9 @@ void _showGiftShopSheet(
     builder: (sheetContext) {
       return StatefulBuilder(
         builder: (context, setSheetState) {
-          final gift =
-              _giftShopItems.firstWhere((item) => item.id == selectedGift);
+          final gift = _giftShopItems.firstWhere(
+            (item) => item.id == selectedGift,
+          );
           return _HomeActionSheet(
             title: 'Gift Shop',
             child: Column(
@@ -867,18 +880,18 @@ void _showGiftShopSheet(
                   label: selectedFriendId.isEmpty
                       ? 'Add a friend first'
                       : gift.premium
-                          ? 'Preview ${gift.cost}'
-                          : 'Send ${gift.cost}',
+                      ? 'Preview ${gift.cost}'
+                      : 'Send ${gift.cost}',
                   icon: selectedFriendId.isEmpty
                       ? Icons.person_add_alt_1_rounded
                       : gift.premium
-                          ? Icons.workspace_premium_rounded
-                          : Icons.send_rounded,
+                      ? Icons.workspace_premium_rounded
+                      : Icons.send_rounded,
                   color: selectedFriendId.isEmpty
                       ? boardPurple
                       : gift.premium
-                          ? boardPurple
-                          : goldColor,
+                      ? boardPurple
+                      : goldColor,
                   onTap: () async {
                     SoundService.tap();
                     if (selectedFriendId.isEmpty) {
@@ -925,10 +938,7 @@ void _showGiftShopSheet(
 
 typedef _PrivateRoomIntent = ({String action, String mode, String code});
 
-Future<void> _showPrivateRoomSheet(
-  BuildContext context,
-  AppState state,
-) async {
+Future<void> _showPrivateRoomSheet(BuildContext context, AppState state) async {
   final codeController = TextEditingController();
   var players = 2;
   final intent = await showModalBottomSheet<_PrivateRoomIntent>(
@@ -997,20 +1007,27 @@ Future<void> _showPrivateRoomSheet(
                     ),
                     decoration: InputDecoration(
                       counterText: '',
-                      hintText: LudoStringsScope.translate(context, 'Invite code'),
+                      hintText: LudoStringsScope.translate(
+                        context,
+                        'Invite code',
+                      ),
                       hintStyle: TextStyle(color: Colors.white.withAlpha(140)),
                       filled: true,
                       fillColor: const Color(0x88250631),
-                      prefixIcon:
-                          const Icon(Icons.vpn_key_rounded, color: goldColor),
+                      prefixIcon: const Icon(
+                        Icons.vpn_key_rounded,
+                        color: goldColor,
+                      ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                         borderSide: const BorderSide(color: Color(0x55FFD426)),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
-                        borderSide:
-                            const BorderSide(color: goldColor, width: 2),
+                        borderSide: const BorderSide(
+                          color: goldColor,
+                          width: 2,
+                        ),
                       ),
                     ),
                   ),
@@ -1104,10 +1121,7 @@ class _HomeActionSheet extends StatelessWidget {
   final String title;
   final Widget child;
 
-  const _HomeActionSheet({
-    required this.title,
-    required this.child,
-  });
+  const _HomeActionSheet({required this.title, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -1151,8 +1165,11 @@ class _HomeActionSheet extends StatelessWidget {
                 const Spacer(),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.close_rounded,
-                      color: Colors.white70, size: 24),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    color: Colors.white70,
+                    size: 24,
+                  ),
                 ),
               ],
             ),
@@ -1202,7 +1219,7 @@ class _HomeSheetButton extends StatelessWidget {
               color: Color(0x77000000),
               blurRadius: 8,
               offset: Offset(0, 4),
-            )
+            ),
           ],
         ),
         child: FittedBox(
@@ -1234,10 +1251,7 @@ class _EconomyHint extends StatelessWidget {
   final IconData icon;
   final String text;
 
-  const _EconomyHint({
-    required this.icon,
-    required this.text,
-  });
+  const _EconomyHint({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
@@ -1793,10 +1807,7 @@ class _StartChoiceOverlay extends StatelessWidget {
   final AppState state;
   final _RushPalette palette;
 
-  const _StartChoiceOverlay({
-    required this.state,
-    required this.palette,
-  });
+  const _StartChoiceOverlay({required this.state, required this.palette});
 
   @override
   Widget build(BuildContext context) {
@@ -1850,7 +1861,7 @@ class _StartChoiceOverlay extends StatelessWidget {
                             color: Colors.black87,
                             blurRadius: 5,
                             offset: Offset(1, 3),
-                          )
+                          ),
                         ],
                       ),
                     ),
@@ -1947,23 +1958,26 @@ class _SignupTokensPainter extends CustomPainter {
     p.color = const Color(0xFFFFF4CF);
     canvas.drawRRect(RRect.fromRectXY(inner, 8, 8), p);
     _drawToken(
-        canvas,
-        inner.topLeft + Offset(inner.width * 0.28, inner.height * 0.46),
-        13,
-        boardRed,
-        p);
+      canvas,
+      inner.topLeft + Offset(inner.width * 0.28, inner.height * 0.46),
+      13,
+      boardRed,
+      p,
+    );
     _drawToken(
-        canvas,
-        inner.topLeft + Offset(inner.width * 0.50, inner.height * 0.32),
-        13,
-        boardBlue,
-        p);
+      canvas,
+      inner.topLeft + Offset(inner.width * 0.50, inner.height * 0.32),
+      13,
+      boardBlue,
+      p,
+    );
     _drawToken(
-        canvas,
-        inner.topLeft + Offset(inner.width * 0.70, inner.height * 0.50),
-        13,
-        boardYellow,
-        p);
+      canvas,
+      inner.topLeft + Offset(inner.width * 0.70, inner.height * 0.50),
+      13,
+      boardYellow,
+      p,
+    );
     _drawDice(canvas, Offset(size.width * 0.76, size.height * 0.30), 31, p);
   }
 
@@ -2124,7 +2138,7 @@ class _BrandHeader extends StatelessWidget {
                   tooltip: LudoStringsScope.translate(context, 'Rate App'),
                   onPressed: () async {
                     await AppPlatformService.openUrl(
-                      AppPlatformService.playStoreListing,
+                      AppPlatformService.storeListing,
                     );
                   },
                   icon: const Icon(Icons.star_rate_rounded),
@@ -2182,13 +2196,15 @@ class _LudoCheerLogo extends StatelessWidget {
                   letterSpacing: 0,
                   shadows: [
                     Shadow(
-                        color: Color(0xFF7A1200),
-                        blurRadius: 0,
-                        offset: Offset(2.4, 3.2)),
+                      color: Color(0xFF7A1200),
+                      blurRadius: 0,
+                      offset: Offset(2.4, 3.2),
+                    ),
                     Shadow(
-                        color: Color(0xCC000000),
-                        blurRadius: 9,
-                        offset: Offset(0, 4)),
+                      color: Color(0xCC000000),
+                      blurRadius: 9,
+                      offset: Offset(0, 4),
+                    ),
                   ],
                 ),
               ),
@@ -2209,9 +2225,10 @@ class _LudoCheerLogo extends StatelessWidget {
                     letterSpacing: 0,
                     shadows: [
                       Shadow(
-                          color: Color(0xAA000000),
-                          blurRadius: 7,
-                          offset: Offset(0, 4)),
+                        color: Color(0xAA000000),
+                        blurRadius: 7,
+                        offset: Offset(0, 4),
+                      ),
                     ],
                   ),
                 ),
@@ -2413,7 +2430,10 @@ class _TopHud extends StatelessWidget {
         border: Border.all(color: palette.stroke, width: 2),
         boxShadow: [
           BoxShadow(
-              color: palette.shadow, blurRadius: 14, offset: const Offset(0, 5))
+            color: palette.shadow,
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
         ],
       ),
       child: Row(
@@ -2429,9 +2449,10 @@ class _TopHud extends StatelessWidget {
               child: Row(
                 children: [
                   _AvatarBadge(
-                      level: (state.rating ~/ 90 + 1).clamp(1, 99),
-                      preset: state.avatarPreset,
-                      imagePath: state.avatarImagePath),
+                    level: (state.rating ~/ 90 + 1).clamp(1, 99),
+                    preset: state.avatarPreset,
+                    imagePath: state.avatarImagePath,
+                  ),
                   const SizedBox(width: 7),
                   Expanded(
                     child: Column(
@@ -2452,8 +2473,9 @@ class _TopHud extends StatelessWidget {
                                   shadows: palette.dark
                                       ? const [
                                           Shadow(
-                                              color: Colors.black54,
-                                              blurRadius: 4)
+                                            color: Colors.black54,
+                                            blurRadius: 4,
+                                          ),
                                         ]
                                       : null,
                                 ),
@@ -2461,21 +2483,27 @@ class _TopHud extends StatelessWidget {
                             ),
                             const SizedBox(width: 4),
                             _CountryMiniBadge(
-                                code: state.countryCode, palette: palette),
+                              code: state.countryCode,
+                              palette: palette,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 5),
                         Row(
                           children: [
-                            Icon(Icons.emoji_events_rounded,
-                                color: palette.gold, size: 15),
+                            Icon(
+                              Icons.emoji_events_rounded,
+                              color: palette.gold,
+                              size: 15,
+                            ),
                             const SizedBox(width: 4),
                             LocalizedText(
                               '${state.rating}',
                               style: TextStyle(
-                                  color: palette.gold,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w900),
+                                color: palette.gold,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                           ],
                         ),
@@ -2498,22 +2526,25 @@ class _TopHud extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _CurrencyPill(
-                        icon: Icons.bolt_rounded,
-                        value: '${state.energy}',
-                        color: const Color(0xFF9EA5B5),
-                        palette: palette),
+                      icon: Icons.bolt_rounded,
+                      value: '${state.energy}',
+                      color: const Color(0xFF9EA5B5),
+                      palette: palette,
+                    ),
                     const SizedBox(width: 3),
                     _CurrencyPill(
-                        icon: Icons.monetization_on_rounded,
-                        value: _fmt(state.coins),
-                        color: amberColor,
-                        palette: palette),
+                      icon: Icons.monetization_on_rounded,
+                      value: _fmt(state.coins),
+                      color: amberColor,
+                      palette: palette,
+                    ),
                     const SizedBox(width: 3),
                     _CurrencyPill(
-                        icon: Icons.diamond_rounded,
-                        value: '30',
-                        color: const Color(0xFF21D972),
-                        palette: palette),
+                      icon: Icons.diamond_rounded,
+                      value: '30',
+                      color: const Color(0xFF21D972),
+                      palette: palette,
+                    ),
                     const SizedBox(width: 3),
                     _ThemeToggle(state: state, palette: palette),
                   ],
@@ -2556,11 +2587,15 @@ class _AvatarBadge extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: const SweepGradient(
-                colors: [goldColor, amberColor, boardRed, goldColor]),
+              colors: [goldColor, amberColor, boardRed, goldColor],
+            ),
             border: Border.all(color: const Color(0xFFFFF3A8), width: 2),
             boxShadow: const [
               BoxShadow(
-                  color: Color(0xAA000000), blurRadius: 8, offset: Offset(0, 3))
+                color: Color(0xAA000000),
+                blurRadius: 8,
+                offset: Offset(0, 3),
+              ),
             ],
           ),
           child: Padding(
@@ -2584,11 +2619,14 @@ class _AvatarBadge extends StatelessWidget {
               color: const Color(0xFFE39A00),
               border: Border.all(color: Colors.white, width: 1.5),
             ),
-            child: LocalizedText('$level',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900)),
+            child: LocalizedText(
+              '$level',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ),
         ),
       ],
@@ -2639,11 +2677,7 @@ class _MiniFlag extends StatelessWidget {
   final double width;
   final double height;
 
-  const _MiniFlag({
-    required this.country,
-    this.width = 26,
-    this.height = 17,
-  });
+  const _MiniFlag({required this.country, this.width = 26, this.height = 17});
 
   @override
   Widget build(BuildContext context) {
@@ -2667,29 +2701,35 @@ List<_FeatureRow> _clubRowsForState(AppState state) {
   final current = state.currentClub;
   final rows = <_FeatureRow>[];
   if (current != null) {
-    rows.add(_FeatureRow(
-      current.name,
-      '${current.memberCount} members - rating ${current.ratingTotal}',
-      '${current.contribution} PTS',
-      id: current.id,
-    ));
+    rows.add(
+      _FeatureRow(
+        current.name,
+        '${current.memberCount} members - rating ${current.ratingTotal}',
+        '${current.contribution} PTS',
+        id: current.id,
+      ),
+    );
   } else {
-    rows.add(const _FeatureRow(
-      'No club joined',
-      'Browse a club that matches your rating',
-      'OPEN',
-    ));
+    rows.add(
+      const _FeatureRow(
+        'No club joined',
+        'Browse a club that matches your rating',
+        'OPEN',
+      ),
+    );
   }
   rows.addAll(
     state.clubs
         .where((club) => club.id != current?.id)
         .take(2)
-        .map((club) => _FeatureRow(
-              club.name,
-              '${club.memberCount} members - rating ${club.minimumRating}+',
-              club.ratingTotal.toString(),
-              id: club.id,
-            )),
+        .map(
+          (club) => _FeatureRow(
+            club.name,
+            '${club.memberCount} members - rating ${club.minimumRating}+',
+            club.ratingTotal.toString(),
+            id: club.id,
+          ),
+        ),
   );
   return rows;
 }
@@ -2702,10 +2742,12 @@ Future<void> _showProfileEditor(
   String saveLabel = 'Save',
   VoidCallback? onSaved,
 }) async {
-  final nameController =
-      TextEditingController(text: _TopHud._cleanName(state.displayName));
-  final ageController =
-      TextEditingController(text: state.age > 0 ? state.age.toString() : '');
+  final nameController = TextEditingController(
+    text: _TopHud._cleanName(state.displayName),
+  );
+  final ageController = TextEditingController(
+    text: state.age > 0 ? state.age.toString() : '',
+  );
   var selectedCountry = state.countryCode;
   var selectedAvatar = state.avatarPreset;
   var selectedImagePath = state.avatarImagePath;
@@ -2799,30 +2841,33 @@ Future<void> _showProfileEditor(
                         color: palette.dark
                             ? const Color(0x55250A31)
                             : const Color(0xAAFFF4FC),
-                        border:
-                            Border.all(color: palette.stroke.withAlpha(110)),
+                        border: Border.all(
+                          color: palette.stroke.withAlpha(110),
+                        ),
                       ),
-                      child: Row(children: [
-                        Expanded(
-                          child: LocalizedText(
-                            '${state.gamesPlayed} games  •  ${state.wins} wins  •  ${state.rating} rating',
-                            style: TextStyle(
-                              color: palette.text,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: LocalizedText(
+                              '${state.gamesPlayed} games  •  ${state.wins} wins  •  ${state.rating} rating',
+                              style: TextStyle(
+                                color: palette.text,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                              ),
                             ),
                           ),
-                        ),
-                        TextButton.icon(
-                          onPressed: () {
-                            SoundService.tap();
-                            Navigator.pop(sheetContext);
-                            state.navigateTo('/history');
-                          },
-                          icon: const Icon(Icons.history_rounded, size: 18),
-                          label: const LocalizedText('History'),
-                        ),
-                      ]),
+                          TextButton.icon(
+                            onPressed: () {
+                              SoundService.tap();
+                              Navigator.pop(sheetContext);
+                              state.navigateTo('/history');
+                            },
+                            icon: const Icon(Icons.history_rounded, size: 18),
+                            label: const LocalizedText('History'),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 14),
                     TextField(
@@ -2835,7 +2880,10 @@ Future<void> _showProfileEditor(
                       ),
                       decoration: InputDecoration(
                         counterText: '',
-                        labelText: LudoStringsScope.translate(context, 'Player name'),
+                        labelText: LudoStringsScope.translate(
+                          context,
+                          'Player name',
+                        ),
                         labelStyle: TextStyle(color: palette.muted),
                         filled: true,
                         fillColor: palette.dark
@@ -2843,13 +2891,16 @@ Future<void> _showProfileEditor(
                             : const Color(0xFFFFF4FC),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide:
-                              BorderSide(color: palette.stroke.withAlpha(130)),
+                          borderSide: BorderSide(
+                            color: palette.stroke.withAlpha(130),
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide:
-                              BorderSide(color: palette.stroke, width: 2),
+                          borderSide: BorderSide(
+                            color: palette.stroke,
+                            width: 2,
+                          ),
                         ),
                       ),
                     ),
@@ -2865,7 +2916,10 @@ Future<void> _showProfileEditor(
                       decoration: InputDecoration(
                         counterText: '',
                         labelText: LudoStringsScope.translate(context, 'Age'),
-                        helperText: LudoStringsScope.translate(context, 'Chat unlocks for players 13+.'),
+                        helperText: LudoStringsScope.translate(
+                          context,
+                          'Chat unlocks for players 13+.',
+                        ),
                         helperStyle: TextStyle(
                           color: palette.muted,
                           fontWeight: FontWeight.w700,
@@ -2877,13 +2931,16 @@ Future<void> _showProfileEditor(
                             : const Color(0xFFFFF4FC),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide:
-                              BorderSide(color: palette.stroke.withAlpha(130)),
+                          borderSide: BorderSide(
+                            color: palette.stroke.withAlpha(130),
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide:
-                              BorderSide(color: palette.stroke, width: 2),
+                          borderSide: BorderSide(
+                            color: palette.stroke,
+                            width: 2,
+                          ),
                         ),
                       ),
                     ),
@@ -2894,8 +2951,9 @@ Future<void> _showProfileEditor(
                       initialValue: selectedCountry,
                       isExpanded: true,
                       menuMaxHeight: 360,
-                      dropdownColor:
-                          palette.dark ? const Color(0xFF3B0A48) : Colors.white,
+                      dropdownColor: palette.dark
+                          ? const Color(0xFF3B0A48)
+                          : Colors.white,
                       iconEnabledColor: palette.stroke,
                       style: TextStyle(
                         color: palette.text,
@@ -2919,8 +2977,10 @@ Future<void> _showProfileEditor(
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(14),
-                          borderSide:
-                              BorderSide(color: palette.stroke, width: 2),
+                          borderSide: BorderSide(
+                            color: palette.stroke,
+                            width: 2,
+                          ),
                         ),
                       ),
                       selectedItemBuilder: (context) => [
@@ -2980,7 +3040,8 @@ Future<void> _showProfileEditor(
                           final unlocked = state.isAvatarUnlocked(i);
                           return _ProfileAvatarChoice(
                             avatar: avatar,
-                            selected: selectedAvatar == i &&
+                            selected:
+                                selectedAvatar == i &&
                                 selectedImagePath == null,
                             unlocked: unlocked,
                             status: state.avatarUnlockLabel(i),
@@ -3031,17 +3092,24 @@ Future<void> _showProfileEditor(
                       ],
                     ),
                     const SizedBox(height: 12),
-                    _SheetLabel('Game feedback & accessibility',
-                        palette: palette),
+                    _SheetLabel(
+                      'Game feedback & accessibility',
+                      palette: palette,
+                    ),
                     const SizedBox(height: 6),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      title: LocalizedText('Sound effects',
-                          style: TextStyle(
-                              color: palette.text,
-                              fontWeight: FontWeight.w800)),
-                      subtitle: LocalizedText('Dice, moves, ladders and snakes',
-                          style: TextStyle(color: palette.muted, fontSize: 11)),
+                      title: LocalizedText(
+                        'Sound effects',
+                        style: TextStyle(
+                          color: palette.text,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      subtitle: LocalizedText(
+                        'Dice, moves, ladders and snakes',
+                        style: TextStyle(color: palette.muted, fontSize: 11),
+                      ),
                       value: state.soundEffectsEnabled,
                       onChanged: (value) {
                         state.setSoundEffectsEnabled(value);
@@ -3050,12 +3118,17 @@ Future<void> _showProfileEditor(
                     ),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      title: LocalizedText('Haptics',
-                          style: TextStyle(
-                              color: palette.text,
-                              fontWeight: FontWeight.w800)),
-                      subtitle: LocalizedText('Touch feedback for rolls and movement',
-                          style: TextStyle(color: palette.muted, fontSize: 11)),
+                      title: LocalizedText(
+                        'Haptics',
+                        style: TextStyle(
+                          color: palette.text,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      subtitle: LocalizedText(
+                        'Touch feedback for rolls and movement',
+                        style: TextStyle(color: palette.muted, fontSize: 11),
+                      ),
                       value: state.hapticsEnabled,
                       onChanged: (value) {
                         state.setHapticsEnabled(value);
@@ -3064,10 +3137,13 @@ Future<void> _showProfileEditor(
                     ),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      title: LocalizedText('Reduce motion',
-                          style: TextStyle(
-                              color: palette.text,
-                              fontWeight: FontWeight.w800)),
+                      title: LocalizedText(
+                        'Reduce motion',
+                        style: TextStyle(
+                          color: palette.text,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       value: state.reducedMotionEnabled,
                       onChanged: (value) {
                         state.setReducedMotionEnabled(value);
@@ -3076,10 +3152,13 @@ Future<void> _showProfileEditor(
                     ),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      title: LocalizedText('High contrast',
-                          style: TextStyle(
-                              color: palette.text,
-                              fontWeight: FontWeight.w800)),
+                      title: LocalizedText(
+                        'High contrast',
+                        style: TextStyle(
+                          color: palette.text,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       value: state.highContrastEnabled,
                       onChanged: (value) {
                         state.setHighContrastEnabled(value);
@@ -3088,10 +3167,13 @@ Future<void> _showProfileEditor(
                     ),
                     SwitchListTile.adaptive(
                       contentPadding: EdgeInsets.zero,
-                      title: LocalizedText('Larger text',
-                          style: TextStyle(
-                              color: palette.text,
-                              fontWeight: FontWeight.w800)),
+                      title: LocalizedText(
+                        'Larger text',
+                        style: TextStyle(
+                          color: palette.text,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       value: state.largeTextEnabled,
                       onChanged: (value) {
                         state.setLargeTextEnabled(value);
@@ -3144,7 +3226,8 @@ Future<void> _showProfileEditor(
                                 child: _SoundtrackChoice(
                                   label: option.label,
                                   icon: option.icon,
-                                  selected: musicEnabled &&
+                                  selected:
+                                      musicEnabled &&
                                       selectedSoundtrack == option.id,
                                   palette: palette,
                                   onTap: () {
@@ -3178,7 +3261,8 @@ Future<void> _showProfileEditor(
                               );
                               if (picked != null) {
                                 setSheetState(
-                                    () => selectedImagePath = picked.path);
+                                  () => selectedImagePath = picked.path,
+                                );
                               }
                             },
                           ),
@@ -3234,10 +3318,7 @@ Future<void> _showAvatarUnlockDialog(
       ),
       title: LocalizedText(
         avatar.label,
-        style: const TextStyle(
-          color: goldColor,
-          fontWeight: FontWeight.w900,
-        ),
+        style: const TextStyle(color: goldColor, fontWeight: FontWeight.w900),
       ),
       content: Row(
         children: [
@@ -3250,7 +3331,7 @@ Future<void> _showAvatarUnlockDialog(
           Expanded(
             child: LocalizedText(
               avatar.rarity == AvatarRarity.premium
-                  ? '$status. Premium avatars unlock only after a verified Google Play purchase.'
+                  ? '$status. Premium avatars unlock only after a verified ${AppPlatformService.storeName} purchase.'
                   : '$status to unlock this rare avatar.',
               style: const TextStyle(
                 color: Colors.white,
@@ -3286,10 +3367,7 @@ class _ProfileAvatarPreview extends StatelessWidget {
   final int preset;
   final String? imagePath;
 
-  const _ProfileAvatarPreview({
-    required this.preset,
-    required this.imagePath,
-  });
+  const _ProfileAvatarPreview({required this.preset, required this.imagePath});
 
   @override
   Widget build(BuildContext context) {
@@ -3302,7 +3380,8 @@ class _ProfileAvatarPreview extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         gradient: const SweepGradient(
-            colors: [goldColor, amberColor, boardBlue, boardRed, goldColor]),
+          colors: [goldColor, amberColor, boardBlue, boardRed, goldColor],
+        ),
         boxShadow: const [BoxShadow(color: Color(0x88000000), blurRadius: 12)],
       ),
       child: ClipOval(
@@ -3344,8 +3423,9 @@ class _ProfileAvatarChoice extends StatelessWidget {
               ? palette.stroke.withAlpha(palette.dark ? 50 : 85)
               : (palette.dark ? const Color(0x55200A2D) : Colors.white70),
           border: Border.all(
-              color: selected ? palette.stroke : Colors.white24,
-              width: selected ? 2 : 1),
+            color: selected ? palette.stroke : Colors.white24,
+            width: selected ? 2 : 1,
+          ),
         ),
         child: Column(
           children: [
@@ -3353,9 +3433,7 @@ class _ProfileAvatarChoice extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  ClipOval(
-                    child: _ProfileAvatarImage(preset: avatar.preset),
-                  ),
+                  ClipOval(child: _ProfileAvatarImage(preset: avatar.preset)),
                   if (!unlocked)
                     DecoratedBox(
                       decoration: const BoxDecoration(
@@ -3518,7 +3596,8 @@ class _ProfileButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           gradient: filled
               ? const LinearGradient(
-                  colors: [Color(0xFFFFD426), Color(0xFFFF8F00)])
+                  colors: [Color(0xFFFFD426), Color(0xFFFF8F00)],
+                )
               : null,
           color: filled
               ? null
@@ -3532,9 +3611,11 @@ class _ProfileButton extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon,
-                    color: filled ? const Color(0xFF3D1600) : palette.text,
-                    size: 18),
+                Icon(
+                  icon,
+                  color: filled ? const Color(0xFF3D1600) : palette.text,
+                  size: 18,
+                ),
                 const SizedBox(width: 7),
                 LocalizedText(
                   label,
@@ -3577,7 +3658,8 @@ class _CurrencyPill extends StatelessWidget {
         color: palette.dark ? const Color(0xAA21072C) : Colors.white,
         borderRadius: BorderRadius.circular(19),
         border: Border.all(
-            color: palette.dark ? Colors.white24 : const Color(0x22000000)),
+          color: palette.dark ? Colors.white24 : const Color(0x22000000),
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -3588,17 +3670,21 @@ class _CurrencyPill extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
-                  colors: [Color.lerp(color, Colors.white, 0.35)!, color]),
+                colors: [Color.lerp(color, Colors.white, 0.35)!, color],
+              ),
               boxShadow: [BoxShadow(color: color.withAlpha(90), blurRadius: 6)],
             ),
             child: Icon(icon, color: Colors.white, size: 15),
           ),
           const SizedBox(width: 4),
-          LocalizedText(value,
-              style: TextStyle(
-                  color: palette.text,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900)),
+          LocalizedText(
+            value,
+            style: TextStyle(
+              color: palette.text,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
       ),
     );
@@ -3689,8 +3775,8 @@ class _RewardStrip extends StatelessWidget {
                         claimed
                             ? 'Daily points claimed. +${state.dailyRewardAmount} coins.'
                             : (state.socialError.isNotEmpty
-                                ? state.socialError
-                                : 'Daily points already claimed. Come back tomorrow.'),
+                                  ? state.socialError
+                                  : 'Daily points already claimed. Come back tomorrow.'),
                       );
                     },
                   ),
@@ -3767,10 +3853,7 @@ class _RewardTile extends StatelessWidget {
               blurRadius: 9,
               offset: const Offset(0, 4),
             ),
-            BoxShadow(
-              color: palette.gold.withAlpha(45),
-              blurRadius: 12,
-            ),
+            BoxShadow(color: palette.gold.withAlpha(45), blurRadius: 12),
           ],
         ),
         child: ClipRRect(
@@ -3778,15 +3861,19 @@ class _RewardTile extends StatelessWidget {
           child: Stack(
             children: [
               Positioned.fill(
-                  child: CustomPaint(painter: _RewardTilePattern())),
+                child: CustomPaint(painter: _RewardTilePattern()),
+              ),
               Align(
                 alignment: const Alignment(0, -0.28),
                 child: SizedBox(
                   width: 48,
                   height: 44,
                   child: CustomPaint(
-                    painter:
-                        _RewardIconPainter(art: art, start: start, end: end),
+                    painter: _RewardIconPainter(
+                      art: art,
+                      start: start,
+                      end: end,
+                    ),
                   ),
                 ),
               ),
@@ -3873,34 +3960,53 @@ class _RewardIconPainter extends CustomPainter {
   }
 
   void _drawGift(Canvas canvas, Size size, Paint p) {
-    final box = Rect.fromLTWH(size.width * 0.14, size.height * 0.34,
-        size.width * 0.56, size.height * 0.45);
-    p.shader = LinearGradient(colors: [start, end])
-        .createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+    final box = Rect.fromLTWH(
+      size.width * 0.14,
+      size.height * 0.34,
+      size.width * 0.56,
+      size.height * 0.45,
+    );
+    p.shader = LinearGradient(
+      colors: [start, end],
+    ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawRRect(RRect.fromRectXY(box, 5, 5), p);
     p.shader = null;
     p.color = const Color(0xFFFFF1A6);
     canvas.drawRect(
-        Rect.fromLTWH(
-            box.left + box.width * 0.42, box.top, box.width * 0.18, box.height),
-        p);
+      Rect.fromLTWH(
+        box.left + box.width * 0.42,
+        box.top,
+        box.width * 0.18,
+        box.height,
+      ),
+      p,
+    );
     canvas.drawRect(
-        Rect.fromLTWH(box.left, box.top + box.height * 0.36, box.width,
-            box.height * 0.18),
-        p);
+      Rect.fromLTWH(
+        box.left,
+        box.top + box.height * 0.36,
+        box.width,
+        box.height * 0.18,
+      ),
+      p,
+    );
     p.color = const Color(0xFFFF2B4F);
     canvas.drawOval(
-        Rect.fromCenter(
-            center: Offset(size.width * 0.33, size.height * 0.26),
-            width: size.width * 0.28,
-            height: size.height * 0.18),
-        p);
+      Rect.fromCenter(
+        center: Offset(size.width * 0.33, size.height * 0.26),
+        width: size.width * 0.28,
+        height: size.height * 0.18,
+      ),
+      p,
+    );
     canvas.drawOval(
-        Rect.fromCenter(
-            center: Offset(size.width * 0.56, size.height * 0.26),
-            width: size.width * 0.28,
-            height: size.height * 0.18),
-        p);
+      Rect.fromCenter(
+        center: Offset(size.width * 0.56, size.height * 0.26),
+        width: size.width * 0.28,
+        height: size.height * 0.18,
+      ),
+      p,
+    );
     p
       ..shader = null
       ..style = PaintingStyle.stroke
@@ -3913,8 +4019,12 @@ class _RewardIconPainter extends CustomPainter {
   void _drawGiftShip(Canvas canvas, Size size, Paint p) {
     final hull = Path()
       ..moveTo(size.width * 0.13, size.height * 0.62)
-      ..quadraticBezierTo(size.width * 0.50, size.height * 0.86,
-          size.width * 0.87, size.height * 0.62)
+      ..quadraticBezierTo(
+        size.width * 0.50,
+        size.height * 0.86,
+        size.width * 0.87,
+        size.height * 0.62,
+      )
       ..lineTo(size.width * 0.78, size.height * 0.45)
       ..lineTo(size.width * 0.22, size.height * 0.45)
       ..close();
@@ -3939,13 +4049,21 @@ class _RewardIconPainter extends CustomPainter {
     canvas.drawRRect(RRect.fromRectXY(gift, 5, 5), p);
     p.color = goldColor;
     canvas.drawRect(
-        Rect.fromCenter(
-            center: gift.center, width: gift.width * 0.18, height: gift.height),
-        p);
+      Rect.fromCenter(
+        center: gift.center,
+        width: gift.width * 0.18,
+        height: gift.height,
+      ),
+      p,
+    );
     canvas.drawRect(
-        Rect.fromCenter(
-            center: gift.center, width: gift.width, height: gift.height * 0.18),
-        p);
+      Rect.fromCenter(
+        center: gift.center,
+        width: gift.width,
+        height: gift.height * 0.18,
+      ),
+      p,
+    );
     p.color = const Color(0xFFFFF8C8);
     canvas.drawOval(
       Rect.fromCenter(
@@ -3966,24 +4084,43 @@ class _RewardIconPainter extends CustomPainter {
 
     for (final dx in [0.28, 0.50, 0.72]) {
       p.color = const Color(0xFFFFF3A6);
-      canvas.drawCircle(Offset(size.width * dx, size.height * 0.61),
-          size.shortestSide * 0.035, p);
+      canvas.drawCircle(
+        Offset(size.width * dx, size.height * 0.61),
+        size.shortestSide * 0.035,
+        p,
+      );
     }
   }
 
   void _drawShield(Canvas canvas, Size size, Paint p) {
     final path = Path()
       ..moveTo(size.width * 0.50, size.height * 0.12)
-      ..quadraticBezierTo(size.width * 0.76, size.height * 0.22,
-          size.width * 0.79, size.height * 0.28)
+      ..quadraticBezierTo(
+        size.width * 0.76,
+        size.height * 0.22,
+        size.width * 0.79,
+        size.height * 0.28,
+      )
       ..lineTo(size.width * 0.74, size.height * 0.60)
-      ..quadraticBezierTo(size.width * 0.62, size.height * 0.78,
-          size.width * 0.50, size.height * 0.86)
-      ..quadraticBezierTo(size.width * 0.38, size.height * 0.78,
-          size.width * 0.26, size.height * 0.60)
+      ..quadraticBezierTo(
+        size.width * 0.62,
+        size.height * 0.78,
+        size.width * 0.50,
+        size.height * 0.86,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.38,
+        size.height * 0.78,
+        size.width * 0.26,
+        size.height * 0.60,
+      )
       ..lineTo(size.width * 0.21, size.height * 0.28)
-      ..quadraticBezierTo(size.width * 0.24, size.height * 0.22,
-          size.width * 0.50, size.height * 0.12)
+      ..quadraticBezierTo(
+        size.width * 0.24,
+        size.height * 0.22,
+        size.width * 0.50,
+        size.height * 0.12,
+      )
       ..close();
     p.shader = LinearGradient(
       begin: Alignment.topCenter,
@@ -4015,20 +4152,32 @@ class _RewardIconPainter extends CustomPainter {
     canvas.drawPath(left, p);
     p.color = const Color(0xFFB40F45);
     canvas.drawPath(right, p);
-    p.shader = LinearGradient(colors: [start, const Color(0xFFFFEE8E), end])
-        .createShader(Offset.zero & size);
-    canvas.drawCircle(Offset(size.width * 0.50, size.height * 0.42),
-        size.shortestSide * 0.30, p);
+    p.shader = LinearGradient(
+      colors: [start, const Color(0xFFFFEE8E), end],
+    ).createShader(Offset.zero & size);
+    canvas.drawCircle(
+      Offset(size.width * 0.50, size.height * 0.42),
+      size.shortestSide * 0.30,
+      p,
+    );
     p.shader = null;
     p
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.2
       ..color = const Color(0xFFFFF4B8);
-    canvas.drawCircle(Offset(size.width * 0.50, size.height * 0.42),
-        size.shortestSide * 0.30, p);
+    canvas.drawCircle(
+      Offset(size.width * 0.50, size.height * 0.42),
+      size.shortestSide * 0.30,
+      p,
+    );
     p.style = PaintingStyle.fill;
-    _drawStar(canvas, Offset(size.width * 0.50, size.height * 0.42),
-        size.shortestSide * 0.14, const Color(0xFFFFF7B0), p);
+    _drawStar(
+      canvas,
+      Offset(size.width * 0.50, size.height * 0.42),
+      size.shortestSide * 0.14,
+      const Color(0xFFFFF7B0),
+      p,
+    );
   }
 
   void _drawLock(Canvas canvas, Size size, Paint p) {
@@ -4039,46 +4188,61 @@ class _RewardIconPainter extends CustomPainter {
       ..strokeWidth = size.shortestSide * 0.11
       ..color = const Color(0xFFFFE776);
     canvas.drawArc(
-        Rect.fromCenter(
-            center: Offset(c.dx, c.dy - size.height * 0.09),
-            width: size.width * 0.44,
-            height: size.height * 0.44),
-        math.pi,
-        math.pi,
-        false,
-        p);
+      Rect.fromCenter(
+        center: Offset(c.dx, c.dy - size.height * 0.09),
+        width: size.width * 0.44,
+        height: size.height * 0.44,
+      ),
+      math.pi,
+      math.pi,
+      false,
+      p,
+    );
     p
       ..style = PaintingStyle.fill
       ..strokeCap = StrokeCap.butt;
     final body = Rect.fromCenter(
-        center: Offset(c.dx, c.dy + size.height * 0.10),
-        width: size.width * 0.52,
-        height: size.height * 0.42);
+      center: Offset(c.dx, c.dy + size.height * 0.10),
+      width: size.width * 0.52,
+      height: size.height * 0.42,
+    );
     p.shader = LinearGradient(colors: [start, end]).createShader(body);
     canvas.drawRRect(RRect.fromRectXY(body, 6, 6), p);
     p.shader = null;
     p.color = const Color(0xFF6B3500);
     canvas.drawCircle(
-        Offset(c.dx, c.dy + size.height * 0.06), size.shortestSide * 0.05, p);
+      Offset(c.dx, c.dy + size.height * 0.06),
+      size.shortestSide * 0.05,
+      p,
+    );
     canvas.drawRect(
-        Rect.fromCenter(
-            center: Offset(c.dx, c.dy + size.height * 0.14),
-            width: size.width * 0.045,
-            height: size.height * 0.13),
-        p);
+      Rect.fromCenter(
+        center: Offset(c.dx, c.dy + size.height * 0.14),
+        width: size.width * 0.045,
+        height: size.height * 0.13,
+      ),
+      p,
+    );
   }
 
   void _drawSnake(Canvas canvas, Size size, Paint p) {
     final path = Path()
       ..moveTo(size.width * 0.24, size.height * 0.66)
-      ..cubicTo(size.width * 0.38, size.height * 0.35, size.width * 0.62,
-          size.height * 0.82, size.width * 0.76, size.height * 0.28);
+      ..cubicTo(
+        size.width * 0.38,
+        size.height * 0.35,
+        size.width * 0.62,
+        size.height * 0.82,
+        size.width * 0.76,
+        size.height * 0.28,
+      );
     p
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeWidth = size.shortestSide * 0.18
-      ..shader = LinearGradient(colors: [start, end])
-          .createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+      ..shader = LinearGradient(
+        colors: [start, end],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     canvas.drawPath(path, p);
     p
       ..shader = null
@@ -4102,15 +4266,24 @@ class _RewardIconPainter extends CustomPainter {
     final head = Offset(size.width * 0.76, size.height * 0.28);
     canvas.drawOval(
       Rect.fromCenter(
-          center: head, width: size.width * 0.24, height: size.height * 0.18),
+        center: head,
+        width: size.width * 0.24,
+        height: size.height * 0.18,
+      ),
       p,
     );
     p.color = Colors.white;
-    canvas.drawCircle(head.translate(-size.width * 0.03, -size.height * 0.025),
-        size.shortestSide * 0.025, p);
+    canvas.drawCircle(
+      head.translate(-size.width * 0.03, -size.height * 0.025),
+      size.shortestSide * 0.025,
+      p,
+    );
     p.color = const Color(0xFF280019);
-    canvas.drawCircle(head.translate(-size.width * 0.022, -size.height * 0.02),
-        size.shortestSide * 0.012, p);
+    canvas.drawCircle(
+      head.translate(-size.width * 0.022, -size.height * 0.02),
+      size.shortestSide * 0.012,
+      p,
+    );
   }
 
   void _drawStar(Canvas canvas, Offset c, double r, Color color, Paint p) {
@@ -4150,8 +4323,11 @@ class _RewardTilePattern extends CustomPainter {
     p
       ..style = PaintingStyle.fill
       ..color = Colors.white.withAlpha(18);
-    canvas.drawCircle(Offset(size.width * 0.82, size.height * 0.18),
-        size.shortestSide * 0.25, p);
+    canvas.drawCircle(
+      Offset(size.width * 0.82, size.height * 0.18),
+      size.shortestSide * 0.25,
+      p,
+    );
   }
 
   @override
@@ -4444,8 +4620,8 @@ class _HomeTabStage extends StatelessWidget {
       claimed
           ? '+${state.dailyRewardAmount} daily coins claimed.'
           : (state.socialError.isNotEmpty
-              ? state.socialError
-              : 'Daily coins are already claimed.'),
+                ? state.socialError
+                : 'Daily coins are already claimed.'),
     );
   }
 
@@ -4572,9 +4748,7 @@ class _HomeTabStage extends StatelessWidget {
                 color: boardBlue,
                 onTap: () async {
                   Navigator.pop(sheetContext);
-                  await Future<void>.delayed(
-                    const Duration(milliseconds: 280),
-                  );
+                  await Future<void>.delayed(const Duration(milliseconds: 280));
                   if (context.mounted) {
                     await _showPrivateRoomSheet(context, state);
                   }
@@ -4593,119 +4767,123 @@ class _HomeTabStage extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        return StatefulBuilder(builder: (context, setSheetState) {
-          return _HomeActionSheet(
-            title: 'Recent Opponents',
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (state.incomingFriendRequests.isNotEmpty) ...[
-                  const _EconomyHint(
-                    icon: Icons.mark_email_unread_rounded,
-                    text:
-                        'Accept requests before they join your friends circle.',
-                  ),
-                  const SizedBox(height: 8),
-                  for (var i = 0;
-                      i < state.incomingFriendRequests.length;
-                      i++) ...[
-                    _FeatureListTile(
-                      row: _FeatureRow(
-                        state.incomingFriendRequests[i].displayName,
-                        'Incoming request',
-                        state.incomingFriendRequests[i].rating.toString(),
-                      ),
-                      accent: boardGreen,
-                      index: i,
-                    ),
-                    const SizedBox(height: 6),
-                    _FeatureActionButton(
-                      label:
-                          'Accept ${state.incomingFriendRequests[i].displayName}',
-                      accent: boardGreen,
-                      onTap: () async {
-                        final message = await state.acceptFriend(
-                          state.incomingFriendRequests[i].id,
-                        );
-                        if (!sheetContext.mounted) return;
-                        _showFeatureSnack(context, message);
-                        setSheetState(() {});
-                      },
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return _HomeActionSheet(
+              title: 'Recent Opponents',
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (state.incomingFriendRequests.isNotEmpty) ...[
+                    const _EconomyHint(
+                      icon: Icons.mark_email_unread_rounded,
+                      text:
+                          'Accept requests before they join your friends circle.',
                     ),
                     const SizedBox(height: 8),
-                  ],
-                ],
-                if (state.recentOpponents.isEmpty)
-                  const _EconomyHint(
-                    icon: Icons.sports_esports_rounded,
-                    text:
-                        'No recent online opponents yet. Finish an online match and they will appear here.',
-                  )
-                else
-                  for (var i = 0; i < state.recentOpponents.length; i++) ...[
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => setSheetState(() {
-                        final id = state.recentOpponents[i].id;
-                        selected.contains(id)
-                            ? selected.remove(id)
-                            : selected.add(id);
-                      }),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color:
-                                selected.contains(state.recentOpponents[i].id)
-                                    ? goldColor
-                                    : Colors.transparent,
-                            width: 2,
-                          ),
+                    for (
+                      var i = 0;
+                      i < state.incomingFriendRequests.length;
+                      i++
+                    ) ...[
+                      _FeatureListTile(
+                        row: _FeatureRow(
+                          state.incomingFriendRequests[i].displayName,
+                          'Incoming request',
+                          state.incomingFriendRequests[i].rating.toString(),
                         ),
-                        child: _FeatureListTile(
-                          row: _FeatureRow(
-                            state.recentOpponents[i].displayName,
-                            selected.contains(state.recentOpponents[i].id)
-                                ? 'Selected'
-                                : 'Recent opponent',
-                            state.recentOpponents[i].rating.toString(),
+                        accent: boardGreen,
+                        index: i,
+                      ),
+                      const SizedBox(height: 6),
+                      _FeatureActionButton(
+                        label:
+                            'Accept ${state.incomingFriendRequests[i].displayName}',
+                        accent: boardGreen,
+                        onTap: () async {
+                          final message = await state.acceptFriend(
+                            state.incomingFriendRequests[i].id,
+                          );
+                          if (!sheetContext.mounted) return;
+                          _showFeatureSnack(context, message);
+                          setSheetState(() {});
+                        },
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ],
+                  if (state.recentOpponents.isEmpty)
+                    const _EconomyHint(
+                      icon: Icons.sports_esports_rounded,
+                      text:
+                          'No recent online opponents yet. Finish an online match and they will appear here.',
+                    )
+                  else
+                    for (var i = 0; i < state.recentOpponents.length; i++) ...[
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => setSheetState(() {
+                          final id = state.recentOpponents[i].id;
+                          selected.contains(id)
+                              ? selected.remove(id)
+                              : selected.add(id);
+                        }),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color:
+                                  selected.contains(state.recentOpponents[i].id)
+                                  ? goldColor
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
                           ),
-                          accent: i.isEven ? goldColor : boardPurple,
-                          index: i,
+                          child: _FeatureListTile(
+                            row: _FeatureRow(
+                              state.recentOpponents[i].displayName,
+                              selected.contains(state.recentOpponents[i].id)
+                                  ? 'Selected'
+                                  : 'Recent opponent',
+                              state.recentOpponents[i].rating.toString(),
+                            ),
+                            accent: i.isEven ? goldColor : boardPurple,
+                            index: i,
+                          ),
                         ),
                       ),
-                    ),
-                    if (i != state.recentOpponents.length - 1)
-                      const SizedBox(height: 8),
-                  ],
-                const SizedBox(height: 12),
-                _FeatureActionButton(
-                  label: selected.isEmpty
-                      ? 'Select Opponents'
-                      : 'Send ${selected.length} Request${selected.length == 1 ? '' : 's'}',
-                  accent: boardGreen,
-                  onTap: () async {
-                    if (selected.isEmpty) {
-                      _showFeatureSnack(
-                        context,
-                        'Select at least one recent opponent.',
-                      );
-                      return;
-                    }
-                    var message = 'Friend requests sent.';
-                    for (final id in selected) {
-                      message = await state.requestFriend(id);
-                      if (message != 'Friend request sent.') break;
-                    }
-                    if (!sheetContext.mounted) return;
-                    Navigator.pop(sheetContext);
-                    _showFeatureSnack(context, message);
-                  },
-                ),
-              ],
-            ),
-          );
-        });
+                      if (i != state.recentOpponents.length - 1)
+                        const SizedBox(height: 8),
+                    ],
+                  const SizedBox(height: 12),
+                  _FeatureActionButton(
+                    label: selected.isEmpty
+                        ? 'Select Opponents'
+                        : 'Send ${selected.length} Request${selected.length == 1 ? '' : 's'}',
+                    accent: boardGreen,
+                    onTap: () async {
+                      if (selected.isEmpty) {
+                        _showFeatureSnack(
+                          context,
+                          'Select at least one recent opponent.',
+                        );
+                        return;
+                      }
+                      var message = 'Friend requests sent.';
+                      for (final id in selected) {
+                        message = await state.requestFriend(id);
+                        if (message != 'Friend request sent.') break;
+                      }
+                      if (!sheetContext.mounted) return;
+                      Navigator.pop(sheetContext);
+                      _showFeatureSnack(context, message);
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
       },
     );
   }
@@ -4715,7 +4893,9 @@ class _HomeTabStage extends StatelessWidget {
   }
 
   Future<void> _showFriendChatSheet(
-      BuildContext context, AppState state) async {
+    BuildContext context,
+    AppState state,
+  ) async {
     final controller = TextEditingController();
     await state.loadFriendMessages();
     if (!context.mounted) {
@@ -4727,134 +4907,145 @@ class _HomeTabStage extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        return Consumer<AppState>(builder: (context, liveState, _) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
-            ),
-            child: _HomeActionSheet(
-              title: 'Friends Circle Chat',
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _EconomyHint(
-                    icon: liveState.canUseChat
-                        ? Icons.forum_rounded
-                        : Icons.lock_rounded,
-                    text: liveState.canUseChat
-                        ? 'You see messages from direct accepted friends only. Friends who do not know each other remain separate.'
-                        : 'Chat unlocks for players age 13 and older.',
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    height: 210,
-                    child: !liveState.canUseChat
-                        ? const Center(
-                            child: LocalizedText(
-                              'Chat locked',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          )
-                        : liveState.friendMessages.isEmpty
-                            ? const Center(
-                                child: LocalizedText(
-                                  'No messages yet. Say hello to your friends.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+        return Consumer<AppState>(
+          builder: (context, liveState, _) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom,
+              ),
+              child: _HomeActionSheet(
+                title: 'Friends Circle Chat',
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _EconomyHint(
+                      icon: liveState.canUseChat
+                          ? Icons.forum_rounded
+                          : Icons.lock_rounded,
+                      text: liveState.canUseChat
+                          ? 'You see messages from direct accepted friends only. Friends who do not know each other remain separate.'
+                          : 'Chat unlocks for players age 13 and older.',
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 210,
+                      child: !liveState.canUseChat
+                          ? const Center(
+                              child: LocalizedText(
+                                'Chat locked',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w800,
                                 ),
-                              )
-                            : ListView.separated(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 4),
-                                itemCount: liveState.friendMessages.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 6),
-                                itemBuilder: (context, index) {
-                                  final message =
-                                      liveState.friendMessages[index];
-                                  final mine =
-                                      message.senderId == liveState.playerId;
-                                  return Align(
-                                    alignment: mine
-                                        ? Alignment.centerRight
-                                        : Alignment.centerLeft,
-                                    child: Container(
-                                      constraints:
-                                          const BoxConstraints(maxWidth: 280),
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: mine
-                                            ? boardBlue.withAlpha(210)
-                                            : const Color(0xCC3B0B4B),
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: mine ? goldColor : boardPurple,
-                                        ),
-                                      ),
-                                      child: LocalizedText(
-                                        '${message.senderName}: ${message.message}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w800,
-                                        ),
+                              ),
+                            )
+                          : liveState.friendMessages.isEmpty
+                          ? const Center(
+                              child: LocalizedText(
+                                'No messages yet. Say hello to your friends.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            )
+                          : ListView.separated(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              itemCount: liveState.friendMessages.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 6),
+                              itemBuilder: (context, index) {
+                                final message = liveState.friendMessages[index];
+                                final mine =
+                                    message.senderId == liveState.playerId;
+                                return Align(
+                                  alignment: mine
+                                      ? Alignment.centerRight
+                                      : Alignment.centerLeft,
+                                  child: Container(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 280,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: mine
+                                          ? boardBlue.withAlpha(210)
+                                          : const Color(0xCC3B0B4B),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: mine ? goldColor : boardPurple,
                                       ),
                                     ),
-                                  );
-                                },
-                              ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: controller,
-                    enabled: liveState.canUseChat,
-                    maxLength: 160,
-                    textInputAction: TextInputAction.send,
-                    decoration: InputDecoration(
-                      hintText: LudoStringsScope.translate(context, 'Message your friends circle'),
-                      counterText: '',
-                      filled: true,
-                      fillColor: const Color(0xAA21042C),
-                      suffixIcon: IconButton(
-                        tooltip: LudoStringsScope.translate(context, 'Send message'),
-                        icon: const Icon(Icons.send_rounded, color: goldColor),
-                        onPressed: liveState.canUseChat
-                            ? () async {
-                                final result = await liveState
-                                    .sendFriendMessage(controller.text);
-                                if (!sheetContext.mounted) return;
-                                if (result.isEmpty) {
-                                  controller.clear();
-                                } else {
-                                  _showFeatureSnack(context, result);
-                                }
-                              }
-                            : null,
-                      ),
+                                    child: LocalizedText(
+                                      '${message.senderName}: ${message.message}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                     ),
-                    onSubmitted: liveState.canUseChat
-                        ? (value) async {
-                            final result =
-                                await liveState.sendFriendMessage(value);
-                            if (!sheetContext.mounted) return;
-                            if (result.isEmpty) controller.clear();
-                          }
-                        : null,
-                  ),
-                ],
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: controller,
+                      enabled: liveState.canUseChat,
+                      maxLength: 160,
+                      textInputAction: TextInputAction.send,
+                      decoration: InputDecoration(
+                        hintText: LudoStringsScope.translate(
+                          context,
+                          'Message your friends circle',
+                        ),
+                        counterText: '',
+                        filled: true,
+                        fillColor: const Color(0xAA21042C),
+                        suffixIcon: IconButton(
+                          tooltip: LudoStringsScope.translate(
+                            context,
+                            'Send message',
+                          ),
+                          icon: const Icon(
+                            Icons.send_rounded,
+                            color: goldColor,
+                          ),
+                          onPressed: liveState.canUseChat
+                              ? () async {
+                                  final result = await liveState
+                                      .sendFriendMessage(controller.text);
+                                  if (!sheetContext.mounted) return;
+                                  if (result.isEmpty) {
+                                    controller.clear();
+                                  } else {
+                                    _showFeatureSnack(context, result);
+                                  }
+                                }
+                              : null,
+                        ),
+                      ),
+                      onSubmitted: liveState.canUseChat
+                          ? (value) async {
+                              final result = await liveState.sendFriendMessage(
+                                value,
+                              );
+                              if (!sheetContext.mounted) return;
+                              if (result.isEmpty) controller.clear();
+                            }
+                          : null,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        });
+            );
+          },
+        );
       },
     );
     controller.dispose();
@@ -4866,69 +5057,73 @@ class _HomeTabStage extends StatelessWidget {
       context: context,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) {
-        return StatefulBuilder(builder: (context, setSheetState) {
-          return _HomeActionSheet(
-            title: 'Remove Friend',
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (state.friends.isEmpty)
-                  const _EconomyHint(
-                    icon: Icons.group_off_rounded,
-                    text: 'There are no accepted friends to remove.',
-                  )
-                else
-                  for (var i = 0; i < state.friends.length; i++) ...[
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () => setSheetState(
-                        () => selectedFriendId = state.friends[i].id,
-                      ),
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: selectedFriendId == state.friends[i].id
-                                ? goldColor
-                                : Colors.transparent,
-                            width: 2,
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return _HomeActionSheet(
+              title: 'Remove Friend',
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (state.friends.isEmpty)
+                    const _EconomyHint(
+                      icon: Icons.group_off_rounded,
+                      text: 'There are no accepted friends to remove.',
+                    )
+                  else
+                    for (var i = 0; i < state.friends.length; i++) ...[
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => setSheetState(
+                          () => selectedFriendId = state.friends[i].id,
+                        ),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: selectedFriendId == state.friends[i].id
+                                  ? goldColor
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                          child: _FeatureListTile(
+                            row: _FeatureRow(
+                              state.friends[i].displayName,
+                              selectedFriendId == state.friends[i].id
+                                  ? 'Selected for removal'
+                                  : 'Accepted friend',
+                              state.friends[i].rating.toString(),
+                            ),
+                            accent: i.isEven ? boardBlue : boardGreen,
+                            index: i,
                           ),
                         ),
-                        child: _FeatureListTile(
-                          row: _FeatureRow(
-                            state.friends[i].displayName,
-                            selectedFriendId == state.friends[i].id
-                                ? 'Selected for removal'
-                                : 'Accepted friend',
-                            state.friends[i].rating.toString(),
-                          ),
-                          accent: i.isEven ? boardBlue : boardGreen,
-                          index: i,
-                        ),
                       ),
-                    ),
-                    if (i != state.friends.length - 1)
-                      const SizedBox(height: 8),
-                  ],
-                const SizedBox(height: 12),
-                _FeatureActionButton(
-                  label: 'Remove Selected',
-                  accent: boardRed,
-                  onTap: () async {
-                    if (selectedFriendId.isEmpty) {
-                      _showFeatureSnack(context, 'Select a friend first.');
-                      return;
-                    }
-                    final message = await state.removeFriend(selectedFriendId);
-                    if (!sheetContext.mounted) return;
-                    Navigator.pop(sheetContext);
-                    _showFeatureSnack(context, message);
-                  },
-                ),
-              ],
-            ),
-          );
-        });
+                      if (i != state.friends.length - 1)
+                        const SizedBox(height: 8),
+                    ],
+                  const SizedBox(height: 12),
+                  _FeatureActionButton(
+                    label: 'Remove Selected',
+                    accent: boardRed,
+                    onTap: () async {
+                      if (selectedFriendId.isEmpty) {
+                        _showFeatureSnack(context, 'Select a friend first.');
+                        return;
+                      }
+                      final message = await state.removeFriend(
+                        selectedFriendId,
+                      );
+                      if (!sheetContext.mounted) return;
+                      Navigator.pop(sheetContext);
+                      _showFeatureSnack(context, message);
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
       },
     );
   }
@@ -4982,9 +5177,9 @@ class _HomeTabStage extends StatelessWidget {
   void _showLeaderboardSheet(BuildContext context, AppState state) {
     final rows = [
       _FeatureRow(state.displayName, 'You', state.rating.toString()),
-      for (final club in ([...state.clubs]
-            ..sort((a, b) => b.ratingTotal.compareTo(a.ratingTotal)))
-          .take(3))
+      for (final club in ([
+        ...state.clubs,
+      ]..sort((a, b) => b.ratingTotal.compareTo(a.ratingTotal))).take(3))
         _FeatureRow(
           club.name,
           '${club.memberCount} members',
@@ -5032,8 +5227,10 @@ class _HomeTabStage extends StatelessWidget {
                     const Spacer(),
                     GestureDetector(
                       onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.close_rounded,
-                          color: Colors.white70),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white70,
+                      ),
                     ),
                   ],
                 ),
@@ -5051,13 +5248,17 @@ class _HomeTabStage extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _FeatureActionButton(
-                        label: 'Play Games leaders',
+                        label: PlayGamesService.leaderboardLabel,
                         accent: const Color(0xFF278CDB),
                         compact: true,
-                        onTap: () => unawaited(_openPlayGames(
-                          context,
-                          PlayGamesService.instance.showLeaderboard(state.wins),
-                        )),
+                        onTap: () => unawaited(
+                          _openPlayGames(
+                            context,
+                            PlayGamesService.instance.showLeaderboard(
+                              state.wins,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -5066,11 +5267,14 @@ class _HomeTabStage extends StatelessWidget {
                         label: 'Achievements',
                         accent: const Color(0xFFAC65C7),
                         compact: true,
-                        onTap: () => unawaited(_openPlayGames(
-                          context,
-                          PlayGamesService.instance
-                              .showAchievements(state.wins),
-                        )),
+                        onTap: () => unawaited(
+                          _openPlayGames(
+                            context,
+                            PlayGamesService.instance.showAchievements(
+                              state.wins,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -5083,19 +5287,16 @@ class _HomeTabStage extends StatelessWidget {
     );
   }
 
-  Future<void> _openPlayGames(
-    BuildContext context,
-    Future<bool> action,
-  ) async {
+  Future<void> _openPlayGames(BuildContext context, Future<bool> action) async {
     if (await action || !context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: LocalizedText(
-          'Google Play Games is unavailable. Check your connection and Play Games sign-in.'),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: LocalizedText(PlayGamesService.unavailableMessage)),
+    );
   }
 
   void _showClubJoinSheet(BuildContext context, AppState state) {
-    var selectedClubId = state.currentClub?.id ??
+    var selectedClubId =
+        state.currentClub?.id ??
         (state.clubs.isEmpty ? '' : state.clubs.first.id);
     unawaited(state.refreshSocial());
     showModalBottomSheet<void>(
@@ -5143,8 +5344,8 @@ class _HomeTabStage extends StatelessWidget {
                         text: liveState.socialLoading
                             ? 'Loading clubs...'
                             : (liveState.socialError.isNotEmpty
-                                ? liveState.socialError
-                                : 'No clubs are available right now.'),
+                                  ? liveState.socialError
+                                  : 'No clubs are available right now.'),
                       )
                     else
                       for (var i = 0; i < available.length; i++) ...[
@@ -5182,8 +5383,8 @@ class _HomeTabStage extends StatelessWidget {
                       label: selected == null
                           ? 'Refresh Clubs'
                           : (liveState.currentClub?.id == selected.id
-                              ? 'Current Club'
-                              : 'Join ${selected.name}'),
+                                ? 'Current Club'
+                                : 'Join ${selected.name}'),
                       accent: selected == null
                           ? boardBlue
                           : const Color(0xFFFF5D6C),
@@ -5371,13 +5572,14 @@ class _FeatureTabStage extends StatelessWidget {
                       SizedBox(height: dense ? 8 : 14),
                       LayoutBuilder(
                         builder: (context, actionBox) {
-                          final columns =
-                              actions.length > 3 ? 3 : actions.length;
+                          final columns = actions.length > 3
+                              ? 3
+                              : actions.length;
                           final spacing = columns > 1 ? 8.0 : 0.0;
                           final width = columns == 0
                               ? actionBox.maxWidth
                               : (actionBox.maxWidth - spacing * (columns - 1)) /
-                                  columns;
+                                    columns;
                           return Wrap(
                             spacing: spacing,
                             runSpacing: 8,
@@ -5505,8 +5707,11 @@ class _FeatureListTile extends StatelessWidget {
               ],
             ),
           ),
-          Icon(Icons.emoji_events_rounded,
-              color: goldColor, size: compact ? 16 : 18),
+          Icon(
+            Icons.emoji_events_rounded,
+            color: goldColor,
+            size: compact ? 16 : 18,
+          ),
           const SizedBox(width: 4),
           LocalizedText(
             row.value,
@@ -5679,7 +5884,11 @@ class _HomeBoardLoadingPainter extends CustomPainter {
       Rect.fromLTRB(inner.center.dx, inner.top, inner.right, inner.center.dy),
       Rect.fromLTRB(inner.left, inner.center.dy, inner.center.dx, inner.bottom),
       Rect.fromLTRB(
-          inner.center.dx, inner.center.dy, inner.right, inner.bottom),
+        inner.center.dx,
+        inner.center.dy,
+        inner.right,
+        inner.bottom,
+      ),
     ];
     for (var i = 0; i < quadrants.length; i++) {
       paint.color = colors[i];
@@ -5689,19 +5898,11 @@ class _HomeBoardLoadingPainter extends CustomPainter {
     final lane = inner.width * 0.15;
     paint.color = const Color(0xFFFFF9DC);
     canvas.drawRect(
-      Rect.fromCenter(
-        center: inner.center,
-        width: lane,
-        height: inner.height,
-      ),
+      Rect.fromCenter(center: inner.center, width: lane, height: inner.height),
       paint,
     );
     canvas.drawRect(
-      Rect.fromCenter(
-        center: inner.center,
-        width: inner.width,
-        height: lane,
-      ),
+      Rect.fromCenter(center: inner.center, width: inner.width, height: lane),
       paint,
     );
 
@@ -5792,10 +5993,11 @@ class _ModeTileState extends State<_ModeTile>
   void initState() {
     super.initState();
     _press = AnimationController(
-        vsync: this,
-        duration: const Duration(milliseconds: 100),
-        lowerBound: 0,
-        upperBound: 1);
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+      lowerBound: 0,
+      upperBound: 1,
+    );
   }
 
   @override
@@ -5824,8 +6026,9 @@ class _ModeTileState extends State<_ModeTile>
             child: LayoutBuilder(
               builder: (context, box) {
                 final designHeight = widget.large ? 94.0 : 66.0;
-                final density =
-                    (box.maxHeight / designHeight).clamp(0.66, 1.0).toDouble();
+                final density = (box.maxHeight / designHeight)
+                    .clamp(0.66, 1.0)
+                    .toDouble();
                 final showSubtitle =
                     widget.subtitle.isNotEmpty && box.maxHeight >= 58;
                 return Container(
@@ -5837,17 +6040,20 @@ class _ModeTileState extends State<_ModeTile>
                       colors: [widget.start, widget.end],
                     ),
                     border: Border.all(
-                        color: widget.palette.stroke,
-                        width: widget.large ? 2.4 : 1.6),
+                      color: widget.palette.stroke,
+                      width: widget.large ? 2.4 : 1.6,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                          color: widget.start.withAlpha((85 * glow).round()),
-                          blurRadius: widget.large ? 18 : 12,
-                          offset: const Offset(0, 5)),
+                        color: widget.start.withAlpha((85 * glow).round()),
+                        blurRadius: widget.large ? 18 : 12,
+                        offset: const Offset(0, 5),
+                      ),
                       const BoxShadow(
-                          color: Color(0x77000000),
-                          blurRadius: 5,
-                          offset: Offset(0, 3)),
+                        color: Color(0x77000000),
+                        blurRadius: 5,
+                        offset: Offset(0, 3),
+                      ),
                     ],
                   ),
                   child: ClipRRect(
@@ -5878,9 +6084,10 @@ class _ModeTileState extends State<_ModeTile>
                             ),
                           ),
                         Positioned.fill(
-                            child: CustomPaint(
-                                painter:
-                                    _ModePatternPainter(widget.palette.dark))),
+                          child: CustomPaint(
+                            painter: _ModePatternPainter(widget.palette.dark),
+                          ),
+                        ),
                         if (widget.imageAsset == null)
                           Positioned(
                             left: (widget.large ? 18 : 10) * density,
@@ -5905,13 +6112,15 @@ class _ModeTileState extends State<_ModeTile>
                                 height: 0.9,
                                 shadows: const [
                                   Shadow(
-                                      color: Color(0xCC4A0038),
-                                      blurRadius: 0,
-                                      offset: Offset(2, 3)),
+                                    color: Color(0xCC4A0038),
+                                    blurRadius: 0,
+                                    offset: Offset(2, 3),
+                                  ),
                                   Shadow(
-                                      color: Color(0x99000000),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 4)),
+                                    color: Color(0x99000000),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 4),
+                                  ),
                                 ],
                               ),
                             ),
@@ -5958,7 +6167,9 @@ class _ModeTileState extends State<_ModeTile>
                                     fontWeight: FontWeight.w800,
                                     shadows: const [
                                       Shadow(
-                                          color: Colors.black54, blurRadius: 3)
+                                        color: Colors.black54,
+                                        blurRadius: 3,
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -5992,7 +6203,10 @@ class _ModeGlyph extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           const Positioned(
-              left: 2, bottom: 1, child: _MiniPawn(color: boardRed)),
+            left: 2,
+            bottom: 1,
+            child: _MiniPawn(color: boardRed),
+          ),
           Positioned(
             right: large ? -10 : -5,
             top: large ? 17 : 9,
@@ -6006,12 +6220,21 @@ class _ModeGlyph extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           const Positioned(
-              left: 0, bottom: 5, child: _MiniPawn(color: boardBlue)),
+            left: 0,
+            bottom: 5,
+            child: _MiniPawn(color: boardBlue),
+          ),
           const Positioned(left: 24, top: 0, child: _MiniPawn(color: boardRed)),
           const Positioned(
-              left: 42, bottom: 2, child: _MiniPawn(color: boardGreen)),
+            left: 42,
+            bottom: 2,
+            child: _MiniPawn(color: boardGreen),
+          ),
           const Positioned(
-              right: -4, top: 14, child: _MiniPawn(color: boardYellow)),
+            right: -4,
+            top: 14,
+            child: _MiniPawn(color: boardYellow),
+          ),
           Positioned(
             left: large ? 24 : 15,
             bottom: large ? -8 : -4,
@@ -6036,8 +6259,9 @@ class _ModeGlyph extends StatelessWidget {
       );
     }
 
-    final icon =
-        art == _ModeArt.private ? Icons.lock_rounded : Icons.bolt_rounded;
+    final icon = art == _ModeArt.private
+        ? Icons.lock_rounded
+        : Icons.bolt_rounded;
     final accent = art == _ModeArt.private
         ? const Color(0xFFFFC42D)
         : const Color(0xFFFFD426);
@@ -6149,7 +6373,10 @@ class _RoundIconBadge extends StatelessWidget {
         border: Border.all(color: Colors.white.withAlpha(190), width: 1.6),
         boxShadow: const [
           BoxShadow(
-              color: Color(0x99000000), blurRadius: 8, offset: Offset(0, 3)),
+            color: Color(0x99000000),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
         ],
       ),
       child: Icon(icon, color: const Color(0xFF5B104A), size: large ? 42 : 24),
@@ -6257,7 +6484,10 @@ class _MiniDice extends StatelessWidget {
           borderRadius: BorderRadius.circular(size * 0.18),
           boxShadow: const [
             BoxShadow(
-                color: Color(0x99000000), blurRadius: 6, offset: Offset(2, 3)),
+              color: Color(0x99000000),
+              blurRadius: 6,
+              offset: Offset(2, 3),
+            ),
           ],
         ),
         child: Stack(
@@ -6307,11 +6537,7 @@ class _ModeLabelText extends StatelessWidget {
         height: 0.96,
         fontWeight: FontWeight.w900,
         shadows: const [
-          Shadow(
-            color: Colors.black87,
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
+          Shadow(color: Colors.black87, blurRadius: 4, offset: Offset(0, 2)),
         ],
       ),
     );
@@ -6348,15 +6574,17 @@ class _BottomNav extends StatelessWidget {
             : Colors.white.withAlpha(238),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-            color: palette.dark
-                ? const Color(0xAA7B2CFF)
-                : const Color(0x44E38A00),
-            width: 1.4),
+          color: palette.dark
+              ? const Color(0xAA7B2CFF)
+              : const Color(0x44E38A00),
+          width: 1.4,
+        ),
         boxShadow: [
           BoxShadow(
-              color: palette.shadow,
-              blurRadius: 12,
-              offset: const Offset(0, -2))
+            color: palette.shadow,
+            blurRadius: 12,
+            offset: const Offset(0, -2),
+          ),
         ],
       ),
       child: Row(
@@ -6375,19 +6603,21 @@ class _BottomNav extends StatelessWidget {
                     ? BoxDecoration(
                         borderRadius: BorderRadius.circular(16),
                         gradient: const LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0xFFB522FF), Color(0xFF5B099F)]),
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0xFFB522FF), Color(0xFF5B099F)],
+                        ),
                         border: Border.all(color: palette.stroke, width: 2),
                         boxShadow: [
                           BoxShadow(
-                              color: palette.gold.withAlpha(115),
-                              blurRadius: 13),
+                            color: palette.gold.withAlpha(115),
+                            blurRadius: 13,
+                          ),
                           const BoxShadow(
                             color: Color(0xAA000000),
                             blurRadius: 7,
                             offset: Offset(0, 3),
-                          )
+                          ),
                         ],
                       )
                     : null,
@@ -6556,37 +6786,68 @@ class _NavIconPainter extends CustomPainter {
   }
 
   void _drawShop(Canvas canvas, Size size, Paint p, Color main, Color accent) {
-    final body = Rect.fromLTWH(size.width * 0.20, size.height * 0.38,
-        size.width * 0.58, size.height * 0.38);
+    final body = Rect.fromLTWH(
+      size.width * 0.20,
+      size.height * 0.38,
+      size.width * 0.58,
+      size.height * 0.38,
+    );
     p.color = main;
     canvas.drawRRect(RRect.fromRectXY(body, 3, 3), p);
     p.color = accent;
-    final awning = Rect.fromLTWH(size.width * 0.16, size.height * 0.18,
-        size.width * 0.66, size.height * 0.22);
+    final awning = Rect.fromLTWH(
+      size.width * 0.16,
+      size.height * 0.18,
+      size.width * 0.66,
+      size.height * 0.22,
+    );
     canvas.drawRRect(RRect.fromRectXY(awning, 4, 4), p);
     p.color = accent;
     for (int i = 0; i < 3; i++) {
       canvas.drawRect(
-          Rect.fromLTWH(awning.left + awning.width * (i / 3), awning.top,
-              awning.width / 6, awning.height),
-          p);
+        Rect.fromLTWH(
+          awning.left + awning.width * (i / 3),
+          awning.top,
+          awning.width / 6,
+          awning.height,
+        ),
+        p,
+      );
     }
     p.color = const Color(0xFFFFB21C);
-    canvas.drawCircle(Offset(size.width * 0.70, size.height * 0.72),
-        size.shortestSide * 0.13, p);
+    canvas.drawCircle(
+      Offset(size.width * 0.70, size.height * 0.72),
+      size.shortestSide * 0.13,
+      p,
+    );
   }
 
   void _drawFriends(
-      Canvas canvas, Size size, Paint p, Color main, Color accent) {
+    Canvas canvas,
+    Size size,
+    Paint p,
+    Color main,
+    Color accent,
+  ) {
     p.color = main;
-    canvas.drawCircle(Offset(size.width * 0.38, size.height * 0.36),
-        size.shortestSide * 0.17, p);
-    canvas.drawCircle(Offset(size.width * 0.64, size.height * 0.38),
-        size.shortestSide * 0.16, p);
+    canvas.drawCircle(
+      Offset(size.width * 0.38, size.height * 0.36),
+      size.shortestSide * 0.17,
+      p,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.64, size.height * 0.38),
+      size.shortestSide * 0.16,
+      p,
+    );
     canvas.drawRRect(
       RRect.fromRectXY(
-        Rect.fromLTWH(size.width * 0.20, size.height * 0.54, size.width * 0.36,
-            size.height * 0.24),
+        Rect.fromLTWH(
+          size.width * 0.20,
+          size.height * 0.54,
+          size.width * 0.36,
+          size.height * 0.24,
+        ),
         8,
         8,
       ),
@@ -6595,8 +6856,12 @@ class _NavIconPainter extends CustomPainter {
     p.color = accent;
     canvas.drawRRect(
       RRect.fromRectXY(
-        Rect.fromLTWH(size.width * 0.48, size.height * 0.56, size.width * 0.34,
-            size.height * 0.22),
+        Rect.fromLTWH(
+          size.width * 0.48,
+          size.height * 0.56,
+          size.width * 0.34,
+          size.height * 0.22,
+        ),
         8,
         8,
       ),
@@ -6615,18 +6880,32 @@ class _NavIconPainter extends CustomPainter {
       ..close();
     p.color = main;
     canvas.drawPath(roof, p);
-    final body = Rect.fromLTWH(size.width * 0.28, size.height * 0.48,
-        size.width * 0.44, size.height * 0.32);
+    final body = Rect.fromLTWH(
+      size.width * 0.28,
+      size.height * 0.48,
+      size.width * 0.44,
+      size.height * 0.32,
+    );
     canvas.drawRRect(RRect.fromRectXY(body, 4, 4), p);
     p.color = const Color(0xFF7F19D9);
     canvas.drawRect(
-        Rect.fromLTWH(size.width * 0.46, size.height * 0.61, size.width * 0.10,
-            size.height * 0.19),
-        p);
+      Rect.fromLTWH(
+        size.width * 0.46,
+        size.height * 0.61,
+        size.width * 0.10,
+        size.height * 0.19,
+      ),
+      p,
+    );
   }
 
   void _drawShield(
-      Canvas canvas, Size size, Paint p, Color main, Color accent) {
+    Canvas canvas,
+    Size size,
+    Paint p,
+    Color main,
+    Color accent,
+  ) {
     final path = Path()
       ..moveTo(size.width * 0.50, size.height * 0.15)
       ..lineTo(size.width * 0.77, size.height * 0.28)
@@ -6647,32 +6926,52 @@ class _NavIconPainter extends CustomPainter {
       ..lineTo(size.width * 0.36, size.height * 0.36)
       ..close();
     canvas.drawPath(inner, p);
-    _drawTinyStar(canvas, Offset(size.width * 0.50, size.height * 0.46),
-        size.shortestSide * 0.10, accent, p);
+    _drawTinyStar(
+      canvas,
+      Offset(size.width * 0.50, size.height * 0.46),
+      size.shortestSide * 0.10,
+      accent,
+      p,
+    );
   }
 
   void _drawChest(Canvas canvas, Size size, Paint p, Color main, Color accent) {
-    final body = Rect.fromLTWH(size.width * 0.18, size.height * 0.36,
-        size.width * 0.64, size.height * 0.38);
+    final body = Rect.fromLTWH(
+      size.width * 0.18,
+      size.height * 0.36,
+      size.width * 0.64,
+      size.height * 0.38,
+    );
     p.color = main;
     canvas.drawRRect(RRect.fromRectXY(body, 5, 5), p);
     p.color = accent;
     canvas.drawRect(
-        Rect.fromLTWH(body.left, body.top + body.height * 0.38, body.width,
-            body.height * 0.20),
-        p);
+      Rect.fromLTWH(
+        body.left,
+        body.top + body.height * 0.38,
+        body.width,
+        body.height * 0.20,
+      ),
+      p,
+    );
     p.color = accent;
     canvas.drawRect(
-        Rect.fromLTWH(body.left + body.width * 0.44, body.top,
-            body.width * 0.14, body.height),
-        p);
+      Rect.fromLTWH(
+        body.left + body.width * 0.44,
+        body.top,
+        body.width * 0.14,
+        body.height,
+      ),
+      p,
+    );
     p.color = const Color(0xFFFFB21C);
     canvas.drawRRect(
       RRect.fromRectXY(
         Rect.fromCenter(
-            center: Offset(size.width * 0.50, size.height * 0.56),
-            width: size.width * 0.20,
-            height: size.height * 0.18),
+          center: Offset(size.width * 0.50, size.height * 0.56),
+          width: size.width * 0.20,
+          height: size.height * 0.18,
+        ),
         3,
         3,
       ),
@@ -6717,13 +7016,19 @@ class _ModePatternPainter extends CustomPainter {
       ..color = Colors.white.withAlpha(dark ? 20 : 45);
     for (double x = -size.height; x < size.width + size.height; x += 22) {
       canvas.drawLine(
-          Offset(x, 0), Offset(x + size.height, size.height), paint);
+        Offset(x, 0),
+        Offset(x + size.height, size.height),
+        paint,
+      );
     }
     paint
       ..style = PaintingStyle.fill
       ..color = Colors.white.withAlpha(dark ? 18 : 45);
-    canvas.drawCircle(Offset(size.width * 0.82, size.height * 0.16),
-        size.width * 0.22, paint);
+    canvas.drawCircle(
+      Offset(size.width * 0.82, size.height * 0.16),
+      size.width * 0.22,
+      paint,
+    );
   }
 
   @override
