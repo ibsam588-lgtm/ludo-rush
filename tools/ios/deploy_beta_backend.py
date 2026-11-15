@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import time
 import tomllib
 import urllib.request
 
@@ -39,6 +40,7 @@ def main():
         'vars': {'APP_STORE_ENVIRONMENT': 'Sandbox', 'FORCE_LATEST_ANDROID_BUILD': 'false'},
         'durable_objects': original['durable_objects'], 'migrations': original['migrations'],
         'd1_databases': [{'binding': 'DB', 'database_name': name, 'database_id': database['uuid']}],
+        'services': [{'binding': 'VOICE_RELAY', 'service': original['name'], 'entrypoint': 'VoiceRelay'}],
         'queues': {'producers': [{'binding': 'BACKGROUND_QUEUE', 'queue': name}],
                    'consumers': [{'queue': name, 'max_batch_size': 10, 'max_batch_timeout': 30}]},
     }
@@ -46,14 +48,15 @@ def main():
     path.write_text(json.dumps(config, indent=2))
     command = ['npx', 'wrangler']
     subprocess.run([*command, 'd1', 'migrations', 'apply', name, '--remote', '--config', str(path)], check=True)
-    subprocess.run([*command, 'deploy', '--config', str(path)], check=True)
-    # Reuse the existing TURN credentials only when present in this repository;
-    # never print or copy them into source or the downloadable build artifact.
-    for secret in ['TURN_KEY_ID', 'TURN_KEY_API_TOKEN']:
-        value = os.environ.get(secret)
-        if value:
-            subprocess.run([*command, 'secret', 'put', secret, '--config', str(path)],
-                           input=value, text=True, check=True)
+    # The production backend deploy runs independently on main. Allow its named
+    # RPC entrypoint to become available without copying the production TURN key.
+    for attempt in range(4):
+        deployment = subprocess.run([*command, 'deploy', '--config', str(path)])
+        if deployment.returncode == 0:
+            break
+        if attempt == 3:
+            deployment.check_returncode()
+        time.sleep(15)
     subdomain = api('workers/subdomain')['subdomain']
     url = f'https://{name}.{subdomain}.workers.dev'
     with open(os.environ['GITHUB_OUTPUT'], 'a') as output:

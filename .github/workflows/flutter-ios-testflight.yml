@@ -100,8 +100,6 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          TURN_KEY_ID: ${{ secrets.TURN_KEY_ID }}
-          TURN_KEY_API_TOKEN: ${{ secrets.TURN_KEY_API_TOKEN }}
         run: python3 ../tools/ios/deploy_beta_backend.py
 
   testflight:
@@ -150,7 +148,7 @@ jobs:
             if [[ -z "${!name}" ]]; then echo "::error::Missing iOS ad configuration: $name"; exit 1; fi
           done
           flutter build ipa --release \
-            --build-name=1.0.0 --build-number="${GITHUB_RUN_NUMBER}.${GITHUB_RUN_ATTEMPT}" \
+            --build-name=1.0.0 --build-number="$((GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))" \
             --export-options-plist="$RUNNER_TEMP/ExportOptions.plist" \
             --dart-define=BACKEND_URL="$BACKEND_URL" \
             --dart-define=LEVELPLAY_PRODUCTION=true \
