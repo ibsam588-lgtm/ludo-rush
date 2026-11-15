@@ -76,6 +76,10 @@ void main() {
     debugPrint('IOS_STORE_STAGE captured home');
     await tester.tap(find.text('Snakes').first);
     await tester.pump(const Duration(seconds: 1));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(seconds: 2)),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
     await binding.takeScreenshot('02-snakes-boards');
     await show(const ShopScreen());
     await binding.takeScreenshot('03-shop');
@@ -177,6 +181,10 @@ void main() {
         );
         await tester.tap(product);
         await tester.pump(const Duration(milliseconds: 500));
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(seconds: 2)),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
         expect(find.byType(Dialog), findsOneWidget);
         expect(
           find.descendant(of: find.byType(Dialog), matching: product),
