@@ -100,6 +100,9 @@ environment documented in `tools/ios/app_store_api.py`. Native screenshots keep
 their dimensions and RGB pixels; only an entirely opaque alpha channel is
 removed in separate upload copies, as required by Apple's image specifications.
 The uploader never submits an App Store review or deletes existing placements.
+Product review images are reused by checksum because Apple renames processed
+files. Replacing a different product review image requires the explicit
+`--replace-purchase-reviews` option after visual review.
 
 App Store Connect requires a native App Preview file, rather than a YouTube URL.
 Use an edited 15–30 second gameplay clip at an Apple-supported device resolution
