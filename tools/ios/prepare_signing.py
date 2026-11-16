@@ -58,7 +58,7 @@ def main():
     assert not metadata.get('ProvisionedDevices'), 'Use an App Store Connect profile'
     assert metadata['ExpirationDate'].replace(tzinfo=timezone.utc) > datetime.now(timezone.utc)
     import hashlib
-    expected_certificate = '17267807ef56d70b32bf001316ca13220de3cd4bd4de2ef72aa87884a0df765f'
+    expected_certificate = '85f00acd827b39f9785e92da5c5e64f56d2c807526450fa07c5b24c0fe7199d0'
     assert any(hashlib.sha256(cert).hexdigest() == expected_certificate
                for cert in metadata['DeveloperCertificates']), 'Profile must use the existing shared certificate'
 
