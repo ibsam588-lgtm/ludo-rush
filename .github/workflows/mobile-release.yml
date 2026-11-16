@@ -1,0 +1,62 @@
+name: Mobile Release
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, reopened, synchronize, labeled, unlabeled, closed]
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Build and upload exactly one platform from main
+        type: choice
+        options: [ios, android]
+        required: true
+      production_backend:
+        description: Use the live backend for public iOS installs (Sandbox stays isolated)
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: mobile-selection-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event.action != 'closed' }}
+
+jobs:
+  select:
+    name: Select one release platform
+    runs-on: ubuntu-latest
+    outputs:
+      platform: ${{ steps.selection.outputs.platform }}
+      upload: ${{ steps.selection.outputs.upload }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Verify release routing
+        run: node --test .github/scripts/mobile-release.test.cjs
+      - uses: actions/github-script@v8
+        id: selection
+        with:
+          script: |
+            const select = require('./.github/scripts/mobile-release.cjs');
+            await select({ github, context, core });
+
+  ios:
+    name: iOS only
+    needs: select
+    if: needs.select.outputs.platform == 'ios'
+    uses: ./.github/workflows/flutter-ios-testflight.yml
+    with:
+      upload: ${{ needs.select.outputs.upload == 'true' }}
+      production_backend: ${{ github.event_name != 'workflow_dispatch' || inputs.production_backend }}
+    secrets: inherit
+
+  android:
+    name: Android only
+    needs: select
+    if: needs.select.outputs.platform == 'android'
+    uses: ./.github/workflows/flutter-android-internal.yml
+    with:
+      upload: ${{ needs.select.outputs.upload == 'true' }}
+    secrets: inherit

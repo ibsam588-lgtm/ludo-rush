@@ -4,7 +4,7 @@
     <string name="ludo_ui_00c011af5d7e" formatted="false">1,200 coins</string>
     <string name="ludo_ui_1df12c7cbe7f" formatted="false">2 Player</string>
     <string name="ludo_ui_6ab4812ee264" formatted="false">2 Player Ludo</string>
-    <string name="ludo_ui_569e69a151b7" formatted="false">2 Player Quick</string>
+    <string name="ludo_ui_358cdd34cfe3" formatted="false">2 Player Quick</string>
     <string name="ludo_ui_a66c7be7625c" formatted="false">2 WINS</string>
     <string name="ludo_ui_ccd1d166b3f7" formatted="false">3 Player Ludo</string>
     <string name="ludo_ui_6411de2d8eb6" formatted="false">3 WINS</string>
@@ -12,7 +12,7 @@
     <string name="ludo_ui_2302e50748ae" formatted="false">3p</string>
     <string name="ludo_ui_e19a67143181" formatted="false">4 Player</string>
     <string name="ludo_ui_a8029288de36" formatted="false">4 Player Ludo</string>
-    <string name="ludo_ui_55e501e56563" formatted="false">4 Player Quick</string>
+    <string name="ludo_ui_afa7ff145daf" formatted="false">4 Player Quick</string>
     <string name="ludo_ui_88b1cb04de50" formatted="false">4 WINS</string>
     <string name="ludo_ui_81a205dd77ec" formatted="false">4p</string>
     <string name="ludo_ui_9f4ce156b4a2" formatted="false">5 WINS</string>
@@ -20,7 +20,7 @@
     <string name="ludo_ui_67cf70802afe" formatted="false">7,500 coins</string>
     <string name="ludo_ui_6c18999cf5da" formatted="false">8 WINS</string>
     <string name="ludo_ui_b2b26974f392" formatted="false">A full celebration animation</string>
-    <string name="ludo_ui_27c6f2cc0669" formatted="false">A newer version of Ludo Cheer is required to keep matchmaking, rewards, and game rules in sync.</string>
+    <string name="ludo_ui_3eb1bd9d1699" formatted="false">A newer version of Ludo Cheer is required to keep matchmaking, rewards, and game rules in sync.</string>
     <string name="ludo_ui_013f4ac34d6f" formatted="false">A royal high-five reaction</string>
     <string name="ludo_ui_684cc316ad4c" formatted="false">A six brings a goti onto the board.</string>
     <string name="ludo_ui_fbb2cf43b43d" formatted="false">Accept requests before they join your friends circle.</string>
@@ -45,6 +45,9 @@
     <string name="ludo_ui_5722849f2ccb" formatted="false">Anguilla</string>
     <string name="ludo_ui_00f33fc530d3" formatted="false">Antarctica</string>
     <string name="ludo_ui_530670dca740" formatted="false">Antigua and Barbuda</string>
+    <string name="ludo_ui_c3e073423922" formatted="false">App Store</string>
+    <string name="ludo_ui_1d1ea482c5b8" formatted="false">App Store account proof is unavailable.</string>
+    <string name="ludo_ui_fcfd7dbe66bd" formatted="false">App Store account recovery is unavailable.</string>
     <string name="ludo_ui_354bf9892583" formatted="false">Argentina</string>
     <string name="ludo_ui_54e15dd1f9ec" formatted="false">Arjun</string>
     <string name="ludo_ui_5f4599daa341" formatted="false">Armenia</string>
@@ -96,6 +99,7 @@
     <string name="ludo_ui_4617585b8749" formatted="false">Burundi</string>
     <string name="ludo_ui_7ceca51fcafe" formatted="false">Buy</string>
     <string name="ludo_ui_9ce257aad3b6" formatted="false">CARNIVAL</string>
+    <string name="ludo_ui_7935be117c36" formatted="false">CHEER</string>
     <string name="ludo_ui_28f176c17b3d" formatted="false">CLAIMED</string>
     <string name="ludo_ui_7f025ec3f529" formatted="false">CLASSIC TABLE</string>
     <string name="ludo_ui_6536e0450199" formatted="false">COINS</string>
@@ -120,6 +124,8 @@
     <string name="ludo_ui_3ddb9e7bf12c" formatted="false">Chat unlocks for players age 13 and older.</string>
     <string name="ludo_ui_e6a1ed95a00e" formatted="false">Check Again</string>
     <string name="ludo_ui_8141c3c5aa30" formatted="false">Checking Update</string>
+    <string name="ludo_ui_91d17a47cde2" formatted="false">Checking for the latest available update.</string>
+    <string name="ludo_ui_8c95fa0d2f77" formatted="false">Cheer</string>
     <string name="ludo_ui_6ae9a17853b9" formatted="false">Chest Locked</string>
     <string name="ludo_ui_349507e41dd8" formatted="false">Chile</string>
     <string name="ludo_ui_d2eaf2aa1512" formatted="false">China</string>
@@ -222,7 +228,7 @@
     <string name="ludo_ui_2f8f37e09f76" formatted="false">Ethan</string>
     <string name="ludo_ui_3d91f7631ba8" formatted="false">Ethiopia</string>
     <string name="ludo_ui_f83b6fe3aebf" formatted="false">Exit</string>
-    <string name="ludo_ui_8f7a3d32ed47" formatted="false">Exit Ludo Cheer?</string>
+    <string name="ludo_ui_1f2c2beb9b1a" formatted="false">Exit Ludo Cheer?</string>
     <string name="ludo_ui_c61a7c7f39fc" formatted="false">FAIR</string>
     <string name="ludo_ui_4a9768fab062" formatted="false">FREE</string>
     <string name="ludo_ui_11499959510c" formatted="false">Falkland Islands</string>
@@ -230,6 +236,7 @@
     <string name="ludo_ui_bbb7ef7f2ec9" formatted="false">Fiji</string>
     <string name="ludo_ui_6cf4b5b94b33" formatted="false">Find my token</string>
     <string name="ludo_ui_1011eeb27ed5" formatted="false">Find my token on the board</string>
+    <string name="ludo_ui_ad7756220fdb" formatted="false">Finish the current match before restoring another purchasing account.</string>
     <string name="ludo_ui_c909b138eba8" formatted="false">Finland</string>
     <string name="ludo_ui_05f5561dbd79" formatted="false">Firework Castle</string>
     <string name="ludo_ui_c0820b5b597b" formatted="false">Follow your token</string>
@@ -265,7 +272,6 @@
     <string name="ludo_ui_8ac9a5090057" formatted="false">Gold Hoodie</string>
     <string name="ludo_ui_f08bdc8d0c0c" formatted="false">Good game!</string>
     <string name="ludo_ui_8e30d6aac813" formatted="false">Good luck!</string>
-    <string name="ludo_ui_a600154da4fb" formatted="false">Google Play could not verify this purchase.</string>
     <string name="ludo_ui_0018b3443f7d" formatted="false">Got it — start match</string>
     <string name="ludo_ui_1a9360a0e998" formatted="false">Great capture!</string>
     <string name="ludo_ui_4902a456caa9" formatted="false">Greece</string>
@@ -303,6 +309,7 @@
     <string name="ludo_ui_bbd88bff92de" formatted="false">Incoming request</string>
     <string name="ludo_ui_967ce367d89d" formatted="false">India</string>
     <string name="ludo_ui_35536a41b209" formatted="false">Indonesia</string>
+    <string name="ludo_ui_3c633afc2499" formatted="false">Invalid purchasing account.</string>
     <string name="ludo_ui_b136609f0684" formatted="false">Invite</string>
     <string name="ludo_ui_7ae0933a3884" formatted="false">Invite Friends</string>
     <string name="ludo_ui_e91cf27d1adf" formatted="false">Invite code</string>
@@ -367,8 +374,8 @@
     <string name="ludo_ui_cfb6dd4663ed" formatted="false">Lucky me!</string>
     <string name="ludo_ui_5fcfb0864ab6" formatted="false">Lucky six!</string>
     <string name="ludo_ui_7b8f959b6fb7" formatted="false">Ludo</string>
+    <string name="ludo_ui_edd190e9dc5e" formatted="false">Ludo Cheer diagnostics</string>
     <string name="ludo_ui_21796852cf71" formatted="false">Ludo Player</string>
-    <string name="ludo_ui_6fc6c6c60b28" formatted="false">Ludo Cheer diagnostics</string>
     <string name="ludo_ui_b50d45ff9748" formatted="false">Ludo rules</string>
     <string name="ludo_ui_5076721c4060" formatted="false">Luxembourg</string>
     <string name="ludo_ui_424d6d3ea59e" formatted="false">MATCH REWARDS</string>
@@ -451,7 +458,6 @@
     <string name="ludo_ui_5fc7fcfa9e7c" formatted="false">One claim per calendar day</string>
     <string name="ludo_ui_1ad04511fc3e" formatted="false">One more game?</string>
     <string name="ludo_ui_afdbb04e2cde" formatted="false">Online Match</string>
-    <string name="ludo_ui_b4f15cd85e80" formatted="false">Quick online turns last 15 seconds; the board and winning rules are the same.</string>
     <string name="ludo_ui_6f08ab00eb61" formatted="false">Online rivals and quick invites</string>
     <string name="ludo_ui_88b188229a3c" formatted="false">Online search switched to local players</string>
     <string name="ludo_ui_e7817053bafb" formatted="false">Only players can join table voice</string>
@@ -475,9 +481,9 @@
     <string name="ludo_ui_f83d166a5111" formatted="false">Pick a friend, choose a gift, then send it.</string>
     <string name="ludo_ui_379dc279e5e7" formatted="false">Pitcairn</string>
     <string name="ludo_ui_65a69337ad2f" formatted="false">Play Again</string>
-    <string name="ludo_ui_90d87c649dba" formatted="false">Play Games leaders</string>
-    <string name="ludo_ui_a33b801ed44c" formatted="false">Play Ludo Cheer globally with friends and matched players</string>
+    <string name="ludo_ui_30a1fdc30e96" formatted="false">Play Ludo Cheer globally with friends and matched players</string>
     <string name="ludo_ui_218a7aae123e" formatted="false">Play Offline</string>
+    <string name="ludo_ui_f342ca3c5ccc" formatted="false">Play Store</string>
     <string name="ludo_ui_a1bc5e5a8263" formatted="false">Play This Board</string>
     <string name="ludo_ui_1c003b19b650" formatted="false">Play as guest or sign up</string>
     <string name="ludo_ui_14109fb22c67" formatted="false">Play now</string>
@@ -496,14 +502,15 @@
     <string name="ludo_ui_237dfa0a21c8" formatted="false">Private</string>
     <string name="ludo_ui_cb19eb7a6c27" formatted="false">Private room created.</string>
     <string name="ludo_ui_a3477f4ea5e8" formatted="false">Private room found, but socket was missing.</string>
+    <string name="ludo_ui_df70fc7991d3" formatted="false">Production</string>
     <string name="ludo_ui_1b90271d66cf" formatted="false">Progress</string>
     <string name="ludo_ui_fe23c52dc244" formatted="false">Puerto Rico</string>
     <string name="ludo_ui_83ef3e6cee83" formatted="false">Qatar</string>
+    <string name="ludo_ui_24249b670125" formatted="false">Quick online turns last 15 seconds; the board and winning rules are the same.</string>
     <string name="ludo_ui_6f675f9eb4f7" formatted="false">Quit Match?</string>
     <string name="ludo_ui_647bf4ae5c62" formatted="false">RARE</string>
     <string name="ludo_ui_1042d6afbaa2" formatted="false">RATING</string>
     <string name="ludo_ui_a89e6448fed9" formatted="false">ROYAL COURT</string>
-    <string name="ludo_ui_4522c6c193dd" formatted="false">CHEER</string>
     <string name="ludo_ui_9306fa43de14" formatted="false">Race you home!</string>
     <string name="ludo_ui_7e7e302f85da" formatted="false">Rare chest animation</string>
     <string name="ludo_ui_6c21f53a0e2e" formatted="false">Rate App</string>
@@ -546,7 +553,6 @@
     <string name="ludo_ui_7031b62abf9f" formatted="false">Royal Vault</string>
     <string name="ludo_ui_b217e98c3bf7" formatted="false">Ruby</string>
     <string name="ludo_ui_92bd30faa901" formatted="false">Ruby Dice</string>
-    <string name="ludo_ui_cc4a564197f4" formatted="false">Cheer</string>
     <string name="ludo_ui_6754fe3cd831" formatted="false">Russia</string>
     <string name="ludo_ui_7266a1da7e3a" formatted="false">Rwanda</string>
     <string name="ludo_ui_f2e1c7fad591" formatted="false">SHOP</string>
@@ -561,12 +567,12 @@
     <string name="ludo_ui_3fa9b2dd85d2" formatted="false">Saint Vincent and the Grenadines</string>
     <string name="ludo_ui_f5680604ea9e" formatted="false">Samoa</string>
     <string name="ludo_ui_87fd3befcce6" formatted="false">San Marino</string>
+    <string name="ludo_ui_0a771c36be05" formatted="false">Sandbox</string>
     <string name="ludo_ui_6ddcb9e4747f" formatted="false">Sao Tome and Principe</string>
     <string name="ludo_ui_5d569dfc1300" formatted="false">Sara</string>
     <string name="ludo_ui_6f49c31192f5" formatted="false">Saudi Arabia</string>
     <string name="ludo_ui_efc007a393f6" formatted="false">Save</string>
     <string name="ludo_ui_ef42723dcd47" formatted="false">Save your country, avatar, and age, or jump straight into a match.</string>
-    <string name="ludo_ui_88ab74c9a1de" formatted="false">Secure checkout and purchase restore are handled by Google Play.</string>
     <string name="ludo_ui_61c8443efd1d" formatted="false">Select Opponents</string>
     <string name="ludo_ui_101ac5e932c0" formatted="false">Select a friend first.</string>
     <string name="ludo_ui_9a976fc228b6" formatted="false">Selected</string>
@@ -632,6 +638,7 @@
     <string name="ludo_ui_7e380be8dc28" formatted="false">Tanzania</string>
     <string name="ludo_ui_9a0ec1597684" formatted="false">Tap to Roll</string>
     <string name="ludo_ui_ed053ef265d4" formatted="false">Teal Spark</string>
+    <string name="ludo_ui_a37056928f5d" formatted="false">TestFlight</string>
     <string name="ludo_ui_a2b7c120c93a" formatted="false">Thailand</string>
     <string name="ludo_ui_1da20795f84b" formatted="false">Thanks!</string>
     <string name="ludo_ui_4a4269a35ee8" formatted="false">That piece cannot move.</string>
@@ -667,7 +674,10 @@
     <string name="ludo_ui_b3da70258296" formatted="false">Unlocked</string>
     <string name="ludo_ui_da15692ca2d5" formatted="false">Unmute microphone</string>
     <string name="ludo_ui_db4e4ef96af7" formatted="false">Up we go!</string>
+    <string name="ludo_ui_bab27c486a9d" formatted="false">Update Ludo Cheer from the App Store to keep playing.</string>
     <string name="ludo_ui_e875d3a416e9" formatted="false">Update Required</string>
+    <string name="ludo_ui_babef3aeed3b" formatted="false">Update in TestFlight</string>
+    <string name="ludo_ui_1f3b683a379e" formatted="false">Update on App Store</string>
     <string name="ludo_ui_d0ec78c12d0a" formatted="false">Update on Play Store</string>
     <string name="ludo_ui_eb634e962b0d" formatted="false">Upload avatar</string>
     <string name="ludo_ui_66b98924b384" formatted="false">Uruguay</string>
@@ -677,7 +687,6 @@
     <string name="ludo_ui_d16ad2dcc6af" formatted="false">Vanuatu</string>
     <string name="ludo_ui_9d4ac43d5e24" formatted="false">Venezuela</string>
     <string name="ludo_ui_f60180e1681f" formatted="false">Verified payouts and unlocks</string>
-    <string name="ludo_ui_194bd4f9c7be" formatted="false">Verifying that you are on the latest Play Store build.</string>
     <string name="ludo_ui_e71f1539a41b" formatted="false">Victory</string>
     <string name="ludo_ui_cc8374cfe9ab" formatted="false">Victory Parade</string>
     <string name="ludo_ui_2f4699b3561a" formatted="false">Victory Spark</string>
@@ -739,7 +748,7 @@
         <item>ludo_ui_00c011af5d7e</item>
         <item>ludo_ui_1df12c7cbe7f</item>
         <item>ludo_ui_6ab4812ee264</item>
-        <item>ludo_ui_569e69a151b7</item>
+        <item>ludo_ui_358cdd34cfe3</item>
         <item>ludo_ui_a66c7be7625c</item>
         <item>ludo_ui_ccd1d166b3f7</item>
         <item>ludo_ui_6411de2d8eb6</item>
@@ -747,7 +756,7 @@
         <item>ludo_ui_2302e50748ae</item>
         <item>ludo_ui_e19a67143181</item>
         <item>ludo_ui_a8029288de36</item>
-        <item>ludo_ui_55e501e56563</item>
+        <item>ludo_ui_afa7ff145daf</item>
         <item>ludo_ui_88b1cb04de50</item>
         <item>ludo_ui_81a205dd77ec</item>
         <item>ludo_ui_9f4ce156b4a2</item>
@@ -755,7 +764,7 @@
         <item>ludo_ui_67cf70802afe</item>
         <item>ludo_ui_6c18999cf5da</item>
         <item>ludo_ui_b2b26974f392</item>
-        <item>ludo_ui_27c6f2cc0669</item>
+        <item>ludo_ui_3eb1bd9d1699</item>
         <item>ludo_ui_013f4ac34d6f</item>
         <item>ludo_ui_684cc316ad4c</item>
         <item>ludo_ui_fbb2cf43b43d</item>
@@ -780,6 +789,9 @@
         <item>ludo_ui_5722849f2ccb</item>
         <item>ludo_ui_00f33fc530d3</item>
         <item>ludo_ui_530670dca740</item>
+        <item>ludo_ui_c3e073423922</item>
+        <item>ludo_ui_1d1ea482c5b8</item>
+        <item>ludo_ui_fcfd7dbe66bd</item>
         <item>ludo_ui_354bf9892583</item>
         <item>ludo_ui_54e15dd1f9ec</item>
         <item>ludo_ui_5f4599daa341</item>
@@ -831,6 +843,7 @@
         <item>ludo_ui_4617585b8749</item>
         <item>ludo_ui_7ceca51fcafe</item>
         <item>ludo_ui_9ce257aad3b6</item>
+        <item>ludo_ui_7935be117c36</item>
         <item>ludo_ui_28f176c17b3d</item>
         <item>ludo_ui_7f025ec3f529</item>
         <item>ludo_ui_6536e0450199</item>
@@ -855,6 +868,8 @@
         <item>ludo_ui_3ddb9e7bf12c</item>
         <item>ludo_ui_e6a1ed95a00e</item>
         <item>ludo_ui_8141c3c5aa30</item>
+        <item>ludo_ui_91d17a47cde2</item>
+        <item>ludo_ui_8c95fa0d2f77</item>
         <item>ludo_ui_6ae9a17853b9</item>
         <item>ludo_ui_349507e41dd8</item>
         <item>ludo_ui_d2eaf2aa1512</item>
@@ -957,7 +972,7 @@
         <item>ludo_ui_2f8f37e09f76</item>
         <item>ludo_ui_3d91f7631ba8</item>
         <item>ludo_ui_f83b6fe3aebf</item>
-        <item>ludo_ui_8f7a3d32ed47</item>
+        <item>ludo_ui_1f2c2beb9b1a</item>
         <item>ludo_ui_c61a7c7f39fc</item>
         <item>ludo_ui_4a9768fab062</item>
         <item>ludo_ui_11499959510c</item>
@@ -965,6 +980,7 @@
         <item>ludo_ui_bbb7ef7f2ec9</item>
         <item>ludo_ui_6cf4b5b94b33</item>
         <item>ludo_ui_1011eeb27ed5</item>
+        <item>ludo_ui_ad7756220fdb</item>
         <item>ludo_ui_c909b138eba8</item>
         <item>ludo_ui_05f5561dbd79</item>
         <item>ludo_ui_c0820b5b597b</item>
@@ -1000,7 +1016,6 @@
         <item>ludo_ui_8ac9a5090057</item>
         <item>ludo_ui_f08bdc8d0c0c</item>
         <item>ludo_ui_8e30d6aac813</item>
-        <item>ludo_ui_a600154da4fb</item>
         <item>ludo_ui_0018b3443f7d</item>
         <item>ludo_ui_1a9360a0e998</item>
         <item>ludo_ui_4902a456caa9</item>
@@ -1038,6 +1053,7 @@
         <item>ludo_ui_bbd88bff92de</item>
         <item>ludo_ui_967ce367d89d</item>
         <item>ludo_ui_35536a41b209</item>
+        <item>ludo_ui_3c633afc2499</item>
         <item>ludo_ui_b136609f0684</item>
         <item>ludo_ui_7ae0933a3884</item>
         <item>ludo_ui_e91cf27d1adf</item>
@@ -1102,8 +1118,8 @@
         <item>ludo_ui_cfb6dd4663ed</item>
         <item>ludo_ui_5fcfb0864ab6</item>
         <item>ludo_ui_7b8f959b6fb7</item>
+        <item>ludo_ui_edd190e9dc5e</item>
         <item>ludo_ui_21796852cf71</item>
-        <item>ludo_ui_6fc6c6c60b28</item>
         <item>ludo_ui_b50d45ff9748</item>
         <item>ludo_ui_5076721c4060</item>
         <item>ludo_ui_424d6d3ea59e</item>
@@ -1186,7 +1202,6 @@
         <item>ludo_ui_5fc7fcfa9e7c</item>
         <item>ludo_ui_1ad04511fc3e</item>
         <item>ludo_ui_afdbb04e2cde</item>
-        <item>ludo_ui_b4f15cd85e80</item>
         <item>ludo_ui_6f08ab00eb61</item>
         <item>ludo_ui_88b188229a3c</item>
         <item>ludo_ui_e7817053bafb</item>
@@ -1210,9 +1225,9 @@
         <item>ludo_ui_f83d166a5111</item>
         <item>ludo_ui_379dc279e5e7</item>
         <item>ludo_ui_65a69337ad2f</item>
-        <item>ludo_ui_90d87c649dba</item>
-        <item>ludo_ui_a33b801ed44c</item>
+        <item>ludo_ui_30a1fdc30e96</item>
         <item>ludo_ui_218a7aae123e</item>
+        <item>ludo_ui_f342ca3c5ccc</item>
         <item>ludo_ui_a1bc5e5a8263</item>
         <item>ludo_ui_1c003b19b650</item>
         <item>ludo_ui_14109fb22c67</item>
@@ -1231,14 +1246,15 @@
         <item>ludo_ui_237dfa0a21c8</item>
         <item>ludo_ui_cb19eb7a6c27</item>
         <item>ludo_ui_a3477f4ea5e8</item>
+        <item>ludo_ui_df70fc7991d3</item>
         <item>ludo_ui_1b90271d66cf</item>
         <item>ludo_ui_fe23c52dc244</item>
         <item>ludo_ui_83ef3e6cee83</item>
+        <item>ludo_ui_24249b670125</item>
         <item>ludo_ui_6f675f9eb4f7</item>
         <item>ludo_ui_647bf4ae5c62</item>
         <item>ludo_ui_1042d6afbaa2</item>
         <item>ludo_ui_a89e6448fed9</item>
-        <item>ludo_ui_4522c6c193dd</item>
         <item>ludo_ui_9306fa43de14</item>
         <item>ludo_ui_7e7e302f85da</item>
         <item>ludo_ui_6c21f53a0e2e</item>
@@ -1281,7 +1297,6 @@
         <item>ludo_ui_7031b62abf9f</item>
         <item>ludo_ui_b217e98c3bf7</item>
         <item>ludo_ui_92bd30faa901</item>
-        <item>ludo_ui_cc4a564197f4</item>
         <item>ludo_ui_6754fe3cd831</item>
         <item>ludo_ui_7266a1da7e3a</item>
         <item>ludo_ui_f2e1c7fad591</item>
@@ -1296,12 +1311,12 @@
         <item>ludo_ui_3fa9b2dd85d2</item>
         <item>ludo_ui_f5680604ea9e</item>
         <item>ludo_ui_87fd3befcce6</item>
+        <item>ludo_ui_0a771c36be05</item>
         <item>ludo_ui_6ddcb9e4747f</item>
         <item>ludo_ui_5d569dfc1300</item>
         <item>ludo_ui_6f49c31192f5</item>
         <item>ludo_ui_efc007a393f6</item>
         <item>ludo_ui_ef42723dcd47</item>
-        <item>ludo_ui_88ab74c9a1de</item>
         <item>ludo_ui_61c8443efd1d</item>
         <item>ludo_ui_101ac5e932c0</item>
         <item>ludo_ui_9a976fc228b6</item>
@@ -1367,6 +1382,7 @@
         <item>ludo_ui_7e380be8dc28</item>
         <item>ludo_ui_9a0ec1597684</item>
         <item>ludo_ui_ed053ef265d4</item>
+        <item>ludo_ui_a37056928f5d</item>
         <item>ludo_ui_a2b7c120c93a</item>
         <item>ludo_ui_1da20795f84b</item>
         <item>ludo_ui_4a4269a35ee8</item>
@@ -1402,7 +1418,10 @@
         <item>ludo_ui_b3da70258296</item>
         <item>ludo_ui_da15692ca2d5</item>
         <item>ludo_ui_db4e4ef96af7</item>
+        <item>ludo_ui_bab27c486a9d</item>
         <item>ludo_ui_e875d3a416e9</item>
+        <item>ludo_ui_babef3aeed3b</item>
+        <item>ludo_ui_1f3b683a379e</item>
         <item>ludo_ui_d0ec78c12d0a</item>
         <item>ludo_ui_eb634e962b0d</item>
         <item>ludo_ui_66b98924b384</item>
@@ -1412,7 +1431,6 @@
         <item>ludo_ui_d16ad2dcc6af</item>
         <item>ludo_ui_9d4ac43d5e24</item>
         <item>ludo_ui_f60180e1681f</item>
-        <item>ludo_ui_194bd4f9c7be</item>
         <item>ludo_ui_e71f1539a41b</item>
         <item>ludo_ui_cc8374cfe9ab</item>
         <item>ludo_ui_2f4699b3561a</item>
@@ -1475,7 +1493,7 @@
         <item>@string/ludo_ui_00c011af5d7e</item>
         <item>@string/ludo_ui_1df12c7cbe7f</item>
         <item>@string/ludo_ui_6ab4812ee264</item>
-        <item>@string/ludo_ui_569e69a151b7</item>
+        <item>@string/ludo_ui_358cdd34cfe3</item>
         <item>@string/ludo_ui_a66c7be7625c</item>
         <item>@string/ludo_ui_ccd1d166b3f7</item>
         <item>@string/ludo_ui_6411de2d8eb6</item>
@@ -1483,7 +1501,7 @@
         <item>@string/ludo_ui_2302e50748ae</item>
         <item>@string/ludo_ui_e19a67143181</item>
         <item>@string/ludo_ui_a8029288de36</item>
-        <item>@string/ludo_ui_55e501e56563</item>
+        <item>@string/ludo_ui_afa7ff145daf</item>
         <item>@string/ludo_ui_88b1cb04de50</item>
         <item>@string/ludo_ui_81a205dd77ec</item>
         <item>@string/ludo_ui_9f4ce156b4a2</item>
@@ -1491,7 +1509,7 @@
         <item>@string/ludo_ui_67cf70802afe</item>
         <item>@string/ludo_ui_6c18999cf5da</item>
         <item>@string/ludo_ui_b2b26974f392</item>
-        <item>@string/ludo_ui_27c6f2cc0669</item>
+        <item>@string/ludo_ui_3eb1bd9d1699</item>
         <item>@string/ludo_ui_013f4ac34d6f</item>
         <item>@string/ludo_ui_684cc316ad4c</item>
         <item>@string/ludo_ui_fbb2cf43b43d</item>
@@ -1516,6 +1534,9 @@
         <item>@string/ludo_ui_5722849f2ccb</item>
         <item>@string/ludo_ui_00f33fc530d3</item>
         <item>@string/ludo_ui_530670dca740</item>
+        <item>@string/ludo_ui_c3e073423922</item>
+        <item>@string/ludo_ui_1d1ea482c5b8</item>
+        <item>@string/ludo_ui_fcfd7dbe66bd</item>
         <item>@string/ludo_ui_354bf9892583</item>
         <item>@string/ludo_ui_54e15dd1f9ec</item>
         <item>@string/ludo_ui_5f4599daa341</item>
@@ -1567,6 +1588,7 @@
         <item>@string/ludo_ui_4617585b8749</item>
         <item>@string/ludo_ui_7ceca51fcafe</item>
         <item>@string/ludo_ui_9ce257aad3b6</item>
+        <item>@string/ludo_ui_7935be117c36</item>
         <item>@string/ludo_ui_28f176c17b3d</item>
         <item>@string/ludo_ui_7f025ec3f529</item>
         <item>@string/ludo_ui_6536e0450199</item>
@@ -1591,6 +1613,8 @@
         <item>@string/ludo_ui_3ddb9e7bf12c</item>
         <item>@string/ludo_ui_e6a1ed95a00e</item>
         <item>@string/ludo_ui_8141c3c5aa30</item>
+        <item>@string/ludo_ui_91d17a47cde2</item>
+        <item>@string/ludo_ui_8c95fa0d2f77</item>
         <item>@string/ludo_ui_6ae9a17853b9</item>
         <item>@string/ludo_ui_349507e41dd8</item>
         <item>@string/ludo_ui_d2eaf2aa1512</item>
@@ -1693,7 +1717,7 @@
         <item>@string/ludo_ui_2f8f37e09f76</item>
         <item>@string/ludo_ui_3d91f7631ba8</item>
         <item>@string/ludo_ui_f83b6fe3aebf</item>
-        <item>@string/ludo_ui_8f7a3d32ed47</item>
+        <item>@string/ludo_ui_1f2c2beb9b1a</item>
         <item>@string/ludo_ui_c61a7c7f39fc</item>
         <item>@string/ludo_ui_4a9768fab062</item>
         <item>@string/ludo_ui_11499959510c</item>
@@ -1701,6 +1725,7 @@
         <item>@string/ludo_ui_bbb7ef7f2ec9</item>
         <item>@string/ludo_ui_6cf4b5b94b33</item>
         <item>@string/ludo_ui_1011eeb27ed5</item>
+        <item>@string/ludo_ui_ad7756220fdb</item>
         <item>@string/ludo_ui_c909b138eba8</item>
         <item>@string/ludo_ui_05f5561dbd79</item>
         <item>@string/ludo_ui_c0820b5b597b</item>
@@ -1736,7 +1761,6 @@
         <item>@string/ludo_ui_8ac9a5090057</item>
         <item>@string/ludo_ui_f08bdc8d0c0c</item>
         <item>@string/ludo_ui_8e30d6aac813</item>
-        <item>@string/ludo_ui_a600154da4fb</item>
         <item>@string/ludo_ui_0018b3443f7d</item>
         <item>@string/ludo_ui_1a9360a0e998</item>
         <item>@string/ludo_ui_4902a456caa9</item>
@@ -1774,6 +1798,7 @@
         <item>@string/ludo_ui_bbd88bff92de</item>
         <item>@string/ludo_ui_967ce367d89d</item>
         <item>@string/ludo_ui_35536a41b209</item>
+        <item>@string/ludo_ui_3c633afc2499</item>
         <item>@string/ludo_ui_b136609f0684</item>
         <item>@string/ludo_ui_7ae0933a3884</item>
         <item>@string/ludo_ui_e91cf27d1adf</item>
@@ -1838,8 +1863,8 @@
         <item>@string/ludo_ui_cfb6dd4663ed</item>
         <item>@string/ludo_ui_5fcfb0864ab6</item>
         <item>@string/ludo_ui_7b8f959b6fb7</item>
+        <item>@string/ludo_ui_edd190e9dc5e</item>
         <item>@string/ludo_ui_21796852cf71</item>
-        <item>@string/ludo_ui_6fc6c6c60b28</item>
         <item>@string/ludo_ui_b50d45ff9748</item>
         <item>@string/ludo_ui_5076721c4060</item>
         <item>@string/ludo_ui_424d6d3ea59e</item>
@@ -1922,7 +1947,6 @@
         <item>@string/ludo_ui_5fc7fcfa9e7c</item>
         <item>@string/ludo_ui_1ad04511fc3e</item>
         <item>@string/ludo_ui_afdbb04e2cde</item>
-        <item>@string/ludo_ui_b4f15cd85e80</item>
         <item>@string/ludo_ui_6f08ab00eb61</item>
         <item>@string/ludo_ui_88b188229a3c</item>
         <item>@string/ludo_ui_e7817053bafb</item>
@@ -1946,9 +1970,9 @@
         <item>@string/ludo_ui_f83d166a5111</item>
         <item>@string/ludo_ui_379dc279e5e7</item>
         <item>@string/ludo_ui_65a69337ad2f</item>
-        <item>@string/ludo_ui_90d87c649dba</item>
-        <item>@string/ludo_ui_a33b801ed44c</item>
+        <item>@string/ludo_ui_30a1fdc30e96</item>
         <item>@string/ludo_ui_218a7aae123e</item>
+        <item>@string/ludo_ui_f342ca3c5ccc</item>
         <item>@string/ludo_ui_a1bc5e5a8263</item>
         <item>@string/ludo_ui_1c003b19b650</item>
         <item>@string/ludo_ui_14109fb22c67</item>
@@ -1967,14 +1991,15 @@
         <item>@string/ludo_ui_237dfa0a21c8</item>
         <item>@string/ludo_ui_cb19eb7a6c27</item>
         <item>@string/ludo_ui_a3477f4ea5e8</item>
+        <item>@string/ludo_ui_df70fc7991d3</item>
         <item>@string/ludo_ui_1b90271d66cf</item>
         <item>@string/ludo_ui_fe23c52dc244</item>
         <item>@string/ludo_ui_83ef3e6cee83</item>
+        <item>@string/ludo_ui_24249b670125</item>
         <item>@string/ludo_ui_6f675f9eb4f7</item>
         <item>@string/ludo_ui_647bf4ae5c62</item>
         <item>@string/ludo_ui_1042d6afbaa2</item>
         <item>@string/ludo_ui_a89e6448fed9</item>
-        <item>@string/ludo_ui_4522c6c193dd</item>
         <item>@string/ludo_ui_9306fa43de14</item>
         <item>@string/ludo_ui_7e7e302f85da</item>
         <item>@string/ludo_ui_6c21f53a0e2e</item>
@@ -2017,7 +2042,6 @@
         <item>@string/ludo_ui_7031b62abf9f</item>
         <item>@string/ludo_ui_b217e98c3bf7</item>
         <item>@string/ludo_ui_92bd30faa901</item>
-        <item>@string/ludo_ui_cc4a564197f4</item>
         <item>@string/ludo_ui_6754fe3cd831</item>
         <item>@string/ludo_ui_7266a1da7e3a</item>
         <item>@string/ludo_ui_f2e1c7fad591</item>
@@ -2032,12 +2056,12 @@
         <item>@string/ludo_ui_3fa9b2dd85d2</item>
         <item>@string/ludo_ui_f5680604ea9e</item>
         <item>@string/ludo_ui_87fd3befcce6</item>
+        <item>@string/ludo_ui_0a771c36be05</item>
         <item>@string/ludo_ui_6ddcb9e4747f</item>
         <item>@string/ludo_ui_5d569dfc1300</item>
         <item>@string/ludo_ui_6f49c31192f5</item>
         <item>@string/ludo_ui_efc007a393f6</item>
         <item>@string/ludo_ui_ef42723dcd47</item>
-        <item>@string/ludo_ui_88ab74c9a1de</item>
         <item>@string/ludo_ui_61c8443efd1d</item>
         <item>@string/ludo_ui_101ac5e932c0</item>
         <item>@string/ludo_ui_9a976fc228b6</item>
@@ -2103,6 +2127,7 @@
         <item>@string/ludo_ui_7e380be8dc28</item>
         <item>@string/ludo_ui_9a0ec1597684</item>
         <item>@string/ludo_ui_ed053ef265d4</item>
+        <item>@string/ludo_ui_a37056928f5d</item>
         <item>@string/ludo_ui_a2b7c120c93a</item>
         <item>@string/ludo_ui_1da20795f84b</item>
         <item>@string/ludo_ui_4a4269a35ee8</item>
@@ -2138,7 +2163,10 @@
         <item>@string/ludo_ui_b3da70258296</item>
         <item>@string/ludo_ui_da15692ca2d5</item>
         <item>@string/ludo_ui_db4e4ef96af7</item>
+        <item>@string/ludo_ui_bab27c486a9d</item>
         <item>@string/ludo_ui_e875d3a416e9</item>
+        <item>@string/ludo_ui_babef3aeed3b</item>
+        <item>@string/ludo_ui_1f3b683a379e</item>
         <item>@string/ludo_ui_d0ec78c12d0a</item>
         <item>@string/ludo_ui_eb634e962b0d</item>
         <item>@string/ludo_ui_66b98924b384</item>
@@ -2148,7 +2176,6 @@
         <item>@string/ludo_ui_d16ad2dcc6af</item>
         <item>@string/ludo_ui_9d4ac43d5e24</item>
         <item>@string/ludo_ui_f60180e1681f</item>
-        <item>@string/ludo_ui_194bd4f9c7be</item>
         <item>@string/ludo_ui_e71f1539a41b</item>
         <item>@string/ludo_ui_cc8374cfe9ab</item>
         <item>@string/ludo_ui_2f4699b3561a</item>

@@ -1,6 +1,26 @@
 default_platform(:ios)
 
 platform :ios do
+  desc 'Choose a build number above the processed Apple builds, independent of workflow counters'
+  lane :next_build_number do
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch('ASC_KEY_ID'),
+      issuer_id: ENV.fetch('ASC_ISSUER_ID'),
+      key_content: ENV.fetch('ASC_KEY_P8_BASE64'),
+      is_key_content_base64: true,
+      in_house: false
+    )
+    latest = latest_testflight_build_number(
+      api_key: api_key,
+      app_identifier: 'com.corsairlabs.ludocheer',
+      version: ENV.fetch('IOS_VERSION_NAME'),
+      initial_build_number: 1901
+    )
+    number = [latest.to_i, 1901].max + 1
+    File.open(ENV.fetch('GITHUB_ENV'), 'a') { |file| file.puts("IOS_BUILD_NUMBER=#{number}") }
+    UI.message("Selected iOS build #{number}")
+  end
+
   desc 'Upload the signed Ludo Cheer build to TestFlight without submitting an App Store release'
   lane :beta do
     api_key = app_store_connect_api_key(

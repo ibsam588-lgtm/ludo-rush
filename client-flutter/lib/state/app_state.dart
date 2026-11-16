@@ -11,6 +11,7 @@ import '../models/game_snapshot.dart';
 import '../models/match_rewards.dart';
 import '../models/match_history_entry.dart';
 import '../services/app_platform_service.dart';
+import '../services/app_store_release_service.dart';
 import '../services/prefs_service.dart';
 import '../services/play_games_service.dart';
 import '../services/review_prompt_policy.dart';
@@ -293,6 +294,12 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
   String forceUpdateMessage =
       'A newer version of Ludo Cheer is required to keep matchmaking, rewards, and game rules in sync.';
   String forceUpdateUrl = AppPlatformService.storeListing;
+  bool forceUpdateByStoreVersion = false;
+  String get forceUpdateStoreName => AppPlatformService.isIOS
+      ? (Uri.tryParse(forceUpdateUrl)?.path.contains('/testflight/') == true
+          ? 'TestFlight'
+          : 'App Store')
+      : 'Play Store';
   static const Duration _matchmakingPollInterval = Duration(milliseconds: 800);
   static const int _ludoMatchmakingPollAttempts = 10;
   static const int _snakesMatchmakingPollAttempts = 5;
@@ -362,7 +369,7 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       try {
         _storeAccountContext = await AppPlatformService.storeAccountContext()
             .timeout(const Duration(seconds: 10));
-        if (_storeAccountContext?['environment'] == 'Sandbox') {
+        if (_storeAccountContext?['environment'] != 'Production') {
           _backendUrl = _sandboxBackendUrl;
         }
       } catch (_) {
@@ -547,6 +554,10 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
       final buildNumber = packageInfo.buildNumber;
       installedVersionName = packageInfo.versionName;
       installedBuildNumber = buildNumber;
+      final publicVersion = AppPlatformService.isIOS &&
+              _storeAccountContext?['environment'] == 'Production'
+          ? AppStoreReleaseService.latestVersion(countryCode: countryCode)
+          : Future<String?>.value();
 
       final uri = Uri.parse('$_backendUrl/api/v1/app/config').replace(
         queryParameters: {
@@ -579,6 +590,16 @@ class AppState extends ChangeNotifier with WidgetsBindingObserver {
         buildNumber: buildNumber,
         minimumBuildNumber: minimum,
       );
+      forceUpdateByStoreVersion = false;
+      final published = await publicVersion;
+      if (published != null &&
+          AppStoreReleaseService.isNewer(published, installedVersionName)) {
+        forceUpdateByStoreVersion = true;
+        forceUpdateRequired = true;
+        latestAvailableVersionName = published;
+        forceUpdateUrl = AppPlatformService.appStoreListing;
+        forceUpdateMessage = 'Update Ludo Cheer from the App Store to keep playing.';
+      }
       updateCheckComplete = true;
       updateCheckFailed = false;
     } catch (_) {

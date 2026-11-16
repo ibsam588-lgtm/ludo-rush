@@ -11,6 +11,8 @@ def run(*args, **kwargs):
 
 
 def main():
+    if os.environ.get('GITHUB_ACTIONS') == 'true':
+        raise RuntimeError('Store screenshots must be captured locally, never on GitHub runners.')
     devices = json.loads(run('xcrun', 'simctl', 'list', 'devices', 'available', '-j', capture_output=True).stdout)['devices']
     available = [device for runtime in reversed(list(devices.values())) for device in runtime]
     groups = {
