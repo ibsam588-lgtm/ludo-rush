@@ -24,7 +24,11 @@ Consumed by [the iOS workflow](../.github/workflows/flutter-ios-testflight.yml),
 | `ASC_KEY_P8_BASE64` | Base64 private `.p8` API key that signs App Store Connect authentication tokens. The current CI key has Developer-role upload access. |
 
 The distribution identity is Apple Distribution: IBSAM SHAHZAD, team
-`5MST9WC27Z`, expiring November 14, 2027. CI removes its temporary keychain and
+`5MST9WC27Z`, current certificate `3VL35NY5JS`, expiring November 16, 2027.
+The prior identity was revoked in the November 16 shared rotation. Its three
+replacement signing secrets must use this identity and Ludo profile
+`WRJXG47GS3` together; the API-key and Android entries are unchanged.
+CI removes its temporary keychain and
 profile even after a failed upload. The uploader does not submit a public review
 or attempt App Manager-only metadata/tester changes. Local store-setup tools use
 an `ASC_KEY_PATH` input; it is not a stored GitHub secret in this inventory.

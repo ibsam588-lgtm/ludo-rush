@@ -58,7 +58,9 @@ def main():
     assert not metadata.get('ProvisionedDevices'), 'Use an App Store Connect profile'
     assert metadata['ExpirationDate'].replace(tzinfo=timezone.utc) > datetime.now(timezone.utc)
     import hashlib
-    expected_certificate = '17267807ef56d70b32bf001316ca13220de3cd4bd4de2ef72aa87884a0df765f'
+    # Current existing shared identity 3VL35NY5JS. The prior shared identity
+    # was revoked during the owner's November 16 signing rotation.
+    expected_certificate = '85f00acd827b39f9785e92da5c5e64f56d2c807526450fa07c5b24c0fe7199d0'
     assert any(hashlib.sha256(cert).hexdigest() == expected_certificate
                for cert in metadata['DeveloperCertificates']), 'Profile must use the existing shared certificate'
 
@@ -71,6 +73,14 @@ def main():
         '-A', '-t', 'cert', '-f', 'pkcs12', '-k', str(keychain))
     run('security', 'set-key-partition-list', '-S', 'apple-tool:,apple:,codesign:',
         '-k', password, str(keychain), stdout=subprocess.DEVNULL)
+    identities = run('security', 'find-identity', '-v', '-p', 'codesigning',
+                     str(keychain), capture_output=True).stdout.decode()
+    matching_certificates = [cert for cert in metadata['DeveloperCertificates']
+                             if hashlib.sha256(cert).hexdigest() == expected_certificate]
+    if not any(hashlib.sha1(cert).hexdigest().upper() in identities.upper()
+               for cert in matching_certificates):
+        raise RuntimeError('The stored signing identity is invalid or does not match the profile. '
+                           'Check certificate revocation, expiry, and the matching PKCS#12 secrets.')
     run('security', 'list-keychains', '-d', 'user', '-s', str(keychain), 'login.keychain-db')
     installed = Path.home() / 'Library/Developer/Xcode/UserData/Provisioning Profiles' / f"{metadata['UUID']}.mobileprovision"
     installed.parent.mkdir(parents=True, exist_ok=True)
