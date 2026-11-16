@@ -1,31 +1,19 @@
 name: Android — Verify and Internal Testing
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'client-flutter/android/**'
-      - 'client-flutter/lib/**'
-      - 'client-flutter/assets/**'
-      - 'client-flutter/test/**'
-      - 'client-flutter/pubspec.*'
-      - '.github/workflows/flutter-android-internal.yml'
-  pull_request:
-    paths:
-      - 'client-flutter/android/**'
-      - 'client-flutter/lib/**'
-      - 'client-flutter/assets/**'
-      - 'client-flutter/test/**'
-      - 'client-flutter/pubspec.*'
-      - '.github/workflows/flutter-android-internal.yml'
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      upload:
+        description: Upload only after the selected main PR merges
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
   group: android-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: ${{ !inputs.upload }}
 
 jobs:
   build:
@@ -71,7 +59,7 @@ jobs:
         run: flutter test --no-pub
 
       - name: Verify Android release on pull requests
-        if: github.event_name == 'pull_request'
+        if: ${{ !inputs.upload }}
         env:
           KEYSTORE_PATH: ${{ runner.temp }}/pr-signing.jks
           KEY_ALIAS: pr-signing
@@ -84,7 +72,7 @@ jobs:
           grep -a -l 'WorkDatabase_Impl' "$RUNNER_TEMP"/release-dex/classes*.dex
 
       - name: Validate production ad secrets
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: inputs.upload && github.ref == 'refs/heads/main'
         env:
           LEVELPLAY_ANDROID_APP_KEY: ${{ secrets.LEVELPLAY_ANDROID_APP_KEY }}
           LEVELPLAY_ANDROID_BANNER_AD_UNIT: ${{ secrets.LEVELPLAY_ANDROID_BANNER_AD_UNIT }}
@@ -105,7 +93,7 @@ jobs:
           exit "$missing"
 
       - name: Decode keystore
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: inputs.upload && github.ref == 'refs/heads/main'
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 || secrets.UNITY_ANDROID_KEYSTORE_BASE64 }}
         run: |
@@ -116,7 +104,7 @@ jobs:
           echo "$KEYSTORE_BASE64" | base64 --decode > android/app/keystore.jks
 
       - name: Build release AAB
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: inputs.upload && github.ref == 'refs/heads/main'
         env:
           KEYSTORE_PATH: ${{ github.workspace }}/client-flutter/android/app/keystore.jks
           KEY_ALIAS: ${{ secrets.ANDROID_KEYALIAS_NAME || secrets.UNITY_ANDROID_KEYALIAS_NAME }}
@@ -127,14 +115,11 @@ jobs:
           LEVELPLAY_ANDROID_INTERSTITIAL_AD_UNIT: ${{ secrets.LEVELPLAY_ANDROID_INTERSTITIAL_AD_UNIT }}
           LEVELPLAY_ANDROID_REWARDED_AD_UNIT: ${{ secrets.LEVELPLAY_ANDROID_REWARDED_AD_UNIT }}
         run: |
-          BUILD_NUMBER=$((GITHUB_RUN_NUMBER + 10000))
-          VERSION_SEQUENCE=$GITHUB_RUN_NUMBER
-          if [ "$BUILD_NUMBER" -lt 10079 ]; then BUILD_NUMBER=10079; fi
-          if [ "$VERSION_SEQUENCE" -lt 79 ]; then VERSION_SEQUENCE=79; fi
+          BUILD_NUMBER=$((10105 + GITHUB_RUN_NUMBER * 10 + GITHUB_RUN_ATTEMPT))
+          VERSION_SEQUENCE=$((105 + GITHUB_RUN_NUMBER))
           BUILD_NAME="1.0.${VERSION_SEQUENCE}"
           echo "Building Play internal release ${BUILD_NAME} (${BUILD_NUMBER})"
           flutter build appbundle --release \
-            --build-name="1.0.${GITHUB_RUN_NUMBER}" \
             --build-number="${BUILD_NUMBER}" \
             --build-name="${BUILD_NAME}" \
             --dart-define=LEVELPLAY_PRODUCTION=true \
@@ -151,13 +136,13 @@ jobs:
             --dart-define=LEVELPLAY_LEVEL_REWARD_ENERGY="$LEVELPLAY_LEVEL_REWARD_ENERGY"
 
       - name: Check WorkManager startup database survives R8
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: inputs.upload && github.ref == 'refs/heads/main'
         run: |
           unzip -q build/app/outputs/bundle/release/app-release.aab 'base/dex/classes*.dex' -d "$RUNNER_TEMP/release-dex"
           grep -a -l 'WorkDatabase_Impl' "$RUNNER_TEMP"/release-dex/base/dex/classes*.dex
 
       - name: Upload AAB artifact
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: inputs.upload && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v7.0.2
         with:
           name: flutter-release-aab
@@ -165,7 +150,7 @@ jobs:
           retention-days: 7
 
       - name: Upload to Play Store (Internal)
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        if: inputs.upload && github.ref == 'refs/heads/main'
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}

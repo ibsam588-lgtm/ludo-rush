@@ -53,107 +53,121 @@ class _ForcedUpdateGateState extends State<ForcedUpdateGate>
                 const Positioned.fill(child: _ForcedUpdateBackdrop()),
                 SafeArea(
                   child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 430),
-                      child: Padding(
-                        padding: const EdgeInsets.all(22),
-                        child: DecoratedBox(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(26),
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Color(0xFF751071),
-                                Color(0xFF33073F),
-                                Color(0xFF12031B),
+                    child: SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 430),
+                        child: Padding(
+                          padding: const EdgeInsets.all(22),
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(26),
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xFF751071),
+                                  Color(0xFF33073F),
+                                  Color(0xFF12031B),
+                                ],
+                              ),
+                              border: Border.all(color: goldColor, width: 2.2),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0xDD000000),
+                                  blurRadius: 28,
+                                  offset: Offset(0, 14),
+                                ),
                               ],
                             ),
-                            border: Border.all(color: goldColor, width: 2.2),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Color(0xDD000000),
-                                blurRadius: 28,
-                                offset: Offset(0, 14),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                22,
+                                24,
+                                22,
+                                22,
                               ),
-                            ],
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _UpdateIcon(verifying: verifying),
-                                const SizedBox(height: 18),
-                                LocalizedText(
-                                  verifying
-                                      ? (state.updateCheckFailed
-                                          ? 'Connection Required'
-                                          : 'Checking Update')
-                                      : 'Update Required',
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    color: goldColor,
-                                    fontSize: 31,
-                                    height: 0.95,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0,
-                                    shadows: [
-                                      Shadow(
-                                        color: Colors.black87,
-                                        blurRadius: 6,
-                                        offset: Offset(0, 3),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
-                                LocalizedText(
-                                  verifying
-                                      ? (state.updateCheckFailed
-                                          ? 'Ludo Cheer must verify your app version before you can play. Connect to the internet and try again.'
-                                          : 'Verifying that you are on the latest Play Store build.')
-                                      : state.forceUpdateMessage,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white.withAlpha(230),
-                                    fontSize: 16,
-                                    height: 1.25,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                const SizedBox(height: 18),
-                                if (!verifying) _VersionLine(state: state),
-                                if (!verifying) const SizedBox(height: 22),
-                                if (!verifying)
-                                  _UpdateButton(
-                                    label: 'Update on Play Store',
-                                    icon: Icons.system_update_alt_rounded,
-                                    color: greenBtn,
-                                    onTap: state.openForcedUpdateStore,
-                                  ),
-                                if (!verifying) const SizedBox(height: 12),
-                                if (verifying && state.updateCheckInProgress)
-                                  const Padding(
-                                    padding: EdgeInsets.only(bottom: 18),
-                                    child: CircularProgressIndicator(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _UpdateIcon(verifying: verifying),
+                                  const SizedBox(height: 18),
+                                  LocalizedText(
+                                    verifying
+                                        ? (state.updateCheckFailed
+                                              ? 'Connection Required'
+                                              : 'Checking Update')
+                                        : 'Update Required',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
                                       color: goldColor,
-                                      strokeWidth: 4,
+                                      fontSize: 31,
+                                      height: 0.95,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0,
+                                      shadows: [
+                                        Shadow(
+                                          color: Colors.black87,
+                                          blurRadius: 6,
+                                          offset: Offset(0, 3),
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                _UpdateButton(
-                                  label: state.updateCheckInProgress
-                                      ? 'Checking...'
-                                      : (verifying
-                                          ? 'Try Again'
-                                          : 'Check Again'),
-                                  icon: Icons.refresh_rounded,
-                                  color: boardPurple,
-                                  onTap: state.updateCheckInProgress
-                                      ? null
-                                      : () => state.checkForForcedUpdate(),
-                                ),
-                              ],
+                                  const SizedBox(height: 12),
+                                  LocalizedText(
+                                    verifying
+                                        ? (state.updateCheckFailed
+                                              ? 'Ludo Cheer must verify your app version before you can play. Connect to the internet and try again.'
+                                              : 'Checking for the latest available update.')
+                                        : state.forceUpdateMessage,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.white.withAlpha(230),
+                                      fontSize: 16,
+                                      height: 1.25,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 18),
+                                  if (!verifying) _VersionLine(state: state),
+                                  if (!verifying) const SizedBox(height: 22),
+                                  if (!verifying)
+                                    _UpdateButton(
+                                      label:
+                                          state.forceUpdateStoreName ==
+                                              'TestFlight'
+                                          ? 'Update in TestFlight'
+                                          : state.forceUpdateStoreName ==
+                                                'App Store'
+                                          ? 'Update on App Store'
+                                          : 'Update on Play Store',
+                                      icon: Icons.system_update_alt_rounded,
+                                      color: greenBtn,
+                                      onTap: state.openForcedUpdateStore,
+                                    ),
+                                  if (!verifying) const SizedBox(height: 12),
+                                  if (verifying && state.updateCheckInProgress)
+                                    const Padding(
+                                      padding: EdgeInsets.only(bottom: 18),
+                                      child: CircularProgressIndicator(
+                                        color: goldColor,
+                                        strokeWidth: 4,
+                                      ),
+                                    ),
+                                  _UpdateButton(
+                                    label: state.updateCheckInProgress
+                                        ? 'Checking...'
+                                        : (verifying
+                                              ? 'Try Again'
+                                              : 'Check Again'),
+                                    icon: Icons.refresh_rounded,
+                                    color: boardPurple,
+                                    onTap: state.updateCheckInProgress
+                                        ? null
+                                        : () => state.checkForForcedUpdate(),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -180,7 +194,9 @@ class _VersionLine extends StatelessWidget {
     final installed = state.installedVersionName.isEmpty
         ? 'Installed build ${state.installedBuildNumber}'
         : 'Installed ${state.installedVersionName}+${state.installedBuildNumber}';
-    final required = state.latestAvailableVersionName.isEmpty
+    final required = state.forceUpdateByStoreVersion
+        ? 'Required ${state.latestAvailableVersionName}'
+        : state.latestAvailableVersionName.isEmpty
         ? 'Required build ${state.minimumRequiredBuildNumber}'
         : 'Required ${state.latestAvailableVersionName}+${state.minimumRequiredBuildNumber}';
     return Container(
@@ -250,21 +266,27 @@ class _UpdateButton extends StatelessWidget {
               ),
             ],
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: Colors.white, size: 23),
-              const SizedBox(width: 9),
-              LocalizedText(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
-                  shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
-                ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: Colors.white, size: 23),
+                  const SizedBox(width: 9),
+                  LocalizedText(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                      shadows: [Shadow(color: Colors.black87, blurRadius: 3)],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -316,11 +338,7 @@ class _ForcedUpdateBackdrop extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF180020),
-            Color(0xFF350044),
-            Color(0xFF07000E),
-          ],
+          colors: [Color(0xFF180020), Color(0xFF350044), Color(0xFF07000E)],
         ),
       ),
       child: CustomPaint(painter: _ForcedUpdatePatternPainter()),

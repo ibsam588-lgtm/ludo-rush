@@ -9,36 +9,38 @@ Store provisioning profile. Never commit signing keys or provisioning profiles.
 
 ## Platform workflows
 
-`flutter-android-internal.yml` verifies Android pull requests and uploads main
-changes to Google Play internal testing. Its existing filename and run-number
-history are retained so Android version codes keep increasing.
+The default branch is `main`. **Mobile Release** is the only mobile release
+entry point. Add exactly one PR label before merging:
 
-`flutter-ios-testflight.yml` verifies an unsigned iOS release on macOS and uploads
-signed main builds to TestFlight. A manual run with `capture_store_assets` also
-launches the actual iPhone and iPad UI to refresh store media. Ordinary pull
-requests and uploads compile and test the app, reusing visually reviewed media
-instead of recapturing the full store listing after every code change. Neither
-workflow submits a public store release.
+- `release:ios`: verify iOS, then build/sign/upload only iOS after merge.
+- `release:android`: verify Android, then build/sign/upload only Android after merge.
 
-The minimum supported iOS build is 1901, the first iOS 16 build with purchasing
-account recovery. Migration `0008_ios_minimum_release.sql` applies the same
-protocol floor to the production and isolated beta databases without changing
-Android's minimum. The API reports the effective minimum when latest-only
-enforcement is enabled, matching the client's comparison. Sandbox update gates
-direct testers to TestFlight and explain how to select Ludo Cheer and update;
-the download page can open/install TestFlight without exposing a public beta
-invitation link. Production uses the Ludo Cheer App Store listing.
+Shared Dart, assets, tests, and pubspec changes follow the selected label; they
+never select both builds. Documentation and backend-only changes do not build
+mobile apps. Missing/conflicting labels fail selection for mobile changes.
+Closing an unmerged PR never uploads. Manual dispatch selects one platform and
+is restricted to main. The two platform YAML files are reusable workers and
+have no independent push, PR, or manual triggers.
 
-Backend pushes now also synchronize the isolated beta Worker and migrations.
-This keeps update policies and server fixes current without rebuilding either
-mobile client. A manual backend deployment with migrations disabled skips this
-beta synchronization. Public links remain disabled for private external groups;
-external testers receive Apple invitations and need beta-review approval.
+The iOS worker uses Xcode 27.2 on `xcode-27`, verifies SDK major 27 or later,
+and retains iOS 16 as its deployment target. This meets [Apple's announced April 2027 requirements](https://developer.apple.com/app-store/submitting/)
+for the SDK and iOS 15-or-later deployment target. Internal and public
+builds reuse the existing certificate. Uploads do not publish a public release.
+The next iOS build number is read from processed TestFlight builds under a
+serialized iOS release group; changing the workflow does not reset numbering.
+Android uses an explicit baseline above build 10105 plus the new workflow run
+and attempt, so its first upload and retries remain newer than existing builds.
 
-Android host changes trigger Android only; iOS host, signing, Fastlane and store
-capture changes trigger iOS only. Shared Dart, assets, tests and pubspec changes
-trigger both platforms because they affect both apps. Each platform has an
-independent concurrency group.
+The minimum supported iOS protocol build is 1901. The API reports the effective
+minimum, and the client rechecks on foreground. Sandbox update gates direct
+testers to TestFlight. Public Production installs additionally check Apple's
+public catalog for a newer marketing version in the player's storefront.
+An unpublished TestFlight build cannot trigger a public update requirement;
+lookup failures retain the server policy. The UI names the correct store.
+
+Backend pushes also synchronize the isolated beta Worker and migrations.
+This keeps server fixes current without rebuilding either mobile client.
+A manual backend deployment with migrations disabled skips beta synchronization.
 
 Required iOS Actions secrets:
 
@@ -121,15 +123,31 @@ that hardware audio or a real StoreKit purchase succeeded.
 
 ## Store media
 
-`tools/ios/capture_store_assets.py` runs the real Flutter UI on a 6.9-inch iPhone
-and 13-inch iPad simulator. It captures five native screenshots per device and
+Store screenshots are generated locally, never by a GitHub runner. Both
+capture entry points reject `GITHUB_ACTIONS=true`; the release workflow has no
+capture job or capture input.
+
+On a local Mac, `tools/ios/capture_store_assets.py` runs the real Flutter UI on
+a 6.9-inch iPhone and 13-inch iPad simulator. It captures five native screenshots per device and
 records actual gameplay, using James as the sample player. Ten additional iPhone
 images show each paid product's real preview for Apple's purchase review. Each
 screen switch disposes the previous navigator so an old modal cannot contaminate
 the next capture. The fixture is an
-isolated entry point and is never imported by production main. The workflow
-uploads the screenshots, original video recording and a capture manifest as
-`ludo-cheer-ios-evidence`.
+isolated entry point and is never imported by production main. Keep its native recording and capture manifest as local release evidence.
+
+For Duo, run `flutter test tools/store_assets/duo_capture_test.dart
+--dart-define=LEVELPLAY_PRODUCTION=true` locally
+from `client-flutter`, with `FLUTTER_ROOT` pointing to the SDK. Optional
+`STORE_EMOJI_FONT` points to a local emoji font used only during capture.
+The actual production widgets render independently at 1398x2034 (outer) and
+2007x2853 (inner), with James as the sample player. These are Flutter renderer
+captures on the local machine, not iOS simulator or physical-device evidence.
+Check all ten images before uploading; do not stretch existing phone images.
+Apple uses `IPHONE_DUO_PROFILE` for both screens. Its accepted App Preview size
+is 886x1920 portrait, the same standard as other iPhone previews; reuse the
+reviewed native gameplay edit in that profile instead of stretching it to a
+screen's hardware dimensions. The upload helper accepts `--formats
+iphone-duo-outer iphone-duo-inner` and preserves other display placements.
 
 After visual review, `tools/ios/upload_store_assets.py` uploads the media to the
 draft localization through Apple's current asset-library API and attaches the
@@ -149,3 +167,24 @@ Use an edited 15–30 second gameplay clip at an Apple-supported device resoluti
 and upload it to the App Previews slot. Keep the YouTube link on the marketing
 website. Review simulator evidence, upload validation and SDK warnings before
 calling the iOS build release-ready.
+
+## Go-live gates
+
+Before the first public release, verify the App Store build is processed and
+attached, the app plus its ten products and Game Center components are accepted
+into App Review, privacy and age-rating forms match the shipped optional voice
+and advertising SDKs, and regional availability is correct. The listing keeps
+manual release so review approval alone does not publish it.
+
+Perform physical-device microphone/mute/leave checks and real Sandbox purchase,
+reinstall and second-device restore checks. Automated source/render/signaling
+checks cannot establish that microphone audio or Apple billing succeeds on a
+phone. An internal TestFlight invitation does not require external Beta App
+Review when the tester is already an eligible App Store Connect user.
+
+After the public App Store listing is reachable, connect it in Liftoff and
+finish any pending partner app approval. Recheck production fill/impressions
+and payout status; configured bidding mappings do not guarantee paid inventory.
+Production Android and iOS share rooms/queues for the same mode and region.
+TestFlight/App Review keep separate wallets and matchmaking to prevent Sandbox
+purchases affecting public players.

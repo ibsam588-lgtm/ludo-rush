@@ -18,7 +18,9 @@ from app_store_api import AppStoreClient, AppleAPIError
 
 APP_ID = '6834993861'
 GROUPS = {'iphone-6.9': 'IPHONE_DYNAMIC_ISLAND_LARGE_PROFILE',
-          'ipad-13': 'IPAD_13_PROFILE'}
+          'ipad-13': 'IPAD_13_PROFILE',
+          'iphone-duo-outer': 'IPHONE_DUO_PROFILE',
+          'iphone-duo-inner': 'IPHONE_DUO_PROFILE'}
 
 
 def opaque_image(path):
@@ -184,6 +186,9 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('media_root', type=Path)
     parser.add_argument('--localization', required=True, help='Editable App Store version localization ID')
+    parser.add_argument('--formats', nargs='+', choices=list(GROUPS),
+                        default=['iphone-6.9', 'ipad-13'],
+                        help='Upload only these reviewed display formats; Duo uses one Apple profile for both displays')
     parser.add_argument('--purchase-reviews', action='store_true')
     parser.add_argument('--replace-purchase-reviews', action='store_true',
                         help='Replace existing product review images only when the reviewed bytes differ')
@@ -193,7 +198,8 @@ def main():
     assert app['attributes']['bundleId'] == 'com.corsairlabs.ludocheer'
     library = api.request('GET', f'/v1/apps/{APP_ID}/assetLibrary')['data']['id']
     summary = []
-    for folder, group in GROUPS.items():
+    for folder in args.formats:
+        group = GROUPS[folder]
         ordered = {'APP_SCREENSHOT': [], 'APP_PREVIEW': []}
         images = sorted(p for p in (args.media_root / folder).glob('*.png') if p.name[0].isdigit())
         if len(images) != 5:

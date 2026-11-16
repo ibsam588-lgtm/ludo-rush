@@ -24,10 +24,12 @@ docs/                Product, architecture, and launch notes
 The public name is **Ludo Cheer**. Existing Android package, repository, and
 production Worker names retain `ludo-rush` for continuity.
 
-Android host changes run Android only; iOS host changes run iOS only. Shared
-Dart, assets, tests, or pubspec changes run both. Documentation changes do not
-trigger the Android, iOS, or backend workflows. Public store releases are
-separate from automatic tester uploads. See the [CI/CD guide](docs/github-playstore-cicd.md).
+**Mobile Release** uses exactly one PR label, `release:ios` or `release:android`,
+to verify and upload that platform after merge to `main`. Shared source follows
+that label and never selects both builds. Documentation and backend-only PRs
+do not build mobile binaries. Store screenshots are rendered locally, outside
+GitHub runners. Public store releases remain separate from tester uploads.
+See the [CI/CD guide](docs/github-playstore-cicd.md).
 
 Production Android and iOS use the same matchmaking queue when their game mode
 and region match. Ordinary TestFlight builds use separate beta rooms, players,

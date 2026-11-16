@@ -6,17 +6,25 @@ names remain stable. iOS uses `com.corsairlabs.ludocheer`.
 
 ## Automatic workflows
 
-| Workflow file | Automatic trigger | Result |
+| Workflow | Trigger | Result |
 | --- | --- | --- |
-| [flutter-android-internal.yml](../.github/workflows/flutter-android-internal.yml) | Android host, shared Dart/assets/tests/pubspec, or this workflow | PR verification; signed main build uploaded to Google Play internal testing |
-| [flutter-ios-testflight.yml](../.github/workflows/flutter-ios-testflight.yml) | iOS host, shared Dart/assets/tests/pubspec, `tools/ios`, `fastlane/ios`, or this workflow | PR verification; signed main build uploaded to TestFlight; Apple-verified Sandbox installations use the isolated beta backend |
-| [backend-ci.yml](../.github/workflows/backend-ci.yml) | Backend files or this workflow | Typecheck, tests, real Workers smoke test, and dependency audit |
-| [cloudflare-deploy.yml](../.github/workflows/cloudflare-deploy.yml) | Backend files on main or this workflow | Apply production D1 migrations, configure the Google Play verifier, and deploy the Worker |
+| [Mobile Release](../.github/workflows/mobile-release.yml) | A PR targeting main opens/changes, or merges; one release label selects the platform | Selected platform verifies on PRs and uploads only after merge |
+| [iOS worker](../.github/workflows/flutter-ios-testflight.yml) | Called only by Mobile Release for `release:ios` | Xcode 27.2 verification; signed TestFlight upload after main merge |
+| [Android worker](../.github/workflows/flutter-android-internal.yml) | Called only by Mobile Release for `release:android` | Android verification; signed Google Play internal upload after main merge |
+| [backend-ci.yml](../.github/workflows/backend-ci.yml) | Backend files | Typecheck, tests, Workers smoke test and audit |
+| [cloudflare-deploy.yml](../.github/workflows/cloudflare-deploy.yml) | Backend files on main | Production migrations/deploy plus isolated beta synchronization |
 
-Android-only host changes do not trigger iOS, and iOS-only host changes do not
-trigger Android. Shared client changes intentionally verify both platforms.
-Platform workflow filenames and histories are retained for increasing build
-numbers. Each platform has a separate concurrency group.
+Use exactly one of `release:ios` and `release:android`. Shared files do not
+trigger a second platform. Missing/conflicting labels block mobile selection;
+docs-only and backend-only PRs skip both mobile workers. Direct pushes to main
+do not upload mobile binaries. Main is the release branch; there is no master
+release branch. A manual Mobile Release dispatch can select exactly one
+platform from main. Native platform workers cannot be dispatched separately.
+
+The iOS upload worker reads Apple's latest build number before building;
+Android numbering uses a baseline above the old workflow's last uploaded code.
+Each platform has its own concurrency group. Screenshot generation is local
+and absent from GitHub Actions.
 
 ## Documentation-only updates
 
@@ -32,7 +40,8 @@ does not build a mobile binary, deploy the backend, or upload to either store.
 
 ## Manual operations
 
-All workflows can be dispatched manually. These additional workflows run only
+Mobile Release can be dispatched for one platform on main. The reusable mobile
+workers cannot be dispatched independently. These additional workflows run only
 when explicitly dispatched:
 
 | Workflow | Purpose |
