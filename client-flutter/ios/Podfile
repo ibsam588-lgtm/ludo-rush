@@ -26,7 +26,7 @@ target 'Runner' do
   use_frameworks! :linkage => :static
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
-  pod 'IronSourceUnityAdsAdapter', '5.13.0.0'
+  pod 'IronSourceUnityAdsAdapter', '5.14.0.0'
   pod 'IronSourceVungleAdapter', '5.17.0.0'
   pod 'IronSourceInMobiAdapter', '5.10.0.0'
   pod 'IronSourceChartboostAdapter', '5.10.0.0'
