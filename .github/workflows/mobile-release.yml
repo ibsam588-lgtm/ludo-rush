@@ -1,61 +1,79 @@
 name: Mobile Release
 
 on:
-  pull_request:
-    branches: [main]
-    types: [opened, reopened, synchronize, labeled, unlabeled, closed]
   workflow_dispatch:
     inputs:
       platform:
         description: Build and upload exactly one platform from main
         type: choice
-        options: [ios, android]
+        options: [ ios, android ]
         required: true
       production_backend:
         description: Use the live backend for public iOS installs (Sandbox stays isolated)
         type: boolean
         default: true
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
   pull-requests: read
 
 concurrency:
-  group: mobile-selection-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event.action != 'closed' }}
+  group: mobile-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   select:
-    name: Select one release platform
+    name: Select one platform from main
     runs-on: ubuntu-latest
     outputs:
-      platform: ${{ steps.selection.outputs.platform }}
-      upload: ${{ steps.selection.outputs.upload }}
+      platform: ${{ steps.select.outputs.platform }}
+      upload: ${{ steps.select.outputs.upload }}
+      release: ${{ steps.select.outputs.release }}
+      operation: ${{ steps.select.outputs.operation }}
+      revision: ${{ steps.select.outputs.revision }}
+      ref: ${{ steps.select.outputs.ref }}
+      commit_sha: ${{ steps.select.outputs.commit_sha }}
+      branch: ${{ steps.select.outputs.branch }}
     steps:
-      - uses: actions/checkout@v5
-      - name: Verify release routing
-        run: node --test .github/scripts/mobile-release.test.cjs
-      - uses: actions/github-script@v8
-        id: selection
+      - uses: actions/checkout@v6
         with:
-          script: |
-            const select = require('./.github/scripts/mobile-release.cjs');
-            await select({ github, context, core });
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - name: Test main-only release selection
+        run: node --test .github/scripts/main-release-route.test.cjs
+      - name: Read labels of the PR merged into this main commit
+        id: select
+        uses: actions/github-script@v8
+        env:
+          RELEASE_INPUTS_JSON: ${{ toJSON(inputs) }}
+        with:
+          script: >-
+            const select = require('./.github/scripts/main-release-route.cjs');
 
+            await select({ github, context, core, inputs: JSON.parse(process.env.RELEASE_INPUTS_JSON || '{}'),
+            defaultUpload: true });
+    if: github.ref == 'refs/heads/main'
   ios:
     name: iOS only
-    needs: select
-    if: needs.select.outputs.platform == 'ios'
+    needs:
+      - select
+    if: github.ref == 'refs/heads/main' && (needs.select.outputs.platform == 'ios')
     uses: ./.github/workflows/flutter-ios-testflight.yml
     with:
       upload: ${{ needs.select.outputs.upload == 'true' }}
       production_backend: ${{ github.event_name != 'workflow_dispatch' || inputs.production_backend }}
     secrets: inherit
-
   android:
     name: Android only
-    needs: select
-    if: needs.select.outputs.platform == 'android'
+    needs:
+      - select
+    if: github.ref == 'refs/heads/main' && (needs.select.outputs.platform == 'android')
     uses: ./.github/workflows/flutter-android-internal.yml
     with:
       upload: ${{ needs.select.outputs.upload == 'true' }}

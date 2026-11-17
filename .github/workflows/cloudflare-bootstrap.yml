@@ -3,6 +3,7 @@ name: Bootstrap Cloudflare Resources
 on:
   workflow_dispatch:
 
+
 permissions:
   contents: read
 
@@ -17,6 +18,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -56,3 +59,4 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    if: github.ref == 'refs/heads/main'

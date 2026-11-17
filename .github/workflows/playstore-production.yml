@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -36,3 +38,4 @@ jobs:
           ANDROID_PACKAGE_NAME: ${{ inputs.package_name }}
           PLAY_SOURCE_TRACK: ${{ inputs.source_track }}
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+    if: github.ref == 'refs/heads/main'
