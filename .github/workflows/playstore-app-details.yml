@@ -27,6 +27,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
 
       - name: Setup Ruby
         uses: ruby/setup-ruby@v1
@@ -41,3 +43,4 @@ jobs:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
           PLAY_CONTACT_EMAIL: ${{ inputs.contact_email }}
           PLAY_CONTACT_WEBSITE: ${{ inputs.contact_website }}
+    if: github.ref == 'refs/heads/main'

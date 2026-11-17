@@ -35,6 +35,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -159,3 +161,4 @@ jobs:
           tracks: internal
           releaseName: "Ludo Cheer internal #${{ github.run_number }}"
           status: completed
+    if: github.ref == 'refs/heads/main'
