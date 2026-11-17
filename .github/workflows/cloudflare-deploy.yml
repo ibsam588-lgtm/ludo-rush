@@ -2,11 +2,12 @@ name: Deploy Backend To Cloudflare
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
-      - 'backend-cloudflare/**'
-      - '.github/workflows/cloudflare-deploy.yml'
-      - 'tools/ios/deploy_beta_backend.py'
+      - backend-cloudflare/**
+      - .github/workflows/cloudflare-deploy.yml
+      - tools/ios/deploy_beta_backend.py
   workflow_dispatch:
     inputs:
       apply_migrations:
@@ -36,6 +37,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -94,3 +97,4 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    if: github.ref == 'refs/heads/main'

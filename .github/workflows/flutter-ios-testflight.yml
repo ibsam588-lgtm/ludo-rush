@@ -37,6 +37,8 @@ jobs:
         working-directory: client-flutter
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
       - name: Verify required Apple SDK
         run: |
           xcodebuild -version
@@ -75,16 +77,19 @@ jobs:
             client-flutter/ios/Gemfile.lock
           if-no-files-found: ignore
           retention-days: 14
+    if: github.ref == 'refs/heads/main'
 
   beta-backend:
     name: Prepare isolated TestFlight purchase testing
     needs: verify
-    if: inputs.upload && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (inputs.upload && github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     outputs:
       backend_url: ${{ steps.deploy.outputs.backend_url }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
@@ -102,11 +107,10 @@ jobs:
 
   testflight:
     name: Sign and upload to TestFlight
-    needs: [verify, beta-backend]
+    needs: [ verify, beta-backend ]
     if: >-
-      always() && needs.verify.result == 'success' &&
-      needs.beta-backend.result == 'success' &&
-      inputs.upload && github.ref == 'refs/heads/main'
+      github.ref == 'refs/heads/main' && (always() && needs.verify.result == 'success' && needs.beta-backend.result ==
+      'success' && inputs.upload && github.ref == 'refs/heads/main')
     runs-on: xcode-27
     timeout-minutes: 60
     defaults:
@@ -114,6 +118,8 @@ jobs:
         working-directory: client-flutter
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
@@ -147,7 +153,8 @@ jobs:
           LEVELPLAY_IOS_BANNER_AD_UNIT: ${{ secrets.LEVELPLAY_IOS_BANNER_AD_UNIT }}
           LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT: ${{ secrets.LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT }}
           LEVELPLAY_IOS_REWARDED_AD_UNIT: ${{ secrets.LEVELPLAY_IOS_REWARDED_AD_UNIT }}
-          BACKEND_URL: ${{ inputs.production_backend && 'https://ludo-rush-backend.ibsam588.workers.dev' || needs.beta-backend.outputs.backend_url }}
+          BACKEND_URL: ${{ inputs.production_backend && 'https://ludo-rush-backend.ibsam588.workers.dev' ||
+            needs.beta-backend.outputs.backend_url }}
           IOS_SANDBOX_BACKEND_URL: ${{ needs.beta-backend.outputs.backend_url }}
         run: |
           for name in LEVELPLAY_IOS_APP_KEY LEVELPLAY_IOS_BANNER_AD_UNIT LEVELPLAY_IOS_INTERSTITIAL_AD_UNIT LEVELPLAY_IOS_REWARDED_AD_UNIT; do
