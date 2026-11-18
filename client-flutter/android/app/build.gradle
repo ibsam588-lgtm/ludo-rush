@@ -87,8 +87,7 @@ dependencies {
 
     // Only ship networks configured for this LevelPlay account. ironSource Ads
     // is bundled by the LevelPlay plugin; these are its active mediated peers.
-    implementation 'com.unity3d.ads-mediation:unityads-adapter:5.5.0'
-    implementation 'com.unity3d.ads:unity-ads:4.16.6'
+    implementation 'com.unity3d.ads-mediation:unityads-adapter:5.16.0'
     implementation 'com.unity3d.ads-mediation:vungle-adapter:5.5.0'
     implementation 'com.vungle:vungle-ads:7.7.0'
     implementation 'com.unity3d.ads-mediation:inmobi-adapter:5.4.0'
