@@ -4,7 +4,7 @@ The iOS bundle is `com.corsairlabs.ludocheer`, App Store Connect app
 `6834993861`, Apple team `5MST9WC27Z`, with iOS 16 as the minimum version for
 Apple-signed account recovery. The Android identity remains
 `com.ludorush.game`. The iOS app uses the existing shared Apple Distribution
-certificate expiring November 14, 2027, with an app-specific Game Center App
+certificate `3VL35NY5JS` expiring November 16, 2027, with an app-specific Game Center App
 Store provisioning profile. Never commit signing keys or provisioning profiles.
 
 ## Platform workflows
@@ -65,6 +65,15 @@ when the upload fails.
 The Developer-role API key only uploads builds. Internal TestFlight access is
 configured in App Store Connect, with the internal group receiving all builds;
 the upload lane does not attempt App Manager-only tester or changelog changes.
+
+The former shared certificate was revoked in the owner's November 16 rotation.
+The replacement already exists in the same Apple team; no new certificate is
+created by this repo. The verified Ludo App Store profile is `WRJXG47GS3`, named
+`Ludo Cheer App Store Shared 3VL35NY5JS`, and includes Game Center. Update the
+three existing distribution identity/password/profile secrets together. The
+signing helper pins the current public certificate fingerprint and checks a
+valid matching code-signing identity before archiving. API keys and Android
+credentials are independent of this repair.
 
 ## Native services
 
